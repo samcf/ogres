@@ -1,0 +1,182 @@
+:root {
+    --color-primary-a: #79bd8f;
+    --color-primary-b: hsl(46, 44%, 74%);
+    --color-primary-c: hsl(174, 8%, 24%);
+    --color-primary-d: hsl(150, 2%, 17%);
+    --color-primary-e: hsl(240, 3%, 12%);
+
+    --theme-background-a: hsl(240, 3%, 12%);
+    --theme-background-b: hsl(150, 2%, 17%);
+    --theme-background-c: hsl(174, 8%, 24%);
+    --theme-background-d: hsl(200, 20%, 12%);
+
+    --theme-text: hsl(0, 0%, 92%);
+    --theme-text-link: hsl(6, 73%, 60%);
+}
+
+html, body, #root, .table {
+    height: 100%;
+}
+
+body {
+    font-family: sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+input[type="text"] {
+    border-radius: 2px;
+    border: none;
+    box-sizing: border-box;
+    padding: 4px 8px;
+    width: 100%;
+}
+
+/* Page Styles */
+.table {
+    display: flex;
+    background-color: var(--theme-background-a);
+    color: var(--theme-text);
+}
+
+.command {
+    border-right: 1px solid var(--color-primary-d);
+    box-sizing: content-box;
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+    width: 36px;
+}
+
+.command > button {
+    background-color: transparent;
+    border-radius: 2px;
+    border: 1px solid var(--color-primary-a);
+    color: var(--theme-text);
+    cursor: pointer;
+    height: 36px;
+}
+
+.command > button + button {
+    margin-top: 8px;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.workspaces {
+    border-bottom: 1px solid var(--color-primary-d);
+    display: flex;
+    padding: 8px 0 0 8px;
+}
+
+.workspaces > div {
+    background-color: transparent;
+    border-radius: 2px;
+    border: 1px solid var(--color-primary-c);
+    box-sizing: border-box;
+    display: flex;
+    margin: 0 8px 8px 0;
+}
+
+.workspaces > div > label {
+    cursor: pointer;
+    font-size: 13px;
+    padding: 4px 32px 4px 12px;
+    opacity: 0.60;
+}
+
+.workspaces > div > label.active {
+    background-color: var(--theme-background-c);
+    opacity: 1;
+}
+
+.workspaces > div > label:hover {
+    background-color: var(--theme-background-c);
+}
+
+.workspaces > div > button {
+    background-color: transparent;
+    border: none;
+    color: var(--theme-text);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px 8px;
+}
+
+.workspaces > div > button:hover {
+    background-color: var(--color-primary-c);
+}
+
+.workspaces > button {
+    background: transparent;
+    border: 1px solid var(--color-primary-c);
+    border-radius: 2px;
+    color: var(--theme-text);
+    cursor: pointer;
+    display: block;
+    margin-bottom: 8px;
+    width: 34px;
+}
+
+.workspaces > button:hover {
+    background-color: var(--color-primary-c);
+}
+
+.workspaces input[type="radio"] {
+    position: absolute;
+    clip: rect(0, 0, 0, 0);
+    pointer-events: none;
+}
+
+.workspace {
+    background-color: var(--theme-background-d);
+    position: relative;
+    flex: 1;
+}
+
+.canvas {
+    width: 100%;
+    height: 100%;
+}
+
+.viewing, .vignette {
+    pointer-events: none;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
+
+.viewing {
+    display: flex;
+    flex-direction: column;
+}
+
+.viewing > div {
+    background-color: var(--theme-background-a);
+    border: 1px solid var(--theme-background-c);
+    box-shadow: 3px 3px 12px rgba(0, 0, 0, 0.45);
+    display: flex;
+    flex-direction: column;
+    margin: 16px;
+    max-width: 320px;
+    padding: 8px;
+    pointer-events: all;
+}
+
+.viewing label {
+    font-size: 14px;
+}
+
+.viewing label + label {
+    margin-top: 16px;
+}
+
+.vignette {
+    box-shadow: inset 0 0 32px rgba(0, 0, 0, 0.90);
+}

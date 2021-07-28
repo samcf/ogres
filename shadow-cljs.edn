@@ -1,0 +1,16 @@
+{:source-paths
+ ["src/main"]
+
+ :dependencies
+ [[datascript "1.2.2"]
+  [rum "0.12.6"]]
+
+ :dev-http
+ {8080 "docs"}
+
+ :builds
+ {:app
+  {:target :browser
+   :output-dir "docs/script"
+   :asset-path "/script"
+   :modules {:ogre.tools {:entries [ogre.tools.core]}}}}}
