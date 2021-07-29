@@ -89,8 +89,12 @@ input[type="text"] {
 .workspaces > div > label {
     cursor: pointer;
     font-size: 13px;
-    padding: 4px 32px 4px 12px;
+    max-width: 160px;
     opacity: 0.60;
+    overflow: hidden;
+    padding: 4px 32px 4px 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .workspaces > div > label.active {
