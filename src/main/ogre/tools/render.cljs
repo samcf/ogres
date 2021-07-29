@@ -78,8 +78,7 @@
           [:button {:type "button" :key c} c])
         [:button
          {:type "button"
-          :onClick (fn []
-                     (dispatch :view/toggle-settings (:db/id workspace)))} "B"]]
+          :onClick #(dispatch :view/toggle-settings (:db/id workspace))} "B"]]
        [:div.content
         [:div.workspaces
          (for [workspace (:viewer/workspaces viewer) :let [id (:db/id workspace)]]
