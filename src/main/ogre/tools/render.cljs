@@ -4,6 +4,12 @@
             [react-draggable :as draggable]
             [rum.core :as rum]))
 
+(defn workspaces [data]
+  (->> (ds/q '[:find ?ws ?tx :where [_ :viewer/workspaces ?ws ?tx]] data)
+       (sort-by second)
+       (map first)
+       (map #(ds/entity data %))))
+
 (defn viewer [data]
   (ds/entity data (:e (first (ds/datoms data :aevt :viewer/workspace)))))
 
@@ -73,25 +79,26 @@
 
 (rum/defc layout [props & children]
   (rum/with-context [[state dispatch] *context*]
-    (let [viewer (viewer state) workspace (:viewer/workspace viewer)]
+    (let [viewer (viewer state)
+          current (:viewer/workspace viewer)]
       [:div.table
        [:div.command
         (for [c ["S" "P" "M"]]
           [:button {:type "button" :key c} c])
         [:button
          {:type "button"
-          :onClick #(dispatch :view/toggle-settings (:db/id workspace))} "B"]]
+          :onClick #(dispatch :view/toggle-settings (:db/id current))} "B"]]
        [:div.content
         [:div.workspaces
-         (for [workspace (:viewer/workspaces viewer) :let [id (:db/id workspace)]]
+         (for [workspace (workspaces state) :let [id (:db/id workspace)]]
            [:div {:key id}
             [:label
-             {:className (css {:active (= (:viewer/workspace viewer) workspace)})}
+             {:className (css {:active (= current workspace)})}
              [:input
               {:type "radio"
                :name "window"
                :value id
-               :checked (= (:viewer/workspace viewer) workspace)
+               :checked (= current workspace)
                :onChange #(dispatch :workspace/change id)}]
              (let [name (clojure.string/trim (or (:element/name workspace) ""))]
                (if (empty? name) [:em "Unnamed Workspace"] [:span name]))]
@@ -102,12 +109,12 @@
           [:defs
            [:pattern {:id "grid" :width 64 :height 64 :patternUnits "userSpaceOnUse"}
             [:path {:d "M 64 0 L 0 0 0 64" :stroke "black" :stroke-width "1" :fill "none"}]]]
-          (camera {:element workspace :dispatch dispatch}
-                  (element {:element workspace}))]
+          (camera {:element current :dispatch dispatch}
+                  (element {:element current}))]
          [:div.vignette]
          [:div.viewing
-          (for [element (:workspace/viewing workspace)]
-            (rum/with-key (options {:element workspace :dispatch dispatch})
+          (for [element (:workspace/viewing current)]
+            (rum/with-key (options {:element current :dispatch dispatch})
               (:db/id element)))]]]])))
 
 (rum/defc root [props & children]

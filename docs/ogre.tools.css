@@ -74,6 +74,7 @@ input[type="text"] {
 .workspaces {
     border-bottom: 1px solid var(--color-primary-d);
     display: flex;
+    flex-wrap: wrap;
     padding: 8px 0 0 8px;
 }
 
