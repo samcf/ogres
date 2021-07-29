@@ -40,27 +40,33 @@
         update (fn [attr value]
                  (dispatch :element/update (:db/id element) attr value))]
     (case (:element/type element)
-      :board [:<>
-              [:label
-               [:input
-                {:type "text"
-                 :value (:workspace/name workspace)
-                 :onChange (fn [event]
-                             (dispatch :workspace/update-name
-                                       (:db/id workspace)
-                                       (.. event -target -value)))}]]
-              [:label
-               [:div "Upload image"]
-               [:input
-                {:type "file" :accept "image/*" :name "board"
-                 :onChange (fn [event]
-                             (let [file   (aget (.. event -target -files) 0)
-                                   reader (js/FileReader.)]
-                               (.readAsDataURL reader file)
-                               (.addEventListener
-                                reader "load"
-                                (fn [event]
-                                  (update :board/imageURL (.. event -target -result))))))}]]]
+      :board
+      [:div.options
+       [:div.options-header
+        [:div.options-title "Workspace & Map Settings"]
+        [:button {:type "button"
+                  :onClick #(dispatch :view/close (:db/id workspace) (:db/id element))} "×"]]
+       [:label
+        [:input
+         {:type "text"
+          :placeholder "Workspace name"
+          :value (or (:workspace/name workspace) "")
+          :onChange (fn [event]
+                      (let [value (.. event -target -value)]
+                        (dispatch :workspace/update-name (:db/id workspace) value)))}]]
+       [:label
+        [:div "Upload image"]
+        [:input
+         {:type "file" :accept "image/*" :name "board"
+          :onChange (fn [event]
+                      (let [file   (aget (.. event -target -files) 0)
+                            reader (new js/FileReader)]
+                        (.readAsDataURL reader file)
+                        (.addEventListener
+                         reader "load"
+                         (fn [event]
+                           (let [result (.. event -target -result)]
+                             (update :board/imageURL result))))))}]]]
       nil)))
 
 (rum/defc layout [props & children]
@@ -73,13 +79,11 @@
         [:button
          {:type "button"
           :onClick (fn []
-                     (dispatch :workspace/view-board-settings (:db/id workspace)))} "B"]]
+                     (dispatch :view/toggle-settings (:db/id workspace)))} "B"]]
        [:div.content
         [:div.workspaces
-         (for [workspace (:viewer/workspaces viewer)
-               :let [id (:db/id workspace)]]
+         (for [workspace (:viewer/workspaces viewer) :let [id (:db/id workspace)]]
            [:div {:key id}
-
             [:label
              {:className (css {:active (= (:viewer/workspace viewer) workspace)})}
              [:input
@@ -88,7 +92,8 @@
                :value id
                :checked (= (:viewer/workspace viewer) workspace)
                :onChange #(dispatch :workspace/change id)}]
-             (:workspace/name workspace)]
+             (let [name (clojure.string/trim (or (:workspace/name workspace) ""))]
+               (if (empty? name) [:em "Unnamed Workspace"] [:span name]))]
             [:button {:type "button" :onClick #(dispatch :workspace/remove id)} "×"]])
          [:button {:type "button" :onClick #(dispatch :workspace/create)} "+"]]
         [:div.workspace
@@ -102,8 +107,8 @@
          [:div.vignette]
          [:div.viewing
           (for [element (:workspace/viewing workspace)]
-            [:div {:key (:db/id element)}
-             (options {:workspace workspace :element element :dispatch dispatch})])]]]])))
+            (rum/with-key (options {:workspace workspace :element element :dispatch dispatch})
+              (:db/id element)))]]]])))
 
 (rum/defc root [props & children]
   (let [{:keys [data transact]}  props

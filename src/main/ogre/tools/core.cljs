@@ -25,12 +25,9 @@
    :element/type       {}
    :board/imageURL     {}})
 
-(defn create-workspace []
-  {:workspace/name   "New Workspace"
-   :workspace/board  {:element/type :board
-                      :board/size   64}
-   :workspace/camera {:camera/x 0
-                      :camera/y 0}})
+(defn initial-workspace []
+  {:workspace/board  {:element/type :board :board/size 64}
+   :workspace/camera {:camera/x 0 :camera/y 0}})
 
 (defmulti transact
   (fn [data event & args] event))
@@ -38,7 +35,7 @@
 (defmethod transact :workspace/create
   [data event]
   (let [viewer (viewer data)
-        workspace (-> (create-workspace) (assoc :db/id -1))]
+        workspace (-> (initial-workspace) (assoc :db/id -1))]
     [[:db/add (:db/id viewer) :viewer/workspace -1]
      [:db/add (:db/id viewer) :viewer/workspaces -1]
      workspace]))
@@ -52,7 +49,7 @@
   (let [viewer (viewer data) workspace (ds/entity data id)]
     (cond
       (= (count (:viewer/workspaces viewer)) 1)
-      (let [next (-> (create-workspace) (assoc :db/id -1))]
+      (let [next (-> (initial-workspace) (assoc :db/id -1))]
         [[:db.fn/retractEntity id]
          [:db/add (:db/id viewer) :viewer/workspace -1]
          [:db/add (:db/id viewer) :viewer/workspaces -1]
@@ -70,10 +67,17 @@
   [data event id name]
   [[:db/add id :workspace/name name]])
 
-(defmethod transact :workspace/view-board-settings
+(defmethod transact :view/toggle-settings
   [data event id]
-  (let [workspace (ds/entity data id)]
-    [[:db/add id :workspace/viewing (:db/id (:workspace/board workspace))]]))
+  (let [workspace (ds/entity data id)
+        board (:workspace/board workspace)]
+    (if (contains? (:workspace/viewing workspace) board)
+      [[:db/retract id :workspace/viewing (:db/id board)]]
+      [[:db/add id :workspace/viewing (:db/id board)]])))
+
+(defmethod transact :view/close
+  [data event workspace element]
+  [[:db/retract workspace :workspace/viewing element]])
 
 (defmethod transact :element/update
   [data event id attr value]
@@ -85,7 +89,7 @@
 
 (defn initial-state []
   (ds/db-with (ds/empty-db schema)
-              (let [workspace (-> (create-workspace) (assoc :db/id -2))]
+              (let [workspace (-> (initial-workspace) (assoc :db/id -2))]
                 [[:db/add -1 :viewer/workspace -2]
                  [:db/add -1 :viewer/workspaces -2]
                  workspace])))

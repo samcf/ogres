@@ -24,9 +24,13 @@ body {
     line-height: 1.5;
 }
 
+em {
+    font-style: italic;
+}
+
 input[type="text"] {
     border-radius: 2px;
-    border: none;
+    border: 1px solid black;
     box-sizing: border-box;
     padding: 4px 8px;
     width: 100%;
@@ -157,16 +161,34 @@ input[type="text"] {
     flex-direction: column;
 }
 
-.viewing > div {
-    background-color: var(--theme-background-a);
-    border: 1px solid var(--theme-background-c);
+.options {
+    background-color: white;
+    border-radius: 3px;
+    border: 1px solid black;
     box-shadow: 3px 3px 12px rgba(0, 0, 0, 0.45);
+    color: black;
     display: flex;
     flex-direction: column;
     margin: 16px;
     max-width: 320px;
     padding: 8px;
     pointer-events: all;
+}
+
+.options-header {
+    align-items: center;
+    border-bottom: 1px solid black;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.options-title {
+
+}
+
+.options-close {
+
 }
 
 .viewing label {
