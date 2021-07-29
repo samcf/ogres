@@ -8,26 +8,16 @@
 
 (def schema
   {:viewer/workspace   {:db/valueType :db.type/ref}
-   :viewer/workspaces  {:db/valueType   :db.type/ref
-                        :db/cardinality :db.cardinality/many}
-   :workspace/name     {}
-   :workspace/camera   {:db/valueType   :db.type/ref
-                        :db/isComponent true}
-   :workspace/board    {:db/valueType   :db.type/ref
-                        :db/isComponent true}
-   :workspace/elements {:db/valueType   :db.type/ref
-                        :db/cardinality :db.cardinality/many
-                        :db/isComponent true}
-   :workspace/viewing  {:db/valueType   :db.type/ref
-                        :db/cardinality :db.cardinality/many}
-   :camera/x           {}
-   :camera/y           {}
+   :viewer/workspaces  {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
+   :workspace/viewing  {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
+   :position/x         {}
+   :position/y         {}
    :element/type       {}
-   :board/imageURL     {}})
+   :element/name       {}
+   :map/imageURL       {}})
 
 (defn initial-workspace []
-  {:workspace/board  {:element/type :board :board/size 64}
-   :workspace/camera {:camera/x 0 :camera/y 0}})
+  {:element/type :workspace :position/x 0 :position/y 0})
 
 (defmulti transact
   (fn [data event & args] event))
@@ -63,29 +53,24 @@
       :else
       [[:db.fn/retractEntity id]])))
 
-(defmethod transact :workspace/update-name
-  [data event id name]
-  [[:db/add id :workspace/name name]])
+(defmethod transact :element/update
+  [data event id attr value]
+  [[:db/add id attr value]])
 
 (defmethod transact :view/toggle-settings
   [data event id]
-  (let [workspace (ds/entity data id)
-        board (:workspace/board workspace)]
-    (if (contains? (:workspace/viewing workspace) board)
-      [[:db/retract id :workspace/viewing (:db/id board)]]
-      [[:db/add id :workspace/viewing (:db/id board)]])))
+  (let [entity (ds/entity data id)]
+    (if (contains? (:workspace/viewing entity) entity)
+      [[:db/retract id :workspace/viewing (:db/id entity)]]
+      [[:db/add id :workspace/viewing (:db/id entity)]])))
 
 (defmethod transact :view/close
   [data event workspace element]
   [[:db/retract workspace :workspace/viewing element]])
 
-(defmethod transact :element/update
-  [data event id attr value]
-  [[:db/add id attr value]])
-
 (defmethod transact :camera/translate [data event id x y]
-  [[:db/add id :camera/x x]
-   [:db/add id :camera/y y]])
+  [[:db/add id :position/x x]
+   [:db/add id :position/y y]])
 
 (defn initial-state []
   (ds/db-with (ds/empty-db schema)
