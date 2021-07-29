@@ -13,4 +13,5 @@
   {:target :browser
    :output-dir "docs/script"
    :asset-path "/script"
-   :modules {:ogre.tools {:entries [ogre.tools.core]}}}}}
+   :modules {:ogre.tools {:entries [ogre.tools.core]}}
+   :devtools {:after-load ogre.tools.core/main}}}}
