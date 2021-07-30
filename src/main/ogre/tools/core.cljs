@@ -10,11 +10,15 @@
   {:viewer/workspace   {:db/valueType :db.type/ref}
    :viewer/workspaces  {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :workspace/viewing  {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
+   :workspace/map      {:db/valueType :db.type/ref}
    :position/x         {}
    :position/y         {}
    :element/type       {}
    :element/name       {}
-   :map/imageURL       {}})
+   :map/id             {}
+   :map/width          {}
+   :map/height         {}
+   :map/url            {}})
 
 (defn initial-workspace []
   {:element/type :workspace :position/x 0 :position/y 0})
@@ -53,6 +57,10 @@
       :else
       [[:db.fn/retractEntity id]])))
 
+(defmethod transact :workspace/change-map
+  [data event workspace map]
+  [[:db/add workspace :workspace/map map]])
+
 (defmethod transact :element/update
   [data event id attr value]
   [[:db/add id attr value]])
@@ -68,9 +76,15 @@
   [data event workspace element]
   [[:db/retract workspace :workspace/viewing element]])
 
-(defmethod transact :camera/translate [data event id x y]
+(defmethod transact :camera/translate
+  [data event id x y]
   [[:db/add id :position/x x]
    [:db/add id :position/y y]])
+
+(defmethod transact :map/create
+  [data event workspace map-data]
+  [(assoc map-data :db/id -1)
+   [:db/add (:db/id workspace) :workspace/map -1]])
 
 (defn initial-state []
   (ds/db-with (ds/empty-db schema)

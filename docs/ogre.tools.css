@@ -90,7 +90,7 @@ input[type="text"] {
 .workspaces > div > label {
     cursor: pointer;
     font-size: 13px;
-    max-width: 160px;
+    width: 140px;
     opacity: 0.60;
     overflow: hidden;
     padding: 4px 32px 4px 12px;
@@ -180,9 +180,12 @@ input[type="text"] {
     pointer-events: all;
 }
 
+.options > section + section {
+    margin-top: 8px;
+}
+
 .options-header {
     align-items: center;
-    border-bottom: 1px solid black;
     display: flex;
     justify-content: space-between;
     margin-bottom: 8px;
@@ -194,6 +197,22 @@ input[type="text"] {
 
 .options-close {
 
+}
+
+.options-boards-maps {
+    display: grid;
+    grid-gap: 4px;
+    grid-template-columns: repeat(4, 1fr);
+    max-height: 64px;
+    overflow-y: auto;
+}
+
+.options-boards-maps > img {
+    border-radius: 3px;
+    border: 1px solid black;
+    box-sizing: border-box;
+    height: 64px;
+    width: 100%;
 }
 
 .viewing label {

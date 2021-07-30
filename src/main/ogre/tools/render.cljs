@@ -1,22 +1,42 @@
 (ns ogre.tools.render
   (:require [datascript.core :as ds]
+            [dexie :as dexie]
             [ogre.tools.utils :refer [css]]
             [react-draggable :as draggable]
             [rum.core :as rum]))
 
-(defn workspaces [data]
+(defn query-workspaces [data]
   (->> (ds/q '[:find ?ws ?tx :where [_ :viewer/workspaces ?ws ?tx]] data)
        (sort-by second)
        (map first)
        (map #(ds/entity data %))))
 
-(defn viewer [data]
+(defn query-maps [data]
+  (->> (ds/q '[:find ?id ?tx :where [?id :map/id _ ?tx]] data)
+       (sort-by second)
+       (map first)
+       (map #(ds/entity data %))))
+
+(defn query-viewer [data]
   (ds/entity data (:e (first (ds/datoms data :aevt :viewer/workspace)))))
 
-(rum/defcontext *context*)
+(defn load-image [file handler]
+  (let [reader (new js/FileReader)]
+    (.readAsDataURL reader file)
+    (.addEventListener
+     reader "load"
+     (fn [event]
+       (let [data  (.. event -target -result)
+             image (new js/Image)
+             url   (.createObjectURL js/URL file)]
+         (.addEventListener
+          image "load"
+          (fn []
+            (this-as img (handler {:data data :url url :img img}))))
+         (set! (.-src image) url))))))
 
-(rum/defc provider [value children]
-  (rum/bind-context [*context* value] children))
+(rum/defcontext *context*)
+(rum/defcontext *dexie*)
 
 (defn camera [props & children]
   (let [{:keys [element dispatch]} props
@@ -37,60 +57,71 @@
       [:g
        #_[:rect {:x 0 :y 0 :fill "url(#grid)" :width 640 :height 640}]
        #_[:path {:d "M 640.5 0 L 640.5 640.5 0 640.5" :fill "none" :stroke "black" :stroke-width 0.5}]
-       (when-let [url (:map/imageURL element)]
+       (when-let [url (-> element :workspace/map :map/url)]
          [:image {:x 0 :y 0 :href url}])
        children]
       nil)))
 
 (rum/defc options [props & children]
-  (let [{:keys [element dispatch]} props
-        update (fn [attr value]
-                 (dispatch :element/update (:db/id element) attr value))]
+  (let [{:keys [element dispatch]} props]
+    (rum/with-context [[data dispatch] *context*]
+      (rum/with-context [dexie *dexie*]
+        (case (:element/type element)
+          :workspace
+          [:div.options
+           [:section.options-header
+            [:label "Workspace Settings"]
+            [:button {:type "button" :on-click #(dispatch :view/close (:db/id element))} "×"]]
 
-    (case (:element/type element)
-      :workspace
-      [:div.options
-       [:div.options-header
-        [:div.options-title "Workspace & Map Settings"]
-        [:button {:type "button"
-                  :onClick #(dispatch :view/close (:db/id element))} "×"]]
-       [:label
-        [:input
-         {:type "text"
-          :placeholder "Workspace name"
-          :value (or (:element/name element) "")
-          :onChange (fn [event]
-                      (let [value (.. event -target -value)]
-                        (update :element/name value)))}]]
-       [:label
-        [:div "Upload image"]
-        [:input
-         {:type "file" :accept "image/*" :name "board"
-          :onChange (fn [event] nil
-                      (let [file   (aget (.. event -target -files) 0)
-                            reader (new js/FileReader)]
-                        (.readAsDataURL reader file)
-                        (.addEventListener
-                         reader "load"
-                         (fn [event]
-                           (let [result (.. event -target -result)]
-                             (update :map/imageURL result))))))}]]]
-      nil)))
+           [:section
+            [:label
+             [:input
+              {:type "text"
+               :placeholder "Workspace name"
+               :value (or (:element/name element) "")
+               :on-change
+               (fn [event]
+                 (let [value (.. event -target -value)]
+                   (dispatch :element/update (:db/id element) :element/name value)))}]]]
+
+           (let [boards (query-maps data)]
+             [:section
+              (when (seq boards)
+                [:div.options-boards
+                 [:label "Select an existing map"]
+                 [:div.options-boards-maps
+                  (for [board boards :let [{:keys [db/id map/url]} board]]
+                    [:img {:key id
+                           :src url
+                           :width 80
+                           :height 80
+                           :style {:object-fit "cover"}
+                           :on-click #(dispatch :workspace/change-map (:db/id element) id)}])]])
+              [:input
+               {:type "file"
+                :accept "image/*"
+                :on-change
+                #(load-image
+                  (aget (.. % -target -files) 0)
+                  (fn [{:keys [data url img]}]
+                    (let [id (ds/squuid) w (.-width img) h (.-height img)]
+                      (-> (.-images dexie) (.put  #js {:id (str id) :data data :created-at (.now js/Date)}))
+                      (dispatch :map/create element {:map/id id :map/url url :map/width w :map/height h}))))}]])]
+          nil)))))
 
 (rum/defc layout [props & children]
-  (rum/with-context [[state dispatch] *context*]
-    (let [viewer (viewer state)
-          current (:viewer/workspace viewer)]
+  (rum/with-context [[data dispatch] *context*]
+    (let [viewer (query-viewer data) current (:viewer/workspace viewer)]
       [:div.table
        [:div.command
         (for [c ["S" "P" "M"]]
           [:button {:type "button" :key c} c])
         [:button
          {:type "button"
-          :onClick #(dispatch :view/toggle-settings (:db/id current))} "B"]]
+          :on-click #(dispatch :view/toggle-settings (:db/id current))} "B"]]
        [:div.content
         [:div.workspaces
-         (for [workspace (workspaces state) :let [id (:db/id workspace)]]
+         (for [workspace (query-workspaces data) :let [id (:db/id workspace)]]
            [:div {:key id}
             [:label
              {:className (css {:active (= current workspace)})}
@@ -99,11 +130,11 @@
                :name "window"
                :value id
                :checked (= current workspace)
-               :onChange #(dispatch :workspace/change id)}]
+               :on-change #(dispatch :workspace/change id)}]
              (let [name (clojure.string/trim (or (:element/name workspace) ""))]
                (if (empty? name) [:em "Unnamed Workspace"] [:span name]))]
-            [:button {:type "button" :onClick #(dispatch :workspace/remove id)} "×"]])
-         [:button {:type "button" :onClick #(dispatch :workspace/create)} "+"]]
+            [:button {:type "button" :on-click #(dispatch :workspace/remove id)} "×"]])
+         [:button {:type "button" :on-click #(dispatch :workspace/create)} "+"]]
         [:div.workspace
          [:svg.canvas
           [:defs
@@ -122,5 +153,14 @@
         [state update!] (rum/use-state data)
         handler         (fn [event & args]
                           (let [next (ds/db-with state (apply transact state event args))]
-                            (update! next)))]
-    (provider [state handler] (layout {}))))
+                            (update! next)))
+        dexie-db (new dexie "ogre.tools")]
+
+    (-> (.version dexie-db 1)
+        (.stores #js {:images "id"}))
+
+    (rum/bind-context
+     [*dexie* dexie-db]
+     (rum/bind-context
+      [*context* [state handler]]
+      (layout {})))))
