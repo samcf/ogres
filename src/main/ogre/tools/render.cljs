@@ -3,7 +3,8 @@
             [dexie :as dexie]
             [ogre.tools.utils :refer [css]]
             [react-draggable :as draggable]
-            [rum.core :as rum]))
+            [rum.core :as rum]
+            [spade.core :refer [defclass]]))
 
 (defn query-workspaces [data]
   (->> (ds/q '[:find ?ws ?tx :where [_ :viewer/workspaces ?ws ?tx]] data)
@@ -32,7 +33,7 @@
          (.addEventListener
           image "load"
           (fn []
-            (this-as img (handler {:data data :url url :img img}))))
+            (this-as img (handler {:data data :filename (.-name file) :url url :img img}))))
          (set! (.-src image) url))))))
 
 (rum/defcontext *context*)
@@ -62,59 +63,167 @@
        children]
       nil)))
 
+(defclass options-styles []
+  {:background-color "white"
+   :border           "1px solid black"
+   :border-radius    "3px"
+   :color            "black"
+   :display          "flex"
+   :flex-direction   "column"
+   :margin           "16px"
+   :max-width        "320px"
+   :padding          "8px"
+   :pointer-events   "all"}
+  [:.header {:display "flex" :justify-content "space-between"}]
+  [:section+section {:margin-top "8px"}])
+
 (rum/defc options [props & children]
-  (let [{:keys [element dispatch]} props]
+  (let [{:keys [element]} props]
     (rum/with-context [[data dispatch] *context*]
       (rum/with-context [dexie *dexie*]
-        (case (:element/type element)
-          :workspace
-          [:div.options
-           [:section.options-header
-            [:label "Workspace Settings"]
-            [:button {:type "button" :on-click #(dispatch :view/close (:db/id element))} "×"]]
-
-           [:section
-            [:label
-             [:input
-              {:type "text"
-               :placeholder "Workspace name"
-               :value (or (:element/name element) "")
-               :on-change
-               (fn [event]
-                 (let [value (.. event -target -value)]
-                   (dispatch :element/update (:db/id element) :element/name value)))}]]]
-
-           (let [boards (query-maps data)]
-             [:section
-              (when (seq boards)
-                [:div.options-boards
-                 [:label "Select an existing map"]
-                 [:div.options-boards-maps
-                  (for [board boards :let [{:keys [db/id map/url]} board]]
-                    [:img {:key id
-                           :src url
-                           :width 80
-                           :height 80
-                           :style {:object-fit "cover"}
-                           :on-click #(dispatch :workspace/change-map (:db/id element) id)}])]])
+        [:div {:class (options-styles)}
+         (case (:element/type element)
+           :workspace
+           [:<>
+            [:section.header
+             [:label "Workspace Settings"]
+             [:button.close {:type "button" :on-click #(dispatch :view/close (:db/id element))} "×"]]
+            [:section
+             [:label
               [:input
-               {:type "file"
-                :accept "image/*"
-                :multiple true
+               {:type "text"
+                :placeholder "Workspace name"
+                :value (or (:element/name element) "")
                 :on-change
-                #(doseq [file (.. % -target -files)]
-                   (load-image
-                    file
-                    (fn [{:keys [data url img]}]
-                      (let [id (ds/squuid) w (.-width img) h (.-height img)]
-                        (-> (.-images dexie) (.put  #js {:id (str id) :data data :created-at (.now js/Date)}))
-                        (dispatch :map/create element {:map/id id :map/url url :map/width w :map/height h})))))}]])]
-          nil)))))
+                (fn [event]
+                  (let [value (.. event -target -value)]
+                    (dispatch :element/update (:db/id element) :element/name value)))}]]]
+
+            (let [boards (query-maps data)]
+              [:section
+               (when (seq boards)
+                 [:div
+                  [:label "Select an existing map"]
+                  [:div
+                   (for [board boards :let [{:keys [db/id map/url map/name]} board]]
+                     [:div {:key id :style {:background-image (str "url(" url ")")}
+                            :on-click #(dispatch :workspace/change-map (:db/id element) id)}
+                      [:div name]])]])
+               [:input
+                {:type "file"
+                 :accept "image/*"
+                 :multiple true
+                 :on-change
+                 #(doseq [file (.. % -target -files)]
+                    (load-image
+                     file
+                     (fn [{:keys [data filename url img]}]
+                       (let [id (ds/squuid) w (.-width img) h (.-height img)]
+                         (-> (.-images dexie) (.put  #js {:id (str id) :data data :created-at (.now js/Date)}))
+                         (dispatch
+                          :map/create
+                          element
+                          {:map/id id :map/name filename :map/url url :map/width w :map/height h})))))}]])]
+           nil)]))))
+
+(defclass layout-styles []
+  {:display "flex"
+   :background-color "var(--theme-background-a)"
+   :color "var(--theme-text)"
+   :height "100%"}
+  [:.command
+   {:border-right "1px solid var(--color-primary-d)"
+    :box-sizing "content-box"
+    :display "flex"
+    :flex-direction "column"
+    :padding "8px"
+    :width "36px"}
+   [:button
+    {:background-color "transparent"
+     :border-radius "2px"
+     :border "1px solid var(--color-primary-a)"
+     :color "var(--theme-text)"
+     :cursor "pointer"
+     :height "36px"}]
+   [:button+button {:margin-top "8px"}]]
+  [:.content
+   {:display "flex"
+    :flex-direction "column"
+    :flex 1}
+   [:.workspaces
+    {:border-bottom "1px solid var(--color-primary-d)"
+     :display "flex"
+     :flex-wrap "wrap"
+     :padding "8px 0 0 8px"}
+    [:div
+     {:background-color "transparent"
+      :border-radius "2px"
+      :border "1px solid var(--color-primary-c)"
+      :box-sizing "border-box"
+      :display "flex"
+      :margin "0 8px 8px 0"}
+     [:label
+      {:cursor "pointer"
+       :font-size "13px"
+       :width "140px"
+       :opacity "0.60"
+       :overflow "hidden"
+       :padding "4px 32px 4px 12px"
+       :text-overflow "ellipsis"
+       :white-space "nowrap"}
+      [:input
+       {:position "absolute"
+        :clip "rect(0, 0, 0, 0)"
+        :pointer-events "none"}]
+      [:button {}]]
+     [:label.active
+      {:background-color "var(--theme-background-c)"
+       :opacity 1}]
+     [:label:hover
+      {:background-color "var(--theme-background-c)"}]]
+    [:button
+     {:background-color "transparent"
+      :border "none"
+      :color "var(--theme-text)"
+      :cursor "pointer"
+      :font-size "16px"
+      :padding "4px 8px"}]
+    [:>button
+     {:background "transparent"
+      :border "1px solid var(--color-primary-c)"
+      :border-radius "2px"
+      :color "var(--theme-text)"
+      :cursor "pointer"
+      :display "block"
+      :margin-bottom "8px"
+      :width "34px"}]
+    [:>button:hover
+     {:background-color "var(--color-primary-c)"}]
+    [:button:hover
+     {:background-color "var(--color-primary-c)"}]]
+   [:.workspace
+    {:background-color "var(--theme-background-d)"
+     :position "relative"
+     :flex "1"}
+    [:.canvas
+     {:height "100%" :width "100%"}]
+    [:.cover
+     {:pointer-events "none"
+      :position "absolute"
+      :top "0"
+      :right "0"
+      :bottom "0"
+      :left "0"}]
+    [:.vignette
+     {:box-shadow "inset 0 0 32px rgba(0, 0, 0, 0.90)"}]
+    [:.viewing
+     {:display "flex"
+      :flex-direction "column"}]]])
 
 (rum/defc layout [props & children]
   (rum/with-context [[data dispatch] *context*]
     (let [viewer (query-viewer data) current (:viewer/workspace viewer)]
-      [:div.table
+      [:div {:class (layout-styles)}
        [:div.command
         (for [c ["S" "P" "M"]]
           [:button {:type "button" :key c} c])
@@ -144,8 +253,8 @@
             [:path {:d "M 64 0 L 0 0 0 64" :stroke "black" :stroke-width "1" :fill "none"}]]]
           (camera {:element current :dispatch dispatch}
                   (element {:element current}))]
-         [:div.vignette]
-         [:div.viewing
+         [:div.cover.vignette]
+         [:div.cover.viewing
           (for [element (:workspace/viewing current)]
             (rum/with-key (options {:element current :dispatch dispatch})
               (:db/id element)))]]]])))
