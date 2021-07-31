@@ -2,22 +2,50 @@
   (:require [datascript.core :as ds]
             [rum.core :as rum]
             [spade.core :refer [defclass]]
-            [ogre.tools.render :refer [context]]
+            [ogre.tools.render :refer [css context]]
             [ogre.tools.query :as query]))
 
 (defclass styles []
-  {:background-color "white"
+  {:background-color "#F2F2EB"
    :border           "1px solid black"
    :border-radius    "3px"
-   :color            "black"
+   :color            "#461B0E"
    :display          "flex"
    :flex-direction   "column"
    :margin           "16px"
-   :max-width        "320px"
+   :max-width        "480px"
    :padding          "8px"
    :pointer-events   "all"}
-  [:.header {:display "flex" :justify-content "space-between"}]
-  [:section+section {:margin-top "8px"}])
+  [:section+section
+   {:margin-top "8px"}]
+  [:.header
+   {:display         "flex"
+    :justify-content "space-between"}]
+  [:.boards
+   {:display               "grid"
+    :grid-gap              "2px"
+    :grid-template-columns "repeat(4, 1fr)"
+    :font-size             "12px"}
+   [:>div
+    {:background-size "cover"
+     :cursor          "pointer"
+     :display         "flex"
+     :border-radius   "4px"
+     :box-sizing      "border-box"
+     :flex-direction  "column"
+     :justify-content "flex-end"
+     :height          "88px"}
+    [:&.selected>div :&:hover>div
+     {:background-color "rgba(0, 0, 0, 1)"
+      :color            "rgba(255, 255, 255)"}]
+    [:>div
+     {:background-color "rgba(0, 0, 0, 0.20)"
+      :border-radius    "0 0 4px 4px"
+      :color            "rgba(255, 255, 255, 0.80)"
+      :max-height       "44px"
+      :overflow-y       "hidden"
+      :padding          "0 4px"
+      :pointer-events   "none"}]]])
 
 (defn load-image [file handler]
   (let [reader (new js/FileReader)]
@@ -58,9 +86,11 @@
         (when (seq boards)
           [:div
            [:label "Select an existing map"]
-           [:div
+           [:div.boards
             (for [board boards :let [{:keys [db/id map/url map/name]} board]]
-              [:div {:key id :style {:background-image (str "url(" url ")")}
+              [:div {:key id
+                     :class (css {:selected (= board (:workspace/map element))})
+                     :style {:background-image (str "url(" url ")")}
                      :on-click #(dispatch :workspace/change-map (:db/id element) id)}
                [:div name]])]])
         [:input
