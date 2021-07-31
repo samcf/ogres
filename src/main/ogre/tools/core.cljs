@@ -1,10 +1,9 @@
 (ns ogre.tools.core
   (:require [rum.core :as rum]
             [datascript.core :as ds]
-            [ogre.tools.render :as render]))
-
-(defn viewer [data]
-  (ds/entity data (:e (first (ds/datoms data :aevt :viewer/workspace)))))
+            [ogre.tools.render :as render]
+            [ogre.tools.query :as query]
+            [ogre.tools.render.layout :refer [layout]]))
 
 (def schema
   {:viewer/workspace   {:db/valueType :db.type/ref}
@@ -28,7 +27,7 @@
 
 (defmethod transact :workspace/create
   [data event]
-  (let [viewer (viewer data)
+  (let [viewer (query/viewer data)
         workspace (-> (initial-workspace) (assoc :db/id -1))]
     [[:db/add (:db/id viewer) :viewer/workspace -1]
      [:db/add (:db/id viewer) :viewer/workspaces -1]
@@ -36,11 +35,11 @@
 
 (defmethod transact :workspace/change
   [data event id]
-  [{:db/id (:db/id (viewer data)) :viewer/workspace id}])
+  [{:db/id (:db/id (query/viewer data)) :viewer/workspace id}])
 
 (defmethod transact :workspace/remove
   [data event id]
-  (let [viewer (viewer data) workspace (ds/entity data id)]
+  (let [viewer (query/viewer data) workspace (ds/entity data id)]
     (cond
       (= (count (:viewer/workspaces viewer)) 1)
       (let [next (-> (initial-workspace) (assoc :db/id -1))]
@@ -96,6 +95,6 @@
 (defn main []
   (let [props {:data (initial-state) :transact transact}
         element (.querySelector js/document "#root")]
-    (rum/mount (render/root props) element)))
+    (rum/mount (render/root props (layout)) element)))
 
 (.addEventListener js/window "DOMContentLoaded" main)
