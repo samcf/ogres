@@ -1,9 +1,17 @@
 (ns ogre.tools.render.options
+  (:import goog.crypt.Md5)
   (:require [datascript.core :as ds]
             [rum.core :as rum]
             [spade.core :refer [defclass]]
             [ogre.tools.render :refer [css context]]
             [ogre.tools.query :as query]))
+
+(defn checksum [data]
+  (let [hash (new Md5)]
+    (.update hash data)
+    (reduce
+     (fn [s b]
+       (str s (.slice (str "0" (.toString b 16)) -2))) "" (.digest hash))))
 
 (defclass styles []
   {:background-color "#F2F2EB"
@@ -13,7 +21,9 @@
    :display          "flex"
    :flex-direction   "column"
    :margin           "16px"
-   :max-width        "480px"
+   :max-height       "100%"
+   :max-width        "360px"
+   :overflow-y       "auto"
    :padding          "8px"
    :pointer-events   "all"}
   [:section+section
@@ -24,7 +34,7 @@
   [:.boards
    {:display               "grid"
     :grid-gap              "2px"
-    :grid-template-columns "repeat(4, 1fr)"
+    :grid-template-columns "repeat(3, 1fr)"
     :font-size             "12px"}
    [:>div
     {:background-size "cover"
@@ -102,12 +112,16 @@
              (load-image
               file
               (fn [{:keys [data filename url img]}]
-                (let [id (ds/squuid) w (.-width img) h (.-height img)]
-                  (-> (.-images store) (.put  #js {:id (str id) :data data :created-at (.now js/Date)}))
-                  (dispatch
-                   :map/create
-                   element
-                   {:map/id id :map/name filename :map/url url :map/width w :map/height h})))))}]])]))
+                (let [checks (checksum data)
+                      record #js {:checksum checks :data data :created-at (.now js/Date)}
+                      entity {:map/id     checks
+                              :map/name   filename
+                              :map/url    url
+                              :map/width  (.-width img)
+                              :map/height (.-height img)}]
+                  (-> (.put (.-images store) record)
+                      (.then
+                       (fn [] (dispatch :map/create element entity))))))))}]])]))
 
 (rum/defc options [{:keys [element]}]
   (rum/with-context [value context]

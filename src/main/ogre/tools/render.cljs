@@ -31,7 +31,7 @@
                             (update! (fn [current]
                                        (ds/db-with current (apply transact state event args)))))]
       (-> (.version store 1)
-          (.stores #js {:images "id"}))
+          (.stores #js {:images "checksum"}))
 
       (rum/bind-context
        [context {:data state :dispatch handler :store store}] children))))

@@ -14,7 +14,7 @@
    :position/y         {}
    :element/type       {}
    :element/name       {}
-   :map/id             {}
+   :map/id             {:db/index true}
    :map/width          {}
    :map/height         {}
    :map/url            {}})
@@ -82,8 +82,11 @@
 
 (defmethod transact :map/create
   [data event workspace map-data]
-  [(assoc map-data :db/id -1)
-   [:db/add (:db/id workspace) :workspace/map -1]])
+  (let [existing (first (ds/datoms data :avet :map/id (:map/id map-data)))]
+    (if (nil? existing)
+      [(assoc map-data :db/id -1)
+       [:db/add (:db/id workspace) :workspace/map -1]]
+      [[:db/add (:db/id workspace) :workspace/map (first existing)]])))
 
 (defn initial-state []
   (ds/db-with (ds/empty-db schema)
