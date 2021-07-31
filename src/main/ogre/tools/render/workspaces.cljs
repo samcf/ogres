@@ -26,11 +26,9 @@
      {:position "absolute"
       :clip "rect(0, 0, 0, 0)"
       :pointer-events "none"}]
+    [:&.active {:background-color "var(--theme-background-c)" :opacity 1}]
+    [:&:hover {:background-color "var(--theme-background-c)"}]
     [:>em {}]]
-   [:>label.active
-    {:background-color "var(--theme-background-c)" :opacity 1}]
-   [:>label:hover
-    {:background-color "var(--theme-background-c)"}]
    [:>button
     {:background-color "transparent"
      :border "none"
@@ -46,9 +44,8 @@
     :cursor "pointer"
     :display "block"
     :margin-bottom "8px"
-    :width "34px"}]
-  [:>button:hover
-   {:background-color "var(--color-primary-c)"}])
+    :width "34px"}
+   [:&:hover {:background-color "var(--color-primary-c)"}]])
 
 (rum/defc workspaces [props & children]
   (rum/with-context [{:keys [data dispatch]} context]

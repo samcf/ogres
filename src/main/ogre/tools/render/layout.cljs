@@ -20,30 +20,24 @@
     :padding "8px"
     :width "36px"}]
   [:.content
-   {:display "flex"
-    :flex-direction "column"
-    :flex 1}
-   [:.workspaces
-    {:border-bottom "1px solid var(--color-primary-d)"
-     :padding "8px 0 0 8px"}]
-   [:.workspace
-    {:background-color "var(--theme-background-d)"
-     :position "relative"
-     :flex "1"}
-    [:.canvas
-     {:height "100%" :width "100%"}]
-    [:.cover
-     {:pointer-events "none"
-      :position "absolute"
-      :top "0"
-      :right "0"
-      :bottom "0"
-      :left "0"}]
-    [:.vignette
-     {:box-shadow "inset 0 0 32px rgba(0, 0, 0, 0.90)"}]
-    [:.viewing
-     {:display "flex"
-      :flex-direction "column"}]]])
+   {:display "flex" :flex-direction "column" :flex 1}]
+  [:.workspaces
+   {:border-bottom "1px solid var(--color-primary-d)" :padding "8px 0 0 8px"}]
+  [:.workspace
+   {:background-color "var(--theme-background-d)" :position "relative" :flex "1"}]
+  [:.canvas
+   {:height "100%" :width "100%"}]
+  [:.vignette
+   {:box-shadow "inset 0 0 32px rgba(0, 0, 0, 0.90)"}]
+  [:.viewing
+   {:display "flex" :flex-direction "column"}]
+  [:.vignette :.viewing
+   {:pointer-events "none"
+    :position "absolute"
+    :top "0"
+    :right "0"
+    :bottom "0"
+    :left "0"}])
 
 (rum/defc layout [props & children]
   (rum/with-context [{:keys [data dispatch]} context]
@@ -61,5 +55,5 @@
           (camera
            {:element workspace :dispatch dispatch}
            (element {:element workspace}))]
-         [:div.cover.vignette]
-         [:div.cover.viewing (viewing {:workspace workspace})]]]])))
+         [:div.vignette]
+         [:div.viewing (viewing {:workspace workspace})]]]])))
