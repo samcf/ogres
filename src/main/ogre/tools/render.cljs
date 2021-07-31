@@ -100,13 +100,15 @@
               [:input
                {:type "file"
                 :accept "image/*"
+                :multiple true
                 :on-change
-                #(load-image
-                  (aget (.. % -target -files) 0)
-                  (fn [{:keys [data url img]}]
-                    (let [id (ds/squuid) w (.-width img) h (.-height img)]
-                      (-> (.-images dexie) (.put  #js {:id (str id) :data data :created-at (.now js/Date)}))
-                      (dispatch :map/create element {:map/id id :map/url url :map/width w :map/height h}))))}]])]
+                #(doseq [file (.. % -target -files)]
+                   (load-image
+                    file
+                    (fn [{:keys [data url img]}]
+                      (let [id (ds/squuid) w (.-width img) h (.-height img)]
+                        (-> (.-images dexie) (.put  #js {:id (str id) :data data :created-at (.now js/Date)}))
+                        (dispatch :map/create element {:map/id id :map/url url :map/width w :map/height h})))))}]])]
           nil)))))
 
 (rum/defc layout [props & children]
@@ -149,18 +151,17 @@
               (:db/id element)))]]]])))
 
 (rum/defc root [props & children]
-  (let [{:keys [data transact]}  props
-        [state update!] (rum/use-state data)
-        handler         (fn [event & args]
-                          (let [next (ds/db-with state (apply transact state event args))]
-                            (update! next)))
-        dexie-db (new dexie "ogre.tools")]
+  (let [{:keys [data transact]} props]
+    (let [[state update!] (rum/use-state data)
+          indexeddb       (new dexie "ogre.tools")
+          handler         (fn [event & args]
+                            (update! (fn [current]
+                                       (ds/db-with current (apply transact state event args)))))]
+      (-> (.version indexeddb 1)
+          (.stores #js {:images "id"}))
 
-    (-> (.version dexie-db 1)
-        (.stores #js {:images "id"}))
-
-    (rum/bind-context
-     [*dexie* dexie-db]
-     (rum/bind-context
-      [*context* [state handler]]
-      (layout {})))))
+      (rum/bind-context
+       [*dexie* indexeddb]
+       (rum/bind-context
+        [*context* [state handler]]
+        (layout {}))))))

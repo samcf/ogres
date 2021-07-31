@@ -203,7 +203,7 @@ input[type="text"] {
     display: grid;
     grid-gap: 4px;
     grid-template-columns: repeat(4, 1fr);
-    max-height: 64px;
+    max-height: 134px;
     overflow-y: auto;
 }
 
