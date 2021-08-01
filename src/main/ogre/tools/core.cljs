@@ -8,6 +8,7 @@
 (def schema
   {:db/ident           {:db/unique :db.unique/identity}
    :viewer/workspace   {:db/valueType :db.type/ref}
+   :viewer/tokens      {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :workspace/viewing  {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :workspace/elements {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :workspace/map      {:db/valueType :db.type/ref}
@@ -107,9 +108,11 @@
 
 (defn initial-state []
   (ds/db-with (ds/empty-db schema)
-              [[:db/add -1 :viewer/workspace -2]
-               [:db/add -1 :db/ident :viewer]
-               (assoc (initial-workspace) :db/id -2)]))
+              [[:db/add -1 :db/ident :viewer]
+               (assoc (initial-workspace) :db/id -2)
+               [:db/add -1 :viewer/workspace -2]
+               [:db/add -3 :element/type :token]
+               [:db/add -1 :viewer/tokens -3]]))
 
 (defn main []
   (let [props {:data (initial-state) :transact transact}

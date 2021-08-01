@@ -15,3 +15,6 @@
        (sort-by second)
        (map first)
        (map #(ds/entity data %))))
+
+(defn tokens [data]
+  (:viewer/tokens (ds/entity data [:db/ident :viewer])))

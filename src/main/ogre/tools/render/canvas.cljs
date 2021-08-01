@@ -45,5 +45,5 @@
                             (fn [event data]
                               (dispatch :token/translate (:db/id element) (.-x data) (.-y data))))}
                 [:g {:class (css (element-styles) "token")}
-                 [:circle {:cx 0 :cy 0 :r 36 :fill "purple"}]]])
+                 [:circle {:cx 0 :cy 0 :r 36 :fill "black"}]]])
              nil))]]])))
