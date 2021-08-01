@@ -9,6 +9,7 @@
   {:viewer/workspace   {:db/valueType :db.type/ref}
    :viewer/workspaces  {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :workspace/viewing  {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
+   :workspace/elements {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :workspace/map      {:db/valueType :db.type/ref}
    :position/x         {}
    :position/y         {}
@@ -91,6 +92,21 @@
 (defmethod transact :map/remove
   [data event map]
   [[:db/retractEntity map]])
+
+(defmethod transact :token/create
+  [data event id token tx ty]
+  (let [workspace (ds/entity data id)
+        {:keys [position/x position/y]} workspace]
+    [(assoc token
+            :db/id -1
+            :position/x (- tx x)
+            :position/y (- ty y))
+     [:db/add id :workspace/elements -1]]))
+
+(defmethod transact :token/translate
+  [data event id x y]
+  [[:db/add id :position/x x]
+   [:db/add id :position/y y]])
 
 (defn initial-state []
   (ds/db-with (ds/empty-db schema)
