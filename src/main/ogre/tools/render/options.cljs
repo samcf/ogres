@@ -44,11 +44,21 @@
      :box-sizing      "border-box"
      :flex-direction  "column"
      :justify-content "flex-end"
+     :position        "relative"
      :height          "88px"}
-    [:&.selected>div :&:hover>div
+    [:&.selected>.name :&:hover>.name
      {:background-color "rgba(0, 0, 0, 1)"
       :color            "rgba(255, 255, 255)"}]
-    [:>div
+    [:.close
+     {:border-radius "0 0 0 4px"
+      :color    "rgba(255, 255, 255)"
+      :position "absolute"
+      :top      0
+      :right    0
+      :padding  "4px 8px"}
+     [:&:hover
+      {:background-color "rgba(0, 0, 0, 0.70)"}]]
+    [:.name
      {:background-color "rgba(0, 0, 0, 0.20)"
       :border-radius    "0 0 4px 4px"
       :color            "rgba(255, 255, 255, 0.80)"
@@ -102,7 +112,12 @@
                      :class (css {:selected (= board (:workspace/map element))})
                      :style {:background-image (str "url(" url ")")}
                      :on-click #(dispatch :workspace/change-map (:db/id element) id)}
-               [:div name]])]])
+               [:div.name name]
+               [:div.close
+                {:on-click
+                 (fn []
+                   (.delete (.-images store) (:map/id board))
+                   (dispatch :map/remove id))} "×"]])]])
         [:input
          {:type "file"
           :accept "image/*"

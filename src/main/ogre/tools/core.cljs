@@ -88,6 +88,10 @@
        [:db/add (:db/id workspace) :workspace/map -1]]
       [[:db/add (:db/id workspace) :workspace/map (first existing)]])))
 
+(defmethod transact :map/remove
+  [data event map]
+  [[:db/retractEntity map]])
+
 (defn initial-state []
   (ds/db-with (ds/empty-db schema)
               (let [workspace (-> (initial-workspace) (assoc :db/id -2))]
