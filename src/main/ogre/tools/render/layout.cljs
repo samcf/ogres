@@ -38,8 +38,7 @@
 
 (rum/defc layout [props & children]
   (rum/with-context [{:keys [data]} context]
-    (let [viewer (query/viewer data)
-          workspace (:viewer/workspace viewer)]
+    (let [workspace (query/workspace data)]
       [:div {:class (styles)}
        [:div.command (command {:workspace workspace})]
        [:div.content
