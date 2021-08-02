@@ -22,4 +22,4 @@
       [:div {:class (styles)}
        [:button
         {:type "button"
-         :on-click #(dispatch :view/toggle-settings (:db/id workspace))} "B"]])))
+         :on-click #(dispatch :view/toggle)} "B"]])))

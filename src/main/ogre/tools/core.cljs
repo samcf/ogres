@@ -9,8 +9,8 @@
   {:db/ident           {:db/unique :db.unique/identity}
    :viewer/workspace   {:db/valueType :db.type/ref}
    :viewer/tokens      {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
-   :workspace/viewing  {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :workspace/elements {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :workspace/viewing  {:db/valueType :db.type/ref}
    :workspace/map      {:db/valueType :db.type/ref}
    :position/x         {}
    :position/y         {}
@@ -63,16 +63,20 @@
   [data event id attr value]
   [[:db/add id attr value]])
 
-(defmethod transact :view/toggle-settings
-  [data event id]
-  (let [entity (ds/entity data id)]
-    (if (contains? (:workspace/viewing entity) entity)
-      [[:db/retract id :workspace/viewing (:db/id entity)]]
-      [[:db/add id :workspace/viewing (:db/id entity)]])))
+(defmethod transact :view/toggle
+  ([data event]
+   (transact data event (:db/id (query/workspace data))))
+  ([data event element]
+   (let [workspace (query/workspace data)]
+     (if (= (:db/id (:workspace/viewing workspace)) element)
+       [[:db/retract (:db/id workspace) :workspace/viewing element]]
+       [[:db/add (:db/id workspace) :workspace/viewing element]]))))
 
-(defmethod transact :view/close
-  [data event workspace element]
-  [[:db/retract workspace :workspace/viewing element]])
+(defmethod transact :view/clear
+  [data]
+  (let [workspace (query/workspace data)]
+    (when (not (= (:element/type (:workspace/viewing workspace)) :workspace))
+      [[:db/retract (:db/id workspace) :workspace/viewing]])))
 
 (defmethod transact :camera/translate
   [data event id x y]
@@ -99,7 +103,8 @@
             :db/id -1
             :position/x (- tx x)
             :position/y (- ty y))
-     [:db/add id :workspace/elements -1]]))
+     [:db/add id :workspace/elements -1]
+     [:db/add id :workspace/viewing -1]]))
 
 (defmethod transact :token/translate
   [data event id x y]

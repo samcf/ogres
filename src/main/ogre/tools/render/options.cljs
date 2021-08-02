@@ -88,13 +88,14 @@
   (let [{:keys [data dispatch store]} context]
     [:<>
      [:section.header
-      [:label "Workspace Settings"]
-      [:button.close {:type "button" :on-click #(dispatch :view/close (:db/id element))} "×"]]
+      [:label "Workspace Options"]
+      [:button.close {:type "button" :on-click #(dispatch :view/toggle (:db/id element))} "×"]]
      [:section
       [:label
        [:input
         {:type "text"
          :placeholder "Workspace name"
+         :autoFocus true
          :value (or (:element/name element) "")
          :on-change
          (fn [event]
@@ -137,6 +138,24 @@
                   (-> (.put (.-images store) record)
                       (.then
                        (fn [] (dispatch :map/create element entity))))))))}]])]))
+
+(defmethod form :token [{:keys [context element]}]
+  (let [{:keys [data dispatch]} context]
+    [:<>
+     [:section.header
+      [:label "Token Options"]
+      [:button.close {:type "button" :on-click #(dispatch :view/toggle (:db/id element))} "×"]]
+     [:section
+      [:fieldset
+       [:label
+        [:input {:type "text"
+                 :value (or (:element/name element) "")
+                 :placeholder "Label"
+                 :maxLength 24
+                 :autoFocus true
+                 :on-change (fn [event]
+                              (let [value (.. event -target -value)]
+                                (dispatch :element/update (:db/id element) :element/name value)))}]]]]]))
 
 (rum/defc options [{:keys [element]}]
   (rum/with-context [value context]

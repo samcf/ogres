@@ -4,10 +4,20 @@
             [spade.core :refer [defclass]]
             [ogre.tools.render :refer [context css]]))
 
+(defn distance [[ax ay] [bx by]]
+  (js/Math.sqrt
+   (+ (js/Math.pow (- bx ax) 2)
+      (js/Math.pow (- by ay) 2))))
+
 (defclass element-styles []
   {:pointer-events "all"}
   [:&.token>circle
-   {:filter "drop-shadow(1px 1px 2px rgba(0, 0, 0, .6))"}])
+   {:filter "drop-shadow(1px 1px 2px rgba(0, 0, 0, .6))"}]
+  [:&.token.active>circle
+   {:stroke "#ffeb3b"
+    :stroke-width "1.5px"
+    :stroke-dasharray "3px"
+    :stroke-linecap "round"}])
 
 (defn handler
   ([] (fn [event]
@@ -24,6 +34,10 @@
           {:keys [position/x position/y]} workspace]
       [:> draggable
        {:position #js {:x 0 :y 0}
+        :onStart
+        (fn []
+          (dispatch :view/clear))
+
         :onStop
         (fn [event data]
           (let [ox (.-x data) oy (.-y data)]
@@ -43,7 +57,12 @@
                  :onStart  (handler)
                  :onStop   (handler
                             (fn [event data]
-                              (dispatch :token/translate (:db/id element) (.-x data) (.-y data))))}
-                [:g {:class (css (element-styles) "token")}
-                 [:circle {:cx 0 :cy 0 :r 36 :fill "black"}]]])
+                              (let [dist (distance [x y] [(.-x data) (.-y data)])]
+                                (if (= dist 0)
+                                  (dispatch :view/toggle (:db/id element))
+                                  (dispatch :token/translate (:db/id element) (.-x data) (.-y data))))))}
+                [:g {:class (css (element-styles) "token" {:active (= element (:workspace/viewing workspace))})}
+                 [:circle {:cx 0 :cy 0 :r 36 :fill "black"}]
+                 (when-let [name (:element/name element)]
+                   [:text {:x 0 :y 54 :text-anchor "middle" :fill "white"} name])]])
              nil))]]])))
