@@ -1,7 +1,7 @@
 (ns ogre.tools.render.options
   (:import goog.crypt.Md5)
-  (:require [datascript.core :as ds]
-            [rum.core :as rum]
+  (:require [uix.core.alpha :as uix]
+            [datascript.core :as ds]
             [spade.core :refer [defclass]]
             [ogre.tools.render :refer [css context use-image]]
             [ogre.tools.query :as query]))
@@ -82,7 +82,7 @@
             (this-as img (handler {:data data :filename (.-name file) :url url :img img}))))
          (set! (.-src image) url))))))
 
-(rum/defc board-thumbnail [props]
+(defn board-thumbnail [props]
   (let [{:keys [board]} props
         url             (use-image board)]
     [:div {:key      (:map/id board)
@@ -120,16 +120,14 @@
            [:label "Select an existing map"]
            [:div.boards
             (for [board boards]
-              (rum/with-key
-                (board-thumbnail
-                 {:board board
-                  :on-select
-                  (fn []
-                    (dispatch :workspace/change-map (:db/id board)))
-                  :on-remove
-                  (fn []
-                    (.delete (.-images store) (:map/id board))
-                    (dispatch :map/remove (:db/id board)))}) (:map/id board)))]])
+              [board-thumbnail
+               {:key       (:map/id board)
+                :board     board
+                :on-select (fn []
+                             (dispatch :workspace/change-map (:db/id board)))
+                :on-remove (fn []
+                             (.delete (.-images store) (:map/id board))
+                             (dispatch :map/remove (:db/id board)))}])]])
         [:input
          {:type "file"
           :accept "image/*"
@@ -168,7 +166,7 @@
                               (let [value (.. event -target -value)]
                                 (dispatch :element/update (:db/id element) :element/name value)))}]]]]]))
 
-(rum/defc options [{:keys [element]}]
-  (rum/with-context [value context]
+(defn options [{:keys [element]}]
+  (let [ctx (uix/context context)]
     [:div {:class (styles)}
-     (form {:context value :element element})]))
+     [form {:context ctx :element element}]]))

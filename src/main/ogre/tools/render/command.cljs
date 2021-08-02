@@ -1,6 +1,6 @@
 (ns ogre.tools.render.command
-  (:require [datascript.core :as ds]
-            [rum.core :as rum]
+  (:require [uix.core.alpha :as uix]
+            [datascript.core :as ds]
             [spade.core :refer [defclass]]
             [ogre.tools.render :refer [context]]))
 
@@ -16,10 +16,9 @@
     :height "36px"}]
   [:button+button {:margin-top "8px"}])
 
-(rum/defc command [props & children]
-  (rum/with-context [{:keys [data dispatch]} context]
-    (let [{:keys [workspace]} props]
-      [:div {:class (styles)}
-       [:button
-        {:type "button"
-         :on-click #(dispatch :view/toggle)} "B"]])))
+(defn command [props]
+  (let [{:keys [dispatch]} (uix/context context)]
+    [:div {:class (styles)}
+     [:button
+      {:type "button"
+       :on-click #(dispatch :view/toggle)} "B"]]))

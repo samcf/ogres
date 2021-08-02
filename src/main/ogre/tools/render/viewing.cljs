@@ -1,10 +1,9 @@
 (ns ogre.tools.render.viewing
-  (:require [rum.core :as rum]
+  (:require [uix.core.alpha :as uix]
             [ogre.tools.render :refer [context]]
             [ogre.tools.render.options :refer [options]]))
 
-(rum/defc viewing [props & children]
-  (rum/with-context [{:keys [data dispatch]} context]
-    (let [{:keys [workspace]} props]
-      (when-let [element (:workspace/viewing workspace)]
-        (options {:element element :dispatch dispatch})))))
+(defn viewing []
+  (let [{:keys [data workspace dispatch]} (uix/context context)]
+    (when-let [element (:workspace/viewing workspace)]
+      [options {:element element :dispatch dispatch}])))

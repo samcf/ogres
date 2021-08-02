@@ -1,6 +1,6 @@
 (ns ogre.tools.render.tokens
-  (:require [react-draggable :as draggable]
-            [rum.core :as rum]
+  (:require [uix.core.alpha :as uix]
+            [react-draggable :as draggable]
             [spade.core :refer [defclass]]
             [ogre.tools.render :refer [context]]
             [ogre.tools.query :as query]))
@@ -18,8 +18,8 @@
    [:svg.draggable
     {:position "absolute"}]])
 
-(rum/defc tokens [{:keys [workspace]}]
-  (rum/with-context [{:keys [data dispatch]} context]
+(defn tokens [props]
+  (let [{:keys [data workspace dispatch]} (uix/context context)]
     [:div {:class (styles)}
      (for [token (query/tokens data) :let [{:keys [db/id]} token]]
        [:div.token {:key id}

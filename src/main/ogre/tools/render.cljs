@@ -1,10 +1,12 @@
 (ns ogre.tools.render
-  (:require [datascript.core :as ds]
-            [dexie :as dexie]
-            [rum.core :as rum]
-            [spade.core :refer [defclass]]))
+  (:require [uix.core.alpha :as uix :refer [defcontext]]
+            [datascript.core :as ds]
+            [react :as react]
+            [spade.core :refer [defclass]]
+            [ogre.tools.txs :refer [transact]]
+            [ogre.tools.query :as query]))
 
-(rum/defcontext context)
+(defcontext context)
 
 (defn css
   [& class-names]
@@ -24,24 +26,22 @@
        (clojure.string/join " ")))
 
 (defn use-image [board]
-  (let [[url set-url!] (rum/use-state (:map/url board))
-        context        (.useContext js/React context)]
-    (if (string? url)
-      url
-      (-> (.get (.-images (:store context)) (:map/id board))
-          (.then
-           (fn [record]
-             (set-url! (.-data record))))))))
+  #_(let [[url set-url!] (rum/use-state (:map/url board))
+          context        (.useContext js/React context)]
+      (if (string? url)
+        url
+        (-> (.get (.-images (:store context)) (:map/id board))
+            (.then
+             (fn [record]
+               (set-url! (.-data record)))))))
+  "foo")
 
-(rum/defc root [props children]
-  (let [{:keys [data transact]} props]
-    (let [[state update!] (rum/use-state data)
-          store           (new dexie "ogre.tools")
-          handler         (fn [event & args]
-                            (update! (fn [current]
-                                       (ds/db-with current (apply transact state event args)))))]
-      (-> (.version store 1)
-          (.stores #js {:images "checksum"}))
-
-      (rum/bind-context
-       [context {:data state :dispatch handler :store store}] children))))
+(defn root [props child]
+  (let [data  (uix/state (:data props))
+        value {:data      @data
+               :store     (:store props)
+               :workspace (query/workspace @data)
+               :dispatch  (fn [event & args]
+                            (let [tx (apply transact @data event args)]
+                              (reset! data (ds/db-with @data tx))))}]
+    (uix/context-provider [context value] child)))

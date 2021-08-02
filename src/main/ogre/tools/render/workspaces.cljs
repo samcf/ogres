@@ -1,5 +1,5 @@
 (ns ogre.tools.render.workspaces
-  (:require [rum.core :as rum]
+  (:require [uix.core.alpha :as uix]
             [spade.core :refer [defclass]]
             [ogre.tools.render :refer [context css]]
             [ogre.tools.query :as query]))
@@ -47,21 +47,20 @@
     :width "34px"}
    [:&:hover {:background-color "var(--color-primary-c)"}]])
 
-(rum/defc workspaces [props & children]
-  (rum/with-context [{:keys [data dispatch]} context]
-    (let [current (:workspace props)]
-      [:div {:class (styles)}
-       (for [workspace (query/workspaces data) :let [id (:db/id workspace)]]
-         [:div {:key id}
-          [:label
-           {:className (css {:active (= current workspace)})}
-           [:input
-            {:type "radio"
-             :name "window"
-             :value id
-             :checked (= current workspace)
-             :on-change #(dispatch :workspace/change id)}]
-           (let [name (clojure.string/trim (or (:element/name workspace) ""))]
-             (if (empty? name) [:em "Unnamed Workspace"] [:span name]))]
-          [:button {:type "button" :on-click #(dispatch :workspace/remove id)} "×"]])
-       [:button {:type "button" :on-click #(dispatch :workspace/create)} "+"]])))
+(defn workspaces [props]
+  (let [{:keys [data dispatch] :as context} (uix/context context)]
+    [:div {:class (styles)}
+     (for [workspace (query/workspaces data) :let [id (:db/id workspace)]]
+       [:div {:key id}
+        [:label
+         {:className (css {:active (= (:workspace context) workspace)})}
+         [:input
+          {:type "radio"
+           :name "window"
+           :value id
+           :checked (= (:workspace context) workspace)
+           :on-change #(dispatch :workspace/change id)}]
+         (let [name (clojure.string/trim (or (:element/name workspace) ""))]
+           (if (empty? name) [:em "Unnamed Workspace"] [:span name]))]
+        [:button {:type "button" :on-click #(dispatch :workspace/remove id)} "×"]])
+     [:button {:type "button" :on-click #(dispatch :workspace/create)} "+"]]))
