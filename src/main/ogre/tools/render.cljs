@@ -23,6 +23,16 @@
        (mapv name)
        (clojure.string/join " ")))
 
+(defn use-image [board]
+  (let [[url set-url!] (rum/use-state (:map/url board))
+        context        (.useContext js/React context)]
+    (if (string? url)
+      url
+      (-> (.get (.-images (:store context)) (:map/id board))
+          (.then
+           (fn [record]
+             (set-url! (.-data record))))))))
+
 (rum/defc root [props children]
   (let [{:keys [data transact]} props]
     (let [[state update!] (rum/use-state data)

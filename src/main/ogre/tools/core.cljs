@@ -56,8 +56,9 @@
       [[:db.fn/retractEntity id]])))
 
 (defmethod transact :workspace/change-map
-  [data event workspace map]
-  [[:db/add workspace :workspace/map map]])
+  [data event map]
+  (let [workspace (query/workspace data)]
+    [[:db/add (:db/id workspace) :workspace/map map]]))
 
 (defmethod transact :element/update
   [data event id attr value]

@@ -3,7 +3,7 @@
   (:require [datascript.core :as ds]
             [rum.core :as rum]
             [spade.core :refer [defclass]]
-            [ogre.tools.render :refer [css context]]
+            [ogre.tools.render :refer [css context use-image]]
             [ogre.tools.query :as query]))
 
 (defn checksum [data]
@@ -82,6 +82,17 @@
             (this-as img (handler {:data data :filename (.-name file) :url url :img img}))))
          (set! (.-src image) url))))))
 
+(rum/defc board-thumbnail [props]
+  (let [{:keys [board]} props
+        url             (use-image board)]
+    [:div {:key      (:map/id board)
+           :class    (css {:selected (:selected props)})
+           :style    {:background-image (str "url(" url ")")}
+           :on-click #((:on-select props))}
+     [:div.name (:map/name board)]
+     [:div.close
+      {:on-click #((:on-remove props))} "×"]]))
+
 (defmulti form (fn [{:keys [element]}] (:element/type element)))
 
 (defmethod form :workspace [{:keys [context element]}]
@@ -108,17 +119,17 @@
           [:div
            [:label "Select an existing map"]
            [:div.boards
-            (for [board boards :let [{:keys [db/id map/url map/name]} board]]
-              [:div {:key id
-                     :class (css {:selected (= board (:workspace/map element))})
-                     :style {:background-image (str "url(" url ")")}
-                     :on-click #(dispatch :workspace/change-map (:db/id element) id)}
-               [:div.name name]
-               [:div.close
-                {:on-click
-                 (fn []
-                   (.delete (.-images store) (:map/id board))
-                   (dispatch :map/remove id))} "×"]])]])
+            (for [board boards]
+              (rum/with-key
+                (board-thumbnail
+                 {:board board
+                  :on-select
+                  (fn []
+                    (dispatch :workspace/change-map (:db/id board)))
+                  :on-remove
+                  (fn []
+                    (.delete (.-images store) (:map/id board))
+                    (dispatch :map/remove (:db/id board)))}) (:map/id board)))]])
         [:input
          {:type "file"
           :accept "image/*"
