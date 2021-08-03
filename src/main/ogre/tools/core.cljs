@@ -9,8 +9,8 @@
   ;; Initialize the Dexie datastore which will serve to persist the application
   ;; state and image data in IndexedDB.
   (let [store (new dexie "ogre.tools")]
-    (-> (.version store 1)
-        (.stores #js {:images "checksum"}))
+    (.stores (.version store 1) #js {:images "checksum" :states "++id"})
+    (.open store)
 
     ;; Render the application using a library called uix, an idiomatic
     ;; ClojureScript library for building ReactJS interfaces.

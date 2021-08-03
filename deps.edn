@@ -1,10 +1,22 @@
 {:paths ["src/main"]
- :deps  {thheller/shadow-cljs  {:mvn/version "2.15.2"}
-         datascript/datascript {:mvn/version "1.2.2"}
-         net.dhleong/spade     {:mvn/version "1.1.0"}
-         uix.core/uix.core     {:git/url   "https://github.com/roman01la/uix.git"
-                                :deps/root "core"
-                                :sha       "0da33eef38a7122be226b9b9a8ae0b5431b6b5d3"}
-         uix.dom/uix.dom       {:git/url   "https://github.com/roman01la/uix.git"
-                                :deps/root "dom"
-                                :sha       "0da33eef38a7122be226b9b9a8ae0b5431b6b5d3"}}}
+ :deps  {thheller/shadow-cljs
+         {:mvn/version "2.15.2"}
+
+         datascript/datascript
+         {:mvn/version "1.2.2"}
+
+         datascript-transit/datascript-transit
+         {:mvn/version "0.3.0"}
+
+         net.dhleong/spade
+         {:mvn/version "1.1.0"}
+
+         uix.core/uix.core
+         {:git/url   "https://github.com/roman01la/uix.git"
+          :deps/root "core"
+          :sha       "0da33eef38a7122be226b9b9a8ae0b5431b6b5d3"}
+
+         uix.dom/uix.dom
+         {:git/url   "https://github.com/roman01la/uix.git"
+          :deps/root "dom"
+          :sha       "0da33eef38a7122be226b9b9a8ae0b5431b6b5d3"}}}
