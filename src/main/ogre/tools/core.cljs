@@ -1,10 +1,9 @@
 (ns ogre.tools.core
-  (:require [ogre.tools.render :as render]
-            [ogre.tools.render.layout :refer [layout]]
-            [ogre.tools.txs :as txs]
-            [uix.core.alpha :as uix]
+  (:require [uix.core.alpha :as uix]
             [uix.dom.alpha :as uix.dom]
-            [dexie]))
+            [dexie]
+            [ogre.tools.render.root :refer [root]]
+            [ogre.tools.txs :as txs]))
 
 (defn main []
   ;; Initialize the Dexie datastore which will serve to persist the application
@@ -17,7 +16,7 @@
     ;; ClojureScript library for building ReactJS interfaces.
     (let [element (.querySelector js/document "#root")]
       (uix.dom/render
-       [render/root {:data (txs/initial-data) :store store} [layout]]
+       [root {:data (txs/initial-data) :store store}]
        element))))
 
 (.addEventListener js/window "DOMContentLoaded" main)
