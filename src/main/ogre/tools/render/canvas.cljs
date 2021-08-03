@@ -9,6 +9,9 @@
    (+ (js/Math.pow (- bx ax) 2)
       (js/Math.pow (- by ay) 2))))
 
+(defclass styles []
+  {:pointer-events "all" :height "100%" :width "100%"})
+
 (defclass element-styles []
   {:pointer-events "all"}
   [:&.token>circle
@@ -31,37 +34,38 @@
 (defn canvas [props]
   (let [{:keys [workspace dispatch]} (uix/context context)
         {:keys [position/x position/y]} workspace]
-    [:> draggable
-     {:position #js {:x 0 :y 0}
-      :onStart
-      (fn []
-        (dispatch :view/clear))
+    [:svg {:class (styles)}
+     [:> draggable
+      {:position #js {:x 0 :y 0}
+       :onStart
+       (fn []
+         (dispatch :view/clear))
 
-      :onStop
-      (fn [event data]
-        (let [ox (.-x data) oy (.-y data)]
-          (dispatch :camera/translate (:db/id workspace) (+ ox x) (+ oy y))))}
-     [:g
-      [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
-      [:g {:transform (str "translate(" x ", " y ")")}
-       (when-let [url (-> workspace :workspace/map :map/url)]
-         [:image {:x 0 :y 0 :href url}])
-       (for [element (:workspace/elements workspace)]
-         (case (:element/type element)
-           :token
-           (let [{:keys [position/x position/y]} element]
-             [:> draggable
-              {:key      (:db/id element)
-               :position #js {:x x :y y}
-               :onStart  (handler)
-               :onStop   (handler
-                          (fn [event data]
-                            (let [dist (distance [x y] [(.-x data) (.-y data)])]
-                              (if (= dist 0)
-                                (dispatch :view/toggle (:db/id element))
-                                (dispatch :token/translate (:db/id element) (.-x data) (.-y data))))))}
-              [:g {:class (css (element-styles) "token" {:active (= element (:workspace/viewing workspace))})}
-               [:circle {:cx 0 :cy 0 :r 36 :fill "black"}]
-               (when-let [name (:element/name element)]
-                 [:text {:x 0 :y 54 :text-anchor "middle" :fill "white"} name])]])
-           nil))]]]))
+       :onStop
+       (fn [event data]
+         (let [ox (.-x data) oy (.-y data)]
+           (dispatch :camera/translate (:db/id workspace) (+ ox x) (+ oy y))))}
+      [:g
+       [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
+       [:g {:transform (str "translate(" x ", " y ")")}
+        (when-let [url (-> workspace :workspace/map :map/url)]
+          [:image {:x 0 :y 0 :href url}])
+        (for [element (:workspace/elements workspace)]
+          (case (:element/type element)
+            :token
+            (let [{:keys [position/x position/y]} element]
+              [:> draggable
+               {:key      (:db/id element)
+                :position #js {:x x :y y}
+                :onStart  (handler)
+                :onStop   (handler
+                           (fn [event data]
+                             (let [dist (distance [x y] [(.-x data) (.-y data)])]
+                               (if (= dist 0)
+                                 (dispatch :view/toggle (:db/id element))
+                                 (dispatch :token/translate (:db/id element) (.-x data) (.-y data))))))}
+               [:g {:class (css (element-styles) "token" {:active (= element (:workspace/viewing workspace))})}
+                [:circle {:cx 0 :cy 0 :r 36 :fill "black"}]
+                (when-let [name (:element/name element)]
+                  [:text {:x 0 :y 54 :text-anchor "middle" :fill "white"} name])]])
+            nil))]]]]))

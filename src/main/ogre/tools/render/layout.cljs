@@ -25,9 +25,7 @@
    {:border-bottom "1px solid var(--color-primary-d)" :padding "8px 0 0 8px"}]
   [:.workspace
    {:background-color "var(--theme-background-d)" :position "relative" :flex "1"}]
-  [:.canvas
-   {:height "100%" :width "100%"}]
-  [:.viewing :.vignette :.tokens
+  [:.canvas :.viewing :.vignette :.tokens
    {:pointer-events "none" :position "absolute" :top 0 :right 0 :bottom 0 :left 0}]
   [:.vignette
    {:box-shadow "inset 0 0 32px rgba(0, 0, 0, 0.90)"}]
@@ -43,7 +41,7 @@
      [:div.content
       [:div.workspaces [workspaces]]
       [:div.workspace
-       [:svg.canvas [canvas]]
+       [:div.canvas [canvas]]
        [:div.vignette]
        [:div.viewing [viewing]]
        [:div.tokens [tokens]]]]]))
