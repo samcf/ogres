@@ -1,6 +1,7 @@
 (ns ogre.tools.render
   (:require [clojure.string :as string]
-            [uix.core.alpha :refer [defcontext]]))
+            [uix.core.alpha :as uix :refer [defcontext]]
+            [datascript.core :as ds]))
 
 (defcontext context)
 
@@ -20,5 +21,21 @@
        (mapv name)
        (string/join " ")))
 
-(defn use-image [board]
-  "https://www.example.com")
+(defn handler
+  ([]
+   (handler (fn [])))
+  ([f]
+   (fn [event & args]
+     (.stopPropagation event)
+     (apply f event args))))
+
+(defn use-image [checksum]
+  (let [url (uix/state nil)
+        {:keys [data store]} (uix/context context)]
+    (when (and (string? checksum) (nil? @url))
+      (-> (.get (.table store "images") checksum)
+          (.then
+           (fn [record]
+             (when record
+               (reset! url (.-data record)))))))
+    @url))

@@ -3,7 +3,7 @@
   (:require [uix.core.alpha :as uix]
             [datascript.core :as ds]
             [spade.core :refer [defclass]]
-            [ogre.tools.render :refer [css context use-image]]
+            [ogre.tools.render :refer [css context handler use-image]]
             [ogre.tools.query :as query]))
 
 (defn checksum [data]
@@ -74,29 +74,27 @@
      reader "load"
      (fn [event]
        (let [data  (.. event -target -result)
-             image (new js/Image)
-             url   (.createObjectURL js/URL file)]
+             image (new js/Image)]
          (.addEventListener
           image "load"
           (fn []
-            (this-as img (handler {:data data :filename (.-name file) :url url :img img}))))
-         (set! (.-src image) url))))))
+            (this-as img (handler {:data data :filename (.-name file) :img img}))))
+         (set! (.-src image) data))))))
 
-(defn board-thumbnail [props]
-  (let [{:keys [board]} props
-        url             (use-image board)]
+(defn board-thumbnail [{:keys [board selected on-select on-remove]}]
+  (let [url (use-image (:map/id board))]
     [:div {:key      (:map/id board)
-           :class    (css {:selected (:selected props)})
+           :class    (css {:selected selected})
            :style    {:background-image (str "url(" url ")")}
-           :on-click #((:on-select props))}
+           :on-click (handler on-select)}
      [:div.name (:map/name board)]
      [:div.close
-      {:on-click #((:on-remove props))} "×"]]))
+      {:on-click (handler on-remove)} "×"]]))
 
 (defmulti form (fn [{:keys [element]}] (:element/type element)))
 
 (defmethod form :workspace [{:keys [context element]}]
-  (let [{:keys [data dispatch store]} context]
+  (let [{:keys [data dispatch workspace store]} context]
     [:<>
      [:section.header
       [:label "Workspace Options"]
@@ -123,6 +121,7 @@
               [board-thumbnail
                {:key       (:map/id board)
                 :board     board
+                :selected  (= board (:workspace/map workspace))
                 :on-select (fn []
                              (dispatch :workspace/change-map (:db/id board)))
                 :on-remove (fn []
@@ -136,12 +135,11 @@
           #(doseq [file (.. % -target -files)]
              (load-image
               file
-              (fn [{:keys [data filename url img]}]
+              (fn [{:keys [data filename img]}]
                 (let [checks (checksum data)
                       record #js {:checksum checks :data data :created-at (.now js/Date)}
                       entity {:map/id     checks
                               :map/name   filename
-                              :map/url    url
                               :map/width  (.-width img)
                               :map/height (.-height img)}]
                   (-> (.put (.-images store) record)

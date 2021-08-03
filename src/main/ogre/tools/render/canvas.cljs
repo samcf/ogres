@@ -2,7 +2,7 @@
   (:require [uix.core.alpha :as uix]
             [react-draggable :as draggable]
             [spade.core :refer [defclass]]
-            [ogre.tools.render :refer [context css]]))
+            [ogre.tools.render :refer [context css handler use-image]]))
 
 (defn distance [[ax ay] [bx by]]
   (js/Math.sqrt
@@ -22,17 +22,13 @@
     :stroke-dasharray "3px"
     :stroke-linecap "round"}])
 
-(defn handler
-  ([] (fn [event]
-        (.preventDefault event)
-        (.stopPropagation event)))
-  ([f] (fn [event & args]
-         (.preventDefault event)
-         (.stopPropagation event)
-         (apply f event args))))
+(defn board [{:keys [image]}]
+  (let [url (use-image (:map/id image))]
+    (when (string? url)
+      [:image {:x 0 :y 0 :href url}])))
 
 (defn canvas [props]
-  (let [{:keys [workspace dispatch]} (uix/context context)
+  (let [{:keys [workspace dispatch]}    (uix/context context)
         {:keys [position/x position/y]} workspace]
     [:svg {:class (styles)}
      [:> draggable
@@ -48,8 +44,8 @@
       [:g
        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
        [:g {:transform (str "translate(" x ", " y ")")}
-        (when-let [url (-> workspace :workspace/map :map/url)]
-          [:image {:x 0 :y 0 :href url}])
+        (let [{:keys [workspace/map]} workspace]
+          [board {:key (:map/id map) :image map}])
         (for [element (:workspace/elements workspace)]
           (case (:element/type element)
             :token

@@ -38,7 +38,7 @@
     (uix/effect!
      (fn []
        (when loaded
-         (-> (ds/filter @data (fn [_ d] (not (= (:a d) :map/url))))
+         (-> (ds/filter @data (constantly true))
              (ds/datoms :eavt)
              (dt/write-transit-str)
              (as-> marshalled

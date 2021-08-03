@@ -15,8 +15,7 @@
    :element/name       {}
    :map/id             {:db/index true}
    :map/width          {}
-   :map/height         {}
-   :map/url            {}})
+   :map/height         {}})
 
 (defn initial-data []
   (ds/db-with
