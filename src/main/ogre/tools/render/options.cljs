@@ -167,4 +167,4 @@
 (defn options [{:keys [element]}]
   (let [ctx (uix/context context)]
     [:div {:class (styles)}
-     [form {:context ctx :element element}]]))
+     [form {:key (:db/id element) :context ctx :element element}]]))
