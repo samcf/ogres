@@ -82,12 +82,12 @@
          (set! (.-src image) data))))))
 
 (defn board-thumbnail [{:keys [board selected on-select on-remove]}]
-  (let [url (use-image (:map/id board))]
-    [:div {:key      (:map/id board)
+  (let [url (use-image (:image/checksum board))]
+    [:div {:key      (:image/checksum board)
            :class    (css {:selected selected})
            :style    {:background-image (str "url(" url ")")}
            :on-click (handler on-select)}
-     [:div.name (:map/name board)]
+     [:div.name (:image/name board)]
      [:div.close
       {:on-click (handler on-remove)} "×"]]))
 
@@ -119,13 +119,13 @@
            [:div.boards
             (for [board boards]
               [board-thumbnail
-               {:key       (:map/id board)
+               {:key       (:image/checksum board)
                 :board     board
                 :selected  (= board (:workspace/map workspace))
                 :on-select (fn []
                              (dispatch :workspace/change-map (:db/id board)))
                 :on-remove (fn []
-                             (.delete (.-images store) (:map/id board))
+                             (.delete (.-images store) (:image/checksum board))
                              (dispatch :map/remove (:db/id board)))}])]])
         [:input
          {:type "file"
@@ -138,10 +138,10 @@
               (fn [{:keys [data filename img]}]
                 (let [checks (checksum data)
                       record #js {:checksum checks :data data :created-at (.now js/Date)}
-                      entity {:map/id     checks
-                              :map/name   filename
-                              :map/width  (.-width img)
-                              :map/height (.-height img)}]
+                      entity {:image/checksum checks
+                              :image/name     filename
+                              :image/width    (.-width img)
+                              :image/height   (.-height img)}]
                   (-> (.put (.-images store) record)
                       (.then
                        (fn [] (dispatch :map/create element entity))))))))}]])]))

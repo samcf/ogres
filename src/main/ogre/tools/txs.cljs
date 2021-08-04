@@ -13,9 +13,9 @@
    :position/y         {}
    :element/type       {}
    :element/name       {}
-   :map/id             {:db/index true}
-   :map/width          {}
-   :map/height         {}})
+   :image/checksum     {:db/index true}
+   :image/width        {}
+   :image/height       {}})
 
 (defn initial-data []
   (ds/db-with
@@ -93,7 +93,7 @@
 
 (defmethod transact :map/create
   [data event workspace map-data]
-  (let [existing (first (ds/datoms data :avet :map/id (:map/id map-data)))]
+  (let [existing (first (ds/datoms data :avet :image/checksum (:image/checksum map-data)))]
     (if (nil? existing)
       [(assoc map-data :db/id -1)
        [:db/add (:db/id workspace) :workspace/map -1]]

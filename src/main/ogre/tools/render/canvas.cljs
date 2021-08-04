@@ -23,7 +23,7 @@
     :stroke-linecap "round"}])
 
 (defn board [{:keys [image]}]
-  (let [url (use-image (:map/id image))]
+  (let [url (use-image (:image/checksum image))]
     (when (string? url)
       [:image {:x 0 :y 0 :href url}])))
 
@@ -45,7 +45,7 @@
        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
        [:g {:transform (str "translate(" x ", " y ")")}
         (let [{:keys [workspace/map]} workspace]
-          [board {:key (:map/id map) :image map}])
+          [board {:key (:image/checksum map) :image map}])
         (for [element (:workspace/elements workspace)]
           (case (:element/type element)
             :token

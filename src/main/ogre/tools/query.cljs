@@ -11,7 +11,7 @@
        (map #(ds/entity data %))))
 
 (defn boards [data]
-  (->> (ds/q '[:find ?id ?tx :where [?id :map/id _ ?tx]] data)
+  (->> (ds/q '[:find ?id ?tx :where [?id :image/checksum _ ?tx]] data)
        (sort-by second)
        (map first)
        (map #(ds/entity data %))))
