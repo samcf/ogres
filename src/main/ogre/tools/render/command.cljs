@@ -24,4 +24,7 @@
        :on-click #(dispatch :workspace/toggle-board-options)} "B"]
      [:button
       {:type "button"
-       :on-click #(dispatch :workspace/toggle-grid-options)} "G"]]))
+       :on-click #(dispatch :workspace/toggle-grid-options)} "G"]
+     [:button
+      {:type "button"
+       :on-click #(dispatch :grid/toggle)} "S"]]))

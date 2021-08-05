@@ -2,6 +2,10 @@
   (:require [datascript.core :as ds]
             [ogre.tools.query :as query]))
 
+(defn round [[x y] n]
+  [(* (js/Math.round (/ x n)) n)
+   (* (js/Math.round (/ y n)) n)])
+
 (def schema
   {:db/ident           {:db/unique :db.unique/identity}
    :viewer/workspace   {:db/valueType :db.type/ref}
@@ -158,4 +162,9 @@
       (let [next (->> (range (- size 4) (+ size 4))
                       (reduce (fn [_ n] (when (zero? (mod width n)) (reduced n)))))]
         [[:db/add id :grid/size (or next size)]
-         [:db/add id :grid/origin origin]]))))
+         [:db/add id :grid/origin (if next (round origin next) origin)]]))))
+
+(defmethod transact :grid/toggle
+  [data event]
+  (let [{:keys [db/id grid/show]} (query/workspace data)]
+    [[:db/add id :grid/show (not show)]]))

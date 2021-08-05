@@ -28,23 +28,40 @@
     (when (string? url)
       [:image {:x 0 :y 0 :href url}])))
 
-(defn grid [props]
-  (let [{:keys [workspace]} (uix/context context)
-        {:keys [grid/size grid/origin]} workspace
-        [ox oy] origin]
-    (when (> size 0)
-      [:<>
-       [:defs
-        [:pattern {:id "grid" :width size :height size :patternUnits "userSpaceOnUse"}
-         [:path
-          {:d (string/join " " ["M" size 0 "L" 0 0 0 size])
-           :stroke "white"
-           :stroke-width "1"
-           :stroke-dasharray "2px"
-           :fill "none"}]]]
-       [:g
-        [:circle {:cx ox :cy oy :r 12 :stroke "gold" :fill "transparent"}]
-        [:rect {:x ox :y oy :width (str (* size 10) "px") :height (str (* size 10) "px") :fill "url(#grid)"}]]])))
+(defn grid [{:keys [canvas]}]
+  (let [{:keys [workspace]}    (uix/context context)
+        {camera-x :position/x} workspace
+        {camera-y :position/y} workspace
+        {grid-size :grid/size} workspace
+        {[ox oy] :grid/origin} workspace
+        dimensions (uix/state [0 0])
+        [w h]      @dimensions]
+
+    (uix/effect!
+     (fn []
+       (when @canvas
+         (let [bounding (.getBoundingClientRect @canvas)]
+           (reset! dimensions [(.-width bounding) (.-height bounding)]))))
+     [(nil? @canvas)])
+
+    [:<>
+     [:defs
+      [:pattern {:id "grid" :width grid-size :height grid-size :patternUnits "userSpaceOnUse"}
+       [:path
+        {:d (string/join " " ["M" 0 0 "H" grid-size "V" grid-size])
+         :stroke "white"
+         :stroke-width "1"
+         :stroke-dasharray "2px"
+         :fill "none"}]]]
+     [:g
+      [:circle {:cx ox :cy oy :r 12 :stroke "gold" :fill "transparent"}]
+      (let [[ox oy ax ay bx] [(- (* w -2) camera-x)
+                              (- (* h -2) camera-y)
+                              (- (* w  2) camera-x)
+                              (- (* h  2) camera-y)
+                              (- (* w -2) camera-x)]]
+        [:path {:d (string/join " " ["M" ox oy "H" ax "V" ay "H" bx "Z"])
+                :fill "url(#grid)"}])]]))
 
 (defn grid-draw [props]
   (let [{:keys [workspace dispatch]} (uix/context context)
@@ -83,47 +100,65 @@
 
      (when (seq @points)
        (let [[ax ay bx by] @points]
-         [:path {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"]) :stroke "red" :fill "transparent"}]))]))
+         [:path {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"]) :stroke "gold" :fill "transparent"}]))]))
 
 (defn canvas [props]
-  (let [{:keys [workspace dispatch]}    (uix/context context)
-        {:keys [position/x position/y grid/size]} workspace]
-    [:svg {:class (styles)}
+  (let [{:keys [workspace dispatch]} (uix/context context)
+        {grid-size :grid/size} workspace
+        {grid-show :grid/show} workspace
+        {camera-x :position/x} workspace
+        {camera-y :position/y} workspace
+        {mode :workspace/mode} workspace
+        {image :workspace/map} workspace
+        node (uix/ref nil)]
+    [:svg {:ref node :class (styles)}
      [:> draggable
       {:position #js {:x 0 :y 0}
-       :disabled (= (:workspace/mode workspace) :grid)
-       :onStart
-       (fn []
-         (dispatch :view/clear))
-
+       :disabled (= mode :grid)
+       :onStart  (fn [] (dispatch :view/clear))
        :onStop
        (fn [event data]
          (let [ox (.-x data) oy (.-y data)]
-           (dispatch :camera/translate (:db/id workspace) (+ ox x) (+ oy y))))}
+           (dispatch :camera/translate (:db/id workspace) (+ ox camera-x) (+ oy camera-y))))}
       [:g
+
+       ;; Render an element that guarantees that the entire canvas may be
+       ;; dragged from anywhere on the element.
        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
-       [:g {:transform (str "translate(" x ", " y ")")}
-        (let [{:keys [workspace/map]} workspace]
-          [board {:key (:image/checksum map) :image map}])
-        [grid]
+
+       [:g {:transform (str "translate(" camera-x ", " camera-y ")")}
+
+        ;; Render the selected board map.
+        [board {:key (:image/checksum image) :image image}]
+
+        ;; Render the playing grid when it is enabled or the current mode is
+        ;; :grid.
+        (when (or (= mode :grid) grid-show)
+          [grid {:canvas node}])
+
+        ;; Render the various elements of the board such as tokens, geometry,
+        ;; lighting, etc.
         (for [element (:workspace/elements workspace)]
           (case (:element/type element)
             :token
-            (let [{:keys [position/x position/y]} element]
+            (let [{x :position/x} element
+                  {y :position/y} element]
               [:> draggable
                {:key      (:db/id element)
                 :position #js {:x x :y y}
                 :onStart  (handler)
                 :onStop   (handler
-                           (fn [event data]
+                           (fn [_ data]
                              (let [dist (distance [x y] [(.-x data) (.-y data)])]
                                (if (= dist 0)
                                  (dispatch :view/toggle (:db/id element))
                                  (dispatch :token/translate (:db/id element) (.-x data) (.-y data))))))}
                [:g {:class (css (element-styles) "token" {:active (= element (:workspace/selected workspace))})}
-                [:circle {:cx 0 :cy 0 :r (- (/ size 2) 4) :fill "black"}]
+                [:circle {:cx 0 :cy 0 :r (- (/ grid-size 2) 4) :fill "black"}]
                 (when-let [name (:element/name element)]
-                  [:text {:x 0 :y 54 :text-anchor "middle" :fill "white"} name])]])
+                  [:text {:x 0 :y (+ (/ grid-size 2) 16) :text-anchor "middle" :fill "white"} name])]])
             nil))]
-       (when (= (:workspace/mode workspace) :grid)
+
+       ;; Render the drawable grid component.
+       (when (= mode :grid)
          [grid-draw])]]]))
