@@ -81,7 +81,7 @@
             (this-as img (handler {:data data :filename (.-name file) :img img}))))
          (set! (.-src image) data))))))
 
-(defn board-thumbnail [{:keys [board selected on-select on-remove]}]
+(defn thumbnail [{:keys [board selected on-select on-remove]}]
   (let [url (use-image (:image/checksum board))]
     [:div {:key      (:image/checksum board)
            :class    (css {:selected selected})
@@ -91,25 +91,26 @@
      [:div.close
       {:on-click (handler on-remove)} "×"]]))
 
-(defmulti form (fn [{:keys [element]}] (:element/type element)))
-
-(defmethod form :workspace [{:keys [context element]}]
-  (let [{:keys [data dispatch workspace store]} context]
-    [:<>
+(defn board [{:keys [workspace]}]
+  (let [{:keys [data workspace dispatch store]} (uix/context context)]
+    [:div {:class (styles)}
      [:section.header
       [:label "Workspace Options"]
-      [:button.close {:type "button" :on-click #(dispatch :view/toggle (:db/id element))} "×"]]
+      [:button.close
+       {:type "button"
+        :on-click
+        #(dispatch :workspace/toggle-board-options)} "×"]]
      [:section
       [:label
        [:input
         {:type "text"
          :placeholder "Workspace name"
          :autoFocus true
-         :value (or (:element/name element) "")
+         :value (or (:element/name workspace) "")
          :on-change
          (fn [event]
            (let [value (.. event -target -value)]
-             (dispatch :element/update (:db/id element) :element/name value)))}]]]
+             (dispatch :element/update (:db/id workspace) :element/name value)))}]]]
 
      (let [boards (query/boards data)]
        [:section
@@ -118,7 +119,7 @@
            [:label "Select an existing map"]
            [:div.boards
             (for [board boards]
-              [board-thumbnail
+              [thumbnail
                {:key       (:image/checksum board)
                 :board     board
                 :selected  (= board (:workspace/map workspace))
@@ -144,27 +145,62 @@
                               :image/height   (.-height img)}]
                   (-> (.put (.-images store) record)
                       (.then
-                       (fn [] (dispatch :map/create element entity))))))))}]])]))
+                       (fn [] (dispatch :map/create workspace entity))))))))}]])]))
 
-(defmethod form :token [{:keys [context element]}]
-  (let [{:keys [data dispatch]} context]
-    [:<>
+(defn token [{:keys [token]}]
+  (let [{:keys [workspace dispatch]} (uix/context context)
+        {:keys [db/id element/name]} (:workspace/selected workspace)]
+    [:div {:class (styles)}
      [:section.header
       [:label "Token Options"]
-      [:button.close {:type "button" :on-click #(dispatch :view/toggle (:db/id element))} "×"]]
+      [:button.close {:type "button" :on-click #(dispatch :view/toggle id)} "×"]]
      [:section
       [:fieldset
        [:label
-        [:input {:type "text"
-                 :value (or (:element/name element) "")
-                 :placeholder "Label"
-                 :maxLength 24
-                 :autoFocus true
-                 :on-change (fn [event]
-                              (let [value (.. event -target -value)]
-                                (dispatch :element/update (:db/id element) :element/name value)))}]]]]]))
+        [:input
+         {:type "text"
+          :value (or name "")
+          :placeholder "Label"
+          :maxLength 24
+          :autoFocus true
+          :on-change
+          (fn [event]
+            (let [value (.. event -target -value)]
+              (dispatch :element/update id :element/name value)))}]]]]]))
 
-(defn options [{:keys [element]}]
-  (let [ctx (uix/context context)]
+(defn grid [{:keys [workspace]}]
+  (let [{:keys [workspace dispatch]} (uix/context context)
+        {:keys [grid/size]} workspace]
     [:div {:class (styles)}
-     [form {:key (:db/id element) :context ctx :element element}]]))
+     [:section.header
+      [:label "Grid Options"]
+      [:button.close
+       {:type "button"
+        :on-click
+        #(dispatch :workspace/toggle-grid-options :select)} "×"]]
+     [:section
+      [:label
+       [:div "Size"]
+       [:input
+        {:type "number"
+         :value (or size 0)
+         :min 0
+         :on-change
+         (fn [event]
+           (let [value (.. event -target -value)]
+             (dispatch :grid/change-size value)))}]]]]))
+
+(defn options []
+  (let [{:keys [workspace]} (uix/context context)
+        {:keys [workspace/mode workspace/selected]} workspace]
+    (case [mode (:element/type selected)]
+      [:select :workspace]
+      [board {:key (:db/id workspace)}]
+
+      [:select :token]
+      [token {:key (:db/id selected)}]
+
+      [:grid nil]
+      [grid {:key (:db/id workspace)}]
+
+      nil)))

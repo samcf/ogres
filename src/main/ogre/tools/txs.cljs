@@ -7,8 +7,11 @@
    :viewer/workspace   {:db/valueType :db.type/ref}
    :viewer/tokens      {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :workspace/elements {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
-   :workspace/viewing  {:db/valueType :db.type/ref}
    :workspace/map      {:db/valueType :db.type/ref}
+   :workspace/mode     {}
+   :workspace/selected {:db/valueType :db.type/ref}
+   :grid/size          {}
+   :grid/origin        {}
    :position/x         {}
    :position/y         {}
    :element/type       {}
@@ -22,10 +25,14 @@
    (ds/empty-db schema)
    [[:db/add -1 :db/ident :viewer]
     [:db/add -1 :viewer/workspace -2]
-    [:db/add -2 :element/type :workspace]
     [:db/add -1 :viewer/tokens -3]
+    [:db/add -2 :element/type :workspace]
+    [:db/add -2 :workspace/mode :select]
     [:db/add -2 :position/x 0]
     [:db/add -2 :position/y 0]
+    [:db/add -2 :grid/size 70]
+    [:db/add -2 :grid/origin [0 0]]
+    [:db/add -2 :grid/show false]
     [:db/add -3 :element/type :token]]))
 
 (defn initial-workspace []
@@ -67,24 +74,38 @@
   (let [workspace (query/workspace data)]
     [[:db/add (:db/id workspace) :workspace/map map]]))
 
+(defmethod transact :workspace/toggle-board-options
+  [data event]
+  (let [{:keys [db/id workspace/selected] :as workspace} (query/workspace data)]
+    (if (= selected workspace)
+      [[:db/retract id :workspace/selected]]
+      [[:db/add id :workspace/mode :select]
+       [:db/add id :workspace/selected id]])))
+
+(defmethod transact :workspace/toggle-grid-options
+  [data event]
+  (let [{:keys [db/id workspace/mode]} (query/workspace data)]
+    (if (= mode :grid)
+      [[:db/add id :workspace/mode :select]]
+      [[:db/add id :workspace/mode :grid]
+       [:db/retract id :workspace/selected]])))
+
 (defmethod transact :element/update
   [data event id attr value]
   [[:db/add id attr value]])
 
 (defmethod transact :view/toggle
-  ([data event]
-   (transact data event (:db/id (query/workspace data))))
-  ([data event element]
-   (let [workspace (query/workspace data)]
-     (if (= (:db/id (:workspace/viewing workspace)) element)
-       [[:db/retract (:db/id workspace) :workspace/viewing element]]
-       [[:db/add (:db/id workspace) :workspace/viewing element]]))))
+  [data event element]
+  (let [workspace (query/workspace data)]
+    (if (= (:db/id (:workspace/selected workspace)) element)
+      [[:db/retract (:db/id workspace) :workspace/selected element]]
+      [[:db/add (:db/id workspace) :workspace/selected element]])))
 
 (defmethod transact :view/clear
   [data]
   (let [workspace (query/workspace data)]
-    (when (not (= (:element/type (:workspace/viewing workspace)) :workspace))
-      [[:db/retract (:db/id workspace) :workspace/viewing]])))
+    (when (not (= (:element/type (:workspace/selected workspace)) :workspace))
+      [[:db/retract (:db/id workspace) :workspace/selected]])))
 
 (defmethod transact :camera/translate
   [data event id x y]
@@ -112,9 +133,29 @@
             :position/x (- tx x)
             :position/y (- ty y))
      [:db/add id :workspace/elements -1]
-     [:db/add id :workspace/viewing -1]]))
+     [:db/add id :workspace/selected -1]]))
 
 (defmethod transact :token/translate
   [data event id x y]
   [[:db/add id :position/x x]
    [:db/add id :position/y y]])
+
+(defmethod transact :grid/change-size
+  [data event size]
+  (let [{:keys [db/id]} (query/workspace data)]
+    [[:db/add id :grid/size size]]))
+
+(defmethod transact :grid/draw
+  [data event ox oy size]
+  (let [workspace (query/workspace data)
+        {:keys [db/id workspace/map]}   workspace
+        {:keys [position/x position/y]} workspace
+        {:keys [image/width]}           map
+        origin [(- ox x) (- oy y)]]
+    (if (nil? map)
+      [[:db/add id :grid/size size]
+       [:db/add id :grid/origin origin]]
+      (let [next (->> (range (- size 4) (+ size 4))
+                      (reduce (fn [_ n] (when (zero? (mod width n)) (reduced n)))))]
+        [[:db/add id :grid/size (or next size)]
+         [:db/add id :grid/origin origin]]))))

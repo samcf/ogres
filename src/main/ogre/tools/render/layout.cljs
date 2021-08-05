@@ -4,7 +4,7 @@
             [ogre.tools.render.tokens :refer [tokens]]
             [ogre.tools.render.canvas :refer [canvas]]
             [ogre.tools.render.command :refer [command]]
-            [ogre.tools.render.viewing :refer [viewing]]
+            [ogre.tools.render.options :refer [options]]
             [ogre.tools.render.workspaces :refer [workspaces]]
             [ogre.tools.query :as query]
             [uix.core.alpha :as uix]))
@@ -25,11 +25,11 @@
    {:border-bottom "1px solid var(--color-primary-d)" :padding "8px 0 0 8px"}]
   [:.workspace
    {:background-color "var(--theme-background-d)" :position "relative" :flex "1"}]
-  [:.canvas :.viewing :.vignette :.tokens
+  [:.canvas :.options :.vignette :.tokens
    {:pointer-events "none" :position "absolute" :top 0 :right 0 :bottom 0 :left 0}]
   [:.vignette
    {:box-shadow "inset 0 0 32px rgba(0, 0, 0, 0.90)"}]
-  [:.viewing
+  [:.options
    {:display "flex" :flex-direction "column"}]
   [:.tokens
    {:display "flex" :justify-content "flex-end"}])
@@ -43,5 +43,5 @@
       [:div.workspace
        [:div.canvas [canvas]]
        [:div.vignette]
-       [:div.viewing [viewing]]
+       [:div.options [options]]
        [:div.tokens [tokens]]]]]))

@@ -21,4 +21,7 @@
     [:div {:class (styles)}
      [:button
       {:type "button"
-       :on-click #(dispatch :view/toggle)} "B"]]))
+       :on-click #(dispatch :workspace/toggle-board-options)} "B"]
+     [:button
+      {:type "button"
+       :on-click #(dispatch :workspace/toggle-grid-options)} "G"]]))
