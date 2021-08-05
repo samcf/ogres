@@ -3,7 +3,8 @@
             [uix.core.alpha :as uix]
             [react-draggable :as draggable]
             [spade.core :refer [defclass]]
-            [ogre.tools.render :refer [context css handler use-image]]))
+            [ogre.tools.render :refer [context css handler use-image]]
+            [ogre.tools.query :as query]))
 
 (defn distance [[ax ay] [bx by]]
   (js/Math.sqrt
@@ -26,7 +27,10 @@
 (defn board [{:keys [image]}]
   (let [url (use-image (:image/checksum image))]
     (when (string? url)
-      [:image {:x 0 :y 0 :href url}])))
+      [:<>
+       [:image {:x 0 :y 0 :href url :fill "transparent" :style {:filter "saturate(0%) brightness(5%)"}}]
+       [:image {:x 0 :y 0 :href url :clip-path "url(#clip-dim-light)" :style {:filter "saturate(20%) brightness(50%)"}}]
+       [:image {:x 0 :y 0 :href url :clip-path "url(#clip-bright-light)"}]])))
 
 (defn grid [{:keys [canvas]}]
   (let [{:keys [workspace]}    (uix/context context)
@@ -102,9 +106,39 @@
        (let [[ax ay bx by] @points]
          [:path {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"]) :stroke "gold" :fill "transparent"}]))]))
 
+(defn tokens [props]
+  (let [context                (uix/context context)
+        {workspace :workspace} context
+        {data           :data} context
+        {dispatch   :dispatch} context
+        {grid-size :grid/size} workspace
+        elements               (query/tokens data)]
+    [:<>
+     [:defs
+      [:clipPath {:id "clip-dim-light"}
+       (for [token elements :let [{x :position/x} token {y :position/y} token]]
+         [:circle {:key (:db/id token) :cx x :cy y :r (+ (* grid-size 8) (/ grid-size 2))}])]
+      [:clipPath {:id "clip-bright-light"}
+       (for [token elements :let [{x :position/x} token {y :position/y} token]]
+         [:circle {:key (:db/id token) :cx x :cy y :r (+ (* grid-size 4) (/ grid-size 2))}])]]
+     (for [token elements :let [{x :position/x} token {y :position/y} token]]
+       [:> draggable
+        {:key      (:db/id token)
+         :position #js {:x x :y y}
+         :onStart  (handler)
+         :onStop   (handler
+                    (fn [_ data]
+                      (let [dist (distance [x y] [(.-x data) (.-y data)])]
+                        (if (= dist 0)
+                          (dispatch :view/toggle (:db/id token))
+                          (dispatch :token/translate (:db/id token) (.-x data) (.-y data))))))}
+        [:g {:class (css (element-styles) "token" {:active (= token (:workspace/selected workspace))})}
+         [:circle {:cx 0 :cy 0 :r (- (/ grid-size 2) 4) :fill "black"}]
+         (when-let [name (:element/name token)]
+           [:text {:x 0 :y (+ (/ grid-size 2) 16) :text-anchor "middle" :fill "white"} name])]])]))
+
 (defn canvas [props]
   (let [{:keys [workspace dispatch]} (uix/context context)
-        {grid-size :grid/size} workspace
         {grid-show :grid/show} workspace
         {camera-x :position/x} workspace
         {camera-y :position/y} workspace
@@ -126,7 +160,7 @@
        ;; dragged from anywhere on the element.
        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
 
-       [:g {:transform (str "translate(" camera-x ", " camera-y ")")}
+       [:g {:transform (str "scale(1) translate(" camera-x ", " camera-y ")")}
 
         ;; Render the selected board map.
         [board {:key (:image/checksum image) :image image}]
@@ -138,26 +172,7 @@
 
         ;; Render the various elements of the board such as tokens, geometry,
         ;; lighting, etc.
-        (for [element (:workspace/elements workspace)]
-          (case (:element/type element)
-            :token
-            (let [{x :position/x} element
-                  {y :position/y} element]
-              [:> draggable
-               {:key      (:db/id element)
-                :position #js {:x x :y y}
-                :onStart  (handler)
-                :onStop   (handler
-                           (fn [_ data]
-                             (let [dist (distance [x y] [(.-x data) (.-y data)])]
-                               (if (= dist 0)
-                                 (dispatch :view/toggle (:db/id element))
-                                 (dispatch :token/translate (:db/id element) (.-x data) (.-y data))))))}
-               [:g {:class (css (element-styles) "token" {:active (= element (:workspace/selected workspace))})}
-                [:circle {:cx 0 :cy 0 :r (- (/ grid-size 2) 4) :fill "black"}]
-                (when-let [name (:element/name element)]
-                  [:text {:x 0 :y (+ (/ grid-size 2) 16) :text-anchor "middle" :fill "white"} name])]])
-            nil))]
+        [tokens]]
 
        ;; Render the drawable grid component.
        (when (= mode :grid)

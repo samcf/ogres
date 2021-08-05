@@ -21,7 +21,7 @@
 (defn tokens [props]
   (let [{:keys [data workspace dispatch]} (uix/context context)]
     [:div {:class (styles)}
-     (for [token (query/tokens data) :let [{:keys [db/id]} token]]
+     (for [token (query/templates data) :let [{:keys [db/id]} token]]
        [:div.token {:key id}
         [:> draggable
          {:position #js {:x 0 :y 0}

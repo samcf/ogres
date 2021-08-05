@@ -16,5 +16,13 @@
        (map first)
        (map #(ds/entity data %))))
 
-(defn tokens [data]
+(defn templates [data]
   (:viewer/tokens (ds/entity data [:db/ident :viewer])))
+
+(defn tokens [data]
+  (->> (ds/q '[:find [?id ...]
+               :where
+               [_ :viewer/workspace ?ws]
+               [?ws :workspace/elements ?id]
+               [?id :element/type :token]] data)
+       (map #(ds/entity data %))))
