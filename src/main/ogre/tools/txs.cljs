@@ -6,6 +6,15 @@
   [(* (js/Math.round (/ x n)) n)
    (* (js/Math.round (/ y n)) n)])
 
+(defn find-index [coll val]
+  (reduce (fn [i _]
+            (if (= (coll i) val)
+              (reduced i)
+              (inc i))) 0 coll))
+
+(defn constrain [number minimum maximum]
+  (max (min number maximum) minimum))
+
 (def schema
   {:db/ident           {:db/unique :db.unique/identity}
    :viewer/workspace   {:db/valueType :db.type/ref}
@@ -18,6 +27,8 @@
    :grid/origin        {}
    :position/x         {}
    :position/y         {}
+   :zoom/scales        {}
+   :zoom/scale         {}
    :element/type       {}
    :element/name       {}
    :image/checksum     {:db/index true}
@@ -38,6 +49,8 @@
     [:db/add -2 :grid/origin [0 0]]
     [:db/add -2 :lighting/level :bright]
     [:db/add -2 :grid/show true]
+    [:db/add -2 :zoom/scales [0.5 0.75 0.90 1 1.10 1.25 1.50]]
+    [:db/add -2 :zoom/scale 1]
     [:db/add -3 :element/type :token]]))
 
 (defn initial-workspace []
@@ -48,6 +61,8 @@
    :grid/size 70
    :grid/origin [0 0]
    :grid/show true
+   :zoom/scales [0.5 0.75 0.90 1 1.10 1.25 1.50]
+   :zoom/scale 1
    :lighting/level :bright})
 
 (defmulti transact
@@ -120,9 +135,10 @@
       [[:db/retract (:db/id workspace) :workspace/selected]])))
 
 (defmethod transact :camera/translate
-  [data event id x y]
-  [[:db/add id :position/x x]
-   [:db/add id :position/y y]])
+  [data event x y]
+  (let [{:keys [db/id]} (query/workspace data)]
+    [[:db/add id :position/x x]
+     [:db/add id :position/y y]]))
 
 (defmethod transact :map/create
   [data event workspace map-data]
@@ -137,13 +153,12 @@
   [[:db/retractEntity map]])
 
 (defmethod transact :token/create
-  [data event id token tx ty]
-  (let [workspace (ds/entity data id)
-        {:keys [position/x position/y]} workspace]
+  [data event token tx ty]
+  (let [{:keys [db/id position/x position/y zoom/scale]} (query/workspace data)]
     [(assoc token
             :db/id -1
-            :position/x (- tx x)
-            :position/y (- ty y))
+            :position/x (- (/ tx scale) x)
+            :position/y (- (/ ty scale) y))
      [:db/add id :workspace/elements -1]
      [:db/add id :workspace/selected -1]]))
 
@@ -185,3 +200,16 @@
   [data event level]
   (let [{:keys [db/id]} (query/workspace data)]
     [[:db/add id :lighting/level level]]))
+
+(defmethod transact :zoom/step
+  [data event step]
+  (let [{:keys [db/id zoom/scale zoom/scales]} (query/workspace data)]
+    [[:db/add id :zoom/scale (-> (find-index scales scale) (+ step)
+                                 (constrain 0 (- (count scales) 1))
+                                 (scales))]]))
+
+(defmethod transact :zoom/in [data event]
+  (transact data :zoom/step 1))
+
+(defmethod transact :zoom/out [data event]
+  (transact data :zoom/step -1))

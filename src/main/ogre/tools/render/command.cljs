@@ -17,14 +17,12 @@
   [:button+button {:margin-top "8px"}])
 
 (defn command [props]
-  (let [{:keys [dispatch]} (uix/context context)]
+  (let [{:keys [workspace dispatch]} (uix/context context)
+        {scale :zoom/scale} workspace]
     [:div {:class (styles)}
-     [:button
-      {:type "button"
-       :on-click #(dispatch :workspace/toggle-board-options)} "B"]
-     [:button
-      {:type "button"
-       :on-click #(dispatch :workspace/toggle-grid-options)} "G"]
-     [:button
-      {:type "button"
-       :on-click #(dispatch :grid/toggle)} "S"]]))
+     [:button {:type "button" :on-click #(dispatch :workspace/toggle-board-options)} "B"]
+     [:button {:type "button" :on-click #(dispatch :workspace/toggle-grid-options)} "G"]
+     [:button {:type "button" :on-click #(dispatch :grid/toggle)} "S"]
+     [:button {:type "button" :on-click #(dispatch :zoom/in)} "+"]
+     [:button {:type "button"} scale]
+     [:button {:type "button" :on-click #(dispatch :zoom/out)} "-"]]))

@@ -51,7 +51,7 @@
            (reset! dimensions [(.-width bounding) (.-height bounding)]))))
      [(nil? @canvas)])
 
-    (let [[ox oy ax ay bx] [(- (* w -2) camera-x) (- (* h -2) camera-y)
+    (let [[sx sy ax ay bx] [(- (* w -2) camera-x) (- (* h -2) camera-y)
                             (- (* w  2) camera-x) (- (* h  2) camera-y) (- (* w -2) camera-x)]]
       [:<>
        [:defs
@@ -63,12 +63,12 @@
            :stroke-dasharray "2px"
            :fill "none"}]]]
        [:circle {:cx ox :cy oy :r 12 :stroke "gold" :fill "transparent"}]
-       [:path {:d (string/join " " ["M" ox oy "H" ax "V" ay "H" bx "Z"]) :fill "url(#grid)"}]])))
+       [:path {:d (string/join " " ["M" sx sy "H" ax "V" ay "H" bx "Z"]) :fill "url(#grid)"}]])))
 
 (defn grid-draw [{:keys [canvas]}]
-  (let [{:keys [workspace dispatch]}   (uix/context context)
-        {:keys [workspace/mode]}       workspace
-        canvas (.getBoundingClientRect @canvas)
+  (let [{:keys [workspace dispatch]}        (uix/context context)
+        {:keys [workspace/mode zoom/scale]} workspace
+        canvas (.getBoundingClientRect      @canvas)
         points (uix/state nil)]
     [:g
      [:> draggable
@@ -97,7 +97,7 @@
             (reset! points nil)
             (let [size (js/Math.abs (- bx ax))]
               (when (> size 0)
-                (dispatch :grid/draw ax ay size))))))}
+                (dispatch :grid/draw ax ay (/ size scale)))))))}
       [:g [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]]]
 
      (when (seq @points)
@@ -106,11 +106,12 @@
 
 (defn tokens [props]
   (let [context                (uix/context context)
-        {workspace :workspace}  context
-        {data           :data}  context
-        {dispatch   :dispatch}  context
+        {workspace  :workspace} context
+        {data            :data} context
+        {dispatch    :dispatch} context
         {level :lighting/level} workspace
-        {grid-size :grid/size}  workspace
+        {grid-size  :grid/size} workspace
+        {scale     :zoom/scale} workspace
         elements                (query/tokens data)]
     [:<>
      [:defs
@@ -126,6 +127,7 @@
        [:> draggable
         {:key      (:db/id token)
          :position #js {:x x :y y}
+         :scale    scale
          :onStart  (handler)
          :onStop   (handler
                     (fn [_ data]
@@ -134,7 +136,7 @@
                           (dispatch :view/toggle (:db/id token))
                           (dispatch :token/translate (:db/id token) (.-x data) (.-y data))))))}
         [:g {:class (css (element-styles) "token" {:active (= token (:workspace/selected workspace))})}
-         [:circle {:cx 0 :cy 0 :r (- (/ grid-size 2) 4) :fill "black"}]
+         [:circle {:cx 0 :cy 0 :r (max (- (/ grid-size 2) 4) 8) :fill "black"}]
          (when-let [name (:element/name token)]
            [:text {:x 0 :y (+ (/ grid-size 2) 16) :text-anchor "middle" :fill "white"} name])]])]))
 
@@ -145,6 +147,7 @@
         {camera-y :position/y} workspace
         {mode :workspace/mode} workspace
         {image :workspace/map} workspace
+        {scale    :zoom/scale} workspace
         node (uix/ref nil)]
     [:svg {:ref node :class (styles)}
      [:> draggable
@@ -154,14 +157,16 @@
        :onStop
        (fn [event data]
          (let [ox (.-x data) oy (.-y data)]
-           (dispatch :camera/translate (:db/id workspace) (+ ox camera-x) (+ oy camera-y))))}
+           (dispatch :camera/translate
+                     (+ (/ ox scale) camera-x)
+                     (+ (/ oy scale) camera-y))))}
       [:g
 
        ;; Render an element that guarantees that the entire canvas may be
        ;; dragged from anywhere on the element.
        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
 
-       [:g {:transform (str "scale(1) translate(" camera-x ", " camera-y ")")}
+       [:g {:transform (str "scale(" scale ") translate(" camera-x ", " camera-y ")")}
 
         ;; Render the selected board map.
         [board {:key (:image/checksum image) :image image}]
