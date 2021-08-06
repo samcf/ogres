@@ -36,11 +36,19 @@
     [:db/add -2 :position/y 0]
     [:db/add -2 :grid/size 70]
     [:db/add -2 :grid/origin [0 0]]
-    [:db/add -2 :grid/show false]
+    [:db/add -2 :lighting/level :bright]
+    [:db/add -2 :grid/show true]
     [:db/add -3 :element/type :token]]))
 
 (defn initial-workspace []
-  {:element/type :workspace :position/x 0 :position/y 0})
+  {:element/type :workspace
+   :position/x 0
+   :position/y 0
+   :workspace/mode :select
+   :grid/size 70
+   :grid/origin [0 0]
+   :grid/show true
+   :lighting/level :bright})
 
 (defmulti transact
   (fn [data event & args] event))
@@ -168,3 +176,8 @@
   [data event]
   (let [{:keys [db/id grid/show]} (query/workspace data)]
     [[:db/add id :grid/show (not show)]]))
+
+(defmethod transact :lighting/change-level
+  [data event level]
+  (let [{:keys [db/id]} (query/workspace data)]
+    [[:db/add id :lighting/level level]]))

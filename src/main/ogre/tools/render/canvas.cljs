@@ -25,12 +25,15 @@
     :stroke-linecap "round"}])
 
 (defn board [{:keys [image]}]
-  (let [url (use-image (:image/checksum image))]
+  (let [{{:keys [lighting/level]} :workspace} (uix/context context)
+        url (use-image (:image/checksum image))
+        attrs {:bright {:clip-path (when-not (= level :bright) "url(#clip-bright-light)")}
+               :dim    {:clip-path (when (= level :dark) "url(#clip-dim-light)")
+                        :style     {:filter "saturate(20%) brightness(50%)"}}}]
     (when (string? url)
       [:<>
-       [:image {:x 0 :y 0 :href url :fill "transparent" :style {:filter "saturate(0%) brightness(5%)"}}]
-       [:image {:x 0 :y 0 :href url :clip-path "url(#clip-dim-light)" :style {:filter "saturate(20%) brightness(50%)"}}]
-       [:image {:x 0 :y 0 :href url :clip-path "url(#clip-bright-light)"}]])))
+       (for [type [:dim :bright]]
+         [:image (merge {:x 0 :y 0 :href url} (attrs type) {:key type})])])))
 
 (defn grid [{:keys [canvas]}]
   (let [{:keys [workspace]}    (uix/context context)
@@ -108,19 +111,22 @@
 
 (defn tokens [props]
   (let [context                (uix/context context)
-        {workspace :workspace} context
-        {data           :data} context
-        {dispatch   :dispatch} context
-        {grid-size :grid/size} workspace
-        elements               (query/tokens data)]
+        {workspace :workspace}  context
+        {data           :data}  context
+        {dispatch   :dispatch}  context
+        {level :lighting/level} workspace
+        {grid-size :grid/size}  workspace
+        elements                (query/tokens data)]
     [:<>
      [:defs
-      [:clipPath {:id "clip-dim-light"}
-       (for [token elements :let [{x :position/x} token {y :position/y} token]]
-         [:circle {:key (:db/id token) :cx x :cy y :r (+ (* grid-size 8) (/ grid-size 2))}])]
-      [:clipPath {:id "clip-bright-light"}
-       (for [token elements :let [{x :position/x} token {y :position/y} token]]
-         [:circle {:key (:db/id token) :cx x :cy y :r (+ (* grid-size 4) (/ grid-size 2))}])]]
+      (when (= level :dark)
+        [:clipPath {:id "clip-dim-light"}
+         (for [token elements :let [{x :position/x} token {y :position/y} token]]
+           [:circle {:key (:db/id token) :cx x :cy y :r (+ (* grid-size 8) (/ grid-size 2))}])])
+      (when-not (= level :bright)
+        [:clipPath {:id "clip-bright-light"}
+         (for [token elements :let [{x :position/x} token {y :position/y} token]]
+           [:circle {:key (:db/id token) :cx x :cy y :r (+ (* grid-size 4) (/ grid-size 2))}])])]
      (for [token elements :let [{x :position/x} token {y :position/y} token]]
        [:> draggable
         {:key      (:db/id token)

@@ -35,6 +35,8 @@
    {:display               "grid"
     :grid-gap              "2px"
     :grid-template-columns "repeat(3, 1fr)"
+    :max-height            "180px"
+    :overflow-y            "auto"
     :font-size             "12px"}
    [:>div
     {:background-size "cover"
@@ -65,7 +67,13 @@
       :max-height       "44px"
       :overflow-y       "hidden"
       :padding          "0 4px"
-      :pointer-events   "none"}]]])
+      :pointer-events   "none"}]]]
+  [:.lighting
+   {:display "grid"
+    :grid-template-columns "repeat(3, 1fr)"
+    :grid-gap "4px"}
+   [:button
+    {:text-transform "capitalize"}]])
 
 (defn load-image [file handler]
   (let [reader (new js/FileReader)]
@@ -95,13 +103,7 @@
   (let [{:keys [data workspace dispatch store]} (uix/context context)]
     [:div {:class (styles)}
      [:section.header
-      [:label "Workspace Options"]
-      [:button.close
-       {:type "button"
-        :on-click
-        #(dispatch :workspace/toggle-board-options)} "×"]]
-     [:section
-      [:label
+      [:label {:style {:flex 1 :margin-right "8px"}}
        [:input
         {:type "text"
          :placeholder "Workspace name"
@@ -110,42 +112,50 @@
          :on-change
          (fn [event]
            (let [value (.. event -target -value)]
-             (dispatch :element/update (:db/id workspace) :element/name value)))}]]]
+             (dispatch :element/update (:db/id workspace) :element/name value)))}]]
+      [:button.close
+       {:type "button" :on-click #(dispatch :workspace/toggle-board-options)} "×"]]
 
-     (let [boards (query/boards data)]
-       [:section
-        (when (seq boards)
-          [:div
-           [:label "Select an existing map"]
-           [:div.boards
-            (for [board boards]
-              [thumbnail
-               {:key       (:image/checksum board)
-                :board     board
-                :selected  (= board (:workspace/map workspace))
-                :on-select (fn []
-                             (dispatch :workspace/change-map (:db/id board)))
-                :on-remove (fn []
-                             (.delete (.-images store) (:image/checksum board))
-                             (dispatch :map/remove (:db/id board)))}])]])
-        [:input
-         {:type "file"
-          :accept "image/*"
-          :multiple true
-          :on-change
-          #(doseq [file (.. % -target -files)]
-             (load-image
-              file
-              (fn [{:keys [data filename img]}]
-                (let [checks (checksum data)
-                      record #js {:checksum checks :data data :created-at (.now js/Date)}
-                      entity {:image/checksum checks
-                              :image/name     filename
-                              :image/width    (.-width img)
-                              :image/height   (.-height img)}]
-                  (-> (.put (.-images store) record)
-                      (.then
-                       (fn [] (dispatch :map/create workspace entity))))))))}]])]))
+     [:section
+      (when-let [boards (query/boards data)]
+        [:div
+         [:div.boards
+          (for [board boards]
+            [thumbnail
+             {:key       (:image/checksum board)
+              :board     board
+              :selected  (= board (:workspace/map workspace))
+              :on-select (fn []
+                           (dispatch :workspace/change-map (:db/id board)))
+              :on-remove (fn []
+                           (.delete (.-images store) (:image/checksum board))
+                           (dispatch :map/remove (:db/id board)))}])]])
+      [:input
+       {:type "file"
+        :accept "image/*"
+        :multiple true
+        :on-change
+        #(doseq [file (.. % -target -files)]
+           (load-image
+            file
+            (fn [{:keys [data filename img]}]
+              (let [checks (checksum data)
+                    record #js {:checksum checks :data data :created-at (.now js/Date)}
+                    entity {:image/checksum checks
+                            :image/name     filename
+                            :image/width    (.-width img)
+                            :image/height   (.-height img)}]
+                (-> (.put (.-images store) record)
+                    (.then
+                     (fn [] (dispatch :map/create workspace entity))))))))}]]
+
+     [:section
+      [:fieldset
+       [:div "Lighting"]
+       [:div.lighting
+        (for [option [:bright :dim :dark]]
+          [:button {:key option :type "button" :on-click #(dispatch :lighting/change-level option)}
+           (name option)])]]]]))
 
 (defn token [{:keys [token]}]
   (let [{:keys [workspace dispatch]} (uix/context context)
