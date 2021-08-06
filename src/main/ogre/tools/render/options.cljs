@@ -157,26 +157,24 @@
           [:button {:key option :type "button" :on-click #(dispatch :lighting/change-level option)}
            (name option)])]]]]))
 
-(defn token [{:keys [token]}]
+(defn token [props]
   (let [{:keys [workspace dispatch]} (uix/context context)
         {:keys [db/id element/name]} (:workspace/selected workspace)]
     [:div {:class (styles)}
      [:section.header
-      [:label "Token Options"]
-      [:button.close {:type "button" :on-click #(dispatch :view/toggle id)} "×"]]
-     [:section
-      [:fieldset
-       [:label
-        [:input
-         {:type "text"
-          :value (or name "")
-          :placeholder "Label"
-          :maxLength 24
-          :autoFocus true
-          :on-change
-          (fn [event]
-            (let [value (.. event -target -value)]
-              (dispatch :element/update id :element/name value)))}]]]]]))
+      [:input
+       {:type "text"
+        :style {:flex 1 :margin-right "8px"}
+        :value (or name "")
+        :placeholder "Label"
+        :maxLength 24
+        :autoFocus true
+        :on-change
+        (fn [event]
+          (let [value (.. event -target -value)]
+            (dispatch :element/update id :element/name value)))}]
+      [:button.remove {:type "button" :on-click #(dispatch :token/remove id) :style {:margin-right "8px"}} "♼"]
+      [:button.close {:type "button" :on-click #(dispatch :view/toggle id)} "×"]]]))
 
 (defn grid [{:keys [workspace]}]
   (let [{:keys [workspace dispatch]} (uix/context context)

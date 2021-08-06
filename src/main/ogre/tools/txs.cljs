@@ -147,6 +147,10 @@
      [:db/add id :workspace/elements -1]
      [:db/add id :workspace/selected -1]]))
 
+(defmethod transact :token/remove
+  [data event token]
+  [[:db/retractEntity token]])
+
 (defmethod transact :token/translate
   [data event id x y]
   [[:db/add id :position/x x]
