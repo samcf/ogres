@@ -26,7 +26,6 @@
    {:border-radius "6px"}]
   [:.workspace
    {:background-color "var(--theme-background-d)"
-    :border "1px solid transparent"
     :box-shadow "0 0 16px rgba(0, 0, 0, 0.65)"
     :flex "1"
     :margin "8px 16px 16px 8px"

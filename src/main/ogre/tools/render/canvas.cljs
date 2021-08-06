@@ -51,29 +51,24 @@
            (reset! dimensions [(.-width bounding) (.-height bounding)]))))
      [(nil? @canvas)])
 
-    [:<>
-     [:defs
-      [:pattern {:id "grid" :width grid-size :height grid-size :patternUnits "userSpaceOnUse"}
-       [:path
-        {:d (string/join " " ["M" 0 0 "H" grid-size "V" grid-size])
-         :stroke "rgba(255, 255, 255, 0.40)"
-         :stroke-width "1"
-         :stroke-dasharray "2px"
-         :fill "none"}]]]
-     [:g
-      [:circle {:cx ox :cy oy :r 12 :stroke "gold" :fill "transparent"}]
-      (let [[ox oy ax ay bx] [(- (* w -2) camera-x)
-                              (- (* h -2) camera-y)
-                              (- (* w  2) camera-x)
-                              (- (* h  2) camera-y)
-                              (- (* w -2) camera-x)]]
-        [:path {:d (string/join " " ["M" ox oy "H" ax "V" ay "H" bx "Z"])
-                :fill "url(#grid)"}])]]))
+    (let [[ox oy ax ay bx] [(- (* w -2) camera-x) (- (* h -2) camera-y)
+                            (- (* w  2) camera-x) (- (* h  2) camera-y) (- (* w -2) camera-x)]]
+      [:<>
+       [:defs
+        [:pattern {:id "grid" :width grid-size :height grid-size :patternUnits "userSpaceOnUse"}
+         [:path
+          {:d (string/join " " ["M" 0 0 "H" grid-size "V" grid-size])
+           :stroke "rgba(255, 255, 255, 0.40)"
+           :stroke-width "1"
+           :stroke-dasharray "2px"
+           :fill "none"}]]]
+       [:circle {:cx ox :cy oy :r 12 :stroke "gold" :fill "transparent"}]
+       [:path {:d (string/join " " ["M" ox oy "H" ax "V" ay "H" bx "Z"]) :fill "url(#grid)"}]])))
 
-(defn grid-draw [props]
-  (let [{:keys [workspace dispatch]} (uix/context context)
-        {:keys [workspace/mode]}     workspace
-        canvas (.getBoundingClientRect (js/document.querySelector ".canvas"))
+(defn grid-draw [{:keys [canvas]}]
+  (let [{:keys [workspace dispatch]}   (uix/context context)
+        {:keys [workspace/mode]}       workspace
+        canvas (.getBoundingClientRect @canvas)
         points (uix/state nil)]
     [:g
      [:> draggable
@@ -182,4 +177,4 @@
 
        ;; Render the drawable grid component.
        (when (= mode :grid)
-         [grid-draw])]]]))
+         [grid-draw {:canvas node}])]]]))
