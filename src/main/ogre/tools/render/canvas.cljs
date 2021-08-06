@@ -53,7 +53,7 @@
       [:pattern {:id "grid" :width grid-size :height grid-size :patternUnits "userSpaceOnUse"}
        [:path
         {:d (string/join " " ["M" 0 0 "H" grid-size "V" grid-size])
-         :stroke "white"
+         :stroke "rgba(255, 255, 255, 0.40)"
          :stroke-width "1"
          :stroke-dasharray "2px"
          :fill "none"}]]]

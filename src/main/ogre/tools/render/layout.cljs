@@ -15,20 +15,24 @@
    :color "var(--theme-text)"
    :height "100%"}
   [:.command
-   {:border-right "1px solid var(--color-primary-d)"
-    :box-sizing "content-box"
+   {:box-sizing "content-box"
     :padding "8px"
     :width "36px"}]
   [:.content
    {:display "flex" :flex-direction "column" :flex 1}]
   [:.workspaces
-   {:border-bottom "1px solid var(--color-primary-d)" :padding "8px 0 0 8px"}]
+   {:padding "8px 0 0 8px"}]
+  [:.workspace :.canvas :.canvas>svg
+   {:border-radius "6px"}]
   [:.workspace
-   {:background-color "var(--theme-background-d)" :position "relative" :flex "1"}]
-  [:.canvas :.options :.vignette :.tokens
+   {:background-color "var(--theme-background-d)"
+    :border "1px solid transparent"
+    :box-shadow "0 0 16px rgba(0, 0, 0, 0.65)"
+    :flex "1"
+    :margin "8px 16px 16px 8px"
+    :position "relative"}]
+  [:.canvas :.options :.tokens
    {:pointer-events "none" :position "absolute" :top 0 :right 0 :bottom 0 :left 0}]
-  [:.vignette
-   {:box-shadow "inset 0 0 32px rgba(0, 0, 0, 0.90)"}]
   [:.options
    {:display "flex" :flex-direction "column"}]
   [:.tokens
@@ -42,6 +46,5 @@
       [:div.workspaces [workspaces]]
       [:div.workspace
        [:div.canvas [canvas]]
-       [:div.vignette]
        [:div.options [options]]
        [:div.tokens [tokens]]]]]))
