@@ -114,8 +114,9 @@
   [data event]
   (let [{:keys [db/id workspace/selected] :as workspace} (query/workspace data)]
     (if (= selected workspace)
-      [[:db/retract id :workspace/selected]]
       [[:db/add id :workspace/mode :select]
+       [:db/retract id :workspace/selected]]
+      [[:db/add id :workspace/mode :board]
        [:db/add id :workspace/selected id]])))
 
 (defmethod transact :workspace/toggle-grid-options
@@ -135,7 +136,8 @@
   (let [workspace (query/workspace data)]
     (if (= (:db/id (:workspace/selected workspace)) element)
       [[:db/retract (:db/id workspace) :workspace/selected element]]
-      [[:db/add (:db/id workspace) :workspace/selected element]])))
+      [[:db/add (:db/id workspace) :workspace/mode :select]
+       [:db/add (:db/id workspace) :workspace/selected element]])))
 
 (defmethod transact :view/clear
   [data]

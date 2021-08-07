@@ -230,7 +230,7 @@
   (let [{:keys [workspace]} (uix/context context)
         {:keys [workspace/mode workspace/selected]} workspace]
     (case [mode (:element/type selected)]
-      [:select :workspace]
+      [:board :workspace]
       [board {:key (:db/id workspace)}]
 
       [:select :token]
