@@ -17,7 +17,8 @@
 (defclass element-styles []
   {:pointer-events "all"}
   [:&.token>circle
-   {:filter "drop-shadow(1px 1px 2px rgba(0, 0, 0, .6))"}]
+   {:filter "drop-shadow(1px 1px 8px rgba(0, 0, 0, .8))"
+    :stroke "black"}]
   [:&.token.active>circle
    {:stroke "#ffeb3b"
     :stroke-width "1.5px"
@@ -138,7 +139,7 @@
                 (dispatch :token/translate (:db/id token) (.-x data) (.-y data))))))}
         (let [r (-> (:size size) (/ 5) (* grid-size) (/ 2))]
           [:g {:class (css (element-styles) "token" {:active (= token (:workspace/selected workspace))})}
-           [:circle {:cx 0 :cy 0 :r (max (- r 4) 8) :fill "black"}]
+           [:circle {:cx 0 :cy 0 :r (max (- r 4) 8) :fill "#172125"}]
            (when-let [name (:element/name token)]
              [:text {:x 0 :y (+ r 16) :text-anchor "middle" :fill "white"} name])])])]))
 
