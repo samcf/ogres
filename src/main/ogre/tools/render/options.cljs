@@ -41,6 +41,7 @@
    {:display               "grid"
     :grid-gap              "2px"
     :grid-template-columns "repeat(3, 1fr)"
+    :margin-bottom         "4px"
     :max-height            "180px"
     :overflow-y            "auto"
     :font-size             "12px"}
@@ -59,35 +60,27 @@
       :color            "rgba(255, 255, 255)"}]
     [:.close
      {:border-radius "0 0 0 4px"
-      :color    "rgba(255, 255, 255)"
-      :position "absolute"
-      :top      0
-      :right    0
-      :padding  "4px 8px"}
+      :color         "rgba(255, 255, 255)"
+      :position      "absolute"
+      :top           0
+      :right         0
+      :padding       "4px 8px"}
      [:&:hover
-      {:background-color "rgba(0, 0, 0, 0.70)"}]]
-    [:.name
-     {:background-color "rgba(0, 0, 0, 0.20)"
-      :border-radius    "0 0 4px 4px"
-      :color            "rgba(255, 255, 255, 0.80)"
-      :max-height       "44px"
-      :overflow-y       "hidden"
-      :padding          "0 4px"
-      :pointer-events   "none"}]]]
+      {:background-color "rgba(0, 0, 0, 0.70)"}]]]]
   [:.lighting
-   {:display "grid"
+   {:display               "grid"
     :grid-template-columns "repeat(3, 1fr)"
-    :grid-gap "4px"}
+    :grid-gap              "4px"}
    [:button
     {:text-transform "capitalize"}]]
   [:.lights
-   {:display "grid"
+   {:display               "grid"
     :grid-template-columns "repeat(4, 1fr)"
-    :grid-gap "4px"}]
+    :grid-gap              "4px"}]
   [:.sizes
-   {:display "grid"
+   {:display               "grid"
     :grid-template-columns "repeat(3, 1fr)"
-    :grid-gap "4px"}
+    :grid-gap              "4px"}
    [:button
     {:text-transform "capitalize"}]])
 
@@ -111,7 +104,6 @@
            :class    (css {:selected selected})
            :style    {:background-image (str "url(" url ")")}
            :on-click (handler on-select)}
-     [:div.name (:image/name board)]
      [:div.close
       {:on-click (handler on-remove)} "×"]]))
 
