@@ -10,25 +10,23 @@
             [uix.core.alpha :as uix]))
 
 (defclass styles []
-  {:display "flex"
-   :background-color "var(--theme-background-a)"
+  {:display "grid"
+   :grid-template-rows "minmax(36px, auto) 1fr"
+   :grid-template-columns "0fr 1fr"
+   :background-color "hsl(208deg 21% 20%)"
    :color "var(--theme-text)"
    :height "100%"}
   [:.command
    {:box-sizing "content-box"
-    :padding "8px"
-    :width "36px"}]
-  [:.content
-   {:display "flex" :flex-direction "column" :flex 1}]
+    :padding "0 8px"}]
   [:.workspaces
-   {:padding "8px 0 0 8px"}]
+   {:margin "8px 0 4px 0"}]
   [:.workspace :.canvas :.canvas>svg
    {:border-radius "6px"}]
   [:.workspace
    {:background-color "var(--theme-background-d)"
-    :box-shadow "0 0 16px rgba(0, 0, 0, 0.65)"
-    :flex "1"
-    :margin "8px 16px 16px 8px"
+    :box-shadow "2px 2px 16px rgba(0, 0, 0, 0.65)"
+    :margin "0 16px 16px 0"
     :position "relative"}]
   [:.canvas :.options :.tokens
    {:pointer-events "none" :position "absolute" :top 0 :right 0 :bottom 0 :left 0}]
@@ -40,10 +38,10 @@
 (defn layout [props child]
   (let [{:keys [data]} (uix/context context)]
     [:div {:class (styles)}
+     [:div ""]
+     [:div.workspaces [workspaces]]
      [:div.command [command]]
-     [:div.content
-      [:div.workspaces [workspaces]]
-      [:div.workspace
-       [:div.canvas [canvas]]
-       [:div.options [options]]
-       [:div.tokens [tokens]]]]]))
+     [:div.workspace
+      [:div.canvas [canvas]]
+      [:div.options [options]]
+      [:div.tokens [tokens]]]]))

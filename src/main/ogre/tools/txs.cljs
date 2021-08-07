@@ -104,6 +104,12 @@
   (let [workspace (query/workspace data)]
     [[:db/add (:db/id workspace) :workspace/map map]]))
 
+(defmethod transact :workspace/set-select-mode
+  [data event]
+  (let [{:keys [db/id]} (query/workspace data)]
+    [[:db/add id :workspace/mode :select]
+     [:db/retract id :workspace/selected]]))
+
 (defmethod transact :workspace/toggle-board-options
   [data event]
   (let [{:keys [db/id workspace/selected] :as workspace} (query/workspace data)]
