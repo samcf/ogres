@@ -169,6 +169,7 @@
         template (ds/entity data token)]
     [[:db/add id :workspace/elements -1]
      [:db/add id :workspace/selected -1]
+     [:db/add id :workspace/mode :select]
      (merge
       (into {} (ds/touch template))
       {:db/id -1
