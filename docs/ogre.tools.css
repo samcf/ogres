@@ -28,7 +28,8 @@ em {
     font-style: italic;
 }
 
-input[type="text"] {
+input[type="text"],
+input[type="number"] {
     border-radius: 2px;
     border: 1px solid black;
     box-sizing: border-box;
