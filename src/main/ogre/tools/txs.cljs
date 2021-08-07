@@ -49,9 +49,10 @@
     [:db/add -2 :grid/origin [0 0]]
     [:db/add -2 :lighting/level :bright]
     [:db/add -2 :grid/show true]
-    [:db/add -2 :zoom/scales [0.5 0.75 0.90 1 1.10 1.25 1.50]]
+    [:db/add -2 :zoom/scales [0.5 0.75 1 1.25 1.50]]
     [:db/add -2 :zoom/scale 1]
-    [:db/add -3 :element/type :token]]))
+    [:db/add -3 :element/type :token]
+    [:db/add -3 :token/light [20 20]]]))
 
 (defn initial-workspace []
   {:element/type :workspace
@@ -61,7 +62,7 @@
    :grid/size 70
    :grid/origin [0 0]
    :grid/show true
-   :zoom/scales [0.5 0.75 0.90 1 1.10 1.25 1.50]
+   :zoom/scales [0.5 0.75 1 1.25 1.50]
    :zoom/scale 1
    :lighting/level :bright})
 
@@ -154,13 +155,15 @@
 
 (defmethod transact :token/create
   [data event token tx ty]
-  (let [{:keys [db/id position/x position/y zoom/scale]} (query/workspace data)]
-    [(assoc token
-            :db/id -1
-            :position/x (- (/ tx scale) x)
-            :position/y (- (/ ty scale) y))
-     [:db/add id :workspace/elements -1]
-     [:db/add id :workspace/selected -1]]))
+  (let [{:keys [db/id position/x position/y zoom/scale]} (query/workspace data)
+        template (ds/entity data token)]
+    [[:db/add id :workspace/elements -1]
+     [:db/add id :workspace/selected -1]
+     (merge
+      (into {} (ds/touch template))
+      {:db/id -1
+       :position/x (- (/ tx scale) x)
+       :position/y (- (/ ty scale) y)})]))
 
 (defmethod transact :token/remove
   [data event token]
@@ -170,6 +173,10 @@
   [data event id x y]
   [[:db/add id :position/x x]
    [:db/add id :position/y y]])
+
+(defmethod transact :token/change-light
+  [data event token bright dim]
+  [[:db/add token :token/light [bright dim]]])
 
 (defmethod transact :grid/change-size
   [data event size]

@@ -31,7 +31,7 @@
             (let [parent (.getBoundingClientRect (.querySelector js/document ".canvas"))
                   node   (.getBoundingClientRect (.-node data))]
               (dispatch
-               :token/create {:element/type :token}
+               :token/create id
                (- (+ (.-x node) (/ (.-width node) 2)) (.-x parent))
                (- (+ (.-y node) (/ (.-height node) 2)) (.-y parent)))))}
          [:svg.draggable [:circle {:cx 36 :cy 36 :r 36 :fill "black"}]]]

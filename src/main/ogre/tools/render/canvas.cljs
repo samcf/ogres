@@ -117,24 +117,25 @@
      [:defs
       (when (= level :dark)
         [:clipPath {:id "clip-dim-light"}
-         (for [token elements :let [{x :position/x} token {y :position/y} token]]
-           [:circle {:key (:db/id token) :cx x :cy y :r (+ (* grid-size 8) (/ grid-size 2))}])])
+         (for [token elements :let [{:keys [position/x position/y token/light]} token [br dr] light]]
+           [:circle {:key (:db/id token) :cx x :cy y :r (+ (* grid-size (/ br 5)) (* grid-size (/ dr 5)))}])])
       (when-not (= level :bright)
         [:clipPath {:id "clip-bright-light"}
-         (for [token elements :let [{x :position/x} token {y :position/y} token]]
-           [:circle {:key (:db/id token) :cx x :cy y :r (+ (* grid-size 4) (/ grid-size 2))}])])]
+         (for [token elements :let [{:keys [position/x position/y token/light]} token [r _] light]]
+           [:circle {:key (:db/id token) :cx x :cy y :r (* grid-size (/ r 5))}])])]
      (for [token elements :let [{x :position/x} token {y :position/y} token]]
        [:> draggable
         {:key      (:db/id token)
          :position #js {:x x :y y}
          :scale    scale
-         :onStart  (handler)
-         :onStop   (handler
-                    (fn [_ data]
-                      (let [dist (distance [x y] [(.-x data) (.-y data)])]
-                        (if (= dist 0)
-                          (dispatch :view/toggle (:db/id token))
-                          (dispatch :token/translate (:db/id token) (.-x data) (.-y data))))))}
+         :on-start (handler)
+         :on-stop
+         (handler
+          (fn [_ data]
+            (let [dist (distance [x y] [(.-x data) (.-y data)])]
+              (if (= dist 0)
+                (dispatch :view/toggle (:db/id token))
+                (dispatch :token/translate (:db/id token) (.-x data) (.-y data))))))}
         [:g {:class (css (element-styles) "token" {:active (= token (:workspace/selected workspace))})}
          [:circle {:cx 0 :cy 0 :r (max (- (/ grid-size 2) 4) 8) :fill "black"}]
          (when-let [name (:element/name token)]
@@ -181,5 +182,5 @@
         [tokens]]
 
        ;; Render the drawable grid component.
-       (when (= mode :grid)
+       (when (and (not (nil? @node)) (= mode :grid))
          [grid-draw {:canvas node}])]]]))

@@ -20,6 +20,8 @@
    :color            "#461B0E"
    :display          "flex"
    :flex-direction   "column"
+   :font-size        "14px"
+   :line-height      "1.3"
    :margin           "16px"
    :max-height       "100%"
    :max-width        "360px"
@@ -31,6 +33,10 @@
   [:.header
    {:display         "flex"
     :justify-content "space-between"}]
+  [:header
+   {:border-bottom "1px solid hsl(0, 10%, 55%)"
+    :font-weight   "bold"
+    :margin-bottom "4px"}]
   [:.boards
    {:display               "grid"
     :grid-gap              "2px"
@@ -73,7 +79,11 @@
     :grid-template-columns "repeat(3, 1fr)"
     :grid-gap "4px"}
    [:button
-    {:text-transform "capitalize"}]])
+    {:text-transform "capitalize"}]]
+  [:.lights
+   {:display "grid"
+    :grid-template-columns "repeat(4, 1fr)"
+    :grid-gap "4px"}])
 
 (defn load-image [file handler]
   (let [reader (new js/FileReader)]
@@ -151,7 +161,7 @@
 
      [:section
       [:fieldset
-       [:div "Lighting"]
+       [:header "Lighting"]
        [:div.lighting
         (for [option [:bright :dim :dark]]
           [:button {:key option :type "button" :on-click #(dispatch :lighting/change-level option)}
@@ -174,29 +184,35 @@
           (let [value (.. event -target -value)]
             (dispatch :element/update id :element/name value)))}]
       [:button.remove {:type "button" :on-click #(dispatch :token/remove id) :style {:margin-right "8px"}} "♼"]
-      [:button.close {:type "button" :on-click #(dispatch :view/toggle id)} "×"]]]))
+      [:button.close {:type "button" :on-click #(dispatch :view/toggle id)} "×"]]
+     [:section
+      [:header "Light"]
+      [:div.lights
+       (for [[bright dim] [[0 0] [5 5] [10 10] [15 30] [20 20] [30 30] [40 40] [60 60]]]
+         [:button {:key (str bright dim) :type "button" :on-click #(dispatch :token/change-light id bright dim)}
+          (str bright " ft. / " dim " ft.")])]]]))
 
 (defn grid [{:keys [workspace]}]
   (let [{:keys [workspace dispatch]} (uix/context context)
         {:keys [grid/size]} workspace]
     [:div {:class (styles)}
      [:section.header
-      [:label "Grid Options"]
+      [:input
+       {:type "number"
+        :value (or size 0)
+        :style {:flex 1 :margin-right "8px"}
+        :min 0
+        :on-change
+        (fn [event]
+          (let [value (.. event -target -value)]
+            (dispatch :grid/change-size value)))}]
       [:button.close
-       {:type "button"
-        :on-click
-        #(dispatch :workspace/toggle-grid-options :select)} "×"]]
+       {:type "button" :on-click #(dispatch :workspace/toggle-grid-options :select)} "×"]]
      [:section
-      [:label
-       [:div "Size"]
-       [:input
-        {:type "number"
-         :value (or size 0)
-         :min 0
-         :on-change
-         (fn [event]
-           (let [value (.. event -target -value)]
-             (dispatch :grid/change-size value)))}]]]]))
+      [:header "Setting the Grid Size"]
+      [:div "Draw a square that represents 5 feet. We'll try to guess what
+             the real grid size is based on your selection and the size of
+             the map. If its not quite right, edit the size above manually."]]]))
 
 (defn options []
   (let [{:keys [workspace]} (uix/context context)
