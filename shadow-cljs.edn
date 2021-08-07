@@ -7,6 +7,7 @@
  :builds
  {:app
   {:target :browser
+   :compiler-options {:infer-externs :auto :externs ["datascript/externs.js"]}
    :output-dir "docs/script"
    :asset-path "/script"
    :modules {:ogre.tools {:entries [ogre.tools.core]}}
