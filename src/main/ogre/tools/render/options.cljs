@@ -83,7 +83,13 @@
   [:.lights
    {:display "grid"
     :grid-template-columns "repeat(4, 1fr)"
-    :grid-gap "4px"}])
+    :grid-gap "4px"}]
+  [:.sizes
+   {:display "grid"
+    :grid-template-columns "repeat(3, 1fr)"
+    :grid-gap "4px"}
+   [:button
+    {:text-transform "capitalize"}]])
 
 (defn load-image [file handler]
   (let [reader (new js/FileReader)]
@@ -190,7 +196,13 @@
       [:div.lights
        (for [[bright dim] [[0 0] [5 5] [10 10] [15 30] [20 20] [30 30] [40 40] [60 60]]]
          [:button {:key (str bright dim) :type "button" :on-click #(dispatch :token/change-light id bright dim)}
-          (str bright " ft. / " dim " ft.")])]]]))
+          (str bright " ft. / " dim " ft.")])]]
+     [:section
+      [:header "Size"]
+      [:div.sizes
+       (for [[name size] [[:tiny 2.5] [:small 5] [:medium 5] [:large 10] [:huge 15] [:gargantuan 20]]]
+         [:button {:key name :type "button" :on-click #(dispatch :token/change-size id name size)}
+          (clojure.core/name name)])]]]))
 
 (defn grid [{:keys [workspace]}]
   (let [{:keys [workspace dispatch]} (uix/context context)

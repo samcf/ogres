@@ -123,7 +123,7 @@
         [:clipPath {:id "clip-bright-light"}
          (for [token elements :let [{:keys [position/x position/y token/light]} token [r _] light]]
            [:circle {:key (:db/id token) :cx x :cy y :r (* grid-size (/ r 5))}])])]
-     (for [token elements :let [{x :position/x} token {y :position/y} token]]
+     (for [token elements :let [{:keys [position/x position/y token/size]} token]]
        [:> draggable
         {:key      (:db/id token)
          :position #js {:x x :y y}
@@ -136,10 +136,11 @@
               (if (= dist 0)
                 (dispatch :view/toggle (:db/id token))
                 (dispatch :token/translate (:db/id token) (.-x data) (.-y data))))))}
-        [:g {:class (css (element-styles) "token" {:active (= token (:workspace/selected workspace))})}
-         [:circle {:cx 0 :cy 0 :r (max (- (/ grid-size 2) 4) 8) :fill "black"}]
-         (when-let [name (:element/name token)]
-           [:text {:x 0 :y (+ (/ grid-size 2) 16) :text-anchor "middle" :fill "white"} name])]])]))
+        (let [r (-> (:size size) (/ 5) (* grid-size) (/ 2))]
+          [:g {:class (css (element-styles) "token" {:active (= token (:workspace/selected workspace))})}
+           [:circle {:cx 0 :cy 0 :r (max (- r 4) 8) :fill "black"}]
+           (when-let [name (:element/name token)]
+             [:text {:x 0 :y (+ r 16) :text-anchor "middle" :fill "white"} name])])])]))
 
 (defn canvas [props]
   (let [{:keys [workspace dispatch]} (uix/context context)

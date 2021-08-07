@@ -31,6 +31,7 @@
    :zoom/scale         {}
    :element/type       {}
    :element/name       {}
+   :token/size         {}
    :image/checksum     {:db/index true}
    :image/width        {}
    :image/height       {}})
@@ -52,7 +53,8 @@
     [:db/add -2 :zoom/scales [0.5 0.75 1 1.25 1.50]]
     [:db/add -2 :zoom/scale 1]
     [:db/add -3 :element/type :token]
-    [:db/add -3 :token/light [20 20]]]))
+    [:db/add -3 :token/light [20 20]]
+    [:db/add -3 :token/size {:name :medium :size 5}]]))
 
 (defn initial-workspace []
   {:element/type :workspace
@@ -177,6 +179,10 @@
 (defmethod transact :token/change-light
   [data event token bright dim]
   [[:db/add token :token/light [bright dim]]])
+
+(defmethod transact :token/change-size
+  [data event token name size]
+  [[:db/add token :token/size {:name name :size size}]])
 
 (defmethod transact :grid/change-size
   [data event size]
