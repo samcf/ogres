@@ -129,9 +129,11 @@
 
 (defmethod transact :canvas/toggle-ruler
   [data event]
-  (let [{:keys [db/id]} (query/workspace data)]
-    [[:db/add id :canvas/mode :ruler]
-     [:db/retract id :canvas/selected]]))
+  (let [{:keys [db/id canvas/mode]} (query/workspace data)]
+    (if (= mode :ruler)
+      [[:db/add id :canvas/mode :select]]
+      [[:db/add id :canvas/mode :ruler]
+       [:db/retract id :canvas/selected]])))
 
 (defmethod transact :element/update
   [data event id attr value]

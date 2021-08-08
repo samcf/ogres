@@ -212,7 +212,7 @@
           [:line {:x1 ax :y1 ay :x2 bx :y2 by :stroke "white" :stroke-dasharray "12px"}]
           [:text {:x (- bx 48) :y (- by 8) :fill "white"}
            (let [[ax ay bx by] (map #(px->ft % size) @points)]
-             (str (chebyshev [ax ay] [bx by]) " ft."))]]))]))
+             (str (js/Math.round (/ (chebyshev [ax ay] [bx by]) scale)) " ft."))]]))]))
 
 (defn canvas [props]
   (let [{:keys [workspace dispatch]} (uix/context context)
