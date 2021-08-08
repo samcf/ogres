@@ -6,6 +6,9 @@
             [ogre.tools.render :refer [context css handler use-image]]
             [ogre.tools.query :as query]))
 
+(defn ft->px [feet size]
+  (-> (/ feet 5) (* size)))
+
 (defn distance [[ax ay] [bx by]]
   (js/Math.sqrt
    (+ (js/Math.pow (- bx ax) 2)
@@ -16,14 +19,24 @@
 
 (defclass element-styles []
   {:pointer-events "all"}
-  [:&.token>circle
+  [:&.token>circle.token
    {:filter "drop-shadow(1px 1px 8px rgba(0, 0, 0, .8))"
     :stroke "black"}]
-  [:&.token.active>circle
+  [:&.token.active>circle.token
    {:stroke "#ffeb3b"
     :stroke-width "1.5px"
     :stroke-dasharray "3px"
-    :stroke-linecap "round"}])
+    :stroke-linecap "round"}]
+  [:&.token>circle.aura
+   {:fill "none"
+    :pointer-events "none"
+    :stroke "white"
+    :stroke-width "1px"
+    :stroke-dasharray "12px"
+    :stroke-linecap "round"}]
+  [:&.token>text.aura
+   {:fill "white"
+    :pointer-events "none"}])
 
 (defn board [{:keys [image]}]
   (let [{{:keys [canvas/lighting]} :workspace} (uix/context context)
@@ -121,12 +134,14 @@
       (when (= lighting :dark)
         [:clipPath {:id "clip-dim-light"}
          (for [token elements :let [{[x y] :pos/vec [br dr] :token/light} token]]
-           [:circle {:key (:db/id token) :cx x :cy y :r (+ (* size (/ br 5)) (* size (/ dr 5)))}])])
+           [:circle {:key (:db/id token) :cx x :cy y :r (+ (ft->px br size)
+                                                           (ft->px dr size)
+                                                           (/ size 2))}])])
 
       (when-not (= lighting :bright)
         [:clipPath {:id "clip-bright-light"}
          (for [token elements :let [{[x y] :pos/vec [r _] :token/light} token]]
-           [:circle {:key (:db/id token) :cx x :cy y :r (* size (/ r 5))}])])]
+           [:circle {:key (:db/id token) :cx x :cy y :r (+ (ft->px r size) (/ size 2))}])])]
 
      (for [token elements :let [{[x y] :pos/vec} token]]
        [:> draggable
@@ -141,11 +156,24 @@
               (if (= dist 0)
                 (dispatch :view/toggle (:db/id token))
                 (dispatch :token/translate (:db/id token) (.-x data) (.-y data))))))}
-        (let [r (-> (:token/size token) (:size) (/ 5) (* size) (/ 2))]
-          [:g {:class (css (element-styles) "token" {:active (= token (:canvas/selected workspace))})}
-           [:circle {:cx 0 :cy 0 :r (max (- r 4) 8) :fill "#172125"}]
-           (when-let [name (:element/name token)]
-             [:text {:x 0 :y (+ r 16) :text-anchor "middle" :fill "white"} name])])])]))
+        [:g {:class (css (element-styles) "token" {:active (= token (:canvas/selected workspace))})}
+
+         (let [{label :element/name {token-size :size} :token/size} token
+               radius (/ (ft->px token-size size) 2)]
+           [:<>
+            [:circle.token {:cx 0 :cy 0 :r (max (- radius 4) 8) :fill "#172125"}]
+            (when (seq label)
+              [:text.token {:x 0 :y (+ radius 16) :text-anchor "middle" :fill "white"} label])])
+
+         (let [{:keys [aura/radius aura/label]} token
+               length  (-> (ft->px radius size) (+ (/ size 2)))
+               [cx cy] [(* (js/Math.cos 0.75) length)
+                        (* (js/Math.sin 0.75) length)]]
+           [:<>
+            (when (> radius 0)
+              [:circle.aura {:cx 0 :cy 0 :r length}])
+            (when (and (> radius 0) (seq label))
+              [:text.aura {:x (+ cx 8) :y (+ cy 8)} label])])]])]))
 
 (defn canvas [props]
   (let [{:keys [workspace dispatch]} (uix/context context)

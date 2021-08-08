@@ -194,7 +194,20 @@
       [:div.sizes
        (for [[name size] [[:tiny 2.5] [:small 5] [:medium 5] [:large 10] [:huge 15] [:gargantuan 20]]]
          [:button {:key name :type "button" :on-click #(dispatch :token/change-size id name size)}
-          (clojure.core/name name)])]]]))
+          (clojure.core/name name)])]]
+
+     (let [{:keys [aura/label aura/radius aura/color]} (:canvas/selected workspace)]
+       [:section
+        [:header "Aura"]
+        [:div
+         [:input
+          {:type "text"
+           :placeholder "Label"
+           :value (or label "")
+           :on-change #(dispatch :aura/change-label id (.. % -target -value))}]]
+        [:div {:style {:display "grid" :grid-template-columns "repeat(5, 1fr)" :grid-gap "4px" :margin-top "4px"}}
+         (for [r [0 10 20 30 60]]
+           [:button {:key r :type "button" :on-click #(dispatch :aura/change-radius id r)} (str r " ft.")])]])]))
 
 (defn grid [{:keys [workspace]}]
   (let [{:keys [workspace dispatch]} (uix/context context)

@@ -31,6 +31,9 @@
    :element/type     {}
    :element/name     {}
    :token/size       {}
+   :aura/radius      {}
+   :aura/color       {}
+   :aura/label       {}
    :image/checksum   {:db/index true}
    :image/width      {}
    :image/height     {}})
@@ -229,3 +232,15 @@
 
 (defmethod transact :zoom/out [data event]
   (transact data :zoom/step -1))
+
+(defmethod transact :aura/change-label
+  [data event token label]
+  [[:db/add token :aura/label label]])
+
+(defmethod transact :aura/change-radius
+  [data event token radius]
+  [[:db/add token :aura/radius radius]])
+
+(defmethod transact :aura/change-color
+  [data event token color]
+  [[:db/add token :aura/color color]])
