@@ -26,10 +26,10 @@
     :stroke-linecap "round"}])
 
 (defn board [{:keys [image]}]
-  (let [{{:keys [lighting/level]} :workspace} (uix/context context)
+  (let [{{:keys [canvas/lighting]} :workspace} (uix/context context)
         url (use-image (:image/checksum image))
-        attrs {:bright {:clip-path (when-not (= level :bright) "url(#clip-bright-light)")}
-               :dim    {:clip-path (when (= level :dark) "url(#clip-dim-light)")
+        attrs {:bright {:clip-path (when-not (= lighting :bright) "url(#clip-bright-light)")}
+               :dim    {:clip-path (when (= lighting :dark) "url(#clip-dim-light)")
                         :style     {:filter "saturate(20%) brightness(50%)"}}}]
     (when (string? url)
       [:<>
@@ -37,11 +37,7 @@
          [:image (merge {:x 0 :y 0 :href url} (attrs type) {:key type})])])))
 
 (defn grid [{:keys [canvas]}]
-  (let [{:keys [workspace]}    (uix/context context)
-        {camera-x :position/x} workspace
-        {camera-y :position/y} workspace
-        {grid-size :grid/size} workspace
-        {[ox oy] :grid/origin} workspace
+  (let [{{[cx cy] :pos/vec [ox oy] :grid/origin size :grid/size} :workspace} (uix/context context)
         dimensions (uix/state [0 0])
         [w h]      @dimensions]
 
@@ -52,13 +48,17 @@
            (reset! dimensions [(.-width bounding) (.-height bounding)]))))
      [(nil? @canvas)])
 
-    (let [[sx sy ax ay bx] [(- (* w -2) camera-x) (- (* h -2) camera-y)
-                            (- (* w  2) camera-x) (- (* h  2) camera-y) (- (* w -2) camera-x)]]
+    (let [[sx sy ax ay bx]
+          [(- (* w -2) cx)
+           (- (* h -2) cy)
+           (- (* w  2) cx)
+           (- (* h  2) cy)
+           (- (* w -2) cx)]]
       [:<>
        [:defs
-        [:pattern {:id "grid" :width grid-size :height grid-size :patternUnits "userSpaceOnUse"}
+        [:pattern {:id "grid" :width size :height size :patternUnits "userSpaceOnUse"}
          [:path
-          {:d (string/join " " ["M" 0 0 "H" grid-size "V" grid-size])
+          {:d (string/join " " ["M" 0 0 "H" size "V" size])
            :stroke "rgba(255, 255, 255, 0.40)"
            :stroke-width "1"
            :stroke-dasharray "2px"
@@ -67,7 +67,7 @@
 
 (defn grid-draw [{:keys [canvas]}]
   (let [{:keys [workspace dispatch]} (uix/context context)
-        {:keys [workspace/mode zoom/scale]} workspace
+        {:keys [canvas/mode zoom/scale]} workspace
         canvas (.getBoundingClientRect @canvas)
         points (uix/state nil)]
     [:<>
@@ -114,19 +114,21 @@
 
 (defn tokens [props]
   (let [{:keys [data workspace dispatch]} (uix/context context)
-        {:keys [lighting/level grid/size zoom/scale]} workspace
+        {:keys [canvas/lighting grid/size zoom/scale]} workspace
         elements (query/tokens data)]
     [:<>
      [:defs
-      (when (= level :dark)
+      (when (= lighting :dark)
         [:clipPath {:id "clip-dim-light"}
-         (for [token elements :let [{:keys [position/x position/y token/light]} token [br dr] light]]
+         (for [token elements :let [{[x y] :pos/vec [br dr] :token/light} token]]
            [:circle {:key (:db/id token) :cx x :cy y :r (+ (* size (/ br 5)) (* size (/ dr 5)))}])])
-      (when-not (= level :bright)
+
+      (when-not (= lighting :bright)
         [:clipPath {:id "clip-bright-light"}
-         (for [token elements :let [{:keys [position/x position/y token/light]} token [r _] light]]
+         (for [token elements :let [{[x y] :pos/vec [r _] :token/light} token]]
            [:circle {:key (:db/id token) :cx x :cy y :r (* size (/ r 5))}])])]
-     (for [token elements :let [{:keys [position/x position/y]} token]]
+
+     (for [token elements :let [{[x y] :pos/vec} token]]
        [:> draggable
         {:key      (:db/id token)
          :position #js {:x x :y y}
@@ -140,19 +142,15 @@
                 (dispatch :view/toggle (:db/id token))
                 (dispatch :token/translate (:db/id token) (.-x data) (.-y data))))))}
         (let [r (-> (:token/size token) (:size) (/ 5) (* size) (/ 2))]
-          [:g {:class (css (element-styles) "token" {:active (= token (:workspace/selected workspace))})}
+          [:g {:class (css (element-styles) "token" {:active (= token (:canvas/selected workspace))})}
            [:circle {:cx 0 :cy 0 :r (max (- r 4) 8) :fill "#172125"}]
            (when-let [name (:element/name token)]
              [:text {:x 0 :y (+ r 16) :text-anchor "middle" :fill "white"} name])])])]))
 
 (defn canvas [props]
   (let [{:keys [workspace dispatch]} (uix/context context)
-        {grid-show :grid/show} workspace
-        {camera-x :position/x} workspace
-        {camera-y :position/y} workspace
-        {mode :workspace/mode} workspace
-        {image :workspace/map} workspace
-        {scale    :zoom/scale} workspace
+        {:keys [pos/vec grid/show canvas/mode canvas/map zoom/scale]} workspace
+        [cx cy] vec
         node (uix/ref nil)]
     [:svg {:ref node :class (styles)}
      [:> draggable
@@ -163,22 +161,22 @@
        (fn [event data]
          (let [ox (.-x data) oy (.-y data)]
            (dispatch :camera/translate
-                     (+ (/ ox scale) camera-x)
-                     (+ (/ oy scale) camera-y))))}
+                     (+ (/ ox scale) cx)
+                     (+ (/ oy scale) cy))))}
       [:g
 
        ;; Render an element that guarantees that the entire canvas may be
        ;; dragged from anywhere on the element.
        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
 
-       [:g {:transform (str "scale(" scale ") translate(" camera-x ", " camera-y ")")}
+       [:g {:transform (str "scale(" scale ") translate(" cx ", " cy ")")}
 
         ;; Render the selected board map.
-        [board {:key (:image/checksum image) :image image}]
+        [board {:key (:image/checksum map) :image map}]
 
         ;; Render the playing grid when it is enabled or the current mode is
         ;; :grid.
-        (when (or (= mode :grid) grid-show)
+        (when (or (= mode :grid) show)
           [grid {:canvas node}])
 
         ;; Render the various elements of the board such as tokens, geometry,

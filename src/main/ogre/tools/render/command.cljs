@@ -37,13 +37,13 @@
 
 (defn command [props]
   (let [{:keys [workspace dispatch]} (uix/context context)
-        {:keys [workspace/mode grid/show]} workspace]
+        {:keys [canvas/mode grid/show]} workspace]
     [:div {:class (styles)}
-     [:button {:type "button" :class (css {:selected (= mode :select)}) :on-click #(dispatch :workspace/set-select-mode)}
+     [:button {:type "button" :class (css {:selected (= mode :select)}) :on-click #(dispatch :canvas/select-mode)}
       [icon {:name :cursor :width 20 :height 20}]]
-     [:button {:type "button" :class (css {:selected (= mode :board)}) :on-click #(dispatch :workspace/toggle-board-options)}
+     [:button {:type "button" :class (css {:selected (= mode :board)}) :on-click #(dispatch :canvas/toggle-canvas-options)}
       [icon {:name :image :width 18 :height 18}]]
-     [:button {:type "button" :class (css {:selected (= mode :grid)}) :on-click #(dispatch :workspace/toggle-grid-options)}
+     [:button {:type "button" :class (css {:selected (= mode :grid)}) :on-click #(dispatch :canvas/toggle-grid-options)}
       [icon {:name :grid :width 21 :height 21}]]
      [:hr]
      [:button {:type "button" :class (css {:selected show}) :on-click #(dispatch :grid/toggle)}

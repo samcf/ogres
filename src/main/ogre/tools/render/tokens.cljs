@@ -6,15 +6,13 @@
             [ogre.tools.query :as query]))
 
 (defclass styles []
-  {:display        "flex"
+  {:display "flex"
    :pointer-events "all"
    :flex-direction "column"
-   :margin         "24px 16px"}
+   :margin "24px 16px"}
   [:.token
-   {:position      "relative"
-    :margin-bottom "8px"}
-   [:svg {:width  "72px"
-          :height "72px"}]
+   {:position "relative" :margin-bottom "8px"}
+   [:svg {:width "72px" :height "72px"}]
    [:svg.draggable
     {:position "absolute"}]])
 

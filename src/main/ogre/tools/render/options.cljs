@@ -122,7 +122,7 @@
            (let [value (.. event -target -value)]
              (dispatch :element/update (:db/id workspace) :element/name value)))}]]
       [:button.close
-       {:type "button" :on-click #(dispatch :workspace/toggle-board-options)} "×"]]
+       {:type "button" :on-click #(dispatch :canvas/toggle-canvas-options)} "×"]]
 
      [:section
       (when-let [boards (query/boards data)]
@@ -132,9 +132,9 @@
             [thumbnail
              {:key       (:image/checksum board)
               :board     board
-              :selected  (= board (:workspace/map workspace))
+              :selected  (= board (:canvas/map workspace))
               :on-select (fn []
-                           (dispatch :workspace/change-map (:db/id board)))
+                           (dispatch :canvas/change-map (:db/id board)))
               :on-remove (fn []
                            (.delete (.-images store) (:image/checksum board))
                            (dispatch :map/remove (:db/id board)))}])]])
@@ -162,12 +162,12 @@
        [:header "Lighting"]
        [:div.lighting
         (for [option [:bright :dim :dark]]
-          [:button {:key option :type "button" :on-click #(dispatch :lighting/change-level option)}
+          [:button {:key option :type "button" :on-click #(dispatch :canvas/change-lighting option)}
            (name option)])]]]]))
 
 (defn token [props]
   (let [{:keys [workspace dispatch]} (uix/context context)
-        {:keys [db/id element/name]} (:workspace/selected workspace)]
+        {:keys [db/id element/name]} (:canvas/selected workspace)]
     [:div {:class (styles)}
      [:section.header
       [:input
@@ -211,7 +211,7 @@
           (let [value (.. event -target -value)]
             (dispatch :grid/change-size value)))}]
       [:button.close
-       {:type "button" :on-click #(dispatch :workspace/toggle-grid-options :select)} "×"]]
+       {:type "button" :on-click #(dispatch :canvas/toggle-grid-options :select)} "×"]]
      [:section
       [:header "Setting the Grid Size"]
       [:div "Draw a square that represents 5 feet. We'll try to guess what
@@ -220,9 +220,9 @@
 
 (defn options []
   (let [{:keys [workspace]} (uix/context context)
-        {:keys [workspace/mode workspace/selected]} workspace]
+        {:keys [canvas/mode canvas/selected]} workspace]
     (case [mode (:element/type selected)]
-      [:board :workspace]
+      [:board :canvas]
       [board {:key (:db/id workspace)}]
 
       [:select :token]

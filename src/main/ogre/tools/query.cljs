@@ -5,7 +5,7 @@
   (:viewer/workspace (ds/entity data [:db/ident :viewer])))
 
 (defn workspaces [data]
-  (->> (ds/q '[:find ?id ?tx :where [?id :element/type :workspace ?tx]] data)
+  (->> (ds/q '[:find ?id ?tx :where [?id :element/type :canvas ?tx]] data)
        (sort-by second)
        (map first)
        (map #(ds/entity data %))))
@@ -23,6 +23,6 @@
   (->> (ds/q '[:find [?id ...]
                :where
                [_ :viewer/workspace ?ws]
-               [?ws :workspace/elements ?id]
+               [?ws :canvas/elements ?id]
                [?id :element/type :token]] data)
        (map #(ds/entity data %))))
