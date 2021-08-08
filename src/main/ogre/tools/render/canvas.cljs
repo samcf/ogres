@@ -63,15 +63,14 @@
            :stroke-width "1"
            :stroke-dasharray "2px"
            :fill "none"}]]]
-       [:circle {:cx ox :cy oy :r 12 :stroke "gold" :fill "transparent"}]
        [:path {:d (string/join " " ["M" sx sy "H" ax "V" ay "H" bx "Z"]) :fill "url(#grid)"}]])))
 
 (defn grid-draw [{:keys [canvas]}]
-  (let [{:keys [workspace dispatch]}        (uix/context context)
+  (let [{:keys [workspace dispatch]} (uix/context context)
         {:keys [workspace/mode zoom/scale]} workspace
-        canvas (.getBoundingClientRect      @canvas)
+        canvas (.getBoundingClientRect @canvas)
         points (uix/state nil)]
-    [:g
+    [:<>
      [:> draggable
       {:position #js {:x 0 :y 0}
        :disabled (not (= mode :grid))
@@ -98,33 +97,36 @@
             (reset! points nil)
             (let [size (js/Math.abs (- bx ax))]
               (when (> size 0)
-                (dispatch :grid/draw ax ay (/ size scale)))))))}
+                (dispatch :grid/draw ax ay size))))))}
+
       [:g [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]]]
 
      (when (seq @points)
        (let [[ax ay bx by] @points]
-         [:path {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"]) :stroke "gold" :fill "transparent"}]))]))
+         [:<>
+          [:path {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])
+                  :fill "transparent" :stroke "white" :stroke-dasharray "3px"}]
+          [:text {:x bx :y ay :fill "white"}
+           (-> (- (/ bx scale) (/ ax scale))
+               (js/Math.abs)
+               (js/Math.round)
+               (str "px"))]]))]))
 
 (defn tokens [props]
-  (let [context                (uix/context context)
-        {workspace  :workspace} context
-        {data            :data} context
-        {dispatch    :dispatch} context
-        {level :lighting/level} workspace
-        {grid-size  :grid/size} workspace
-        {scale     :zoom/scale} workspace
-        elements                (query/tokens data)]
+  (let [{:keys [data workspace dispatch]} (uix/context context)
+        {:keys [lighting/level grid/size zoom/scale]} workspace
+        elements (query/tokens data)]
     [:<>
      [:defs
       (when (= level :dark)
         [:clipPath {:id "clip-dim-light"}
          (for [token elements :let [{:keys [position/x position/y token/light]} token [br dr] light]]
-           [:circle {:key (:db/id token) :cx x :cy y :r (+ (* grid-size (/ br 5)) (* grid-size (/ dr 5)))}])])
+           [:circle {:key (:db/id token) :cx x :cy y :r (+ (* size (/ br 5)) (* size (/ dr 5)))}])])
       (when-not (= level :bright)
         [:clipPath {:id "clip-bright-light"}
          (for [token elements :let [{:keys [position/x position/y token/light]} token [r _] light]]
-           [:circle {:key (:db/id token) :cx x :cy y :r (* grid-size (/ r 5))}])])]
-     (for [token elements :let [{:keys [position/x position/y token/size]} token]]
+           [:circle {:key (:db/id token) :cx x :cy y :r (* size (/ r 5))}])])]
+     (for [token elements :let [{:keys [position/x position/y]} token]]
        [:> draggable
         {:key      (:db/id token)
          :position #js {:x x :y y}
@@ -137,7 +139,7 @@
               (if (= dist 0)
                 (dispatch :view/toggle (:db/id token))
                 (dispatch :token/translate (:db/id token) (.-x data) (.-y data))))))}
-        (let [r (-> (:size size) (/ 5) (* grid-size) (/ 2))]
+        (let [r (-> (:token/size token) (:size) (/ 5) (* size) (/ 2))]
           [:g {:class (css (element-styles) "token" {:active (= token (:workspace/selected workspace))})}
            [:circle {:cx 0 :cy 0 :r (max (- r 4) 8) :fill "#172125"}]
            (when-let [name (:element/name token)]

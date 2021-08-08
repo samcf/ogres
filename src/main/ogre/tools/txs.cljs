@@ -200,11 +200,13 @@
 
 (defmethod transact :grid/draw
   [data event ox oy size]
-  (let [workspace (query/workspace data)
-        {:keys [db/id workspace/map]}   workspace
-        {:keys [position/x position/y]} workspace
-        {:keys [image/width]}           map
-        origin [(- ox x) (- oy y)]]
+  (let [workspace                                (query/workspace data)
+        {:keys [db/id workspace/map zoom/scale]} workspace
+        {:keys [position/x position/y]}          workspace
+        {:keys [image/width]}                    map
+        size    (js/Math.round (/ size scale))
+        [sx sy] [(/ ox scale) (/ oy scale)]
+        origin  [(- sx x) (- sy y)]]
     (if (nil? map)
       [[:db/add id :grid/size size]
        [:db/add id :grid/origin origin]]
