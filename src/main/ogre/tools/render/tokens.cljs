@@ -7,11 +7,13 @@
 
 (defclass styles []
   {:display "flex"
-   :pointer-events "all"
+   :pointer-events "none"
    :flex-direction "column"
    :margin "24px 16px"}
   [:.token
-   {:position "relative" :margin-bottom "8px"}
+   {:pointer-events "all"
+    :position "relative"
+    :margin-bottom "8px"}
    [:svg {:width "72px" :height "72px"}]
    [:svg.draggable
     {:position "absolute"}]])
