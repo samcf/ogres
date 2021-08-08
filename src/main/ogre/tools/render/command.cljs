@@ -50,6 +50,9 @@
       [:div.grid]]
      [:hr]
      [:button {:type "button" :on-click #(dispatch :zoom/in)}
-      [icon {:name :zoom-in :width 16 :height 16}]]
+      [icon {:name :zoom-in :width 18 :height 18}]]
      [:button {:type "button" :on-click #(dispatch :zoom/out)}
-      [icon {:name :zoom-out :width 16 :height 16}]]]))
+      [icon {:name :zoom-out :width 18 :height 18}]]
+     [:hr]
+     [:button {:type "button" :on-click #(dispatch nil)}
+      [icon {:name :info :width 20 :height 20}]]]))
