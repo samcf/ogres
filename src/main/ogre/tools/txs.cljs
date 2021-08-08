@@ -127,6 +127,12 @@
       [[:db/add id :canvas/mode :grid]
        [:db/retract id :canvas/selected]])))
 
+(defmethod transact :canvas/toggle-ruler
+  [data event]
+  (let [{:keys [db/id]} (query/workspace data)]
+    [[:db/add id :canvas/mode :ruler]
+     [:db/retract id :canvas/selected]]))
+
 (defmethod transact :element/update
   [data event id attr value]
   [[:db/add id attr value]])

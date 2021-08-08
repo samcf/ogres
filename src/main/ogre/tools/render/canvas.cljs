@@ -6,13 +6,20 @@
             [ogre.tools.render :refer [context css handler use-image]]
             [ogre.tools.query :as query]))
 
-(defn ft->px [feet size]
-  (-> (/ feet 5) (* size)))
+(defn ft->px [ft size]
+  (-> (/ ft 5) (* size)))
 
-(defn distance [[ax ay] [bx by]]
+(defn px->ft [px size]
+  (js/Math.round (* (/ px size) 5)))
+
+(defn euclidean [[ax ay] [bx by]]
   (js/Math.sqrt
    (+ (js/Math.pow (- bx ax) 2)
       (js/Math.pow (- by ay) 2))))
+
+(defn chebyshev [[ax ay] [bx by]]
+  (max (js/Math.abs (- ax bx))
+       (js/Math.abs (- ay by))))
 
 (defclass styles []
   {:pointer-events "all" :height "100%" :width "100%"})
@@ -86,7 +93,6 @@
     [:<>
      [:> draggable
       {:position #js {:x 0 :y 0}
-       :disabled (not (= mode :grid))
        :on-start
        (handler
         (fn [event data]
@@ -152,7 +158,7 @@
          :on-stop
          (handler
           (fn [_ data]
-            (let [dist (distance [x y] [(.-x data) (.-y data)])]
+            (let [dist (euclidean [x y] [(.-x data) (.-y data)])]
               (if (= dist 0)
                 (dispatch :view/toggle (:db/id token))
                 (dispatch :token/translate (:db/id token) (.-x data) (.-y data))))))}
@@ -174,6 +180,39 @@
               [:circle.aura {:cx 0 :cy 0 :r length}])
             (when (and (> radius 0) (seq label))
               [:text.aura {:x (+ cx 8) :y (+ cy 8)} label])])]])]))
+
+(defn ruler [{:keys [canvas]}]
+  (let [{{scale :zoom/scale size :grid/size} :workspace} (uix/context context)
+        canvas (.getBoundingClientRect @canvas)
+        points (uix/state nil)]
+    [:<>
+     [:> draggable
+      {:position #js {:x 0 :y 0}
+       :on-start
+       (handler
+        (fn [event _]
+          (let [x (- (.-clientX event) (.-x canvas))
+                y (- (.-clientY event) (.-y canvas))]
+            (reset! points [x y x y]))))
+
+       :on-drag
+       (handler
+        (fn [_ data]
+          (swap!
+           points
+           (fn [[ax ay bx by]]
+             [ax ay (+ ax (.-x data)) (+ ay (.-y data))]))))
+
+       :on-stop
+       (handler #(reset! points nil))}
+      [:g [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]]]
+     (when (seq @points)
+       (let [[ax ay bx by] @points]
+         [:<>
+          [:line {:x1 ax :y1 ay :x2 bx :y2 by :stroke "white" :stroke-dasharray "12px"}]
+          [:text {:x (- bx 48) :y (- by 8) :fill "white"}
+           (let [[ax ay bx by] (map #(px->ft % size) @points)]
+             (str (chebyshev [ax ay] [bx by]) " ft."))]]))]))
 
 (defn canvas [props]
   (let [{:keys [workspace dispatch]} (uix/context context)
@@ -210,6 +249,9 @@
         ;; Render the various elements of the board such as tokens, geometry,
         ;; lighting, etc.
         [tokens]]
+
+       (when (and (not (nil? @node)) (= mode :ruler))
+         [ruler {:canvas node}])
 
        ;; Render the drawable grid component.
        (when (and (not (nil? @node)) (= mode :grid))

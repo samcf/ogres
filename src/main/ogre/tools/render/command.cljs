@@ -45,6 +45,8 @@
       [icon {:name :image :width 18 :height 18}]]
      [:button {:type "button" :class (css {:selected (= mode :grid)}) :on-click #(dispatch :canvas/toggle-grid-options)}
       [icon {:name :grid :width 21 :height 21}]]
+     [:button {:type "button" :class (css {:selected (= mode :ruler)}) :on-click #(dispatch :canvas/toggle-ruler)}
+      [icon {:name :ruler :width 20 :height 20}]]
      [:hr]
      [:button {:type "button" :class (css {:selected show}) :on-click #(dispatch :grid/toggle)}
       [:div.grid]]
