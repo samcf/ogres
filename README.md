@@ -4,7 +4,7 @@
 
 This is a **work in progress** and not intended for serious usage at this time. It is under heavy development and will go through many more changes as it matures.
 
-![Sample screenshot](docs/screenshot.png)
+![Sample screenshot](docs/screenshot.jpg)
 
 ### Design Goals
 * Free and open source &ndash; forever.
