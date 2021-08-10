@@ -36,3 +36,30 @@ input[type="number"] {
     padding: 4px 8px;
     width: 100%;
 }
+
+.ogre-options-canvas-lighting {
+    text-transform: capitalize;
+}
+
+.ogre-radio-button {
+    position: absolute;
+    clip: rect(0,0,0,0);
+    pointer-events: none;
+}
+
+.ogre-radio-button + label {
+    border-radius: 2px;
+    border: 1px solid hsl(0, 10%, 55%);
+    box-sizing: border-box;
+    cursor: pointer;
+    display: block;
+    font-size: 0.90em;
+    padding: 2px 6px;
+    width: 100%;
+}
+
+.ogre-radio-button:checked + label {
+    background-color: var(--color-primary-a);
+    border-color: transparent;
+    color: white;
+}

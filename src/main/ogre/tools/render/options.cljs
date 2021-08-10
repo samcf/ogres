@@ -1,6 +1,7 @@
 (ns ogre.tools.render.options
   (:import goog.crypt.Md5)
-  (:require [uix.core.alpha :as uix]
+  (:require [clojure.string :as string]
+            [uix.core.alpha :as uix]
             [datascript.core :as ds]
             [spade.core :refer [defclass]]
             [ogre.tools.render :refer [css context handler use-image]]
@@ -12,6 +13,12 @@
     (reduce
      (fn [s b]
        (str s (.slice (str "0" (.toString b 16)) -2))) "" (.digest hash))))
+
+(defn radio-button [props child]
+  (let [id (str (:name props) ":" (:value props))]
+    [:div
+     [:input (merge props {:id id :type "radio" :class "ogre-radio-button"})]
+     [:label {:for id} child]]))
 
 (defclass styles []
   {:background-color "#F2F2EB"
@@ -161,13 +168,19 @@
       [:fieldset
        [:header "Lighting"]
        [:div.lighting
-        (for [option [:bright :dim :dark]]
-          [:button {:key option :type "button" :on-click #(dispatch :canvas/change-lighting option)}
-           (name option)])]]]]))
+        (for [option [:bright :dim :dark]
+              :let [checked (= option (:canvas/lighting workspace))]]
+          [radio-button
+           {:key option
+            :name "canvas/lighting"
+            :value option
+            :checked checked
+            :on-change #(dispatch :canvas/change-lighting option)}
+           (string/capitalize (name option))])]]]]))
 
 (defn token [props]
   (let [{:keys [workspace dispatch]} (uix/context context)
-        {:keys [db/id element/name]} (:canvas/selected workspace)]
+        {:keys [db/id element/name] :as token} (:canvas/selected workspace)]
     [:div {:class (styles)}
      [:section.header
       [:input
@@ -186,15 +199,28 @@
      [:section
       [:header "Light"]
       [:div.lights
-       (for [[bright dim] [[0 0] [5 5] [10 10] [15 30] [20 20] [30 30] [40 40] [60 60]]]
-         [:button {:key (str bright dim) :type "button" :on-click #(dispatch :token/change-light id bright dim)}
+       (for [[bright dim] [[0 0] [5 5] [10 10] [15 30] [20 20] [30 30] [40 40] [60 60]]
+             :let [checked (= [bright dim] (:token/light token))
+                   key (str bright ":" dim)]]
+         [radio-button
+          {:key key
+           :name "token/light"
+           :value key
+           :checked checked
+           :on-change #(dispatch :token/change-light id bright dim)}
           (str bright " ft. / " dim " ft.")])]]
      [:section
       [:header "Size"]
       [:div.sizes
-       (for [[name size] [[:tiny 2.5] [:small 5] [:medium 5] [:large 10] [:huge 15] [:gargantuan 20]]]
-         [:button {:key name :type "button" :on-click #(dispatch :token/change-size id name size)}
-          (clojure.core/name name)])]]
+       (for [[name size] [[:tiny 2.5] [:small 5] [:medium 5] [:large 10] [:huge 15] [:gargantuan 20]]
+             :let [checked (= name (:name (:token/size token)))]]
+         [radio-button
+          {:key name
+           :name "token/size"
+           :value name
+           :checked checked
+           :on-change #(dispatch :token/change-size id name size)}
+          (string/capitalize (clojure.core/name name))])]]
 
      (let [{:keys [aura/label aura/radius aura/color]} (:canvas/selected workspace)]
        [:section
@@ -206,8 +232,14 @@
            :value (or label "")
            :on-change #(dispatch :aura/change-label id (.. % -target -value))}]]
         [:div {:style {:display "grid" :grid-template-columns "repeat(5, 1fr)" :grid-gap "4px" :margin-top "4px"}}
-         (for [r [0 10 20 30 60]]
-           [:button {:key r :type "button" :on-click #(dispatch :aura/change-radius id r)} (str r " ft.")])]])]))
+         (for [radius [0 10 20 30 60] :let [checked (= radius (:aura/radius token))]]
+           [radio-button
+            {:key radius
+             :name "token/aura-radius"
+             :checked checked
+             :value radius
+             :on-change #(dispatch :aura/change-radius id radius)}
+            (if (= radius 0) "None" (str radius " ft."))])]])]))
 
 (defn grid [{:keys [workspace]}]
   (let [{:keys [workspace dispatch]} (uix/context context)

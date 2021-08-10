@@ -55,7 +55,9 @@
     [:db/add -2 :zoom/scale 1]
     [:db/add -3 :element/type :token]
     [:db/add -3 :token/light [20 20]]
-    [:db/add -3 :token/size {:name :medium :size 5}]]))
+    [:db/add -3 :token/size {:name :medium :size 5}]
+    [:db/add -3 :aura/label ""]
+    [:db/add -3 :aura/radius 0]]))
 
 (defn initial-canvas []
   {:element/type :canvas
