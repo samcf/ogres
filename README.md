@@ -6,13 +6,13 @@ This is a **work in progress** and not intended for serious usage at this time. 
 
 ![Sample screenshot](docs/screenshot.jpg)
 
-### Design Goals
+### Principles
 * Free and open source &ndash; forever.
-* Tailored for Dungeons & Dragons 5th Edition games.
-* No account registrations, sign ups, or third party authorizations.
 * Small number of well designed features.
+* Tailored for Dungeons & Dragons 5th Edition games.
+* Tailored for desktop usage.
+* No account registrations, sign ups, or third party authorizations.
 * Runs entirely within your browser &ndash; no server necessary.
-* Best experience on desktops.
 * No rules engine or game data.
 
 ### Features
