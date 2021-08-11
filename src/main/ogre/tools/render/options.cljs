@@ -3,7 +3,6 @@
   (:require [clojure.string :as string]
             [uix.core.alpha :as uix]
             [datascript.core :as ds]
-            [spade.core :refer [defclass]]
             [ogre.tools.render :refer [css context handler use-image]]
             [ogre.tools.query :as query]))
 
@@ -19,77 +18,6 @@
     [:div
      [:input (merge props {:id id :type "radio" :class "ogre-radio-button"})]
      [:label {:for id} child]]))
-
-(defclass styles []
-  {:background-color "#F2F2EB"
-   :border           "1px solid black"
-   :border-radius    "3px"
-   :color            "#461B0E"
-   :display          "flex"
-   :flex-direction   "column"
-   :font-size        "14px"
-   :line-height      "1.3"
-   :margin           "16px"
-   :max-height       "100%"
-   :max-width        "360px"
-   :overflow-y       "auto"
-   :padding          "8px"
-   :pointer-events   "all"}
-  [:section+section
-   {:margin-top "8px"}]
-  [:.header
-   {:display         "flex"
-    :justify-content "space-between"}]
-  [:header
-   {:border-bottom "1px solid hsl(0, 10%, 55%)"
-    :font-weight   "bold"
-    :margin-bottom "4px"}]
-  [:.boards
-   {:display               "grid"
-    :grid-gap              "2px"
-    :grid-template-columns "repeat(3, 1fr)"
-    :margin-bottom         "4px"
-    :max-height            "180px"
-    :overflow-y            "auto"
-    :font-size             "12px"}
-   [:>div
-    {:background-size "cover"
-     :cursor          "pointer"
-     :display         "flex"
-     :border-radius   "4px"
-     :box-sizing      "border-box"
-     :flex-direction  "column"
-     :justify-content "flex-end"
-     :position        "relative"
-     :height          "88px"}
-    [:&.selected>.name :&:hover>.name
-     {:background-color "rgba(0, 0, 0, 1)"
-      :color            "rgba(255, 255, 255)"}]
-    [:.close
-     {:border-radius "0 0 0 4px"
-      :color         "rgba(255, 255, 255)"
-      :position      "absolute"
-      :top           0
-      :right         0
-      :padding       "4px 8px"}
-     [:&:hover
-      {:background-color "rgba(0, 0, 0, 0.70)"}]]]]
-  [:.lighting
-   {:display               "grid"
-    :grid-template-columns "repeat(3, 1fr)"
-    :grid-gap              "4px"}
-   [:button
-    {:text-transform "capitalize"}]]
-  [:.lights
-   {:display               "grid"
-    :grid-template-columns "repeat(4, 1fr)"
-    :grid-gap              "4px"}]
-  [:.sizes
-   {:display               "grid"
-    :grid-template-columns "repeat(3, 1fr)"
-    :grid-gap              "4px"}
-   [:button
-    {:text-transform "capitalize"}]])
 
 (defn load-image [file handler]
   (let [reader (new js/FileReader)]
@@ -111,13 +39,13 @@
            :class    (css {:selected selected})
            :style    {:background-image (str "url(" url ")")}
            :on-click (handler on-select)}
-     [:div.close
+     [:div
       {:on-click (handler on-remove)} "×"]]))
 
 (defn board [{:keys [workspace]}]
   (let [{:keys [data workspace dispatch store]} (uix/context context)]
-    [:div {:class (styles)}
-     [:section.header
+    [:div.options-canvas
+     [:section
       [:label {:style {:flex 1 :margin-right "8px"}}
        [:input
         {:type "text"
@@ -128,13 +56,13 @@
          (fn [event]
            (let [value (.. event -target -value)]
              (dispatch :element/update (:db/id workspace) :element/name value)))}]]
-      [:button.close
+      [:button
        {:type "button" :on-click #(dispatch :canvas/toggle-canvas-options)} "×"]]
 
      [:section
       (when-let [boards (query/boards data)]
         [:div
-         [:div.boards
+         [:div.options-canvas-maps
           (for [board boards]
             [thumbnail
              {:key       (:image/checksum board)
@@ -167,7 +95,7 @@
      [:section
       [:fieldset
        [:header "Lighting"]
-       [:div.lighting
+       [:div.options-canvas-lighting
         (for [option [:bright :dim :dark]
               :let [checked (= option (:canvas/lighting workspace))]]
           [radio-button
@@ -181,8 +109,8 @@
 (defn token [props]
   (let [{:keys [workspace dispatch]} (uix/context context)
         {:keys [db/id element/name] :as token} (:canvas/selected workspace)]
-    [:div {:class (styles)}
-     [:section.header
+    [:div.options-token
+     [:section
       [:input
        {:type "text"
         :style {:flex 1 :margin-right "8px"}
@@ -194,11 +122,11 @@
         (fn [event]
           (let [value (.. event -target -value)]
             (dispatch :element/update id :element/name value)))}]
-      [:button.remove {:type "button" :on-click #(dispatch :token/remove id) :style {:margin-right "8px"}} "♼"]
-      [:button.close {:type "button" :on-click #(dispatch :view/toggle id)} "×"]]
+      [:button {:type "button" :on-click #(dispatch :token/remove id) :style {:margin-right "8px"}} "♼"]
+      [:button {:type "button" :on-click #(dispatch :view/toggle id)} "×"]]
      [:section
       [:header "Light"]
-      [:div.lights
+      [:div.options-token-lights
        (for [[bright dim] [[0 0] [5 5] [10 10] [15 30] [20 20] [30 30] [40 40] [60 60]]
              :let [checked (= [bright dim] (:token/light token))
                    key (str bright ":" dim)]]
@@ -211,7 +139,7 @@
           (str bright " ft. / " dim " ft.")])]]
      [:section
       [:header "Size"]
-      [:div.sizes
+      [:div.options-token-sizes
        (for [[name size] [[:tiny 2.5] [:small 5] [:medium 5] [:large 10] [:huge 15] [:gargantuan 20]]
              :let [checked (= name (:name (:token/size token)))]]
          [radio-button
@@ -231,7 +159,7 @@
            :placeholder "Label"
            :value (or label "")
            :on-change #(dispatch :aura/change-label id (.. % -target -value))}]]
-        [:div {:style {:display "grid" :grid-template-columns "repeat(5, 1fr)" :grid-gap "4px" :margin-top "4px"}}
+        [:div.options-token-auras
          (for [radius [0 10 20 30 60] :let [checked (= radius (:aura/radius token))]]
            [radio-button
             {:key radius
@@ -244,8 +172,8 @@
 (defn grid [{:keys [workspace]}]
   (let [{:keys [workspace dispatch]} (uix/context context)
         {:keys [grid/size]} workspace]
-    [:div {:class (styles)}
-     [:section.header
+    [:div.options-grid
+     [:section
       [:input
        {:type "number"
         :value (or size 0)
@@ -255,7 +183,7 @@
         (fn [event]
           (let [value (.. event -target -value)]
             (dispatch :grid/change-size value)))}]
-      [:button.close
+      [:button
        {:type "button" :on-click #(dispatch :canvas/toggle-grid-options :select)} "×"]]
      [:section
       [:header "Setting the Grid Size"]
@@ -268,12 +196,12 @@
         {:keys [canvas/mode canvas/selected]} workspace]
     (case [mode (:element/type selected)]
       [:board :canvas]
-      [board {:key (:db/id workspace)}]
+      [:div.options [board {:key (:db/id workspace)}]]
 
       [:select :token]
-      [token {:key (:db/id selected)}]
+      [:div.options [token {:key (:db/id selected)}]]
 
       [:grid nil]
-      [grid {:key (:db/id workspace)}]
+      [:div.options [grid {:key (:db/id workspace)}]]
 
       nil)))

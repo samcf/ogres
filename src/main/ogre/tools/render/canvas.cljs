@@ -2,7 +2,6 @@
   (:require [clojure.string :as string]
             [uix.core.alpha :as uix]
             [react-draggable :as draggable]
-            [spade.core :refer [defclass]]
             [ogre.tools.render :refer [context css handler use-image]]
             [ogre.tools.query :as query]))
 
@@ -20,30 +19,6 @@
 (defn chebyshev [[ax ay] [bx by]]
   (max (js/Math.abs (- ax bx))
        (js/Math.abs (- ay by))))
-
-(defclass styles []
-  {:pointer-events "all" :height "100%" :width "100%"})
-
-(defclass element-styles []
-  {:pointer-events "all"}
-  [:&.token>circle.token
-   {:filter "drop-shadow(1px 1px 8px rgba(0, 0, 0, .8))"
-    :stroke "black"}]
-  [:&.token.active>circle.token
-   {:stroke "#ffeb3b"
-    :stroke-width "1.5px"
-    :stroke-dasharray "3px"
-    :stroke-linecap "round"}]
-  [:&.token>circle.aura
-   {:fill "none"
-    :pointer-events "none"
-    :stroke "white"
-    :stroke-width "1px"
-    :stroke-dasharray "12px"
-    :stroke-linecap "round"}]
-  [:&.token>text.aura
-   {:fill "white"
-    :pointer-events "none"}])
 
 (defn board [{:keys [image]}]
   (let [{{:keys [canvas/lighting]} :workspace} (uix/context context)
@@ -162,24 +137,24 @@
               (if (= dist 0)
                 (dispatch :view/toggle (:db/id token))
                 (dispatch :token/translate (:db/id token) (.-x data) (.-y data))))))}
-        [:g {:class (css (element-styles) "token" {:active (= token (:canvas/selected workspace))})}
+        [:g.canvas-token {:class (css {:selected (= token (:canvas/selected workspace))})}
 
          (let [{label :element/name {token-size :size} :token/size} token
                radius (/ (ft->px token-size size) 2)]
-           [:<>
-            [:circle.token {:cx 0 :cy 0 :r (max (- radius 4) 8) :fill "#172125"}]
+           [:g.canvas-token-shape
+            [:circle {:cx 0 :cy 0 :r (max (- radius 4) 8) :fill "#172125"}]
             (when (seq label)
-              [:text.token {:x 0 :y (+ radius 16) :text-anchor "middle" :fill "white"} label])])
+              [:text {:x 0 :y (+ radius 16) :text-anchor "middle" :fill "white"} label])])
 
          (let [{:keys [aura/radius aura/label]} token
                length  (-> (ft->px radius size) (+ (/ size 2)))
                [cx cy] [(* (js/Math.cos 0.75) length)
                         (* (js/Math.sin 0.75) length)]]
-           [:<>
+           [:g.canvas-token-aura
             (when (> radius 0)
-              [:circle.aura {:cx 0 :cy 0 :r length}])
+              [:circle {:cx 0 :cy 0 :r length}])
             (when (and (> radius 0) (seq label))
-              [:text.aura {:x (+ cx 8) :y (+ cy 8)} label])])]])]))
+              [:text {:x (+ cx 8) :y (+ cy 8)} label])])]])]))
 
 (defn ruler [{:keys [canvas]}]
   (let [{{scale :zoom/scale size :grid/size} :workspace} (uix/context context)
@@ -219,7 +194,7 @@
         {:keys [pos/vec grid/show canvas/mode canvas/map zoom/scale]} workspace
         [cx cy] vec
         node (uix/ref nil)]
-    [:svg {:ref node :class (styles)}
+    [:svg.canvas {:ref node}
      [:> draggable
       {:position #js {:x 0 :y 0}
        :disabled (= mode :grid)

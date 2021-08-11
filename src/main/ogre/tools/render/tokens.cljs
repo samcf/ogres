@@ -1,34 +1,20 @@
 (ns ogre.tools.render.tokens
   (:require [uix.core.alpha :as uix]
             [react-draggable :as draggable]
-            [spade.core :refer [defclass]]
             [ogre.tools.render :refer [context]]
             [ogre.tools.query :as query]))
-
-(defclass styles []
-  {:display "flex"
-   :pointer-events "none"
-   :flex-direction "column"
-   :margin "24px 16px"}
-  [:.token
-   {:pointer-events "all"
-    :position "relative"
-    :margin-bottom "8px"}
-   [:svg {:width "72px" :height "72px"}]
-   [:svg.draggable
-    {:position "absolute"}]])
 
 (defn tokens [props]
   (let [{:keys [data workspace dispatch]} (uix/context context)
         {:keys [zoom/scale]} workspace]
-    [:div {:class (styles)}
+    [:div.tokens
      (for [token (query/templates data) :let [{:keys [db/id]} token]]
-       [:div.token {:key id}
+       [:div.tokens-token {:key id}
         [:> draggable
          {:position #js {:x 0 :y 0}
           :onStop
           (fn [event data]
-            (let [parent (.getBoundingClientRect (.querySelector js/document ".canvas"))
+            (let [parent (.getBoundingClientRect (.querySelector js/document ".layout-canvas"))
                   node   (.getBoundingClientRect (.-node data))]
               (dispatch
                :token/create id

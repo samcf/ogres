@@ -4,10 +4,6 @@
     --color-primary-c: hsl(174, 8%, 24%);
     --color-primary-d: hsl(150, 2%, 17%);
     --color-primary-e: hsl(240, 3%, 12%);
-
-    --theme-background-a: hsl(240, 3%, 12%);
-    --theme-background-b: hsl(150, 2%, 17%);
-    --theme-background-c: hsl(174, 8%, 24%);
     --theme-background-d: hsl(200, 20%, 12%);
 
     --theme-text: hsl(0, 0%, 92%);
@@ -63,3 +59,330 @@ input[type="number"] {
     border-color: transparent;
     color: white;
 }
+
+/* Layout */
+.layout {
+    background-color: hsl(208deg 21% 20%);
+    color: var(--theme-text);
+    display: grid;
+    grid-template-columns: 0fr 1fr;
+    grid-template-rows: minmax(36px, auto) 1fr;
+    height: 100%;
+}
+
+.layout-workspaces {
+    margin: 8px 0 4px 0;
+}
+
+.layout-command {
+    box-sizing: content-box;
+    padding: 0 8px;
+}
+
+.layout-workspace {
+    background-color: var(--theme-background-d);
+    box-shadow: 2px 2px 16px rgba(0, 0, 0, 0.65);
+    margin: 0 16px 16px 0;
+    position: relative;
+}
+
+.layout-canvas,
+.layout-options,
+.layout-tokens {
+    pointer-events: none;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
+
+.layout-options {
+    display: flex;
+    flex-direction: column;
+}
+
+.layout-tokens {
+    display: flex;
+    flex-direction: row-reverse;
+}
+
+/* Workspaces */
+.workspaces {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.workspaces > div {
+    background-color: transparent;
+    border-radius: 4px;
+    border: 1px solid var(--theme-background-d);
+    color: rgba(255, 255, 255, 0.50);
+    display: flex;
+    margin: 0 4px 4px 0;
+}
+
+.workspaces > div.selected {
+    background-color: var(--theme-background-d);
+    color: var(--theme-text);
+}
+
+.workspaces > div > label {
+    cursor: pointer;
+    font-size: 13px;
+    overflow: hidden;
+    padding: 4px 32px 4px 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 140px;
+}
+
+.workspaces > div > button {
+    background-color: transparent;
+    border: none;
+    color: var(--theme-text);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px 8px;
+}
+
+.workspaces > div > label > input {
+    position: absolute;
+    clip: rect(0, 0, 0, 0);
+    pointer-events: none;
+}
+
+.workspaces > button {
+    background-color: var(--theme-background-d);
+    border-radius: 4px;
+    border: none;
+    color: var(--theme-text);
+    cursor: pointer;
+    display: block;
+    margin-bottom: 4px;
+    width: 30px;
+}
+
+.workspaces > button:hover {
+    background-color: rgba(255, 255, 255, 0.10);
+}
+
+/* Commands */
+.commands {
+    display: flex;
+    flex-direction: column;
+}
+
+.commands button {
+    background-color: var(--theme-background-d);
+    border-radius: 4px;
+    border: none;
+    color: var(--theme-text);
+    cursor: pointer;
+    height: 36px;
+    padding-top: 4px;
+    width: 36px;
+}
+
+.commands button:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.commands button.selected {
+    background-color: var(--color-primary-a);
+}
+
+.commands button.selected svg {
+    fill: black;
+}
+
+.commands button.selected div {
+    border-color: black;
+}
+
+.commands button + button,
+.commands button + a,
+.commands a + button {
+    margin-top: 4px;
+}
+
+.commands .grid {
+    border: 1px dashed white;
+    height: 16px;
+    margin: auto;
+    margin-top: -4px;
+    width: 16px;
+}
+
+.commands hr {
+    width: 80%;
+    border-width: 1px 0 0 0;
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* Token Templates */
+.tokens {
+    display: flex;
+    flex-direction: column;
+    margin: 24px 16px;
+    pointer-events: none;
+}
+
+.tokens-token {
+    margin-bottom: 8px;
+    pointer-events: all;
+    position: relative;
+}
+
+.tokens-token > svg {
+    height: 72px;
+    width: 72px;
+}
+
+.tokens-token > svg.draggable {
+    position: absolute;
+}
+
+/* Canvas */
+.canvas {
+    pointer-events: all;
+    height: 100%;
+    width: 100%;
+}
+
+.canvas-token {
+    pointer-events: all;
+}
+
+.canvas-token.selected > .canvas-token-shape > circle {
+    stroke: #ffeb3b;
+    stroke-width: 1.5px;
+    stroke-dasharray: 3px;
+    stroke-linecap: round;
+}
+
+.canvas-token-shape > circle {
+    filter: drop-shadow(1px 1px 4px rgba(0, 0, 0, .4));
+    stroke: black;
+}
+
+.canvas-token-aura {
+    pointer-events: none;
+}
+
+.canvas-token-aura > circle {
+    fill: none;
+    stroke: white;
+    stroke-width: 1px;
+    stroke-dasharray: 12px;
+    stroke-linecap: round;
+}
+
+.canvas-token-aura > text {
+    fill: white;
+}
+
+/* Options */
+.options {
+    background-color: #f2f2eb;
+    border: 1px solid black;
+    border-radius: 3px;
+    color: #461b0e;
+    display: flex;
+    flex-direction: column;
+    font-size: 14px;
+    line-height: 1.3;
+    margin: 16px;
+    max-height: 100%;
+    max-width: 360px;
+    overflow-y: auto;
+    padding: 8px;
+    pointer-events: all;
+}
+
+.options section:first-child {
+    display: flex;
+    justify-content: space-between;
+}
+
+.options section + section {
+    margin-top: 8px;
+}
+
+.options header {
+    border-bottom: 1px solid hsl(0, 10%, 55%);
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.options-canvas {}
+
+.options-canvas-maps {
+    display: grid;
+    grid-gap: 2px;
+    grid-template-columns: repeat(3, 1fr);
+    margin-bottom: 4px;
+    max-height: 180px;
+    overflow-y: auto;
+    font-size: 12px;
+}
+
+.options-canvas-maps > div {
+    background-size: cover;
+    cursor: pointer;
+    display: flex;
+    border-radius: 4px;
+    box-sizing: border-box;
+    flex-direction: column;
+    justify-content: flex-end;
+    position: relative;
+    height: 88px;
+}
+
+.options-canvas-maps > div.selected > .name,
+.options-canvas-maps > div:hover > .name {
+    background-color: rgba(0, 0, 0, 1);
+    color: white;
+}
+
+.options-canvas-maps > div > div {
+    border-radius: 0 0 0 4px;
+    color: white;
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 4px 8px;
+}
+
+.options-canvas-maps > div > div:hover {
+    background-color: rgba(0, 0, 0, 0.70);
+}
+
+.options-canvas-lighting {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 4px;
+}
+
+.options-token {}
+
+.options-token-lights {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-gap: 4px;
+}
+
+.options-token-sizes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 4px;
+}
+
+.options-token-auras {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-gap: 4px;
+    margin-top: 4px;
+}
+
+.options-grid {}
