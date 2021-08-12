@@ -106,36 +106,11 @@
   (let [workspace (query/workspace data)]
     [[:db/add (:db/id workspace) :canvas/map map]]))
 
-(defmethod transact :canvas/select-mode
-  [data event]
-  (let [{:keys [db/id]} (query/workspace data)]
-    [[:db/add id :canvas/mode :select]
+(defmethod transact :canvas/toggle-mode
+  [data event mode]
+  (let [{id :db/id current :canvas/mode} (query/workspace data)]
+    [[:db/add id :canvas/mode (if (= current mode) :select mode)]
      [:db/retract id :canvas/selected]]))
-
-(defmethod transact :canvas/toggle-canvas-options
-  [data event]
-  (let [{:keys [db/id canvas/selected] :as workspace} (query/workspace data)]
-    (if (= selected workspace)
-      [[:db/add id :canvas/mode :select]
-       [:db/retract id :canvas/selected]]
-      [[:db/add id :canvas/mode :board]
-       [:db/add id :canvas/selected id]])))
-
-(defmethod transact :canvas/toggle-grid-options
-  [data event]
-  (let [{:keys [db/id canvas/mode]} (query/workspace data)]
-    (if (= mode :grid)
-      [[:db/add id :canvas/mode :select]]
-      [[:db/add id :canvas/mode :grid]
-       [:db/retract id :canvas/selected]])))
-
-(defmethod transact :canvas/toggle-ruler
-  [data event]
-  (let [{:keys [db/id canvas/mode]} (query/workspace data)]
-    (if (= mode :ruler)
-      [[:db/add id :canvas/mode :select]]
-      [[:db/add id :canvas/mode :ruler]
-       [:db/retract id :canvas/selected]])))
 
 (defmethod transact :element/update
   [data event id attr value]

@@ -42,9 +42,9 @@
      [:div
       {:on-click (handler on-remove)} "×"]]))
 
-(defn board [{:keys [workspace]}]
+(defn canvas []
   (let [{:keys [data workspace dispatch store]} (uix/context context)]
-    [:div.options-canvas
+    [:div.options.options-canvas
      [:section
       [:label {:style {:flex 1 :margin-right "8px"}}
        [:input
@@ -57,7 +57,7 @@
            (let [value (.. event -target -value)]
              (dispatch :element/update (:db/id workspace) :element/name value)))}]]
       [:button
-       {:type "button" :on-click #(dispatch :canvas/toggle-canvas-options)} "×"]]
+       {:type "button" :on-click #(dispatch :canvas/toggle-mode :canvas)} "×"]]
 
      [:section
       (when-let [boards (query/boards data)]
@@ -68,8 +68,7 @@
              {:key       (:image/checksum board)
               :board     board
               :selected  (= board (:canvas/map workspace))
-              :on-select (fn []
-                           (dispatch :canvas/change-map (:db/id board)))
+              :on-select (fn [] (dispatch :canvas/change-map (:db/id board)))
               :on-remove (fn []
                            (.delete (.-images store) (:image/checksum board))
                            (dispatch :map/remove (:db/id board)))}])]])
@@ -109,70 +108,71 @@
 (defn token [props]
   (let [{:keys [workspace dispatch]} (uix/context context)
         {:keys [db/id element/name] :as token} (:canvas/selected workspace)]
-    [:div.options-token
-     [:section
-      [:input
-       {:type "text"
-        :style {:flex 1 :margin-right "8px"}
-        :value (or name "")
-        :placeholder "Label"
-        :maxLength 24
-        :autoFocus true
-        :on-change
-        (fn [event]
-          (let [value (.. event -target -value)]
-            (dispatch :element/update id :element/name value)))}]
-      [:button {:type "button" :on-click #(dispatch :token/remove id) :style {:margin-right "8px"}} "♼"]
-      [:button {:type "button" :on-click #(dispatch :view/toggle id)} "×"]]
-     [:section
-      [:header "Light"]
-      [:div.options-token-lights
-       (for [[bright dim] [[0 0] [5 5] [10 10] [15 30] [20 20] [30 30] [40 40] [60 60]]
-             :let [checked (= [bright dim] (:token/light token))
-                   key (str bright ":" dim)]]
-         [radio-button
-          {:key key
-           :name "token/light"
-           :value key
-           :checked checked
-           :on-change #(dispatch :token/change-light id bright dim)}
-          (str bright " ft. / " dim " ft.")])]]
-     [:section
-      [:header "Size"]
-      [:div.options-token-sizes
-       (for [[name size] [[:tiny 2.5] [:small 5] [:medium 5] [:large 10] [:huge 15] [:gargantuan 20]]
-             :let [checked (= name (:name (:token/size token)))]]
-         [radio-button
-          {:key name
-           :name "token/size"
-           :value name
-           :checked checked
-           :on-change #(dispatch :token/change-size id name size)}
-          (string/capitalize (clojure.core/name name))])]]
-
-     (let [{:keys [aura/label aura/radius aura/color]} (:canvas/selected workspace)]
+    (when token
+      [:div.options.options-token {:key id}
        [:section
-        [:header "Aura"]
-        [:div
-         [:input
-          {:type "text"
-           :placeholder "Label"
-           :value (or label "")
-           :on-change #(dispatch :aura/change-label id (.. % -target -value))}]]
-        [:div.options-token-auras
-         (for [radius [0 10 20 30 60] :let [checked (= radius (:aura/radius token))]]
+        [:input
+         {:type "text"
+          :style {:flex 1 :margin-right "8px"}
+          :value (or name "")
+          :placeholder "Label"
+          :maxLength 24
+          :autoFocus true
+          :on-change
+          (fn [event]
+            (let [value (.. event -target -value)]
+              (dispatch :element/update id :element/name value)))}]
+        [:button {:type "button" :on-click #(dispatch :token/remove id) :style {:margin-right "8px"}} "♼"]
+        [:button {:type "button" :on-click #(dispatch :view/toggle id)} "×"]]
+       [:section
+        [:header "Light"]
+        [:div.options-token-lights
+         (for [[bright dim] [[0 0] [5 5] [10 10] [15 30] [20 20] [30 30] [40 40] [60 60]]
+               :let [checked (= [bright dim] (:token/light token))
+                     key (str bright ":" dim)]]
            [radio-button
-            {:key radius
-             :name "token/aura-radius"
+            {:key key
+             :name "token/light"
+             :value key
              :checked checked
-             :value radius
-             :on-change #(dispatch :aura/change-radius id radius)}
-            (if (= radius 0) "None" (str radius " ft."))])]])]))
+             :on-change #(dispatch :token/change-light id bright dim)}
+            (str bright " ft. / " dim " ft.")])]]
+       [:section
+        [:header "Size"]
+        [:div.options-token-sizes
+         (for [[name size] [[:tiny 2.5] [:small 5] [:medium 5] [:large 10] [:huge 15] [:gargantuan 20]]
+               :let [checked (= name (:name (:token/size token)))]]
+           [radio-button
+            {:key name
+             :name "token/size"
+             :value name
+             :checked checked
+             :on-change #(dispatch :token/change-size id name size)}
+            (string/capitalize (clojure.core/name name))])]]
+
+       (let [{:keys [aura/label aura/radius aura/color]} token]
+         [:section
+          [:header "Aura"]
+          [:div
+           [:input
+            {:type "text"
+             :placeholder "Label"
+             :value (or label "")
+             :on-change #(dispatch :aura/change-label id (.. % -target -value))}]]
+          [:div.options-token-auras
+           (for [radius [0 10 20 30 60] :let [checked (= radius (:aura/radius token))]]
+             [radio-button
+              {:key radius
+               :name "token/aura-radius"
+               :checked checked
+               :value radius
+               :on-change #(dispatch :aura/change-radius id radius)}
+              (if (= radius 0) "None" (str radius " ft."))])]])])))
 
 (defn grid [{:keys [workspace]}]
   (let [{:keys [workspace dispatch]} (uix/context context)
         {:keys [grid/size]} workspace]
-    [:div.options-grid
+    [:div.options.options-grid
      [:section
       [:input
        {:type "number"
@@ -184,7 +184,7 @@
           (let [value (.. event -target -value)]
             (dispatch :grid/change-size value)))}]
       [:button
-       {:type "button" :on-click #(dispatch :canvas/toggle-grid-options :select)} "×"]]
+       {:type "button" :on-click #(dispatch :canvas/toggle-mode :grid)} "×"]]
      [:section
       [:header "Setting the Grid Size"]
       [:div "Draw a square that represents 5 feet. We'll try to guess what
@@ -192,16 +192,9 @@
              the map. If its not quite right, edit the size above manually."]]]))
 
 (defn options []
-  (let [{:keys [workspace]} (uix/context context)
-        {:keys [canvas/mode canvas/selected]} workspace]
-    (case [mode (:element/type selected)]
-      [:board :canvas]
-      [:div.options [board {:key (:db/id workspace)}]]
-
-      [:select :token]
-      [:div.options [token {:key (:db/id selected)}]]
-
-      [:grid nil]
-      [:div.options [grid {:key (:db/id workspace)}]]
-
+  (let [{{mode :canvas/mode} :workspace} (uix/context context)]
+    (case mode
+      :canvas [canvas]
+      :select [token]
+      :grid [grid]
       nil)))

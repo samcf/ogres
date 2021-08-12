@@ -198,8 +198,8 @@
      [:> draggable
       {:position #js {:x 0 :y 0}
        :disabled (= mode :grid)
-       :onStart  (fn [] (dispatch :view/clear))
-       :onStop
+       :on-start (fn [] (dispatch :view/clear))
+       :on-stop
        (fn [event data]
          (let [ox (.-x data) oy (.-y data)]
            (dispatch :camera/translate

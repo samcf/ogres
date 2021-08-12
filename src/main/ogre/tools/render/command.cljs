@@ -4,18 +4,22 @@
             [ogre.tools.render :refer [context css]]
             [ogre.tools.render.icon :refer [icon]]))
 
+(def modes
+  [[:select :cursor 20]
+   [:canvas :image 18]
+   [:grid :grid 21]
+   [:ruler :ruler 20]
+   [:circle :circle 20]
+   [:rect :rect 20]])
+
 (defn command [props]
   (let [{:keys [workspace dispatch store]} (uix/context context)
-        {:keys [canvas/mode grid/show]} workspace]
+        {show :grid/show current :canvas/mode} workspace]
     [:div.commands
-     [:button {:type "button" :title "Select" :class (css {:selected (= mode :select)}) :on-click #(dispatch :canvas/select-mode)}
-      [icon {:name :cursor :width 20 :height 20}]]
-     [:button {:type "button" :title "Canvas Settings" :class (css {:selected (= mode :board)}) :on-click #(dispatch :canvas/toggle-canvas-options)}
-      [icon {:name :image :width 18 :height 18}]]
-     [:button {:type "button" :title "Grid Settings" :class (css {:selected (= mode :grid)}) :on-click #(dispatch :canvas/toggle-grid-options)}
-      [icon {:name :grid :width 21 :height 21}]]
-     [:button {:type "button" :title "Ruler" :class (css {:selected (= mode :ruler)}) :on-click #(dispatch :canvas/toggle-ruler)}
-      [icon {:name :ruler :width 20 :height 20}]]
+     (for [[mode name size] modes]
+       [:button {:key mode :type "button" :class (css {:selected (= current mode)})
+                 :on-click #(dispatch :canvas/toggle-mode mode)}
+        [icon {:name name :width size :height size}]])
      [:hr]
      [:button {:type "button" :title "Toggle Grid" :class (css {:selected show}) :on-click #(dispatch :grid/toggle)}
       [:div.grid]]
@@ -26,7 +30,7 @@
       [icon {:name :zoom-out :width 18 :height 18}]]
      [:hr]
      [:a {:href "https://www.github.com/samcf/ogre.tools" :title "Project home" :target "_blank"}
-      [:button {:type "button" :on-click #(dispatch nil)}
+      [:button {:type "button"}
        [icon {:name :github :width 20 :height 20}]]]
      [:button
       {:type "button"
