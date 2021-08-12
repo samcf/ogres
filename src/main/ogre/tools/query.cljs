@@ -19,10 +19,11 @@
 (defn templates [data]
   (:viewer/tokens (ds/entity data [:db/ident :viewer])))
 
-(defn tokens [data]
+(defn elements [data type]
   (->> (ds/q '[:find [?id ...]
+               :in $ ?type
                :where
                [_ :viewer/workspace ?ws]
                [?ws :canvas/elements ?id]
-               [?id :element/type :token]] data)
+               [?id :element/type ?type]] data type)
        (map #(ds/entity data %))))

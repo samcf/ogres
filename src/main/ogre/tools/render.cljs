@@ -29,6 +29,21 @@
      (.stopPropagation event)
      (apply f event args))))
 
+(defn use-dimensions []
+  (let [ref   (uix/ref nil)
+        value (uix/state [0 0 0 0])]
+    (uix/layout-effect!
+     (fn []
+       (when (not (nil? @ref))
+         (let [bounding (.getBoundingClientRect @ref)
+               data     [(.-x bounding)
+                         (.-y bounding)
+                         (.-width bounding)
+                         (.-height bounding)]]
+           (reset! value data))))
+     [@ref])
+    [ref @value]))
+
 (defn use-image [checksum]
   (let [url (uix/state nil)
         {:keys [data store]} (uix/context context)]

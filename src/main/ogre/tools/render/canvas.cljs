@@ -2,7 +2,7 @@
   (:require [clojure.string :as string]
             [uix.core.alpha :as uix]
             [react-draggable :as draggable]
-            [ogre.tools.render :refer [context css handler use-image]]
+            [ogre.tools.render :refer [context css handler use-dimensions use-image]]
             [ogre.tools.query :as query]))
 
 (defn ft->px [ft size]
@@ -31,18 +31,8 @@
        (for [type [:dim :bright]]
          [:image (merge {:x 0 :y 0 :href url} (attrs type) {:key type})])])))
 
-(defn grid [{:keys [canvas]}]
-  (let [{{[cx cy] :pos/vec [ox oy] :grid/origin size :grid/size} :workspace} (uix/context context)
-        dimensions (uix/state [0 0])
-        [w h]      @dimensions]
-
-    (uix/effect!
-     (fn []
-       (when @canvas
-         (let [bounding (.getBoundingClientRect @canvas)]
-           (reset! dimensions [(.-width bounding) (.-height bounding)]))))
-     [(nil? @canvas)])
-
+(defn grid [{[_ _ w h] :dimensions}]
+  (let [{{[cx cy] :pos/vec size :grid/size} :workspace} (uix/context context)]
     (let [[sx sy ax ay bx]
           [(- (* w -2) cx)
            (- (* h -2) cy)
@@ -60,56 +50,41 @@
            :fill "none"}]]]
        [:path {:d (string/join " " ["M" sx sy "H" ax "V" ay "H" bx "Z"]) :fill "url(#grid)"}]])))
 
-(defn grid-draw [{:keys [canvas]}]
-  (let [{:keys [workspace dispatch]} (uix/context context)
-        {:keys [canvas/mode zoom/scale]} workspace
-        canvas (.getBoundingClientRect @canvas)
-        points (uix/state nil)]
-    [:<>
-     [:> draggable
-      {:position #js {:x 0 :y 0}
-       :on-start
-       (handler
+(defmulti shape (fn [props] (:shape/kind (:element props))))
+
+(defmethod shape :circle [props]
+  (let [{{[[ax ay] [bx by]] :shape/vecs} :element} props]
+    [:circle
+     {:cx ax :cy ay :r (chebyshev [ax ay] [bx by])
+      :fill "rgba(255, 255, 255, 0.15)" :stroke "none"}]))
+
+(defmethod shape :rect [props]
+  (let [{{[[ax ay] [bx by]] :shape/vecs} :element} props]
+    [:path
+     {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])
+      :fill "rgba(255, 255, 255, 0.15)" :stroke "none"}]))
+
+(defn shapes [props]
+  (let [{:keys [data workspace dispatch]} (uix/context context)
+        {:keys [zoom/scale]} workspace
+        elements (query/elements data :shape)]
+    (for [element elements :let [[x y] (:pos/vec element)]]
+      [:> draggable
+       {:key (:db/id element)
+        :position #js {:x x :y y}
+        :scale scale
+        :on-start
         (fn [event data]
-          (let [mx (- (.-clientX event) (.-x canvas))
-                my (- (.-clientY event) (.-y canvas))]
-            (reset! points [mx my mx my]))))
-
-       :on-drag
-       (handler
-        (fn [event data]
-          (swap!
-           points
-           (fn [[ax ay bx by]]
-             (let [d (.-x data)]
-               [ax ay (+ ax d) (+ ay d)])))))
-
-       :on-stop
-       (handler
-        (fn [event data]
-          (let [[ax ay bx by] @points]
-            (reset! points nil)
-            (let [size (js/Math.abs (- bx ax))]
-              (when (> size 0)
-                (dispatch :grid/draw ax ay size))))))}
-
-      [:g [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]]]
-
-     (when (seq @points)
-       (let [[ax ay bx by] @points]
-         [:<>
-          [:path {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])
-                  :fill "transparent" :stroke "white" :stroke-dasharray "3px"}]
-          [:text {:x bx :y ay :fill "white"}
-           (-> (- (/ bx scale) (/ ax scale))
-               (js/Math.abs)
-               (js/Math.round)
-               (str "px"))]]))]))
+          (.stopPropagation event))
+        :on-stop
+        (fn [_ data]
+          (dispatch :shape/translate (:db/id element) [(.-x data) (.-y data)]))}
+       [:g [shape {:element element}]]])))
 
 (defn tokens [props]
   (let [{:keys [data workspace dispatch]} (uix/context context)
         {:keys [canvas/lighting grid/size zoom/scale]} workspace
-        elements (query/tokens data)]
+        elements (query/elements data :token)]
     [:<>
      [:defs
       (when (= lighting :dark)
@@ -156,45 +131,111 @@
             (when (and (> radius 0) (seq label))
               [:text {:x (+ cx 8) :y (+ cy 8)} label])])]])]))
 
-(defn ruler [{:keys [canvas]}]
-  (let [{{scale :zoom/scale size :grid/size} :workspace} (uix/context context)
-        canvas (.getBoundingClientRect @canvas)
-        points (uix/state nil)]
+(defn drawable [props render-fn]
+  (let [{:keys [dimensions on-release]} props
+        points (uix/state nil)
+        [x y w h] dimensions]
     [:<>
      [:> draggable
       {:position #js {:x 0 :y 0}
        :on-start
-       (handler
-        (fn [event _]
-          (let [x (- (.-clientX event) (.-x canvas))
-                y (- (.-clientY event) (.-y canvas))]
-            (reset! points [x y x y]))))
-
+       (fn [event _]
+         (.stopPropagation event)
+         (let [x (- (.-clientX event) x)
+               y (- (.-clientY event) y)]
+           (reset! points [x y x y])))
        :on-drag
-       (handler
-        (fn [_ data]
-          (swap!
-           points
-           (fn [[ax ay bx by]]
-             [ax ay (+ ax (.-x data)) (+ ay (.-y data))]))))
-
+       (fn [_ data]
+         (swap! points
+                (fn [[ax ay bx by]]
+                  [ax ay (+ ax (.-x data)) (+ ay (.-y data))])))
        :on-stop
-       (handler #(reset! points nil))}
-      [:g [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]]]
+       (fn []
+         (on-release @points)
+         (reset! points nil))}
+      [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]]
      (when (seq @points)
-       (let [[ax ay bx by] @points]
-         [:<>
-          [:line {:x1 ax :y1 ay :x2 bx :y2 by :stroke "white" :stroke-dasharray "12px"}]
-          [:text {:x (- bx 48) :y (- by 8) :fill "white"}
-           (let [[ax ay bx by] (map #(px->ft % size) @points)]
-             (str (js/Math.round (/ (chebyshev [ax ay] [bx by]) scale)) " ft."))]]))]))
+       (render-fn @points))]))
+
+(defn draw-grid [{:keys [dimensions]}]
+  (let [{:keys [workspace dispatch]} (uix/context context)
+        {:keys [grid/size zoom/scale]} workspace]
+    [drawable
+     {:dimensions dimensions
+      :on-release
+      (fn [[ax ay bx by]]
+        (let [size (js/Math.abs (- bx ax))]
+          (when (> size 0)
+            (dispatch :grid/draw ax ay size))))}
+     (fn [[ax ay bx by]]
+       (let [m (min (- bx ax) (- by ay))]
+         [:g
+          [:path {:d (string/join " " ["M" ax ay "h" m "v" m "H" ax "Z"])
+                  :fill "transparent" :stroke "white" :stroke-dasharray "3px"}]
+          [:text {:x bx :y ay :fill "white"}
+           (-> (/ (- bx ax) scale)
+               (js/Math.abs)
+               (js/Math.round)
+               (str "px"))]]))]))
+
+(defn draw-ruler [{:keys [dimensions]}]
+  (let [{:keys [workspace]} (uix/context context)
+        {:keys [grid/size zoom/scale]} workspace]
+    [drawable
+     {:dimensions dimensions
+      :on-release identity}
+     (fn [[ax ay bx by]]
+       [:g
+        [:line {:x1 ax :y1 ay :x2 bx :y2 by :stroke "white" :stroke-dasharray "12px"}]
+        [:text {:x (- bx 48) :y (- by 8) :fill "white"}
+         (str (px->ft (chebyshev [ax ay] [bx by]) (* size scale)) "ft.")]])]))
+
+(defn draw-circle [{:keys [dimensions]}]
+  (let [{:keys [workspace dispatch]} (uix/context context)
+        {:keys [grid/size zoom/scale]} workspace]
+    [drawable
+     {:dimensions dimensions
+      :on-release
+      (fn [points]
+        (let [[ax ay bx by] (mapv #(/ % scale) points)
+              [cx cy] (:pos/vec workspace)
+              src [(- ax cx) (- ay cy)]
+              dst [(- bx cx) (- by cy)]]
+          (dispatch :shape/create :circle src dst)))}
+     (fn [[ax ay bx by]]
+       (let [radius (chebyshev [ax ay] [bx by])]
+         [:g
+          [:circle {:cx ax :cy ay :r radius :fill "transparent" :stroke "white"}]
+          [:text {:x ax :y ay :fill "white"}
+           (str (px->ft radius (* size scale)) "ft. radius")]]))]))
+
+(defn draw-rect [{:keys [dimensions]}]
+  (let [{:keys [workspace dispatch]} (uix/context context)
+        {:keys [grid/size zoom/scale]} workspace]
+    [drawable
+     {:dimensions dimensions
+      :on-release
+      (fn [points]
+        (let [[ax ay bx by] (mapv #(/ % scale) points)
+              [cx cy] (:pos/vec workspace)
+              src [(- ax cx) (- ay cy)]
+              dst [(- bx cx) (- by cy)]]
+          (dispatch :shape/create :rect src dst)))}
+     (fn [[ax ay bx by]]
+       [:g
+        [:path {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])
+                :fill "transparent" :stroke "white"}]
+        [:text {:x (+ ax 8) :y (- ay 8) :fill "white"}
+         (let [[w h] [(px->ft (js/Math.abs (- bx ax)) (* size scale))
+                      (px->ft (js/Math.abs (- by ay)) (* size scale))]]
+           (str w "ft. x " h "ft."))]])]))
 
 (defn canvas [props]
   (let [{:keys [workspace dispatch]} (uix/context context)
         {:keys [pos/vec grid/show canvas/mode canvas/map zoom/scale]} workspace
-        [cx cy] vec
-        node (uix/ref nil)]
-    [:svg.canvas {:ref node}
+        [tx ty] vec
+        [ref dimensions] (use-dimensions)]
+    [:svg.canvas {:ref ref}
      [:> draggable
       {:position #js {:x 0 :y 0}
        :disabled (= mode :grid)
@@ -202,32 +243,20 @@
        :on-stop
        (fn [event data]
          (let [ox (.-x data) oy (.-y data)]
-           (dispatch :camera/translate
-                     (+ (/ ox scale) cx)
-                     (+ (/ oy scale) cy))))}
+           (dispatch :camera/translate (+ (/ ox scale) tx) (+ (/ oy scale) ty))))}
       [:g
-
-       ;; Render an element that guarantees that the entire canvas may be
-       ;; dragged from anywhere on the element.
        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
-
-       [:g {:transform (str "scale(" scale ") translate(" cx ", " cy ")")}
-
-        ;; Render the selected board map.
+       [:g {:transform (str "scale(" scale ") translate(" tx ", " ty ")")}
         [board {:key (:image/checksum map) :image map}]
-
-        ;; Render the playing grid when it is enabled or the current mode is
-        ;; :grid.
         (when (or (= mode :grid) show)
-          [grid {:canvas node}])
-
-        ;; Render the various elements of the board such as tokens, geometry,
-        ;; lighting, etc.
+          [grid {:dimensions dimensions}])
+        [shapes]
         [tokens]]
 
-       (when (and (not (nil? @node)) (= mode :ruler))
-         [ruler {:canvas node}])
-
-       ;; Render the drawable grid component.
-       (when (and (not (nil? @node)) (= mode :grid))
-         [grid-draw {:canvas node}])]]]))
+       (for [[component canvas-mode]
+             [[draw-circle :circle]
+              [draw-ruler :ruler]
+              [draw-grid :grid]
+              [draw-rect :rect]]
+             :when (= canvas-mode mode)]
+         [component {:key canvas-mode :dimensions dimensions}])]]]))

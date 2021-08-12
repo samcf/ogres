@@ -34,6 +34,8 @@
    :aura/radius      {}
    :aura/color       {}
    :aura/label       {}
+   :shape/kind       {}
+   :shape/vecs       {}
    :image/checksum   {:db/index true}
    :image/width      {}
    :image/height     {}})
@@ -148,15 +150,15 @@
   [[:db/retractEntity map]])
 
 (defmethod transact :token/create
-  [data event token tx ty]
-  (let [{id :db/id [x y] :pos/vec scale :zoom/scale} (query/workspace data)
-        template (ds/entity data token)]
+  [data event token vector]
+  (let [{:keys [db/id]} (query/workspace data)
+        template        (ds/entity data token)]
     [[:db/add id :canvas/elements -1]
      [:db/add id :canvas/selected -1]
      [:db/add id :canvas/mode :select]
      (merge
       (into {} (ds/touch template))
-      {:db/id -1 :pos/vec [(- (/ tx scale) x) (- (/ ty scale) y)]})]))
+      {:db/id -1 :pos/vec vector})]))
 
 (defmethod transact :token/remove
   [data event token]
@@ -173,6 +175,19 @@
 (defmethod transact :token/change-size
   [data event token name size]
   [[:db/add token :token/size {:name name :size size}]])
+
+(defmethod transact :shape/create
+  [data event kind a b]
+  (let [{id :db/id scale :zoom/scale [x y] :pos/vec} (query/workspace data)]
+    [[:db/add -1 :element/type :shape]
+     [:db/add -1 :shape/kind kind]
+     [:db/add -1 :pos/vec [0 0]]
+     [:db/add -1 :shape/vecs [a b]]
+     [:db/add id :canvas/elements -1]]))
+
+(defmethod transact :shape/translate
+  [data event id vec]
+  [[:db/add id :pos/vec vec]])
 
 (defmethod transact :grid/change-size
   [data event size]
