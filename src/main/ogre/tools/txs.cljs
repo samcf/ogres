@@ -36,6 +36,9 @@
    :aura/label       {}
    :shape/kind       {}
    :shape/vecs       {}
+   :shape/color      {}
+   :shape/opacity    {}
+   :shape/pattern    {}
    :image/checksum   {:db/index true}
    :image/width      {}
    :image/height     {}})
@@ -118,13 +121,17 @@
   [data event id attr value]
   [[:db/add id attr value]])
 
-(defmethod transact :view/toggle
+(defmethod transact :element/select
   [data event element]
-  (let [workspace (query/workspace data)]
-    (if (= (:db/id (:canvas/selected workspace)) element)
-      [[:db/retract (:db/id workspace) :canvas/selected element]]
-      [[:db/add (:db/id workspace) :canvas/mode :select]
-       [:db/add (:db/id workspace) :canvas/selected element]])))
+  (let [{:keys [db/id canvas/selected]} (query/workspace data)]
+    (if (= (:db/id selected) element)
+      [[:db/retract id :canvas/selected element]]
+      [[:db/add id :canvas/mode :select]
+       [:db/add id :canvas/selected element]])))
+
+(defmethod transact :element/remove
+  [data event token]
+  [[:db/retractEntity token]])
 
 (defmethod transact :view/clear
   [data]
@@ -160,10 +167,6 @@
       (into {} (ds/touch template))
       {:db/id -1 :pos/vec vector})]))
 
-(defmethod transact :token/remove
-  [data event token]
-  [[:db/retractEntity token]])
-
 (defmethod transact :token/translate
   [data event id x y]
   [[:db/add id :pos/vec [x y]]])
@@ -183,6 +186,9 @@
      [:db/add -1 :shape/kind kind]
      [:db/add -1 :pos/vec [0 0]]
      [:db/add -1 :shape/vecs [a b]]
+     [:db/add -1 :shape/color "#f44336"]
+     [:db/add -1 :shape/opacity 0.25]
+     [:db/add -1 :shape/pattern :solid]
      [:db/add id :canvas/elements -1]]))
 
 (defmethod transact :shape/translate

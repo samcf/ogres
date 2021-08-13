@@ -1,8 +1,10 @@
 (ns ogre.tools.render.canvas
   (:require [clojure.string :as string]
+            [datascript.core :as ds]
             [uix.core.alpha :as uix]
             [react-draggable :as draggable]
             [ogre.tools.render :refer [context css handler use-dimensions use-image]]
+            [ogre.tools.render.pattern :refer [pattern]]
             [ogre.tools.query :as query]))
 
 (defn ft->px [ft size]
@@ -53,20 +55,29 @@
 (defmulti shape (fn [props] (:shape/kind (:element props))))
 
 (defmethod shape :circle [props]
-  (let [{{[[ax ay] [bx by]] :shape/vecs} :element} props]
+  (let [{:keys [element attrs]} props
+        {:keys [shape/vecs shape/color shape/opacity shape/pattern]} element
+        [[ax ay] [bx by]] vecs]
     [:circle
-     {:cx ax :cy ay :r (chebyshev [ax ay] [bx by])
-      :fill "rgba(255, 255, 255, 0.15)" :stroke "none"}]))
+     (merge
+      attrs
+      {:cx ax
+       :cy ay
+       :r (chebyshev [ax ay] [bx by])
+       :fill-opacity opacity
+       :stroke color})]))
 
 (defmethod shape :rect [props]
-  (let [{{[[ax ay] [bx by]] :shape/vecs} :element} props]
+  (let [{:keys [element attrs]} props
+        {:keys [shape/vecs shape/color shape/opacity]} element
+        [[ax ay] [bx by]] vecs]
     [:path
-     {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])
-      :fill "rgba(255, 255, 255, 0.15)" :stroke "none"}]))
+     (merge attrs {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])
+                   :fill-opacity opacity :stroke color})]))
 
 (defn shapes [props]
   (let [{:keys [data workspace dispatch]} (uix/context context)
-        {:keys [zoom/scale]} workspace
+        {:keys [zoom/scale canvas/selected]} workspace
         elements (query/elements data :shape)]
     (for [element elements :let [[x y] (:pos/vec element)]]
       [:> draggable
@@ -78,8 +89,20 @@
           (.stopPropagation event))
         :on-stop
         (fn [_ data]
-          (dispatch :shape/translate (:db/id element) [(.-x data) (.-y data)]))}
-       [:g [shape {:element element}]]])))
+          (let [dist (euclidean [x y] [(.-x data) (.-y data)])]
+            (if (> dist 0)
+              (dispatch :shape/translate (:db/id element) [(.-x data) (.-y data)])
+              (dispatch :element/select (:db/id element)))))}
+       (let [{patt :shape/pattern color :shape/color kind :shape/kind} element
+             id (ds/squuid)]
+         [:g
+          {:class
+           (css "canvas-shape"
+                (str "canvas-shape-" (name kind))
+                {"selected" (= element selected)})}
+          [:defs [pattern {:id id :name patt :color color}]]
+          [shape {:element (into {} (ds/touch element))
+                  :attrs   {:fill (str "url(#" id ")")}}]])])))
 
 (defn tokens [props]
   (let [{:keys [data workspace dispatch]} (uix/context context)
@@ -110,7 +133,7 @@
           (fn [_ data]
             (let [dist (euclidean [x y] [(.-x data) (.-y data)])]
               (if (= dist 0)
-                (dispatch :view/toggle (:db/id token))
+                (dispatch :element/select (:db/id token))
                 (dispatch :token/translate (:db/id token) (.-x data) (.-y data))))))}
         [:g.canvas-token {:class (css {:selected (= token (:canvas/selected workspace))})}
 

@@ -56,7 +56,6 @@ input[type="number"] {
 
 .ogre-radio-button:checked + label {
     background-color: var(--color-primary-a);
-    border-color: transparent;
     color: white;
 }
 
@@ -250,15 +249,30 @@ input[type="number"] {
     width: 100%;
 }
 
+@keyframes stroke-animation {
+    0% { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: 16px; }
+}
+
 .canvas-token {
     pointer-events: all;
 }
 
+.canvas-shape:hover > circle,
+.canvas-shape:hover > path,
+.canvas-shape.selected > circle,
+.canvas-shape.selected > path,
+.canvas-token-shape > circle:hover,
 .canvas-token.selected > .canvas-token-shape > circle {
-    stroke: #ffeb3b;
-    stroke-width: 1.5px;
-    stroke-dasharray: 3px;
+    cursor: pointer;
+    stroke-dasharray: 4px;
     stroke-linecap: round;
+    animation: stroke-animation 1s linear infinite;
+}
+
+.canvas-token-shape > circle:hover,
+.canvas-token.selected > .canvas-token-shape > circle {
+    stroke: white;
 }
 
 .canvas-token-shape > circle {
@@ -266,6 +280,7 @@ input[type="number"] {
     stroke: black;
 }
 
+.canvas-token-shape > text,
 .canvas-token-aura {
     pointer-events: none;
 }
@@ -380,9 +395,45 @@ input[type="number"] {
 
 .options-token-auras {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     grid-gap: 4px;
     margin-top: 4px;
 }
 
-.options-grid {}
+.options-shape-colors {
+    display: grid;
+    grid-gap: 4px;
+    grid-template-columns: repeat(5, 1fr);
+}
+
+.options-shape-colors .ogre-radio-button + label,
+.options-shape-colors .ogre-radio-button:checked + label {
+    background-color: none;
+    padding: 0;
+}
+
+.options-shape-colors .ogre-radio-button + label > div {
+    height: 32px;
+}
+
+.options-shape-colors .ogre-radio-button:checked + label > div {
+    box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.55);
+}
+
+.options-shape-patterns {
+    display: grid;
+    grid-gap: 4px;
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.options-shape-patterns svg {
+    display: block;
+}
+
+.options-shape-patterns .ogre-radio-button + label {
+    padding: 0;
+}
+
+.options-shape-patterns .ogre-radio-button:checked + label #template-pattern-solid > rect {
+    fill: var(--color-primary-a);
+}

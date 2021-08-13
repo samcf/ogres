@@ -4,7 +4,14 @@
             [uix.core.alpha :as uix]
             [datascript.core :as ds]
             [ogre.tools.render :refer [css context handler use-image]]
+            [ogre.tools.render.pattern :refer [pattern]]
             [ogre.tools.query :as query]))
+
+(def colors
+  ["#182125" "#f2f2f2" "#f44336" "#e91e63"
+   "#9c27b0" "#673ab7" "#3f51b5" "#2196f3"
+   "#00bcd4" "#009688" "#4caf50" "#cddc39"
+   "#ffeb3b" "#ffc107" "#ff9800"])
 
 (defn checksum [data]
   (let [hash (new Md5)]
@@ -122,8 +129,8 @@
           (fn [event]
             (let [value (.. event -target -value)]
               (dispatch :element/update id :element/name value)))}]
-        [:button {:type "button" :on-click #(dispatch :token/remove id) :style {:margin-right "8px"}} "♼"]
-        [:button {:type "button" :on-click #(dispatch :view/toggle id)} "×"]]
+        [:button {:type "button" :on-click #(dispatch :element/remove id) :style {:margin-right "8px"}} "♼"]
+        [:button {:type "button" :on-click #(dispatch :element/select id)} "×"]]
        [:section
         [:header "Light"]
         [:div.options-token-lights
@@ -160,7 +167,7 @@
              :value (or label "")
              :on-change #(dispatch :aura/change-label id (.. % -target -value))}]]
           [:div.options-token-auras
-           (for [radius [0 10 20 30 60] :let [checked (= radius (:aura/radius token))]]
+           (for [radius [0 10 15 20 30 60] :let [checked (= radius (:aura/radius token))]]
              [radio-button
               {:key radius
                :name "token/aura-radius"
@@ -168,6 +175,66 @@
                :value radius
                :on-change #(dispatch :aura/change-radius id radius)}
               (if (= radius 0) "None" (str radius " ft."))])]])])))
+
+(defn shape [props]
+  (let [{:keys [workspace dispatch]} (uix/context context)
+        {:keys [db/id element/name] :as shape} (:canvas/selected workspace)]
+    [:div.options.options-shape {:key id}
+     [:section
+      [:input
+       {:type "text"
+        :value (or name "")
+        :placeholder "Label"
+        :auto-focus true
+        :style {:flex 1 :margin-right "8px"}
+        :on-change
+        (fn [event]
+          (let [value (.. event -target -value)]
+            (dispatch :element/update id :element/name value)))}]
+      [:button {:type "button" :style {:margin-right "8px"} :on-click #(dispatch :element/remove id)} "♼"]
+      [:button {:type "button" :on-click #(dispatch :element/select id)} "×"]]
+     [:section
+      [:header "Color"]
+      [:div.options-shape-colors
+       (for [color colors]
+         [radio-button
+          {:key color
+           :name "shape/color"
+           :value color
+           :checked (= color (:shape/color shape))
+           :on-change
+           (fn []
+             (dispatch :element/update id :shape/color color))}
+          [:div {:style {:background-color color}}]])]]
+     [:section
+      [:header "Pattern"]
+      [:div.options-shape-patterns
+       (for [name [:solid :lines :circles :crosses :caps :waves]]
+         [radio-button
+          {:key name
+           :name "shape/pattern"
+           :value name
+           :checked (= name (:shape/pattern shape))
+           :on-change
+           (fn []
+             (dispatch :element/update id :shape/pattern name))}
+          (let [id (str "template-pattern-" (clojure.core/name name))]
+            [:svg {:width "100%" :height "32px"}
+             [:defs [pattern {:id id :name name}]]
+             [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill (str "url(#" id ")")}]])])]]
+     [:section
+      [:header "Opacity"]
+      [:input
+       {:type "range"
+        :style {:width "100%"}
+        :value (or (:shape/opacity shape) 0)
+        :on-change
+        (fn [event]
+          (let [value (.. event -target -value)]
+            (dispatch :element/update id :shape/opacity value)))
+        :min 0
+        :max 1
+        :step 0.25}]]]))
 
 (defn grid [{:keys [workspace]}]
   (let [{:keys [workspace dispatch]} (uix/context context)
@@ -192,9 +259,14 @@
              the map. If its not quite right, edit the size above manually."]]]))
 
 (defn options []
-  (let [{{mode :canvas/mode} :workspace} (uix/context context)]
-    (case mode
-      :canvas [canvas]
-      :select [token]
-      :grid [grid]
-      nil)))
+  (let [{:keys [workspace]} (uix/context context)
+        {:keys [canvas/mode canvas/selected]} workspace]
+    (cond
+      (= mode :canvas) [canvas]
+      (= mode :grid)   [grid]
+      (= mode :select)
+      (case (:element/type selected)
+        :token [token]
+        :shape [shape]
+        nil)
+      :default nil)))
