@@ -206,8 +206,11 @@
      (when (seq @points)
        (render-fn @points))]))
 
-(defn draw-grid [{:keys [dimensions]}]
-  (let [{:keys [workspace dispatch]} (uix/context context)
+(defmulti draw :mode)
+
+(defmethod draw :grid [props]
+  (let [{:keys [dimensions]} props
+        {:keys [workspace dispatch]} (uix/context context)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
      {:dimensions dimensions
@@ -227,8 +230,9 @@
                (js/Math.round)
                (str "px"))]]))]))
 
-(defn draw-ruler [{:keys [dimensions]}]
-  (let [{:keys [workspace]} (uix/context context)
+(defmethod draw :ruler [props]
+  (let [{:keys [dimensions]} props
+        {:keys [workspace]} (uix/context context)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
      {:dimensions dimensions
@@ -239,8 +243,9 @@
         [:text {:x (- bx 48) :y (- by 8) :fill "white"}
          (str (px->ft (chebyshev [ax ay] [bx by]) (* size scale)) "ft.")]])]))
 
-(defn draw-circle [{:keys [dimensions]}]
-  (let [{:keys [workspace dispatch]} (uix/context context)
+(defmethod draw :circle [props]
+  (let [{:keys [dimensions]} props
+        {:keys [workspace dispatch]} (uix/context context)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
      {:dimensions dimensions
@@ -258,8 +263,9 @@
           [:text {:x ax :y ay :fill "white"}
            (str (px->ft radius (* size scale)) "ft. radius")]]))]))
 
-(defn draw-rect [{:keys [dimensions]}]
-  (let [{:keys [workspace dispatch]} (uix/context context)
+(defmethod draw :rect [props]
+  (let [{:keys [dimensions]} props
+        {:keys [workspace dispatch]} (uix/context context)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
      {:dimensions dimensions
@@ -279,8 +285,28 @@
                       (px->ft (js/Math.abs (- by ay)) (* size scale))]]
            (str w "ft. x " h "ft."))]])]))
 
-(defn draw-cone [{:keys [dimensions]}]
-  (let [{:keys [workspace dispatch]} (uix/context context)
+(defmethod draw :line [props]
+  (let [{:keys [dimensions]} props
+        {:keys [workspace dispatch]} (uix/context context)
+        {:keys [grid/size zoom/scale]} workspace]
+    [drawable
+     {:dimensions dimensions
+      :on-release
+      (fn [points]
+        (let [[ax ay bx by] (mapv #(/ % scale) points)
+              [cx cy] (:pos/vec workspace)
+              src [(- ax cx) (- ay cy)]
+              dst [(- bx cx) (- by cy)]]
+          (dispatch :shape/create :line src dst)))}
+     (fn [[ax ay bx by]]
+       [:g [:line {:x1 ax :y1 ay :x2 bx :y2 by
+                   :stroke "white" :stroke-width 4 :stroke-linecap "round"}]
+        [:text {:x (+ ax 8) :y (- ay 8) :fill "white"}
+         (str (px->ft (chebyshev [ax ay] [bx by]) (* size scale)) "ft.")]])]))
+
+(defmethod draw :cone [props]
+  (let [{:keys [dimensions]} props
+        {:keys [workspace dispatch]} (uix/context context)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
      {:dimensions dimensions
@@ -298,23 +324,7 @@
          (str (px->ft (js/Math.hypot (- bx ax) (- by ay))
                       (* size scale)) "ft.")]])]))
 
-(defn draw-line [{:keys [dimensions]}]
-  (let [{:keys [workspace dispatch]} (uix/context context)
-        {:keys [grid/size zoom/scale]} workspace]
-    [drawable
-     {:dimensions dimensions
-      :on-release
-      (fn [points]
-        (let [[ax ay bx by] (mapv #(/ % scale) points)
-              [cx cy] (:pos/vec workspace)
-              src [(- ax cx) (- ay cy)]
-              dst [(- bx cx) (- by cy)]]
-          (dispatch :shape/create :line src dst)))}
-     (fn [[ax ay bx by]]
-       [:g [:line {:x1 ax :y1 ay :x2 bx :y2 by
-                   :stroke "white" :stroke-width 4 :stroke-linecap "round"}]
-        [:text {:x (+ ax 8) :y (- ay 8) :fill "white"}
-         (str (px->ft (chebyshev [ax ay] [bx by]) (* size scale)) "ft.")]])]))
+(defmethod draw :default [] nil)
 
 (defn canvas [props]
   (let [{:keys [workspace dispatch]} (uix/context context)
@@ -324,7 +334,6 @@
     [:svg.canvas {:ref ref}
      [:> draggable
       {:position #js {:x 0 :y 0}
-       :disabled (= mode :grid)
        :on-start (fn [] (dispatch :view/clear))
        :on-stop
        (fn [event data]
@@ -339,12 +348,4 @@
         [shapes]
         [tokens]]
 
-       (for [[component canvas-mode]
-             [[draw-circle :circle]
-              [draw-ruler :ruler]
-              [draw-grid :grid]
-              [draw-rect :rect]
-              [draw-cone :cone]
-              [draw-line :line]]
-             :when (= canvas-mode mode)]
-         [component {:key canvas-mode :dimensions dimensions}])]]]))
+       [draw {:mode mode :dimensions dimensions}]]]]))
