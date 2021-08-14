@@ -36,8 +36,8 @@ This is a **work in progress** and not intended for serious usage at this time. 
   - [ ] Default token templates
   - [ ] Select and manage multiple tokens
 - Drawing Shapes
-  - [ ] Draw circles, rectangles, and lines
-  - [ ] Update color, opacity, and position of drawn shapes
+  - [x] Draw circles, rectangles, cones, and lines
+  - [x] Update the color, opacity, pattern, and positions of drawn shapes
   - [ ] Draw custom polygons defined by a path
 - Visibility and Screen Sharing
   - [x] Bright, dim, and dark lighting conditions
