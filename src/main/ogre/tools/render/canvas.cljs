@@ -14,13 +14,22 @@
   (js/Math.round (* (/ px size) 5)))
 
 (defn euclidean [[ax ay] [bx by]]
-  (js/Math.sqrt
-   (+ (js/Math.pow (- bx ax) 2)
-      (js/Math.pow (- by ay) 2))))
+  (js/Math.hypot (- bx ax) (- by ay)))
 
 (defn chebyshev [[ax ay] [bx by]]
   (max (js/Math.abs (- ax bx))
        (js/Math.abs (- ay by))))
+
+(defn cone-points [[ax ay] [bx by]]
+  (let [alt (js/Math.hypot (- bx ax) (- by ay))
+        hyp (js/Math.hypot alt (/ alt 2))
+        rad (js/Math.atan2 (- by ay) (- bx ax))]
+    [ax
+     ay
+     (+ ax (* hyp (js/Math.cos (+ rad 0.46))))
+     (+ ay (* hyp (js/Math.sin (+ rad 0.46))))
+     (+ ax (* hyp (js/Math.cos (- rad 0.46))))
+     (+ ay (* hyp (js/Math.sin (- rad 0.46))))]))
 
 (defn board [{:keys [image]}]
   (let [{{:keys [canvas/lighting]} :workspace} (uix/context context)
@@ -74,6 +83,23 @@
     [:path
      (merge attrs {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])
                    :fill-opacity opacity :stroke color})]))
+
+(defmethod shape :line [props]
+  (let [{:keys [element attrs]} props
+        {:keys [shape/vecs shape/color shape/opacity]} element
+        [[ax ay] [bx by]] vecs]
+    [:line {:x1 ax :y1 ay :x2 bx :y2 by :stroke color :stroke-width 4 :stroke-linecap "round"}]))
+
+(defmethod shape :cone [props]
+  (let [{:keys [element attrs]} props
+        {:keys [shape/vecs shape/color shape/opacity]} element
+        [[ax ay] [bx by]] vecs]
+    [:polygon
+     (merge
+      attrs
+      {:points (string/join " " (cone-points [ax ay] [bx by]))
+       :fill-opacity opacity
+       :stroke color})]))
 
 (defn shapes [props]
   (let [{:keys [data workspace dispatch]} (uix/context context)
@@ -253,6 +279,43 @@
                       (px->ft (js/Math.abs (- by ay)) (* size scale))]]
            (str w "ft. x " h "ft."))]])]))
 
+(defn draw-cone [{:keys [dimensions]}]
+  (let [{:keys [workspace dispatch]} (uix/context context)
+        {:keys [grid/size zoom/scale]} workspace]
+    [drawable
+     {:dimensions dimensions
+      :on-release
+      (fn [points]
+        (let [[ax ay bx by] (mapv #(/ % scale) points)
+              [cx cy] (:pos/vec workspace)
+              src [(- ax cx) (- ay cy)]
+              dst [(- bx cx) (- by cy)]]
+          (dispatch :shape/create :cone src dst)))}
+     (fn [[ax ay bx by]]
+       [:g
+        [:polygon {:points (string/join " " (cone-points [ax ay] [bx by])) :fill "transparent" :stroke "white"}]
+        [:text {:x (+ bx 16) :y (+ by 16) :fill "white"}
+         (str (px->ft (js/Math.hypot (- bx ax) (- by ay))
+                      (* size scale)) "ft.")]])]))
+
+(defn draw-line [{:keys [dimensions]}]
+  (let [{:keys [workspace dispatch]} (uix/context context)
+        {:keys [grid/size zoom/scale]} workspace]
+    [drawable
+     {:dimensions dimensions
+      :on-release
+      (fn [points]
+        (let [[ax ay bx by] (mapv #(/ % scale) points)
+              [cx cy] (:pos/vec workspace)
+              src [(- ax cx) (- ay cy)]
+              dst [(- bx cx) (- by cy)]]
+          (dispatch :shape/create :line src dst)))}
+     (fn [[ax ay bx by]]
+       [:g [:line {:x1 ax :y1 ay :x2 bx :y2 by
+                   :stroke "white" :stroke-width 4 :stroke-linecap "round"}]
+        [:text {:x (+ ax 8) :y (- ay 8) :fill "white"}
+         (str (px->ft (chebyshev [ax ay] [bx by]) (* size scale)) "ft.")]])]))
+
 (defn canvas [props]
   (let [{:keys [workspace dispatch]} (uix/context context)
         {:keys [pos/vec grid/show canvas/mode canvas/map zoom/scale]} workspace
@@ -280,6 +343,8 @@
              [[draw-circle :circle]
               [draw-ruler :ruler]
               [draw-grid :grid]
-              [draw-rect :rect]]
+              [draw-rect :rect]
+              [draw-cone :cone]
+              [draw-line :line]]
              :when (= canvas-mode mode)]
          [component {:key canvas-mode :dimensions dimensions}])]]]))

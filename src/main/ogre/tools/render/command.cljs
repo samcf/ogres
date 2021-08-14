@@ -10,7 +10,9 @@
    [:grid :grid 21]
    [:ruler :ruler 20]
    [:circle :circle 20]
-   [:rect :rect 20]])
+   [:rect :rect 20]
+   [:cone :cone 20]
+   [:line :line 20]])
 
 (defn command [props]
   (let [{:keys [workspace dispatch store]} (uix/context context)

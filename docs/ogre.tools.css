@@ -260,8 +260,12 @@ input[type="number"] {
 
 .canvas-shape:hover > circle,
 .canvas-shape:hover > path,
+.canvas-shape:hover > line,
+.canvas-shape:hover > polygon,
 .canvas-shape.selected > circle,
 .canvas-shape.selected > path,
+.canvas-shape.selected > line,
+.canvas-shape.selected > polygon,
 .canvas-token-shape > circle:hover,
 .canvas-token.selected > .canvas-token-shape > circle {
     cursor: pointer;
