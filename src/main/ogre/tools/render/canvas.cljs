@@ -3,7 +3,7 @@
             [datascript.core :as ds]
             [uix.core.alpha :as uix]
             [react-draggable :as draggable]
-            [ogre.tools.render :refer [context css handler use-dimensions use-image]]
+            [ogre.tools.render :refer [context css use-dimensions use-image]]
             [ogre.tools.render.pattern :refer [pattern]]
             [ogre.tools.query :as query]))
 
@@ -153,14 +153,14 @@
         {:key      (:db/id token)
          :position #js {:x x :y y}
          :scale    scale
-         :on-start (handler)
+         :on-start (fn [event] (.stopPropagation event))
          :on-stop
-         (handler
-          (fn [_ data]
-            (let [dist (euclidean [x y] [(.-x data) (.-y data)])]
-              (if (= dist 0)
-                (dispatch :element/select (:db/id token))
-                (dispatch :token/translate (:db/id token) (.-x data) (.-y data))))))}
+         (fn [event data]
+           (.stopPropagation event)
+           (let [dist (euclidean [x y] [(.-x data) (.-y data)])]
+             (if (= dist 0)
+               (dispatch :element/select (:db/id token))
+               (dispatch :token/translate (:db/id token) (.-x data) (.-y data)))))}
         [:g.canvas-token {:class (css {:selected (= token (:canvas/selected workspace))})}
 
          (let [{label :element/name {token-size :size} :token/size} token

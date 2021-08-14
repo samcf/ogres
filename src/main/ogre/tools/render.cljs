@@ -21,14 +21,6 @@
        (mapv name)
        (string/join " ")))
 
-(defn handler
-  ([]
-   (handler (fn [])))
-  ([f]
-   (fn [event & args]
-     (.stopPropagation event)
-     (apply f event args))))
-
 (defn use-dimensions []
   (let [ref   (uix/ref nil)
         value (uix/state [0 0 0 0])]

@@ -3,7 +3,7 @@
   (:require [clojure.string :as string]
             [uix.core.alpha :as uix]
             [datascript.core :as ds]
-            [ogre.tools.render :refer [css context handler use-image]]
+            [ogre.tools.render :refer [css context use-image]]
             [ogre.tools.render.pattern :refer [pattern]]
             [ogre.tools.query :as query]))
 
@@ -45,9 +45,15 @@
     [:div {:key      (:image/checksum board)
            :class    (css {:selected selected})
            :style    {:background-image (str "url(" url ")")}
-           :on-click (handler on-select)}
+           :on-click
+           (fn [event]
+             (.stopPropagation event)
+             (on-select))}
      [:div
-      {:on-click (handler on-remove)} "×"]]))
+      {:on-click
+       (fn [event]
+         (.stopPropagation event)
+         (on-remove))} "×"]]))
 
 (defn canvas []
   (let [{:keys [data workspace dispatch store]} (uix/context context)]
