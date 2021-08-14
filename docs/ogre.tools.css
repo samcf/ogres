@@ -80,6 +80,7 @@ input[type="number"] {
 
 .layout-workspace {
     background-color: var(--theme-background-d);
+    border-radius: 8px;
     box-shadow: 2px 2px 16px rgba(0, 0, 0, 0.65);
     margin: 0 16px 16px 0;
     position: relative;
@@ -244,6 +245,7 @@ input[type="number"] {
 
 /* Canvas */
 .canvas {
+    border-radius: 8px;
     pointer-events: all;
     height: 100%;
     width: 100%;
