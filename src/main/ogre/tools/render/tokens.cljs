@@ -20,7 +20,7 @@
                   [cx cy cw ch] [(.-x node) (.-y node) (.-width node) (.-height node)]]
               (dispatch
                :token/create id
-               [(/ (- (+ cx (/ cw 2)) px tx) scale)
-                (/ (- (+ cy (/ ch 2)) py ty) scale)])))}
+               [(- (/ (- (+ cx (/ cw 2)) px) scale) tx)
+                (- (/ (- (+ cy (/ ch 2)) py) scale) ty)])))}
          [:svg.draggable [:circle {:cx 36 :cy 36 :r 36 :fill "black"}]]]
         [:svg.copy [:circle {:cx 36 :cy 36 :r 36 :fill "black"}]]])]))
