@@ -13,14 +13,14 @@
 (defn px->ft [px size]
   (js/Math.round (* (/ px size) 5)))
 
-(defn euclidean [[ax ay] [bx by]]
+(defn euclidean [ax ay bx by]
   (js/Math.hypot (- bx ax) (- by ay)))
 
-(defn chebyshev [[ax ay] [bx by]]
+(defn chebyshev [ax ay bx by]
   (max (js/Math.abs (- ax bx))
        (js/Math.abs (- ay by))))
 
-(defn cone-points [[ax ay] [bx by]]
+(defn cone-points [ax ay bx by]
   (let [alt (js/Math.hypot (- bx ax) (- by ay))
         hyp (js/Math.hypot alt (/ alt 2))
         rad (js/Math.atan2 (- by ay) (- bx ax))]
@@ -38,9 +38,8 @@
                :dim    {:clip-path (when (= lighting :dark) "url(#clip-dim-light)")
                         :style     {:filter "saturate(20%) brightness(50%)"}}}]
     (when (string? url)
-      [:<>
-       (for [type [:dim :bright]]
-         [:image (merge {:x 0 :y 0 :href url} (attrs type) {:key type})])])))
+      (for [type [:dim :bright]]
+        [:image (merge {:x 0 :y 0 :href url} (attrs type) {:key type})]))))
 
 (defn grid [{[_ _ w h] :dimensions}]
   (let [{{[cx cy] :pos/vec size :grid/size} :workspace} (uix/context context)]
@@ -66,20 +65,20 @@
 (defmethod shape :circle [props]
   (let [{:keys [element attrs]} props
         {:keys [shape/vecs shape/color shape/opacity shape/pattern]} element
-        [[ax ay] [bx by]] vecs]
+        [ax ay bx by] vecs]
     [:circle
      (merge
       attrs
       {:cx ax
        :cy ay
-       :r (chebyshev [ax ay] [bx by])
+       :r (chebyshev ax ay bx by)
        :fill-opacity opacity
        :stroke color})]))
 
 (defmethod shape :rect [props]
   (let [{:keys [element attrs]} props
         {:keys [shape/vecs shape/color shape/opacity]} element
-        [[ax ay] [bx by]] vecs]
+        [ax ay bx by] vecs]
     [:path
      (merge attrs {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])
                    :fill-opacity opacity :stroke color})]))
@@ -87,17 +86,16 @@
 (defmethod shape :line [props]
   (let [{:keys [element attrs]} props
         {:keys [shape/vecs shape/color shape/opacity]} element
-        [[ax ay] [bx by]] vecs]
+        [ax ay bx by] vecs]
     [:line {:x1 ax :y1 ay :x2 bx :y2 by :stroke color :stroke-width 4 :stroke-linecap "round"}]))
 
 (defmethod shape :cone [props]
   (let [{:keys [element attrs]} props
-        {:keys [shape/vecs shape/color shape/opacity]} element
-        [[ax ay] [bx by]] vecs]
+        {:keys [shape/vecs shape/color shape/opacity]} element]
     [:polygon
      (merge
       attrs
-      {:points (string/join " " (cone-points [ax ay] [bx by]))
+      {:points (string/join " " (apply cone-points vecs))
        :fill-opacity opacity
        :stroke color})]))
 
@@ -115,7 +113,7 @@
           (.stopPropagation event))
         :on-stop
         (fn [_ data]
-          (let [dist (euclidean [x y] [(.-x data) (.-y data)])]
+          (let [dist (euclidean x y (.-x data) (.-y data))]
             (if (> dist 0)
               (dispatch :shape/translate (:db/id element) [(.-x data) (.-y data)])
               (dispatch :element/select (:db/id element)))))}
@@ -157,7 +155,7 @@
          :on-stop
          (fn [event data]
            (.stopPropagation event)
-           (let [dist (euclidean [x y] [(.-x data) (.-y data)])]
+           (let [dist (euclidean x y (.-x data) (.-y data))]
              (if (= dist 0)
                (dispatch :element/select (:db/id token))
                (dispatch :token/translate (:db/id token) (.-x data) (.-y data)))))}
@@ -241,7 +239,7 @@
        [:g
         [:line {:x1 ax :y1 ay :x2 bx :y2 by :stroke "white" :stroke-dasharray "12px"}]
         [:text {:x (- bx 48) :y (- by 8) :fill "white"}
-         (str (px->ft (chebyshev [ax ay] [bx by]) (* size scale)) "ft.")]])]))
+         (str (px->ft (chebyshev ax ay bx by) (* size scale)) "ft.")]])]))
 
 (defmethod draw :circle [props]
   (let [{:keys [dimensions]} props
@@ -252,12 +250,10 @@
       :on-release
       (fn [points]
         (let [[ax ay bx by] (mapv #(/ % scale) points)
-              [cx cy] (:pos/vec workspace)
-              src [(- ax cx) (- ay cy)]
-              dst [(- bx cx) (- by cy)]]
-          (dispatch :shape/create :circle src dst)))}
+              [cx cy] (:pos/vec workspace)]
+          (dispatch :shape/create :circle [(- ax cx) (- ay cy) (- bx cx) (- by cy)])))}
      (fn [[ax ay bx by]]
-       (let [radius (chebyshev [ax ay] [bx by])]
+       (let [radius (chebyshev ax ay bx by)]
          [:g
           [:circle {:cx ax :cy ay :r radius :fill "transparent" :stroke "white"}]
           [:text {:x ax :y ay :fill "white"}
@@ -272,10 +268,8 @@
       :on-release
       (fn [points]
         (let [[ax ay bx by] (mapv #(/ % scale) points)
-              [cx cy] (:pos/vec workspace)
-              src [(- ax cx) (- ay cy)]
-              dst [(- bx cx) (- by cy)]]
-          (dispatch :shape/create :rect src dst)))}
+              [cx cy] (:pos/vec workspace)]
+          (dispatch :shape/create :rect [(- ax cx) (- ay cy) (- bx cx) (- by cy)])))}
      (fn [[ax ay bx by]]
        [:g
         [:path {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])
@@ -294,15 +288,13 @@
       :on-release
       (fn [points]
         (let [[ax ay bx by] (mapv #(/ % scale) points)
-              [cx cy] (:pos/vec workspace)
-              src [(- ax cx) (- ay cy)]
-              dst [(- bx cx) (- by cy)]]
-          (dispatch :shape/create :line src dst)))}
+              [cx cy] (:pos/vec workspace)]
+          (dispatch :shape/create :line [(- ax cx) (- ay cy) (- bx cx) (- by cy)])))}
      (fn [[ax ay bx by]]
        [:g [:line {:x1 ax :y1 ay :x2 bx :y2 by
                    :stroke "white" :stroke-width 4 :stroke-linecap "round"}]
         [:text {:x (+ ax 8) :y (- ay 8) :fill "white"}
-         (str (px->ft (chebyshev [ax ay] [bx by]) (* size scale)) "ft.")]])]))
+         (str (px->ft (chebyshev ax ay bx by) (* size scale)) "ft.")]])]))
 
 (defmethod draw :cone [props]
   (let [{:keys [dimensions]} props
@@ -313,13 +305,11 @@
       :on-release
       (fn [points]
         (let [[ax ay bx by] (mapv #(/ % scale) points)
-              [cx cy] (:pos/vec workspace)
-              src [(- ax cx) (- ay cy)]
-              dst [(- bx cx) (- by cy)]]
-          (dispatch :shape/create :cone src dst)))}
+              [cx cy] (:pos/vec workspace)]
+          (dispatch :shape/create :cone [(- ax cx) (- ay cy) (- bx cx) (- by cy)])))}
      (fn [[ax ay bx by]]
        [:g
-        [:polygon {:points (string/join " " (cone-points [ax ay] [bx by])) :fill "transparent" :stroke "white"}]
+        [:polygon {:points (string/join " " (cone-points ax ay bx by)) :fill "transparent" :stroke "white"}]
         [:text {:x (+ bx 16) :y (+ by 16) :fill "white"}
          (str (px->ft (js/Math.hypot (- bx ax) (- by ay))
                       (* size scale)) "ft.")]])]))

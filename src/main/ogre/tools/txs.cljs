@@ -180,12 +180,12 @@
   [[:db/add token :token/size {:name name :size size}]])
 
 (defmethod transact :shape/create
-  [data event kind a b]
-  (let [{id :db/id scale :zoom/scale [x y] :pos/vec} (query/workspace data)]
+  [data event kind vecs]
+  (let [{id :db/id} (query/workspace data)]
     [[:db/add -1 :element/type :shape]
      [:db/add -1 :shape/kind kind]
      [:db/add -1 :pos/vec [0 0]]
-     [:db/add -1 :shape/vecs [a b]]
+     [:db/add -1 :shape/vecs vecs]
      [:db/add -1 :shape/color "#f44336"]
      [:db/add -1 :shape/opacity 0.25]
      [:db/add -1 :shape/pattern :solid]
