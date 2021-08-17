@@ -80,8 +80,10 @@
         {:keys [shape/vecs shape/color shape/opacity]} element
         [ax ay bx by] vecs]
     [:path
-     (merge attrs {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])
-                   :fill-opacity opacity :stroke color})]))
+     (merge
+      attrs
+      {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])
+       :fill-opacity opacity :stroke color})]))
 
 (defmethod shape :line [props]
   (let [{:keys [element attrs]} props
@@ -133,18 +135,17 @@
         {:keys [canvas/lighting grid/size zoom/scale]} workspace
         elements (query/elements data :token)]
     [:<>
-     [:defs
-      (when (= lighting :dark)
+     (when (= lighting :dark)
+       [:defs
         [:clipPath {:id "clip-dim-light"}
          (for [token elements :let [{[x y] :pos/vec [br dr] :token/light} token]]
-           [:circle {:key (:db/id token) :cx x :cy y :r (+ (ft->px br size)
-                                                           (ft->px dr size)
-                                                           (/ size 2))}])])
+           [:circle {:key (:db/id token) :cx x :cy y :r (+ (ft->px br size) (ft->px dr size) (/ size 2))}])]])
 
-      (when-not (= lighting :bright)
+     (when-not (= lighting :bright)
+       [:defs
         [:clipPath {:id "clip-bright-light"}
          (for [token elements :let [{[x y] :pos/vec [r _] :token/light} token]]
-           [:circle {:key (:db/id token) :cx x :cy y :r (+ (ft->px r size) (/ size 2))}])])]
+           [:circle {:key (:db/id token) :cx x :cy y :r (+ (ft->px r size) (/ size 2))}])]])
 
      (for [token elements :let [{[x y] :pos/vec} token]]
        [:> draggable
@@ -239,7 +240,9 @@
        [:g
         [:line {:x1 ax :y1 ay :x2 bx :y2 by :stroke "white" :stroke-dasharray "12px"}]
         [:text {:x (- bx 48) :y (- by 8) :fill "white"}
-         (str (px->ft (chebyshev ax ay bx by) (* size scale)) "ft.")]])]))
+         (-> (chebyshev ax ay bx by)
+             (px->ft (* size scale))
+             (str "ft."))]])]))
 
 (defmethod draw :circle [props]
   (let [{:keys [dimensions]} props
@@ -257,7 +260,7 @@
          [:g
           [:circle {:cx ax :cy ay :r radius :fill "transparent" :stroke "white"}]
           [:text {:x ax :y ay :fill "white"}
-           (str (px->ft radius (* size scale)) "ft. radius")]]))]))
+           (-> radius (px->ft (* size scale)) (str "ft. radius"))]]))]))
 
 (defmethod draw :rect [props]
   (let [{:keys [dimensions]} props
@@ -294,7 +297,9 @@
        [:g [:line {:x1 ax :y1 ay :x2 bx :y2 by
                    :stroke "white" :stroke-width 4 :stroke-linecap "round"}]
         [:text {:x (+ ax 8) :y (- ay 8) :fill "white"}
-         (str (px->ft (chebyshev ax ay bx by) (* size scale)) "ft.")]])]))
+         (-> (chebyshev ax ay bx by)
+             (px->ft (* size scale))
+             (str "ft."))]])]))
 
 (defmethod draw :cone [props]
   (let [{:keys [dimensions]} props
@@ -311,8 +316,9 @@
        [:g
         [:polygon {:points (string/join " " (cone-points ax ay bx by)) :fill "transparent" :stroke "white"}]
         [:text {:x (+ bx 16) :y (+ by 16) :fill "white"}
-         (str (px->ft (js/Math.hypot (- bx ax) (- by ay))
-                      (* size scale)) "ft.")]])]))
+         (-> (js/Math.hypot (- bx ax) (- by ay))
+             (px->ft (* size scale))
+             (str "ft."))]])]))
 
 (defmethod draw :default [] nil)
 
