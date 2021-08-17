@@ -8,13 +8,12 @@
             [ogre.tools.query :as query]
             [uix.core.alpha :as uix]))
 
-(defn layout [props child]
-  (let [{:keys [data]} (uix/context context)]
-    [:div.layout
-     [:div]
-     [:div.layout-workspaces [workspaces]]
-     [:div.layout-command [command]]
-     [:div.layout-workspace
-      [:div.layout-canvas [canvas]]
-      [:div.layout-options [options]]
-      [:div.layout-tokens [tokens]]]]))
+(defn layout []
+  [:div.layout
+   [:div]
+   [:div.layout-workspaces [workspaces]]
+   [:div.layout-command [command]]
+   [:div.layout-workspace
+    [:div.layout-canvas [canvas]]
+    [:div.layout-options [options]]
+    [:div.layout-tokens [tokens]]]])
