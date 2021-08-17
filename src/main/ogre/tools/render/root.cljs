@@ -9,6 +9,20 @@
 
 (def ^{:private true} pk 1)
 
+(def boundary
+  (uix/create-error-boundary
+   {:error->state (fn [error] {:error error})
+    :handle-catch (fn [error info])}
+   (fn [state [props child]]
+     (let [{:keys [error]} @state]
+       (if error
+         [:div {:style {:padding "32px" :max-width 640}}
+          [:p "The application crashed! Try refreshing the page. If the problem
+               persists, click the button below to delete your local data. This
+               may resolve your issue."]
+          [:button {:on-click (:on-reset props)} "Delete your local data"]]
+         child)))))
+
 (defn root [props]
   (let [data   (uix/state (:data props))
         loaded (uix/state false)
@@ -46,4 +60,13 @@
                        (.put  #js {:id pk :data marshalled}))))))
      [@data])
 
-    (uix/context-provider [context value] [layout])))
+    (uix/context-provider
+     [context value]
+     [boundary
+      {:on-reset
+       (fn []
+         (-> (.table store "states")
+             (.delete pk)
+             (.then
+              (.reload (.-location js/window)))))}
+      [layout]])))
