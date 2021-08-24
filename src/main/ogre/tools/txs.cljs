@@ -17,8 +17,10 @@
 
 (def schema
   {:db/ident         {:db/unique :db.unique/identity}
+   :viewer/loaded?   {}
    :viewer/workspace {:db/valueType :db.type/ref}
    :viewer/tokens    {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
+   :viewer/host?     {}
    :canvas/elements  {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :canvas/map       {:db/valueType :db.type/ref}
    :canvas/mode      {}
@@ -47,8 +49,10 @@
   (ds/db-with
    (ds/empty-db schema)
    [[:db/add -1 :db/ident :viewer]
+    [:db/add -1 :viewer/loaded? false]
     [:db/add -1 :viewer/workspace -2]
     [:db/add -1 :viewer/tokens -3]
+    [:db/add -1 :viewer/host? true]
     [:db/add -2 :element/type :canvas]
     [:db/add -2 :canvas/mode :select]
     [:db/add -2 :pos/vec [0 0]]
@@ -250,3 +254,6 @@
 (defmethod transact :aura/change-color
   [data event token color]
   [[:db/add token :aura/color color]])
+
+(defmethod transact :share/open []
+  [])

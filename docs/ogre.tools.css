@@ -69,6 +69,15 @@ input[type="number"] {
     height: 100%;
 }
 
+.layout--guest {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+}
+
+.layout--guest .layout-workspace {
+    margin: 16px;
+}
+
 .layout-workspaces {
     margin: 8px 0 4px 0;
 }
