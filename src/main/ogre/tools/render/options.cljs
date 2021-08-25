@@ -139,7 +139,7 @@
      [:section
       [:header "Light"]
       [:div.options-token-lights
-       (for [[bright dim] [[0 0] [5 5] [10 10] [15 30] [20 20] [30 30] [40 40] [60 60]]
+       (for [[bright dim] [[0 0] [0 5] [5 5] [10 10] [15 30] [20 20] [30 30] [40 40] [60 60]]
              :let [checked (= [bright dim] (:token/light token))
                    key (str bright ":" dim)]]
          [radio-button
