@@ -21,6 +21,7 @@
    :viewer/workspace {:db/valueType :db.type/ref}
    :viewer/tokens    {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :viewer/host?     {}
+   :viewer/sharing?  {}
    :canvas/elements  {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :canvas/map       {:db/valueType :db.type/ref}
    :canvas/mode      {}
@@ -255,5 +256,10 @@
   [data event token color]
   [[:db/add token :aura/color color]])
 
-(defmethod transact :share/open []
-  [])
+(defmethod transact :guest/start []
+  [[:db/add [:db/ident :viewer] :viewer/sharing? true]])
+
+(defmethod transact :guest/close []
+  [[:db/add [:db/ident :viewer] :viewer/sharing? false]])
+
+(defmethod transact :storage/reset [] [])

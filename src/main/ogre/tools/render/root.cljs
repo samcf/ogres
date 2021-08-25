@@ -10,6 +10,11 @@
 
 (def ^{:private true} pk 1)
 
+(def ^{:private true} unpersisted-attrs
+  #{:viewer/host?
+    :viewer/loaded?
+    :viewer/sharing?})
+
 (def boundary
   (uix/create-error-boundary
    {:error->state (fn [error] {:error error})
@@ -24,26 +29,74 @@
           [:button {:on-click (:on-reset props)} "Delete your local data"]]
          child)))))
 
+(defn guest []
+  (let [context (uix/context context)
+        trigger "AppStateChange"
+        guest   (uix/state nil)
+        marsh   (t/writer :json)
+        unmar   (t/reader :json)
+        close   (fn []
+                  (when @guest
+                    (.close @guest)
+                    (reset! guest nil)
+                    ((:dispatch context) :guest/close)))]
+
+    (uix/effect!
+     (fn []
+       (.addEventListener js/window "beforeunload" close)
+       (fn [] (.removeEventListener js/window "beforeunload" close))) [nil])
+
+    (uix/effect!
+     (fn []
+       (let [listener
+             (fn [event]
+               (->> (.-detail event) (t/read unmar) (ds/transact! (:conn context))))]
+         (js/window.addEventListener trigger listener)
+         (fn [] (js/window.removeEventListener trigger listener)))) [nil])
+
+    (uix/effect!
+     (fn []
+       (ds/listen!
+        (:conn context) :guest-window
+        (fn [{[event _ tx] :tx-meta}]
+          (if (= event :share/toggle)
+            (if (nil? @guest)
+              (let [url (.. js/window -location -origin)
+                    url (str url "?share=true")
+                    win (.open js/window url "ogre.tools" "width=640,height=640")]
+                (reset! guest win)
+                ((:dispatch context) :guest/start)
+                (.addEventListener
+                 win "visibilitychange"
+                 (fn []
+                   (js/window.setTimeout
+                    (fn [] (when (.-closed win) (close))) 128))))
+              (close))
+            (when @guest
+              (->>
+               #js {:detail (t/write marsh tx)}
+               (js/CustomEvent. trigger)
+               (.dispatchEvent @guest))))))
+       (fn [] (ds/unlisten! (:conn context) :guest-window))) [@guest])
+    nil))
+
 (defn root [{:keys [store] :as props}]
   (let [count (uix/state 0)
-        guest (uix/state nil)
         pawn  (uix/state (ds/conn-from-db (:data props)))
         conn  @pawn
         data  @conn
-        marsh (t/writer :json)
-        unmar (t/reader :json)
         host? (-> (.. js/window -location -search) (js/URLSearchParams.) (.get "share") (not= "true"))
         ready (:viewer/loaded? (ds/entity data [:db/ident :viewer]))
-        value {:data      data
+        value {:conn      conn
+               :data      data
                :store     store
                :workspace (query/workspace data)
                :dispatch  (fn [event & args]
                             (let [tx (apply transact data event args)]
                               (ds/transact! conn tx [event args tx])))}]
 
-    (comment
-      "Load the application state from IndexedDB, if available. This is only
-       run once on initialization.")
+    ;; Load the application state from IndexedDB, if available. This is only
+    ;; run once on initialization.
     (uix/effect!
      (fn []
        (when (not ready)
@@ -52,24 +105,20 @@
           (.get pk)
           (.then
            (fn [record]
-             (if (nil? record)
-               (ds/transact!
-                conn
-                [[:db/add [:db/ident :viewer] :viewer/loaded? true]
-                 [:db/add [:db/ident :viewer] :viewer/host? host?]])
-               (->
-                (.-data record)
-                (dt/read-transit-str)
-                (ds/conn-from-datoms schema)
-                (ds/db)
-                (ds/db-with
-                 [[:db/add [:db/ident :viewer] :viewer/loaded? true]
-                  [:db/add [:db/ident :viewer] :viewer/host? host?]])
-                (as-> data (ds/reset-conn! conn data))))))))) [ready])
+             (let [tx [[:db/add [:db/ident :viewer] :viewer/loaded? true]
+                       [:db/add [:db/ident :viewer] :viewer/host? host?]]]
+               (if (nil? record)
+                 (ds/transact! conn tx)
+                 (->
+                  (.-data record)
+                  (dt/read-transit-str)
+                  (ds/conn-from-datoms schema)
+                  (ds/db)
+                  (ds/db-with tx)
+                  (as-> data (ds/reset-conn! conn data)))))))))) [ready])
 
-    (comment
-      "Listen for all DataScript transactions, serializing and persisting the
-       state to IndexedDB.")
+    ;; Re-renders the application and persists the current application state
+    ;; to IndexedDB whenever DataScript transactions occur.
     (uix/effect!
      (fn []
        (ds/listen!
@@ -77,58 +126,28 @@
         (fn [report]
           (swap! count inc)
           (when host?
-            (-> (ds/filter (:db-after report) (constantly true))
+            (-> (ds/filter
+                 (:db-after report)
+                 (fn [_ [_ a _ _]]
+                   (not (contains? unpersisted-attrs a))))
                 (ds/datoms :eavt)
                 (dt/write-transit-str)
                 (as-> marshalled (.put (.table store "states") #js {:id pk :data marshalled}))))))) [nil])
 
-    (comment
-      "Listen for all DataScript transactions, serializing the tx-data and
-       sending it to the guest window for evaluation.")
+    ;; Registers transaction handlers for performing side effects.
     (uix/effect!
      (fn []
        (ds/listen!
-        conn
-        (fn [{[_ _ tx] :tx-meta}]
-          (when (not (nil? @guest))
-            (->>
-             #js {:detail (t/write marsh tx)}
-             (js/CustomEvent. "AppStateChange")
-             (.dispatchEvent @guest)))))) [nil])
-
-    (comment
-      "When the guest window is opened, listen for changes from the host
-       window.")
-    (uix/effect!
-     (fn []
-       (let [listener
-             (fn [event]
-               (->> (.-detail event) (t/read unmar) (ds/transact! conn)))]
-         (js/window.addEventListener "AppStateChange" listener)
-         (fn [] (js/window.removeEventListener "AppStateChange" listener)))) [nil])
-
-    (comment
-      "Listen for specific DataScript transactions and perform side-effects
-       such as opening the guest window.")
-    (uix/effect!
-     (fn []
-       (ds/listen!
-        conn
+        conn :side-effects
         (fn [{[event] :tx-meta}]
           (case event
-            :share/open
-            (let [url (.. js/window -location -origin)
-                  url (str url "?share=true")
-                  win (js/window.open url "guest" "width=640,height=640")]
-              (reset! guest win))
-            nil)))) [nil])
+            :storage/reset
+            (do (.delete store)
+                (.reload (.-location js/window)))
+            nil)))
+       (fn [] (ds/unlisten! conn :side-effects))) [nil])
 
     (uix/context-provider
      [context value]
-     [boundary
-      {:on-reset
-       (fn []
-         (-> (.table store "states")
-             (.delete pk)
-             (.then (.reload (.-location js/window)))))}
-      [layout]])))
+     [boundary {:on-reset #((:dispatch value) :storage/reset)}
+      [:<> [guest] [layout]]])))

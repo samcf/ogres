@@ -15,8 +15,9 @@
    [:line :line 20]])
 
 (defn command [props]
-  (let [{:keys [workspace dispatch store]} (uix/context context)
-        {show :grid/show current :canvas/mode} workspace]
+  (let [{:keys [data workspace dispatch]} (uix/context context)
+        {show :grid/show current :canvas/mode} workspace
+        viewer (ds/entity data [:db/ident :viewer])]
     [:div.commands
      (for [[mode name size] modes]
        [:button
@@ -36,17 +37,13 @@
       [icon {:name :zoom-out :width 18 :height 18}]]
      [:hr]
      [:button
-      {:type "button" :title "Open Player View" :on-click #(dispatch :share/open)}
+      {:type "button" :title "Open Player View" :class (css {:selected (:viewer/sharing? viewer)})
+       :on-click #(dispatch :share/toggle)}
       [icon {:name :window :width 18 :height 18}]]
      [:hr]
      [:a {:href "https://www.github.com/samcf/ogre.tools" :title "Project home" :target "_blank"}
       [:button {:type "button"}
        [icon {:name :github :width 20 :height 20}]]]
      [:button
-      {:type "button"
-       :title "Reset Local Storage"
-       :on-click
-       (fn []
-         (.delete store)
-         (.reload (.-location js/window)))}
+      {:type "button" :title "Reset Local Storage" :on-click #(dispatch :storage/reset)}
       [icon {:name :recycle :width 20 :height 20}]]]))
