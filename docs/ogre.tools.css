@@ -16,6 +16,7 @@ html, body, #root, .table {
 
 body {
     background-color: var(--theme-background-d);
+    color: white;
     font-family: sans-serif;
     font-size: 16px;
     line-height: 1.5;

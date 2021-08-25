@@ -122,17 +122,18 @@
     (uix/effect!
      (fn []
        (ds/listen!
-        conn
+        conn :persist-state
         (fn [report]
           (swap! count inc)
           (when host?
             (-> (ds/filter
                  (:db-after report)
-                 (fn [_ [_ a _ _]]
-                   (not (contains? unpersisted-attrs a))))
+                 (fn [_ [_ attr _ _]]
+                   (not (contains? unpersisted-attrs attr))))
                 (ds/datoms :eavt)
                 (dt/write-transit-str)
-                (as-> marshalled (.put (.table store "states") #js {:id pk :data marshalled}))))))) [nil])
+                (as-> marshalled (.put (.table store "states") #js {:id pk :data marshalled}))))))
+       (fn [] (ds/unlisten! conn :persist-state))) [nil])
 
     ;; Registers transaction handlers for performing side effects.
     (uix/effect!
@@ -150,4 +151,6 @@
     (uix/context-provider
      [context value]
      [boundary {:on-reset #((:dispatch value) :storage/reset)}
-      [:<> [guest] [layout]]])))
+      [:<>
+       [guest]
+       [layout]]])))
