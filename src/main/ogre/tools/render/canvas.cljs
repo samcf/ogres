@@ -138,14 +138,20 @@
      (when (= lighting :dark)
        [:defs
         [:clipPath {:id "clip-dim-light"}
-         (for [token elements :let [{[x y] :pos/vec [br dr] :token/light} token]]
-           [:circle {:key (:db/id token) :cx x :cy y :r (+ (ft->px br size) (ft->px dr size) (/ size 2))}])]])
+         (for [token elements
+               :let [{[x y] :pos/vec [br dr] :token/light} token]
+               :when (or (> br 0) (> dr 0))]
+           [:circle {:key (:db/id token) :cx x :cy y
+                     :r (+ (ft->px br size) (ft->px dr size) (/ size 2))}])]])
 
      (when-not (= lighting :bright)
        [:defs
         [:clipPath {:id "clip-bright-light"}
-         (for [token elements :let [{[x y] :pos/vec [r _] :token/light} token]]
-           [:circle {:key (:db/id token) :cx x :cy y :r (+ (ft->px r size) (/ size 2))}])]])
+         (for [token elements
+               :let [{[x y] :pos/vec [r _] :token/light} token]
+               :when (> r 0)]
+           [:circle {:key (:db/id token) :cx x :cy y
+                     :r (+ (ft->px r size) (/ size 2))}])]])
 
      (for [token elements :let [{[x y] :pos/vec} token]]
        [:> draggable
