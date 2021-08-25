@@ -31,15 +31,29 @@
      (+ ax (* hyp (js/Math.cos (- rad 0.46))))
      (+ ay (* hyp (js/Math.sin (- rad 0.46))))]))
 
+(defn board-attrs [layer lighting privileged?]
+  (cond-> {}
+    (and (= layer :dark) privileged?)
+    (merge {:style {:filter "saturate(0%) brightness(30%)"}})
+    (= layer :dim)
+    (merge {:style {:filter "saturate(20%) brightness(50%)"}})
+    (and (= layer :dim) (= lighting :dark))
+    (merge {:clip-path "url(#clip-dim-light)"})
+    (and (= layer :dim) privileged?)
+    (merge {:style {:filter "saturate(30%) brightness(60%)"}})
+    (and (= layer :bright) (not= lighting :bright))
+    (merge {:clip-path "url(#clip-bright-light)"})))
+
 (defn board [{:keys [image]}]
-  (let [{{:keys [canvas/lighting]} :workspace} (uix/context context)
-        url (use-image (:image/checksum image))
-        attrs {:bright {:clip-path (when-not (= lighting :bright) "url(#clip-bright-light)")}
-               :dim    {:clip-path (when (= lighting :dark) "url(#clip-dim-light)")
-                        :style     {:filter "saturate(20%) brightness(50%)"}}}]
+  (let [{:keys [data]} (uix/context context)
+        {:keys [viewer/sharing? viewer/host? viewer/workspace]} (query/viewer data)
+        {:keys [canvas/lighting]} workspace
+        url (use-image (:image/checksum image))]
     (when (string? url)
-      (for [type [:dim :bright]]
-        [:image (merge {:x 0 :y 0 :href url} (attrs type) {:key type})]))))
+      (for [type (if (and host? sharing?) [:dark :dim :bright] [:dim :bright])]
+        [:image (merge (board-attrs type lighting (and host? sharing?))
+                       {:x 0 :y 0 :href url}
+                       {:key type})]))))
 
 (defn grid [{[_ _ w h] :dimensions}]
   (let [{{[cx cy] :pos/vec size :grid/size} :workspace} (uix/context context)]
