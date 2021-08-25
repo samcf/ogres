@@ -59,7 +59,7 @@
        (ds/listen!
         (:conn context) :guest-window
         (fn [{[event _ tx] :tx-meta}]
-          (if (= event :share/toggle)
+          (if (= event :guest/toggle)
             (if (nil? @guest)
               (let [url (.. js/window -location -origin)
                     url (str url "?share=true")

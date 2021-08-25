@@ -38,7 +38,7 @@
      [:hr]
      [:button
       {:type "button" :title "Open Player View" :class (css {:selected (:viewer/sharing? viewer)})
-       :on-click #(dispatch :share/toggle)}
+       :on-click #(dispatch :guest/toggle)}
       [icon {:name :window :width 18 :height 18}]]
      [:hr]
      [:a {:href "https://www.github.com/samcf/ogre.tools" :title "Project home" :target "_blank"}

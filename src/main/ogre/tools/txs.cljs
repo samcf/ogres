@@ -256,6 +256,8 @@
   [data event token color]
   [[:db/add token :aura/color color]])
 
+(defmethod transact :guest/toggle [] [])
+
 (defmethod transact :guest/start []
   [[:db/add [:db/ident :viewer] :viewer/sharing? true]])
 
