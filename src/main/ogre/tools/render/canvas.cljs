@@ -333,16 +333,24 @@
 
 (defn bounds []
   (let [{:keys [data]} (uix/context context)
-        {[_ _ w h] :bounds/guest} (query/viewer data)]
-    [:path {:d (string/join " " ["M" w 0 "V" h "H" 0])
-            :fill "none" :stroke "white" :stroke-width 0.5 :stroke-dasharray 6
-            :style {:pointer-events "none" :shape-rendering "crispedges"}}]))
+        {[_ _ hw hh] :bounds/host
+         [_ _ gw gh] :bounds/guest} (query/viewer data)
+        [ox oy] [(/ (- hw gw) 2) (/ (- hh gh) 2)]]
+    [:g {:transform (str "translate(" ox ", " oy ")")}
+     [:path {:d (string/join " " ["M" 0 0 "H" gw "V" gh "H" 0 "Z"])
+             :fill "none" :stroke "white" :stroke-width 0.5 :stroke-dasharray 6
+             :style {:pointer-events "none" :shape-rendering "crispedges"}}]]))
 
 (defn canvas [props]
   (let [{:keys [data workspace dispatch]} (uix/context context)
         {:keys [pos/vec grid/show canvas/mode canvas/map zoom/scale]} workspace
-        {:keys [viewer/privileged? viewer/host?]} (query/viewer data)
-        [tx ty] vec]
+        {:keys [viewer/privileged? viewer/host?]
+         [_ _ hw hh] :bounds/host
+         [_ _ gw gh] :bounds/guest} (query/viewer data)
+        [tx ty] vec
+        [tx ty] (if host? [tx ty]
+                    [(- tx (/ (- hw gw) 2 scale))
+                     (- ty (/ (- hh gh) 2 scale))])]
     [:svg.canvas
      {:class (css {:canvas--guest (not host?)})}
      [:> draggable
