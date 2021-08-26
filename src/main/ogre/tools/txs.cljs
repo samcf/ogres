@@ -139,7 +139,7 @@
 (defmethod transact :camera/translate
   [data event x y]
   (let [{:keys [db/id]} (query/workspace data)]
-    [[:db/add id :pos/vec [x y]]]))
+    [[:db/add id :pos/vec (round [x y] 1)]]))
 
 (defmethod transact :map/create
   [data event workspace map-data]
@@ -166,7 +166,7 @@
 
 (defmethod transact :token/translate
   [data event id x y]
-  [[:db/add id :pos/vec [x y]]])
+  [[:db/add id :pos/vec (round [x y] 1)]])
 
 (defmethod transact :token/change-light
   [data event token bright dim]
@@ -189,8 +189,8 @@
      [:db/add id :canvas/elements -1]]))
 
 (defmethod transact :shape/translate
-  [data event id vec]
-  [[:db/add id :pos/vec vec]])
+  [data event id x y]
+  [[:db/add id :pos/vec (round [x y] 1)]])
 
 (defmethod transact :grid/change-size
   [data event size]

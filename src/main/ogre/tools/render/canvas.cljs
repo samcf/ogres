@@ -131,7 +131,7 @@
         (fn [_ data]
           (let [dist (euclidean x y (.-x data) (.-y data))]
             (if (> dist 0)
-              (dispatch :shape/translate (:db/id element) [(.-x data) (.-y data)])
+              (dispatch :shape/translate (:db/id element) (.-x data) (.-y data))
               (dispatch :element/select (:db/id element)))))}
        (let [{patt :shape/pattern color :shape/color kind :shape/kind} element
              id (ds/squuid)]
@@ -340,9 +340,10 @@
 (defn canvas [props]
   (let [{:keys [data workspace dispatch]} (uix/context context)
         {:keys [pos/vec grid/show canvas/mode canvas/map zoom/scale]} workspace
-        {:keys [viewer/privileged?]} (query/viewer data)
+        {:keys [viewer/privileged? viewer/host?]} (query/viewer data)
         [tx ty] vec]
     [:svg.canvas
+     {:class (css {:canvas--guest (not host?)})}
      [:> draggable
       {:position #js {:x 0 :y 0}
        :on-start (fn [] (dispatch :view/clear))
@@ -352,7 +353,7 @@
            (dispatch :camera/translate (+ (/ ox scale) tx) (+ (/ oy scale) ty))))}
       [:g
        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
-       [:g {:transform (str "scale(" scale ") translate(" tx ", " ty ")")}
+       [:g.canvas-board {:transform (str "scale(" scale ") translate(" tx ", " ty ")")}
         [board {:key (:image/checksum map) :image map}]
         (when (or (= mode :grid) show)
           [grid])

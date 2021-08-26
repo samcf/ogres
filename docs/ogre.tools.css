@@ -322,6 +322,12 @@ input[type="number"] {
     fill: white;
 }
 
+.canvas--guest .canvas-board,
+.canvas--guest .canvas-token,
+.canvas--guest .canvas-shape {
+    transition: transform 0.25s ease-in-out;
+}
+
 /* Options */
 .options {
     background-color: #f2f2eb;
