@@ -240,9 +240,10 @@
        (let [m (min (- bx ax) (- by ay))]
          [:g
           [:path {:d (string/join " " ["M" ax ay "h" m "v" m "H" ax "Z"])
-                  :fill "transparent" :stroke "white" :stroke-dasharray "3px"}]
+                  :fill "transparent" :stroke "white" :stroke-width 1 :stroke-dasharray 6
+                  :style {:shape-rendering "crispedges"}}]
           [:text {:x bx :y ay :fill "white"}
-           (-> (/ (- bx ax) scale)
+           (-> (/ m scale)
                (js/Math.abs)
                (js/Math.round)
                (str "px"))]]))]))
