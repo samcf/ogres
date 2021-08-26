@@ -66,7 +66,7 @@
                        (.-y bounds)
                        (.-width bounds)
                        (.-height bounds)]]
-                  ((:dispatch context) :canvas/change-bounds host? x y w h))) 128)]
+                  ((:dispatch context) :bounds/change host? [x y w h]))) 128)]
          (when host?
            (doseq [target targets]
              (.addEventListener target "resize" callback)

@@ -32,8 +32,9 @@
     [:db/add -1 :viewer/workspace -2]
     [:db/add -1 :viewer/tokens -3]
     [:db/add -1 :viewer/host? true]
-    [:db/add -1 :canvas/bounds [0 0 0 0]]
-    [:db/add -1 :canvas/guest-bounds [0 0 0 0]]
+    [:db/add -1 :bounds/self [0 0 0 0]]
+    [:db/add -1 :bounds/host [0 0 0 0]]
+    [:db/add -1 :bounds/guest [0 0 0 0]]
     [:db/add -2 :element/type :canvas]
     [:db/add -2 :canvas/mode :select]
     [:db/add -2 :pos/vec [0 0]]
@@ -101,18 +102,6 @@
   (let [{id :db/id current :canvas/mode} (query/workspace data)]
     [[:db/add id :canvas/mode (if (= current mode) :select mode)]
      [:db/retract id :canvas/selected]]))
-
-(defmethod transact :canvas/change-bounds
-  [data event w-host? x y w h]
-  (let [{v-host? :viewer/host?} (query/viewer data)]
-    (cond
-      (= w-host? v-host?)
-      [[:db/add [:db/ident :viewer] :canvas/bounds [x y w h]]]
-
-      (and (not w-host?) v-host?)
-      [[:db/add [:db/ident :viewer] :canvas/guest-bounds [x y w h]]]
-
-      :else [])))
 
 (defmethod transact :element/update
   [data event id attr value]
@@ -263,6 +252,14 @@
      (transact data event (not (:share/paused? viewer)))))
   ([data event paused?]
    [[:db/add [:db/ident :viewer] :share/paused? paused?]]))
+
+(defmethod transact :bounds/change
+  [data event w-host? bounds]
+  (let [{id :db/id v-host? :viewer/host?} (query/viewer data)]
+    (cond-> []
+      (= w-host? v-host?) (conj [:db/add id :bounds/self bounds])
+      (= w-host? true) (conj [:db/add id :bounds/host bounds])
+      (= w-host? false) (conj [:db/add id :bounds/guest bounds]))))
 
 (defmethod transact :storage/reset []
   [])

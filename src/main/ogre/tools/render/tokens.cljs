@@ -6,7 +6,7 @@
 
 (defn tokens [props]
   (let [{:keys [data workspace dispatch]} (uix/context context)
-        {[px py _ _] :canvas/bounds} (query/viewer data)
+        {[px py _ _] :bounds/self} (query/viewer data)
         {scale :zoom/scale [tx ty] :pos/vec} workspace]
     [:div.tokens
      (for [token (query/templates data) :let [{:keys [db/id]} token]]

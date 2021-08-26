@@ -55,7 +55,7 @@
 
 (defn grid []
   (let [{:keys [data workspace]} (uix/context context)
-        {[_ _ w h] :canvas/bounds} (query/viewer data)
+        {[_ _ w h] :bounds/self} (query/viewer data)
         {[cx cy] :pos/vec size :grid/size} workspace
         [sx sy ax ay bx]
         [(- (* w -2) cx)
@@ -201,7 +201,7 @@
 
 (defn drawable [{:keys [on-release]} render-fn]
   (let [{:keys [data]} (uix/context context)
-        {[x y w h] :canvas/bounds} (query/viewer data)
+        {[x y w h] :bounds/self} (query/viewer data)
         points (uix/state nil)]
     [:<>
      [:> draggable
@@ -333,7 +333,7 @@
 
 (defn bounds []
   (let [{:keys [data]} (uix/context context)
-        {[_ _ w h] :canvas/guest-bounds} (query/viewer data)]
+        {[_ _ w h] :bounds/guest} (query/viewer data)]
     [:path {:d (string/join " " ["M" w 0 "V" h "H" 0])
             :fill "none" :stroke "white" :stroke-width 0.5 :stroke-dasharray 6
             :style {:pointer-events "none" :shape-rendering "crispedges"}}]))
