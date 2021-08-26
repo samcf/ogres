@@ -349,8 +349,8 @@
          [_ _ gw gh] :bounds/guest} (query/viewer data)
         [tx ty] vec
         [tx ty] (if host? [tx ty]
-                    [(- tx (/ (- hw gw) 2 scale))
-                     (- ty (/ (- hh gh) 2 scale))])]
+                    [(- tx (/ (max 0 (- hw gw)) 2 scale))
+                     (- ty (/ (max 0 (- hh gh)) 2 scale))])]
     [:svg.canvas
      {:class (css {:canvas--guest (not host?)})}
      [:> draggable
