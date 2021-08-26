@@ -14,7 +14,9 @@
 (def ^{:private true} unpersisted-attrs
   #{:viewer/host?
     :viewer/loaded?
-    :viewer/privileged?})
+    :viewer/privileged?
+    :share/open?
+    :share/paused?})
 
 (defn debounce [f interval]
   (let [d (goog.async.Debouncer. f interval)]
