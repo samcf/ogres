@@ -6,6 +6,7 @@
 
 (defn tokens [props]
   (let [{:keys [data workspace dispatch]} (uix/context context)
+        {[px py _ _] :canvas/bounds} (query/viewer data)
         {scale :zoom/scale [tx ty] :pos/vec} workspace]
     [:div.tokens
      (for [token (query/templates data) :let [{:keys [db/id]} token]]
@@ -14,10 +15,12 @@
          {:position #js {:x 0 :y 0}
           :onStop
           (fn [event data]
-            (let [parent        (.getBoundingClientRect (.querySelector js/document ".layout-canvas"))
-                  node          (.getBoundingClientRect (.-node data))
-                  [px py]       [(.-x parent) (.-y parent)]
-                  [cx cy cw ch] [(.-x node) (.-y node) (.-width node) (.-height node)]]
+            (let [node (.getBoundingClientRect (.-node data))
+                  [cx cy cw ch]
+                  [(.-x node)
+                   (.-y node)
+                   (.-width node)
+                   (.-height node)]]
               (dispatch
                :token/create id
                [(- (/ (- (+ cx (/ cw 2)) px) scale) tx)

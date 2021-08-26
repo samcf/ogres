@@ -195,7 +195,15 @@ input[type="number"] {
     width: 36px;
 }
 
-.commands button:hover {
+.commands button:disabled {
+    cursor: auto;
+}
+
+.commands button:disabled svg {
+    fill: #777;
+}
+
+.commands button:not(:disabled):not(.selected):hover {
     background-color: rgba(255, 255, 255, 0.15);
 }
 

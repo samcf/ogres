@@ -1,5 +1,6 @@
 (ns ogre.tools.render.root
-  (:require [cognitect.transit :as t]
+  (:require [goog.async.Debouncer]
+            [cognitect.transit :as t]
             [uix.core.alpha :as uix]
             [datascript.core :as ds]
             [datascript.transit :as dt]
@@ -13,7 +14,12 @@
 (def ^{:private true} unpersisted-attrs
   #{:viewer/host?
     :viewer/loaded?
-    :viewer/sharing?})
+    :viewer/privileged?})
+
+(defn debounce [f interval]
+  (let [d (goog.async.Debouncer. f interval)]
+    (fn [& args]
+      (.apply (.-fire d) d (to-array args)))))
 
 (def boundary
   (uix/create-error-boundary
@@ -29,9 +35,10 @@
           [:button {:on-click (:on-reset props)} "Delete your local data"]]
          child)))))
 
-(defn guest []
+(defn guest-window []
   (let [context (uix/context context)
         trigger "AppStateChange"
+        host?   (-> context :data query/viewer :viewer/host?)
         guest   (uix/state nil)
         marsh   (t/writer :json)
         unmar   (t/reader :json)
@@ -39,7 +46,31 @@
                   (when @guest
                     (.close @guest)
                     (reset! guest nil)
-                    ((:dispatch context) :guest/close)))]
+                    ((:dispatch context) :share/toggle false)))]
+
+    (uix/effect!
+     (fn []
+       (let [targets (filterv identity [js/window @guest])
+             callback
+             (debounce
+              (fn [event]
+                (let [search (.. event -target -location -search)
+                      params (js/URLSearchParams. search)
+                      host?  (not (= (.get params "share") "true"))
+                      canvas (.. event -target -document (querySelector "svg.canvas"))
+                      bounds (.getBoundingClientRect canvas)
+                      [x y w h]
+                      [(.-x bounds)
+                       (.-y bounds)
+                       (.-width bounds)
+                       (.-height bounds)]]
+                  ((:dispatch context) :canvas/change-bounds host? x y w h))) 128)]
+         (when host?
+           (doseq [target targets]
+             (.addEventListener target "resize" callback)
+             (.dispatchEvent target (js/Event. "resize"))))
+         (fn []
+           (doseq [target targets] (.removeEventListener target "resize" callback))))) [@guest])
 
     (uix/effect!
      (fn []
@@ -57,15 +88,15 @@
     (uix/effect!
      (fn []
        (ds/listen!
-        (:conn context) :guest-window
+        (:conn context) :share
         (fn [{[event _ tx] :tx-meta}]
-          (if (= event :guest/toggle)
+          (if (= event :share/initiate)
             (if (nil? @guest)
               (let [url (.. js/window -location -origin)
                     url (str url "?share=true")
                     win (.open js/window url "ogre.tools" "width=640,height=640")]
                 (reset! guest win)
-                ((:dispatch context) :guest/start)
+                ((:dispatch context) :share/toggle true)
                 (.addEventListener
                  win "visibilitychange"
                  (fn []
@@ -77,7 +108,7 @@
                #js {:detail (t/write marsh tx)}
                (js/CustomEvent. trigger)
                (.dispatchEvent @guest))))))
-       (fn [] (ds/unlisten! (:conn context) :guest-window))) [@guest])
+       (fn [] (ds/unlisten! (:conn context) :share))) [@guest])
     nil))
 
 (defn root [{:keys [store] :as props}]
@@ -124,7 +155,9 @@
        (ds/listen!
         conn :persist-state
         (fn [report]
-          (swap! count inc)
+          (let [viewer (query/viewer (:db-after report))]
+            (when (or host? (not (:share/paused? viewer)))
+              (swap! count inc)))
           (when host?
             (-> (ds/filter
                  (:db-after report)
@@ -152,5 +185,5 @@
      [context value]
      [boundary {:on-reset #((:dispatch value) :storage/reset)}
       [:<>
-       [guest]
+       [guest-window]
        [layout]]])))

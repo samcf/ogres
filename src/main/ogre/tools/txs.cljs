@@ -17,34 +17,12 @@
 
 (def schema
   {:db/ident         {:db/unique :db.unique/identity}
-   :viewer/loaded?   {}
    :viewer/workspace {:db/valueType :db.type/ref}
    :viewer/tokens    {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
-   :viewer/host?     {}
-   :viewer/sharing?  {}
    :canvas/elements  {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :canvas/map       {:db/valueType :db.type/ref}
-   :canvas/mode      {}
    :canvas/selected  {:db/valueType :db.type/ref}
-   :pos/vec          {}
-   :grid/size        {}
-   :grid/origin      {}
-   :zoom/scales      {}
-   :zoom/scale       {}
-   :element/type     {}
-   :element/name     {}
-   :token/size       {}
-   :aura/radius      {}
-   :aura/color       {}
-   :aura/label       {}
-   :shape/kind       {}
-   :shape/vecs       {}
-   :shape/color      {}
-   :shape/opacity    {}
-   :shape/pattern    {}
-   :image/checksum   {:db/index true}
-   :image/width      {}
-   :image/height     {}})
+   :image/checksum   {:db/index true}})
 
 (defn initial-data []
   (ds/db-with
@@ -54,6 +32,8 @@
     [:db/add -1 :viewer/workspace -2]
     [:db/add -1 :viewer/tokens -3]
     [:db/add -1 :viewer/host? true]
+    [:db/add -1 :canvas/bounds [0 0 0 0]]
+    [:db/add -1 :canvas/guest-bounds [0 0 0 0]]
     [:db/add -2 :element/type :canvas]
     [:db/add -2 :canvas/mode :select]
     [:db/add -2 :pos/vec [0 0]]
@@ -121,6 +101,18 @@
   (let [{id :db/id current :canvas/mode} (query/workspace data)]
     [[:db/add id :canvas/mode (if (= current mode) :select mode)]
      [:db/retract id :canvas/selected]]))
+
+(defmethod transact :canvas/change-bounds
+  [data event w-host? x y w h]
+  (let [{v-host? :viewer/host?} (query/viewer data)]
+    (cond
+      (= w-host? v-host?)
+      [[:db/add [:db/ident :viewer] :canvas/bounds [x y w h]]]
+
+      (and (not w-host?) v-host?)
+      [[:db/add [:db/ident :viewer] :canvas/guest-bounds [x y w h]]]
+
+      :else [])))
 
 (defmethod transact :element/update
   [data event id attr value]
@@ -256,12 +248,21 @@
   [data event token color]
   [[:db/add token :aura/color color]])
 
-(defmethod transact :guest/toggle [] [])
+(defmethod transact :share/initiate []
+  [])
 
-(defmethod transact :guest/start []
-  [[:db/add [:db/ident :viewer] :viewer/sharing? true]])
+(defmethod transact :share/toggle [data _ open?]
+  (let [{:keys [viewer/host?]} (query/viewer data)]
+    [[:db/add [:db/ident :viewer] :share/open? open?]
+     [:db/add [:db/ident :viewer] :share/paused? false]
+     [:db/add [:db/ident :viewer] :viewer/privileged? (and host? open?)]]))
 
-(defmethod transact :guest/close []
-  [[:db/add [:db/ident :viewer] :viewer/sharing? false]])
+(defmethod transact :share/switch
+  ([data event]
+   (let [viewer (ds/entity data [:db/ident :viewer])]
+     (transact data event (not (:share/paused? viewer)))))
+  ([data event paused?]
+   [[:db/add [:db/ident :viewer] :share/paused? paused?]]))
 
-(defmethod transact :storage/reset [] [])
+(defmethod transact :storage/reset []
+  [])

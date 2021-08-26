@@ -37,9 +37,15 @@
       [icon {:name :zoom-out :width 18 :height 18}]]
      [:hr]
      [:button
-      {:type "button" :title "Open Player View" :class (css {:selected (:viewer/sharing? viewer)})
-       :on-click #(dispatch :guest/toggle)}
+      {:type "button" :title "Toggle Player Window" :class (css {:selected (:share/open? viewer)})
+       :on-click #(dispatch :share/initiate)}
       [icon {:name :window :width 18 :height 18}]]
+     [:button
+      {:type "button" :title "Pause/Play" :class (css {:selected false})
+       :disabled (not (:share/open? viewer)) :on-click #(dispatch :share/switch)}
+      (if (:share/paused? viewer)
+        [icon {:name :play :width 24 :height 24}]
+        [icon {:name :pause :width 24 :height 24}])]
      [:hr]
      [:a {:href "https://www.github.com/samcf/ogre.tools" :title "Project home" :target "_blank"}
       [:button {:type "button"}

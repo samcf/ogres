@@ -3,7 +3,7 @@
             [datascript.core :as ds]
             [uix.core.alpha :as uix]
             [react-draggable :as draggable]
-            [ogre.tools.render :refer [context css use-dimensions use-image]]
+            [ogre.tools.render :refer [context css use-image]]
             [ogre.tools.render.pattern :refer [pattern]]
             [ogre.tools.query :as query]))
 
@@ -34,45 +34,45 @@
 (defn board-attrs [layer lighting privileged?]
   (cond-> {}
     (and (= layer :dark) privileged?)
-    (merge {:style {:filter "saturate(0%) brightness(30%)"}})
+    (merge {:style {:filter "saturate(0%) brightness(20%)"}})
     (= layer :dim)
     (merge {:style {:filter "saturate(20%) brightness(50%)"}})
     (and (= layer :dim) (= lighting :dark))
     (merge {:clip-path "url(#clip-dim-light)"})
-    (and (= layer :dim) privileged?)
-    (merge {:style {:filter "saturate(30%) brightness(60%)"}})
     (and (= layer :bright) (not= lighting :bright))
     (merge {:clip-path "url(#clip-bright-light)"})))
 
 (defn board [{:keys [image]}]
   (let [{:keys [data]} (uix/context context)
-        {:keys [viewer/sharing? viewer/host? viewer/workspace]} (query/viewer data)
+        {:keys [viewer/privileged? viewer/workspace]} (query/viewer data)
         {:keys [canvas/lighting]} workspace
         url (use-image (:image/checksum image))]
     (when (string? url)
-      (for [type (if (and host? sharing?) [:dark :dim :bright] [:dim :bright])]
-        [:image (merge (board-attrs type lighting (and host? sharing?))
+      (for [type (if privileged? [:dark :dim :bright] [:dim :bright])]
+        [:image (merge (board-attrs type lighting privileged?)
                        {:x 0 :y 0 :href url}
                        {:key type})]))))
 
-(defn grid [{[_ _ w h] :dimensions}]
-  (let [{{[cx cy] :pos/vec size :grid/size} :workspace} (uix/context context)]
-    (let [[sx sy ax ay bx]
-          [(- (* w -2) cx)
-           (- (* h -2) cy)
-           (- (* w  2) cx)
-           (- (* h  2) cy)
-           (- (* w -2) cx)]]
-      [:<>
-       [:defs
-        [:pattern {:id "grid" :width size :height size :patternUnits "userSpaceOnUse"}
-         [:path
-          {:d (string/join " " ["M" 0 0 "H" size "V" size])
-           :stroke "rgba(255, 255, 255, 0.40)"
-           :stroke-width "1"
-           :stroke-dasharray "2px"
-           :fill "none"}]]]
-       [:path {:d (string/join " " ["M" sx sy "H" ax "V" ay "H" bx "Z"]) :fill "url(#grid)"}]])))
+(defn grid []
+  (let [{:keys [data workspace]} (uix/context context)
+        {[_ _ w h] :canvas/bounds} (query/viewer data)
+        {[cx cy] :pos/vec size :grid/size} workspace
+        [sx sy ax ay bx]
+        [(- (* w -2) cx)
+         (- (* h -2) cy)
+         (- (* w  2) cx)
+         (- (* h  2) cy)
+         (- (* w -2) cx)]]
+    [:<>
+     [:defs
+      [:pattern {:id "grid" :width size :height size :patternUnits "userSpaceOnUse"}
+       [:path
+        {:d (string/join " " ["M" 0 0 "H" size "V" size])
+         :stroke "rgba(255, 255, 255, 0.40)"
+         :stroke-width "1"
+         :stroke-dasharray "2px"
+         :fill "none"}]]]
+     [:path {:d (string/join " " ["M" sx sy "H" ax "V" ay "H" bx "Z"]) :fill "url(#grid)"}]]))
 
 (defmulti shape (fn [props] (:shape/kind (:element props))))
 
@@ -199,10 +199,10 @@
             (when (and (> radius 0) (seq label))
               [:text {:x (+ cx 8) :y (+ cy 8)} label])])]])]))
 
-(defn drawable [props render-fn]
-  (let [{:keys [dimensions on-release]} props
-        points (uix/state nil)
-        [x y w h] dimensions]
+(defn drawable [{:keys [on-release]} render-fn]
+  (let [{:keys [data]} (uix/context context)
+        {[x y w h] :canvas/bounds} (query/viewer data)
+        points (uix/state nil)]
     [:<>
      [:> draggable
       {:position #js {:x 0 :y 0}
@@ -228,12 +228,10 @@
 (defmulti draw :mode)
 
 (defmethod draw :grid [props]
-  (let [{:keys [dimensions]} props
-        {:keys [workspace dispatch]} (uix/context context)
+  (let [{:keys [workspace dispatch]} (uix/context context)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
-     {:dimensions dimensions
-      :on-release
+     {:on-release
       (fn [[ax ay bx by]]
         (let [size (js/Math.abs (- bx ax))]
           (when (> size 0)
@@ -250,12 +248,10 @@
                (str "px"))]]))]))
 
 (defmethod draw :ruler [props]
-  (let [{:keys [dimensions]} props
-        {:keys [workspace]} (uix/context context)
+  (let [{:keys [workspace]} (uix/context context)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
-     {:dimensions dimensions
-      :on-release identity}
+     {:on-release identity}
      (fn [[ax ay bx by]]
        [:g
         [:line {:x1 ax :y1 ay :x2 bx :y2 by :stroke "white" :stroke-dasharray "12px"}]
@@ -265,12 +261,10 @@
              (str "ft."))]])]))
 
 (defmethod draw :circle [props]
-  (let [{:keys [dimensions]} props
-        {:keys [workspace dispatch]} (uix/context context)
+  (let [{:keys [workspace dispatch]} (uix/context context)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
-     {:dimensions dimensions
-      :on-release
+     {:on-release
       (fn [points]
         (let [[ax ay bx by] (mapv #(/ % scale) points)
               [cx cy] (:pos/vec workspace)]
@@ -283,12 +277,10 @@
            (-> radius (px->ft (* size scale)) (str "ft. radius"))]]))]))
 
 (defmethod draw :rect [props]
-  (let [{:keys [dimensions]} props
-        {:keys [workspace dispatch]} (uix/context context)
+  (let [{:keys [workspace dispatch]} (uix/context context)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
-     {:dimensions dimensions
-      :on-release
+     {:on-release
       (fn [points]
         (let [[ax ay bx by] (mapv #(/ % scale) points)
               [cx cy] (:pos/vec workspace)]
@@ -303,12 +295,10 @@
            (str w "ft. x " h "ft."))]])]))
 
 (defmethod draw :line [props]
-  (let [{:keys [dimensions]} props
-        {:keys [workspace dispatch]} (uix/context context)
+  (let [{:keys [workspace dispatch]} (uix/context context)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
-     {:dimensions dimensions
-      :on-release
+     {:on-release
       (fn [points]
         (let [[ax ay bx by] (mapv #(/ % scale) points)
               [cx cy] (:pos/vec workspace)]
@@ -322,12 +312,10 @@
              (str "ft."))]])]))
 
 (defmethod draw :cone [props]
-  (let [{:keys [dimensions]} props
-        {:keys [workspace dispatch]} (uix/context context)
+  (let [{:keys [workspace dispatch]} (uix/context context)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
-     {:dimensions dimensions
-      :on-release
+     {:on-release
       (fn [points]
         (let [[ax ay bx by] (mapv #(/ % scale) points)
               [cx cy] (:pos/vec workspace)]
@@ -342,12 +330,19 @@
 
 (defmethod draw :default [] nil)
 
+(defn bounds []
+  (let [{:keys [data]} (uix/context context)
+        {[_ _ w h] :canvas/guest-bounds} (query/viewer data)]
+    [:path {:d (string/join " " ["M" w 0 "V" h "H" 0])
+            :fill "none" :stroke "white" :stroke-width 0.5 :stroke-dasharray 6
+            :style {:pointer-events "none" :shape-rendering "crispedges"}}]))
+
 (defn canvas [props]
-  (let [{:keys [workspace dispatch]} (uix/context context)
+  (let [{:keys [data workspace dispatch]} (uix/context context)
         {:keys [pos/vec grid/show canvas/mode canvas/map zoom/scale]} workspace
-        [tx ty] vec
-        [ref dimensions] (use-dimensions)]
-    [:svg.canvas {:ref ref}
+        {:keys [viewer/privileged?]} (query/viewer data)
+        [tx ty] vec]
+    [:svg.canvas
      [:> draggable
       {:position #js {:x 0 :y 0}
        :on-start (fn [] (dispatch :view/clear))
@@ -360,8 +355,10 @@
        [:g {:transform (str "scale(" scale ") translate(" tx ", " ty ")")}
         [board {:key (:image/checksum map) :image map}]
         (when (or (= mode :grid) show)
-          [grid {:dimensions dimensions}])
+          [grid])
         [shapes]
         [tokens]]
 
-       [draw {:mode mode :dimensions dimensions}]]]]))
+       [draw {:mode mode}]]]
+     (when privileged?
+       [bounds])]))
