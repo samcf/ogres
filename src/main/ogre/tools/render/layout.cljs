@@ -15,13 +15,13 @@
     (when (:viewer/loaded? viewer)
       (if (and (:viewer/host? viewer))
         [:div.layout
-         [:div]
          [:div.layout-workspaces [workspaces]]
-         [:div.layout-command [command]]
          [:div.layout-workspace
           [:div.layout-canvas [canvas]]
-          [:div.layout-options [options]]
-          [:div.layout-tokens [tokens]]]]
+          [:div.layout-overlay
+           [:div.layout-command [command]]
+           [:div.layout-options [options]]
+           [:div.layout-tokens [tokens]]]]]
         [:div.layout.layout--guest
          [:div.layout-workspace
           [:div.layout-canvas [canvas]]]]))))

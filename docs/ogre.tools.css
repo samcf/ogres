@@ -10,12 +10,12 @@
     --theme-text-link: hsl(6, 73%, 60%);
 }
 
-html, body, #root, .table {
+html, body, #root {
     height: 100%;
 }
 
 body {
-    background-color: var(--theme-background-d);
+    background-color: hsl(208deg 21% 20%);
     color: white;
     font-family: sans-serif;
     font-size: 16px;
@@ -66,7 +66,7 @@ input[type="number"] {
     background-color: hsl(208deg 21% 20%);
     color: var(--theme-text);
     display: grid;
-    grid-template-columns: 0fr 1fr;
+    grid-template-columns: 1fr;
     grid-template-rows: minmax(36px, auto) 1fr;
     height: 100%;
 }
@@ -80,26 +80,29 @@ input[type="number"] {
     margin: 16px;
 }
 
-.layout-workspaces {
-    margin: 8px 0 4px 0;
+.layout--guest .canvas {
+    pointer-events: none;
 }
 
-.layout-command {
-    box-sizing: content-box;
-    padding: 0 8px;
+.layout-workspaces {
+    margin: 8px 16px 4px 16px;
 }
 
 .layout-workspace {
     background-color: var(--theme-background-d);
     border-radius: 8px;
     box-shadow: 2px 2px 16px rgba(0, 0, 0, 0.65);
-    margin: 0 16px 16px 0;
+    margin: 0 16px 20px 16px;
     position: relative;
 }
 
-.layout-canvas,
-.layout-options,
-.layout-tokens {
+.layout-canvas {
+    height: 100%;
+}
+
+.layout-overlay {
+    display: flex;
+    margin: 8px;
     pointer-events: none;
     position: absolute;
     top: 0;
@@ -111,6 +114,8 @@ input[type="number"] {
 .layout-options {
     display: flex;
     flex-direction: column;
+    flex: 1;
+    margin: 0 8px;
 }
 
 .layout-tokens {
@@ -180,14 +185,19 @@ input[type="number"] {
 
 /* Commands */
 .commands {
-    display: flex;
-    flex-direction: column;
+    backdrop-filter: blur(4px);
+    border-radius: 4px;
+    display: grid;
+    grid-gap: 4px;
+    grid-template-columns: repeat(2, 1fr);
+    pointer-events: all;
 }
 
 .commands button {
-    background-color: var(--theme-background-d);
+    background-color: hsl(208deg 21% 20%);
     border-radius: 4px;
-    border: none;
+    border: 1px solid transparent;
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.55);
     color: var(--theme-text);
     cursor: pointer;
     height: 36px;
@@ -204,7 +214,8 @@ input[type="number"] {
 }
 
 .commands button:not(:disabled):not(.selected):hover {
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: var(--theme-background-d);
+    border-color: hsl(208deg 21% 20%);
 }
 
 .commands button.selected {
@@ -219,12 +230,6 @@ input[type="number"] {
     border-color: black;
 }
 
-.commands button + button,
-.commands button + a,
-.commands a + button {
-    margin-top: 4px;
-}
-
 .commands .grid {
     border: 1px dashed white;
     height: 16px;
@@ -234,16 +239,17 @@ input[type="number"] {
 }
 
 .commands hr {
-    width: 80%;
+    border-color: hsl(208deg 21% 20%);
     border-width: 1px 0 0 0;
-    border-color: rgba(255, 255, 255, 0.35);
+    display: block;
+    grid-column: 1 / 3;
+    margin: 0;
 }
 
 /* Token Templates */
 .tokens {
     display: flex;
     flex-direction: column;
-    margin: 24px 16px;
     pointer-events: none;
 }
 
@@ -273,10 +279,6 @@ input[type="number"] {
 @keyframes stroke-animation {
     0% { stroke-dashoffset: 0; }
     100% { stroke-dashoffset: 16px; }
-}
-
-.canvas-token {
-    pointer-events: all;
 }
 
 .canvas-shape:hover > circle,
@@ -332,13 +334,13 @@ input[type="number"] {
 .options {
     background-color: #f2f2eb;
     border: 1px solid black;
-    border-radius: 3px;
+    border-radius: 4px;
+    box-shadow: 1px 1px 6px rgba(0, 0, 0, 0.55);
     color: #461b0e;
     display: flex;
     flex-direction: column;
     font-size: 14px;
     line-height: 1.3;
-    margin: 16px;
     max-height: 100%;
     max-width: 360px;
     overflow-y: auto;
@@ -360,8 +362,6 @@ input[type="number"] {
     font-weight: bold;
     margin-bottom: 4px;
 }
-
-.options-canvas {}
 
 .options-canvas-maps {
     display: grid;
@@ -409,8 +409,6 @@ input[type="number"] {
     grid-template-columns: repeat(3, 1fr);
     grid-gap: 4px;
 }
-
-.options-token {}
 
 .options-token-lights {
     display: grid;

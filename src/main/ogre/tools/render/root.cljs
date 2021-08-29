@@ -61,12 +61,12 @@
                       host?  (not (= (.get params "share") "true"))
                       canvas (.. event -target -document (querySelector "svg.canvas"))
                       bounds (.getBoundingClientRect canvas)
-                      [x y w h]
+                      bounds
                       [(.-x bounds)
                        (.-y bounds)
                        (.-width bounds)
                        (.-height bounds)]]
-                  ((:dispatch context) :bounds/change host? [x y w h]))) 128)]
+                  ((:dispatch context) :bounds/change host? bounds))) 128)]
          (when host?
            (doseq [target targets]
              (.addEventListener target "resize" callback)
