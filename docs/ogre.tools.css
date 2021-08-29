@@ -17,7 +17,7 @@ html, body, #root {
 body {
     background-color: hsl(208deg 21% 20%);
     color: white;
-    font-family: sans-serif;
+    font-family: valkyrie_b, serif;
     font-size: 16px;
     line-height: 1.5;
 }
