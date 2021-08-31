@@ -341,10 +341,6 @@ input[type="number"] {
     stroke-linecap: round;
 }
 
-.canvas-token-aura > text {
-    fill: white;
-}
-
 .canvas-drawable line,
 .canvas-drawable path,
 .canvas-drawable polygon,
