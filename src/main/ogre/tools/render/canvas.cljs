@@ -31,6 +31,11 @@
      (+ ax (* hyp (js/Math.cos (- rad 0.46))))
      (+ ay (* hyp (js/Math.sin (- rad 0.46))))]))
 
+(defn text [attrs child]
+  [:<>
+   [:text (merge attrs {:fill "black" :stroke "black" :stroke-width 4}) child]
+   [:text attrs child]])
+
 (defn board-attrs [layer lighting privileged?]
   (cond-> {}
     (and (= layer :dark) privileged?)
@@ -187,7 +192,7 @@
            [:g.canvas-token-shape
             [:circle {:cx 0 :cy 0 :r (max (- radius 4) 8) :fill "#172125"}]
             (when (seq label)
-              [:text {:x 0 :y (+ radius 16) :text-anchor "middle" :fill "white"} label])])
+              [text {:x 0 :y (+ radius 16) :text-anchor "middle" :fill "white"} label])])
 
          (let [{:keys [aura/radius aura/label]} token
                length  (-> (ft->px radius size) (+ (/ size 2)))
@@ -197,7 +202,7 @@
             (when (> radius 0)
               [:circle {:cx 0 :cy 0 :r length}])
             (when (and (> radius 0) (seq label))
-              [:text {:x (+ cx 8) :y (+ cy 8)} label])])]])]))
+              [text {:x (+ cx 8) :y (+ cy 8)} label])])]])]))
 
 (defn drawable [{:keys [on-release]} render-fn]
   (let [{:keys [data]} (uix/context context)
@@ -242,7 +247,7 @@
           [:path {:d (string/join " " ["M" ax ay "h" m "v" m "H" ax "Z"])
                   :fill "transparent" :stroke "white" :stroke-width 1 :stroke-dasharray 6
                   :style {:shape-rendering "crispedges"}}]
-          [:text {:x bx :y ay :fill "white"}
+          [text {:x bx :y ay :fill "white"}
            (-> (/ m scale)
                (js/Math.abs)
                (js/Math.round)
@@ -256,7 +261,7 @@
      (fn [[ax ay bx by]]
        [:g
         [:line {:x1 ax :y1 ay :x2 bx :y2 by :stroke "white" :stroke-dasharray "12px"}]
-        [:text {:x (- bx 48) :y (- by 8) :fill "white"}
+        [text {:x (- bx 48) :y (- by 8) :fill "white"}
          (-> (chebyshev ax ay bx by)
              (px->ft (* size scale))
              (str "ft."))]])]))
@@ -274,7 +279,7 @@
        (let [radius (chebyshev ax ay bx by)]
          [:g
           [:circle {:cx ax :cy ay :r radius :fill "transparent" :stroke "white"}]
-          [:text {:x ax :y ay :fill "white"}
+          [text {:x ax :y ay :fill "white"}
            (-> radius (px->ft (* size scale)) (str "ft. radius"))]]))]))
 
 (defmethod draw :rect [props]
@@ -290,7 +295,7 @@
        [:g
         [:path {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])
                 :fill "transparent" :stroke "white"}]
-        [:text {:x (+ ax 8) :y (- ay 8) :fill "white"}
+        [text {:x (+ ax 8) :y (- ay 8) :fill "white"}
          (let [[w h] [(px->ft (js/Math.abs (- bx ax)) (* size scale))
                       (px->ft (js/Math.abs (- by ay)) (* size scale))]]
            (str w "ft. x " h "ft."))]])]))
@@ -307,7 +312,7 @@
      (fn [[ax ay bx by]]
        [:g [:line {:x1 ax :y1 ay :x2 bx :y2 by
                    :stroke "white" :stroke-width 4 :stroke-linecap "round"}]
-        [:text {:x (+ ax 8) :y (- ay 8) :fill "white"}
+        [text {:x (+ ax 8) :y (- ay 8) :fill "white"}
          (-> (chebyshev ax ay bx by)
              (px->ft (* size scale))
              (str "ft."))]])]))
@@ -324,7 +329,7 @@
      (fn [[ax ay bx by]]
        [:g
         [:polygon {:points (string/join " " (cone-points ax ay bx by)) :fill "transparent" :stroke "white"}]
-        [:text {:x (+ bx 16) :y (+ by 16) :fill "white"}
+        [text {:x (+ bx 16) :y (+ by 16) :fill "white"}
          (-> (js/Math.hypot (- bx ax) (- by ay))
              (px->ft (* size scale))
              (str "ft."))]])]))
