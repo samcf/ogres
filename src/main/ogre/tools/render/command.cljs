@@ -16,7 +16,7 @@
 
 (defn command [props]
   (let [{:keys [data workspace dispatch]} (uix/context context)
-        {show :grid/show current :canvas/mode} workspace
+        {show :grid/show current :canvas/mode theme :canvas/theme} workspace
         viewer (ds/entity data [:db/ident :viewer])]
     [:div.commands
      (for [[mode name size title] modes]
@@ -27,7 +27,11 @@
      [:button
       {:type "button" :title "Toggle Grid" :class (css {:selected show}) :on-click #(dispatch :grid/toggle)}
       [:div.grid]]
-     [:div]
+     [:button
+      {:type "button" :title "Toggle Foreground" :on-click #(dispatch :canvas/toggle-theme)}
+      (if (= theme :dark)
+        [icon {:name :layer-dark :width 20 :height 20}]
+        [icon {:name :layer-light :width 20 :height 20}])]
      [:button
       {:type "button" :title "Zoom Out" :on-click #(dispatch :zoom/out)}
       [icon {:name :zoom-out :width 18 :height 18}]]

@@ -37,10 +37,11 @@
     [:db/add -1 :bounds/guest [0 0 0 0]]
     [:db/add -2 :element/type :canvas]
     [:db/add -2 :canvas/mode :select]
+    [:db/add -2 :canvas/lighting :bright]
+    [:db/add -2 :canvas/theme :light]
     [:db/add -2 :pos/vec [0 0]]
     [:db/add -2 :grid/size 70]
     [:db/add -2 :grid/origin [0 0]]
-    [:db/add -2 :canvas/lighting :bright]
     [:db/add -2 :grid/show true]
     [:db/add -2 :zoom/scales [0.5 0.75 1 1.25 1.50]]
     [:db/add -2 :zoom/scale 1]
@@ -55,6 +56,7 @@
    :pos/vec [0 0]
    :canvas/mode :select
    :canvas/lighting :bright
+   :canvas/theme :light
    :grid/size 70
    :grid/origin [0 0]
    :grid/show true
@@ -102,6 +104,11 @@
   (let [{id :db/id current :canvas/mode} (query/workspace data)]
     [[:db/add id :canvas/mode (if (= current mode) :select mode)]
      [:db/retract id :canvas/selected]]))
+
+(defmethod transact :canvas/toggle-theme
+  [data event]
+  (let [{:keys [db/id canvas/theme]} (query/workspace data)]
+    [[:db/add id :canvas/theme (if (= theme :dark) :light :dark)]]))
 
 (defmethod transact :element/update
   [data event id attr value]

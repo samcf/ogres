@@ -33,8 +33,8 @@
 
 (defn text [attrs child]
   [:<>
-   [:text (merge attrs {:fill "black" :stroke "black" :stroke-width 4}) child]
-   [:text attrs child]])
+   [:text.canvas-text-outline (merge attrs) child]
+   [:text.canvas-text attrs child]])
 
 (defn board-attrs [layer lighting privileged?]
   (cond-> {}
@@ -70,13 +70,9 @@
          (- (* w -2) cx)]]
     [:<>
      [:defs
-      [:pattern {:id "grid" :width size :height size :patternUnits "userSpaceOnUse"}
+      [:pattern.canvas-grid {:id "grid" :width size :height size :patternUnits "userSpaceOnUse"}
        [:path
-        {:d (string/join " " ["M" 0 0 "H" size "V" size])
-         :stroke "rgba(255, 255, 255, 0.40)"
-         :stroke-width "1"
-         :stroke-dasharray "2px"
-         :fill "none"}]]]
+        {:d (string/join " " ["M" 0 0 "H" size "V" size])}]]]
      [:path {:d (string/join " " ["M" sx sy "H" ax "V" ay "H" bx "Z"]) :fill "url(#grid)"}]]))
 
 (defmulti shape (fn [props] (:shape/kind (:element props))))
@@ -244,9 +240,7 @@
      (fn [[ax ay bx by]]
        (let [m (min (- bx ax) (- by ay))]
          [:g
-          [:path {:d (string/join " " ["M" ax ay "h" m "v" m "H" ax "Z"])
-                  :fill "transparent" :stroke "white" :stroke-width 1 :stroke-dasharray 6
-                  :style {:shape-rendering "crispedges"}}]
+          [:path {:d (string/join " " ["M" ax ay "h" m "v" m "H" ax "Z"])}]
           [text {:x bx :y ay :fill "white"}
            (-> (/ m scale)
                (js/Math.abs)
@@ -260,7 +254,7 @@
      {:on-release identity}
      (fn [[ax ay bx by]]
        [:g
-        [:line {:x1 ax :y1 ay :x2 bx :y2 by :stroke "white" :stroke-dasharray "12px"}]
+        [:line {:x1 ax :y1 ay :x2 bx :y2 by}]
         [text {:x (- bx 48) :y (- by 8) :fill "white"}
          (-> (chebyshev ax ay bx by)
              (px->ft (* size scale))
@@ -278,7 +272,7 @@
      (fn [[ax ay bx by]]
        (let [radius (chebyshev ax ay bx by)]
          [:g
-          [:circle {:cx ax :cy ay :r radius :fill "transparent" :stroke "white"}]
+          [:circle {:cx ax :cy ay :r radius}]
           [text {:x ax :y ay :fill "white"}
            (-> radius (px->ft (* size scale)) (str "ft. radius"))]]))]))
 
@@ -293,8 +287,7 @@
           (dispatch :shape/create :rect [(- ax cx) (- ay cy) (- bx cx) (- by cy)])))}
      (fn [[ax ay bx by]]
        [:g
-        [:path {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])
-                :fill "transparent" :stroke "white"}]
+        [:path {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}]
         [text {:x (+ ax 8) :y (- ay 8) :fill "white"}
          (let [[w h] [(px->ft (js/Math.abs (- bx ax)) (* size scale))
                       (px->ft (js/Math.abs (- by ay)) (* size scale))]]
@@ -310,8 +303,7 @@
               [cx cy] (:pos/vec workspace)]
           (dispatch :shape/create :line [(- ax cx) (- ay cy) (- bx cx) (- by cy)])))}
      (fn [[ax ay bx by]]
-       [:g [:line {:x1 ax :y1 ay :x2 bx :y2 by
-                   :stroke "white" :stroke-width 4 :stroke-linecap "round"}]
+       [:g [:line {:x1 ax :y1 ay :x2 bx :y2 by}]
         [text {:x (+ ax 8) :y (- ay 8) :fill "white"}
          (-> (chebyshev ax ay bx by)
              (px->ft (* size scale))
@@ -328,7 +320,7 @@
           (dispatch :shape/create :cone [(- ax cx) (- ay cy) (- bx cx) (- by cy)])))}
      (fn [[ax ay bx by]]
        [:g
-        [:polygon {:points (string/join " " (cone-points ax ay bx by)) :fill "transparent" :stroke "white"}]
+        [:polygon {:points (string/join " " (cone-points ax ay bx by))}]
         [text {:x (+ bx 16) :y (+ by 16) :fill "white"}
          (-> (js/Math.hypot (- bx ax) (- by ay))
              (px->ft (* size scale))
@@ -341,14 +333,12 @@
         {[_ _ hw hh] :bounds/host
          [_ _ gw gh] :bounds/guest} (query/viewer data)
         [ox oy] [(/ (- hw gw) 2) (/ (- hh gh) 2)]]
-    [:g {:transform (str "translate(" ox ", " oy ")")}
-     [:path {:d (string/join " " ["M" 0 0 "H" gw "V" gh "H" 0 "Z"])
-             :fill "none" :stroke "white" :stroke-width 0.5 :stroke-dasharray 6
-             :style {:pointer-events "none" :shape-rendering "crispedges"}}]]))
+    [:g.canvas-bounds {:transform (str "translate(" ox ", " oy ")")}
+     [:path {:d (string/join " " ["M" 0 0 "H" gw "V" gh "H" 0 "Z"])}]]))
 
 (defn canvas [props]
   (let [{:keys [data workspace dispatch]} (uix/context context)
-        {:keys [pos/vec grid/show canvas/mode canvas/map zoom/scale]} workspace
+        {:keys [pos/vec grid/show canvas/mode canvas/map canvas/theme zoom/scale]} workspace
         {:keys [viewer/privileged? viewer/host?]
          [_ _ hw hh] :bounds/host
          [_ _ gw gh] :bounds/guest} (query/viewer data)
@@ -357,7 +347,7 @@
                     [(- tx (/ (max 0 (- hw gw)) 2 scale))
                      (- ty (/ (max 0 (- hh gh)) 2 scale))])]
     [:svg.canvas
-     {:class (css {:canvas--guest (not host?)})}
+     {:class (css {:theme--guest (not host?)} (str "theme--" (name theme)))}
      [:> draggable
       {:position #js {:x 0 :y 0}
        :on-start (fn [] (dispatch :view/clear))
@@ -374,6 +364,7 @@
         [shapes]
         [tokens]]
 
-       [draw {:mode mode}]]]
+       [:g.canvas-drawable {:class (css (str "canvas-drawable-" (name mode)))}
+        [draw {:mode mode}]]]]
      (when privileged?
        [bounds])]))

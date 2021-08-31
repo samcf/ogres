@@ -76,13 +76,8 @@ input[type="number"] {
     grid-template-rows: 1fr;
 }
 
-.layout--guest .layout-workspace {
-    margin: 16px;
-}
-
-.layout--guest .canvas {
-    pointer-events: none;
-}
+.layout--guest .layout-workspace { margin: 16px; }
+.layout--guest .canvas { pointer-events: none; }
 
 .layout-workspaces {
     margin: 8px 16px 4px 16px;
@@ -276,9 +271,35 @@ input[type="number"] {
     width: 100%;
 }
 
+.canvas.theme--light {
+    --canvas-stroke: rgba(255, 255, 255, 1);
+    --canvas-text: rgba(255, 255, 255, 1);
+    --canvas-text-outline: rgba(0, 0, 0, 1);
+}
+
+.canvas.theme--dark {
+    --canvas-stroke: rgba(0, 0, 0, 1);
+    --canvas-text: rgba(0, 0, 0, 1);
+    --canvas-text-outline: rgba(255, 255, 255, 1);
+}
+
+.canvas-text {
+    fill: var(--canvas-text);
+}
+
+.canvas-text-outline {
+    fill: var(--canvas-text-outline);
+    stroke: var(--canvas-text-outline);
+    stroke-width: 4px;
+}
+
 @keyframes stroke-animation {
     0% { stroke-dashoffset: 0; }
     100% { stroke-dashoffset: 16px; }
+}
+
+.canvas-shape-rect > path {
+    shape-rendering: crispEdges;
 }
 
 .canvas-shape:hover > circle,
@@ -299,12 +320,12 @@ input[type="number"] {
 
 .canvas-token-shape > circle:hover,
 .canvas-token.selected > .canvas-token-shape > circle {
-    stroke: white;
+    stroke: var(--canvas-stroke);
 }
 
 .canvas-token-shape > circle {
     filter: drop-shadow(1px 1px 4px rgba(0, 0, 0, .4));
-    stroke: black;
+    stroke: var(--canvas-stroke);
 }
 
 .canvas-token-shape > text,
@@ -314,7 +335,7 @@ input[type="number"] {
 
 .canvas-token-aura > circle {
     fill: none;
-    stroke: white;
+    stroke: var(--canvas-stroke);
     stroke-width: 1px;
     stroke-dasharray: 12px;
     stroke-linecap: round;
@@ -324,9 +345,40 @@ input[type="number"] {
     fill: white;
 }
 
-.canvas--guest .canvas-board,
-.canvas--guest .canvas-token,
-.canvas--guest .canvas-shape {
+.canvas-drawable line,
+.canvas-drawable path,
+.canvas-drawable polygon,
+.canvas-drawable circle {
+    fill: transparent;
+    stroke: var(--canvas-stroke);
+    stroke-dasharray: 8px;
+}
+
+.canvas-drawable-grid path,
+.canvas-drawable-rect path {
+    shape-rendering: crispEdges;
+}
+
+.canvas-bounds path {
+    fill: transparent;
+    pointer-events: none;
+    shape-rendering: crispEdges;
+    stroke-dasharray: 6px;
+    stroke-width: 1;
+    stroke: var(--canvas-stroke);
+}
+
+.canvas-grid path {
+    fill: none;
+    stroke-dasharray: 2px;
+    stroke-width: 1px;
+    stroke: var(--canvas-stroke);
+    opacity: 0.60;
+}
+
+.theme--guest .canvas-board,
+.theme--guest .canvas-token,
+.theme--guest .canvas-shape {
     transition: transform 0.25s ease-in-out;
 }
 
