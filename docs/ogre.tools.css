@@ -364,7 +364,12 @@ input[type="number"] {
     stroke: var(--canvas-stroke);
 }
 
-.canvas-grid path {
+.canvas-mask > rect {
+    fill: var(--theme-background-d);
+    pointer-events: none;
+}
+
+.canvas-grid pattern > path {
     fill: none;
     stroke-dasharray: 2px;
     stroke-width: 1px;

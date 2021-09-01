@@ -36,44 +36,61 @@
    [:text.canvas-text-outline (merge attrs) child]
    [:text.canvas-text attrs child]])
 
-(defn board-attrs [layer lighting privileged?]
-  (cond-> {}
-    (and (= layer :dark) privileged?)
-    (merge {:style {:filter "saturate(0%) brightness(20%)"}})
-    (= layer :dim)
-    (merge {:style {:filter "saturate(20%) brightness(50%)"}})
-    (and (= layer :dim) (= lighting :dark))
-    (merge {:clip-path "url(#clip-dim-light)"})
-    (and (= layer :bright) (not= lighting :bright))
-    (merge {:clip-path "url(#clip-bright-light)"})))
-
 (defn board [{:keys [image]}]
   (let [{:keys [data]} (uix/context context)
-        {:keys [viewer/privileged? viewer/workspace]} (query/viewer data)
-        {:keys [canvas/lighting]} workspace
+        {:keys [viewer/host? viewer/workspace]} (query/viewer data)
+        {:keys [canvas/lighting grid/size zoom/scale]} workspace
+        tokens (query/elements data :token)
         url (use-image (:image/checksum image))]
     (when (string? url)
-      (for [type (if privileged? [:dark :dim :bright] [:dim :bright])]
-        [:image (merge (board-attrs type lighting privileged?)
-                       {:x 0 :y 0 :href url}
-                       {:key type})]))))
+      [:g.canvas-image
+       (when (not (= lighting :bright))
+         [:defs
+          [:clipPath {:id "clip-light-bright"}
+           (for [token tokens :let [{[x y] :pos/vec [r _] :token/light} token] :when (> r 0)]
+             [:circle {:key (:db/id token) :cx x :cy y :r (+ (ft->px r size) (/ size 2))}])]
+          (when (= lighting :dark)
+            [:clipPath {:id "clip-light-dim"}
+             (for [token tokens :let [{[x y] :pos/vec [br dr] :token/light} token] :when (or (> br 0) (> dr 0))]
+               [:circle {:key (:db/id token) :cx x :cy y :r (+ (ft->px br size) (ft->px dr size) (/ size 2))}])])])
+       (when (and (= lighting :dark) host?)
+         [:image {:x 0 :y 0 :href url :style {:filter "saturate(0%) brightness(20%)"}}])
+       (when (not (= lighting :bright))
+         [:image {:x 0 :y 0 :href url :clip-path (when (= lighting :dark) "url(#clip-light-dim)") :style {:filter "saturate(20%) brightness(50%)"}}])
+       [:image {:x 0 :y 0 :href url :clip-path (when (not (= lighting :bright)) "url(#clip-light-bright)")}]])))
+
+(defn mask []
+  (let [{:keys [data workspace]} (uix/context context)
+        {:keys [viewer/host?]} (query/viewer data)
+        {:keys [canvas/lighting canvas/map]} workspace
+        {:keys [image/width image/height]} map]
+    (when (and (not host?) (= lighting :dark))
+      [:g.canvas-mask
+       [:defs
+        [:mask {:id "mask-light-all"}
+         [:rect {:x 0 :y 0 :width width :height height :fill "white"}]
+         [:rect {:x 0 :y 0 :width width :height height :clip-path "url(#clip-light-dim)" :fill "black"}]
+         [:rect {:x 0 :y 0 :width width :height height :clip-path "url(#clip-light-bright)" :fill "black"}]]]
+       [:rect {:x 0 :y 0 :width width :height height :mask "url(#mask-light-all)"}]])))
 
 (defn grid []
   (let [{:keys [data workspace]} (uix/context context)
-        {[_ _ w h] :bounds/self} (query/viewer data)
-        {[cx cy] :pos/vec size :grid/size} workspace
-        [sx sy ax ay bx]
-        [(- (* w -2) cx)
-         (- (* h -2) cy)
-         (- (* w  2) cx)
-         (- (* h  2) cy)
-         (- (* w -2) cx)]]
-    [:<>
-     [:defs
-      [:pattern.canvas-grid {:id "grid" :width size :height size :patternUnits "userSpaceOnUse"}
-       [:path
-        {:d (string/join " " ["M" 0 0 "H" size "V" size])}]]]
-     [:path {:d (string/join " " ["M" sx sy "H" ax "V" ay "H" bx "Z"]) :fill "url(#grid)"}]]))
+        {:keys [canvas/mode grid/show]} workspace]
+    (when (or (= mode :grid) show)
+      (let [{[_ _ w h] :bounds/self} (query/viewer data)
+            {[cx cy] :pos/vec size :grid/size} workspace
+            [sx sy ax ay bx]
+            [(- (* w -2) cx)
+             (- (* h -2) cy)
+             (- (* w  2) cx)
+             (- (* h  2) cy)
+             (- (* w -2) cx)]]
+        [:g {:class "canvas-grid"}
+         [:defs
+          [:pattern {:id "grid" :width size :height size :patternUnits "userSpaceOnUse"}
+           [:path
+            {:d (string/join " " ["M" 0 0 "H" size "V" size])}]]]
+         [:path {:d (string/join " " ["M" sx sy "H" ax "V" ay "H" bx "Z"]) :fill "url(#grid)"}]]))))
 
 (defmulti shape (fn [props] (:shape/kind (:element props))))
 
@@ -137,68 +154,43 @@
        (let [{patt :shape/pattern color :shape/color kind :shape/kind} element
              id (ds/squuid)]
          [:g
-          {:class
-           (css "canvas-shape"
-                (str "canvas-shape-" (name kind))
-                {"selected" (= element selected)})}
+          {:class (css "canvas-shape" (str "canvas-shape-" (name kind)) {"selected" (= element selected)})}
           [:defs [pattern {:id id :name patt :color color}]]
-          [shape {:element (into {} (ds/touch element))
-                  :attrs   {:fill (str "url(#" id ")")}}]])])))
+          [shape {:element (into {} (ds/touch element)) :attrs {:fill (str "url(#" id ")")}}]])])))
 
 (defn tokens [props]
   (let [{:keys [data workspace dispatch]} (uix/context context)
-        {:keys [canvas/lighting grid/size zoom/scale]} workspace
+        {:keys [grid/size zoom/scale canvas/map]} workspace
         elements (query/elements data :token)]
-    [:<>
-     (when (= lighting :dark)
-       [:defs
-        [:clipPath {:id "clip-dim-light"}
-         (for [token elements
-               :let [{[x y] :pos/vec [br dr] :token/light} token]
-               :when (or (> br 0) (> dr 0))]
-           [:circle {:key (:db/id token) :cx x :cy y
-                     :r (+ (ft->px br size) (ft->px dr size) (/ size 2))}])]])
-
-     (when-not (= lighting :bright)
-       [:defs
-        [:clipPath {:id "clip-bright-light"}
-         (for [token elements
-               :let [{[x y] :pos/vec [r _] :token/light} token]
-               :when (> r 0)]
-           [:circle {:key (:db/id token) :cx x :cy y
-                     :r (+ (ft->px r size) (/ size 2))}])]])
-
-     (for [token elements :let [{[x y] :pos/vec} token]]
-       [:> draggable
-        {:key      (:db/id token)
-         :position #js {:x x :y y}
-         :scale    scale
-         :on-start (fn [event] (.stopPropagation event))
-         :on-stop
-         (fn [event data]
-           (.stopPropagation event)
-           (let [dist (euclidean x y (.-x data) (.-y data))]
-             (if (= dist 0)
-               (dispatch :element/select (:db/id token))
-               (dispatch :token/translate (:db/id token) (.-x data) (.-y data)))))}
-        [:g.canvas-token {:class (css {:selected (= token (:canvas/selected workspace))})}
-
-         (let [{label :element/name {token-size :size} :token/size} token
-               radius (/ (ft->px token-size size) 2)]
-           [:g.canvas-token-shape
-            [:circle {:cx 0 :cy 0 :r (max (- radius 4) 8) :fill "#172125"}]
-            (when (seq label)
-              [text {:x 0 :y (+ radius 16) :text-anchor "middle" :fill "white"} label])])
-
-         (let [{:keys [aura/radius aura/label]} token
-               length  (-> (ft->px radius size) (+ (/ size 2)))
-               [cx cy] [(* (js/Math.cos 0.75) length)
-                        (* (js/Math.sin 0.75) length)]]
-           [:g.canvas-token-aura
-            (when (> radius 0)
-              [:circle {:cx 0 :cy 0 :r length}])
-            (when (and (> radius 0) (seq label))
-              [text {:x (+ cx 8) :y (+ cy 8)} label])])]])]))
+    (for [token elements :let [{[x y] :pos/vec} token]]
+      [:> draggable
+       {:key      (:db/id token)
+        :position #js {:x x :y y}
+        :scale    scale
+        :on-start (fn [event] (.stopPropagation event))
+        :on-stop
+        (fn [event data]
+          (.stopPropagation event)
+          (let [dist (euclidean x y (.-x data) (.-y data))]
+            (if (= dist 0)
+              (dispatch :element/select (:db/id token))
+              (dispatch :token/translate (:db/id token) (.-x data) (.-y data)))))}
+       [:g.canvas-token {:class (css {:selected (= token (:canvas/selected workspace))})}
+        (let [{label :element/name {token-size :size} :token/size} token
+              radius (/ (ft->px token-size size) 2)]
+          [:g.canvas-token-shape
+           [:circle {:cx 0 :cy 0 :r (max (- radius 4) 8) :fill "#172125"}]
+           (when (seq label)
+             [text {:x 0 :y (+ radius 16) :text-anchor "middle" :fill "white"} label])])
+        (let [{:keys [aura/radius aura/label]} token
+              length  (-> (ft->px radius size) (+ (/ size 2)))
+              [cx cy] [(* (js/Math.cos 0.75) length)
+                       (* (js/Math.sin 0.75) length)]]
+          [:g.canvas-token-aura
+           (when (> radius 0)
+             [:circle {:cx 0 :cy 0 :r length}])
+           (when (and (> radius 0) (seq label))
+             [text {:x (+ cx 8) :y (+ cy 8)} label])])]])))
 
 (defn drawable [{:keys [on-release]} render-fn]
   (let [{:keys [data]} (uix/context context)
@@ -338,7 +330,8 @@
 
 (defn canvas [props]
   (let [{:keys [data workspace dispatch]} (uix/context context)
-        {:keys [pos/vec grid/show canvas/mode canvas/map canvas/theme zoom/scale]} workspace
+        {:keys [pos/vec canvas/mode canvas/map canvas/theme zoom/scale]} workspace
+        {:keys [image/width image/height]} map
         {:keys [viewer/privileged? viewer/host?]
          [_ _ hw hh] :bounds/host
          [_ _ gw gh] :bounds/guest} (query/viewer data)
@@ -359,10 +352,10 @@
        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
        [:g.canvas-board {:transform (str "scale(" scale ") translate(" tx ", " ty ")")}
         [board {:key (:image/checksum map) :image map}]
-        (when (or (= mode :grid) show)
-          [grid])
+        [grid]
         [shapes]
-        [tokens]]
+        [tokens]
+        [mask]]
 
        [:g.canvas-drawable {:class (css (str "canvas-drawable-" (name mode)))}
         [draw {:mode mode}]]]]
