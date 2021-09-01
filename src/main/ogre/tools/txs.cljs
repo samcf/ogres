@@ -22,7 +22,8 @@
    :canvas/elements  {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :canvas/map       {:db/valueType :db.type/ref}
    :canvas/selected  {:db/valueType :db.type/ref}
-   :image/checksum   {:db/index true}})
+   :image/checksum   {:db/index true}
+   :element/flags    {:db/cardinality :db.cardinality/many}})
 
 (defn initial-data []
   (ds/db-with
@@ -125,6 +126,13 @@
 (defmethod transact :element/remove
   [data event token]
   [[:db/retractEntity token]])
+
+(defmethod transact :element/flag
+  [data event id flag]
+  (let [{:keys [element/flags]} (ds/entity data id)]
+    (if (contains? flags flag)
+      [[:db/retract id :element/flags flag]]
+      [[:db/add id :element/flags flag]])))
 
 (defmethod transact :view/clear
   [data]

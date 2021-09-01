@@ -7,6 +7,13 @@
             [ogre.tools.render.pattern :refer [pattern]]
             [ogre.tools.query :as query]))
 
+(def statuses
+  [:player :hidden :darkvision :blinded
+   :charmed :defeaned :exhausted :frightened
+   :grappled :incapacitated :invisible :paralyzed
+   :petrified :poisoned :prone :restrained
+   :stunned :unconscious])
+
 (def colors
   ["#182125" "#f2f2f2" "#f44336" "#e91e63"
    "#9c27b0" "#673ab7" "#3f51b5" "#2196f3"
@@ -24,6 +31,12 @@
   (let [id (str (:name props) ":" (:value props))]
     [:div
      [:input (merge props {:id id :type "radio" :class "ogre-radio-button"})]
+     [:label {:for id} child]]))
+
+(defn check-button [props child]
+  (let [id (str (:name props) "/" (:value props))]
+    [:div
+     [:input (merge props {:id id :type "checkbox" :class "ogre-radio-button"})]
      [:label {:for id} child]]))
 
 (defn load-image [file handler]
@@ -64,6 +77,8 @@
         {:type "text"
          :placeholder "Workspace name"
          :autoFocus true
+         :maxLength 24
+         :spellcheck "false"
          :value (or (:element/name workspace) "")
          :on-change
          (fn [event]
@@ -120,7 +135,7 @@
 
 (defn token [props]
   (let [{:keys [workspace dispatch]} (uix/context context)
-        {:keys [db/id element/name] :as token} (:canvas/selected workspace)]
+        {:keys [db/id element/name element/flags] :as token} (:canvas/selected workspace)]
     [:div.options.options-token {:key id}
      [:section
       [:input
@@ -130,12 +145,25 @@
         :placeholder "Label"
         :maxLength 24
         :autoFocus true
+        :spellcheck "false"
         :on-change
         (fn [event]
           (let [value (.. event -target -value)]
             (dispatch :element/update id :element/name value)))}]
       [:button {:type "button" :on-click #(dispatch :element/remove id) :style {:margin-right "8px"}} "♼"]
       [:button {:type "button" :on-click #(dispatch :element/select id)} "×"]]
+     [:section
+      [:header "Size"]
+      [:div.options-token-sizes
+       (for [[name size] [[:tiny 2.5] [:small 5] [:medium 5] [:large 10] [:huge 15] [:gargantuan 20]]
+             :let [checked (= name (:name (:token/size token)))]]
+         [radio-button
+          {:key name
+           :name "token/size"
+           :value name
+           :checked checked
+           :on-change #(dispatch :token/change-size id name size)}
+          (string/capitalize (clojure.core/name name))])]]
      [:section
       [:header "Light"]
       [:div.options-token-lights
@@ -150,18 +178,16 @@
            :on-change #(dispatch :token/change-light id bright dim)}
           (str bright " ft. / " dim " ft.")])]]
      [:section
-      [:header "Size"]
-      [:div.options-token-sizes
-       (for [[name size] [[:tiny 2.5] [:small 5] [:medium 5] [:large 10] [:huge 15] [:gargantuan 20]]
-             :let [checked (= name (:name (:token/size token)))]]
-         [radio-button
-          {:key name
-           :name "token/size"
-           :value name
+      [:header "Status & Conditions"]
+      [:div.options-token-conditions
+       (for [flag statuses :let [checked (contains? flags flag)]]
+         [check-button
+          {:key flag
+           :name "token.flag"
+           :value flag
            :checked checked
-           :on-change #(dispatch :token/change-size id name size)}
-          (string/capitalize (clojure.core/name name))])]]
-
+           :on-change #(dispatch :element/flag id flag)}
+          (clojure.string/capitalize (clojure.core/name flag))])]]
      (let [{:keys [aura/label aura/radius aura/color]} token]
        [:section
         [:header "Aura"]
@@ -170,6 +196,8 @@
           {:type "text"
            :placeholder "Label"
            :value (or label "")
+           :maxLength 24
+           :spellcheck "false"
            :on-change #(dispatch :aura/change-label id (.. % -target -value))}]]
         [:div.options-token-auras
          (for [radius [0 10 15 20 30 60] :let [checked (= radius (:aura/radius token))]]
@@ -191,6 +219,7 @@
         :value (or name "")
         :placeholder "Label"
         :auto-focus true
+        :spellcheck "false"
         :style {:flex 1 :margin-right "8px"}
         :on-change
         (fn [event]

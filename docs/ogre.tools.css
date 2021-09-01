@@ -463,6 +463,12 @@ input[type="number"] {
     grid-gap: 4px;
 }
 
+.options-token-conditions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 4px;
+}
+
 .options-token-lights {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
