@@ -25,29 +25,30 @@ This is a **work in progress** and not intended for serious usage at this time. 
   - [x] Change grid size manually
   - [x] Change grid size by drawing a square over a tile
   - [x] Toggle grid display on and off
-  - [ ] Keyboard shortcuts to adjust grid size and origin
-  - [ ] Use filename to influence grid size (ex. `"duergar-castle-22x36.jpg"`)
+  - [ ] Infer grid size from filename and image size
 - Tokens
   - [x] Create and manage tokens on the canvas
   - [x] Change token size
   - [x] Show aura radius and label
-  - [ ] Upload and manage images for tokens
-  - [ ] Define new token templates
-  - [ ] Default token templates
   - [ ] Select and manage multiple tokens
+  - [ ] Default set of token images
+  - [ ] Upload your own token images
+  - [ ] Define new token templates
 - Drawing Shapes
   - [x] Draw circles, rectangles, cones, and lines
   - [x] Update the color, opacity, pattern, and positions of drawn shapes
-  - [ ] Draw custom polygons defined by a path
 - Visibility and Screen Sharing
   - [x] Bright, dim, and dark lighting conditions
   - [x] Tokens can emit bright and dim light
-  - [ ] Pop-out window suitable for screen sharing
+  - [x] Pop-out window suitable for screen sharing
+  - [x] Tokens may be hidden in dark lighting
   - [ ] Hide and reveal areas by drawing on the map
-  - [ ] Tokens may be hidden in dark and dim lighting
 - Data
   - [x] Reset the local workspace data
   - [ ] Export and import workspace data
+- Other Features
+  - [ ] Simple initiative tracker
+  - [ ] Keyboard and mouse shortcuts
 
 ### Contributing
 This project is licensed under the [GNU AGPLv3](https://choosealicense.com/licenses/agpl-3.0/) to ensure that any changes made to the project are freely available to all users.
