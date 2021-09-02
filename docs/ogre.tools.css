@@ -468,7 +468,7 @@ input[type="number"] {
     grid-gap: 4px;
 }
 
-.options-token-conditions {
+.options-token-flags {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-gap: 4px;

@@ -47,7 +47,7 @@
     [:db/add -2 :zoom/scales [0.5 0.75 1 1.25 1.50]]
     [:db/add -2 :zoom/scale 1]
     [:db/add -3 :element/type :token]
-    [:db/add -3 :token/light [0 5]]
+    [:db/add -3 :token/light [5 5]]
     [:db/add -3 :token/size {:name :medium :size 5}]
     [:db/add -3 :aura/label ""]
     [:db/add -3 :aura/radius 0]]))

@@ -7,12 +7,19 @@
             [ogre.tools.render.pattern :refer [pattern]]
             [ogre.tools.query :as query]))
 
-(def statuses
-  [:player :hidden :darkvision :blinded
-   :charmed :defeaned :exhausted :frightened
-   :grappled :incapacitated :invisible :paralyzed
-   :petrified :poisoned :prone :restrained
-   :stunned :unconscious])
+(def light-sources
+  [["None" 0 0]
+   ["Candle" 5 5]
+   ["Torch" 20 20]
+   ["Lamp" 15 30]
+   ["Lantern" 30 30]])
+
+(def conditions
+  [:blinded :charmed :defeaned
+   :exhausted :frightened :grappled
+   :incapacitated :invisible :paralyzed
+   :petrified :poisoned :prone
+   :restrained :stunned :unconscious])
 
 (def colors
   ["#182125" "#f2f2f2" "#f44336" "#e91e63"
@@ -153,6 +160,16 @@
       [:button {:type "button" :on-click #(dispatch :element/remove id) :style {:margin-right "8px"}} "♼"]
       [:button {:type "button" :on-click #(dispatch :element/select id)} "×"]]
      [:section
+      [:div.options-token-flags
+       (for [flag [:player :hidden :darkvision]]
+         [check-button
+          {:key flag
+           :name "token/flag"
+           :value flag
+           :checked (contains? flags flag)
+           :on-change #(dispatch :element/flag id flag)}
+          (string/capitalize (clojure.core/name flag))])]]
+     [:section
       [:header "Size"]
       [:div.options-token-sizes
        (for [[name size] [[:tiny 2.5] [:small 5] [:medium 5] [:large 10] [:huge 15] [:gargantuan 20]]
@@ -167,27 +184,26 @@
      [:section
       [:header "Light"]
       [:div.options-token-lights
-       (for [[bright dim] [[0 0] [0 5] [5 5] [10 10] [15 30] [20 20] [30 30] [40 40] [60 60]]
-             :let [checked (= [bright dim] (:token/light token))
-                   key (str bright ":" dim)]]
+       (for [[name bright dim] light-sources
+             :let [checked (= [bright dim] (:token/light token))]]
          [radio-button
-          {:key key
+          {:key name
            :name "token/light"
-           :value key
+           :value name
            :checked checked
            :on-change #(dispatch :token/change-light id bright dim)}
-          (str bright " ft. / " dim " ft.")])]]
+          name])]]
      [:section
-      [:header "Status & Conditions"]
-      [:div.options-token-conditions
-       (for [flag statuses :let [checked (contains? flags flag)]]
+      [:header "Conditions"]
+      [:div.options-token-flags
+       (for [flag conditions :let [checked (contains? flags flag)]]
          [check-button
           {:key flag
            :name "token.flag"
            :value flag
            :checked checked
            :on-change #(dispatch :element/flag id flag)}
-          (clojure.string/capitalize (clojure.core/name flag))])]]
+          (string/capitalize (clojure.core/name flag))])]]
      (let [{:keys [aura/label aura/radius aura/color]} token]
        [:section
         [:header "Aura"]
