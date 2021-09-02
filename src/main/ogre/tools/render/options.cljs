@@ -78,7 +78,7 @@
          :placeholder "Workspace name"
          :autoFocus true
          :maxLength 24
-         :spellcheck "false"
+         :spellCheck "false"
          :value (or (:element/name workspace) "")
          :on-change
          (fn [event]
@@ -145,7 +145,7 @@
         :placeholder "Label"
         :maxLength 24
         :autoFocus true
-        :spellcheck "false"
+        :spellCheck "false"
         :on-change
         (fn [event]
           (let [value (.. event -target -value)]
@@ -197,7 +197,7 @@
            :placeholder "Label"
            :value (or label "")
            :maxLength 24
-           :spellcheck "false"
+           :spellCheck "false"
            :on-change #(dispatch :aura/change-label id (.. % -target -value))}]]
         [:div.options-token-auras
          (for [radius [0 10 15 20 30 60] :let [checked (= radius (:aura/radius token))]]
@@ -219,7 +219,7 @@
         :value (or name "")
         :placeholder "Label"
         :auto-focus true
-        :spellcheck "false"
+        :spellCheck "false"
         :style {:flex 1 :margin-right "8px"}
         :on-change
         (fn [event]
