@@ -36,6 +36,10 @@
    [:text.canvas-text-outline (merge attrs) child]
    [:text.canvas-text attrs child]])
 
+(defn visible? [token]
+  (let [{:keys [element/flags]} token]
+    (or (nil? flags) (flags :player) (not (some flags [:hidden :invisible])))))
+
 (defn board [{:keys [image]}]
   (let [{:keys [data]} (uix/context context)
         {:keys [viewer/host? viewer/workspace]} (query/viewer data)
@@ -47,11 +51,13 @@
        (when (not (= lighting :bright))
          [:defs
           [:clipPath {:id "clip-light-bright"}
-           (for [token tokens :let [{[x y] :pos/vec [r _] :token/light} token] :when (> r 0)]
+           (for [token tokens :let [{[x y] :pos/vec [r _] :token/light} token]
+                 :when (and (> r 0) (or host? (visible? token)))]
              [:circle {:key (:db/id token) :cx x :cy y :r (+ (ft->px r size) (/ size 2))}])]
           (when (= lighting :dark)
             [:clipPath {:id "clip-light-dim"}
-             (for [token tokens :let [{[x y] :pos/vec [br dr] :token/light} token] :when (or (> br 0) (> dr 0))]
+             (for [token tokens :let [{[x y] :pos/vec [br dr] :token/light} token]
+                   :when (and (or (> br 0) (> dr 0)) (or host? (visible? token)))]
                [:circle {:key (:db/id token) :cx x :cy y :r (+ (ft->px br size) (ft->px dr size) (/ size 2))}])])])
        (when (and (= lighting :dark) host?)
          [:image {:x 0 :y 0 :href url :style {:filter "saturate(0%) brightness(20%)"}}])
@@ -160,9 +166,10 @@
 
 (defn tokens [props]
   (let [{:keys [data workspace dispatch]} (uix/context context)
+        {:keys [viewer/host?]} (query/viewer data)
         {:keys [grid/size zoom/scale canvas/map]} workspace
         elements (query/elements data :token)]
-    (for [token elements :let [{[x y] :pos/vec} token]]
+    (for [token elements :let [{[x y] :pos/vec} token] :when (or host? (visible? token))]
       [:> draggable
        {:key      (:db/id token)
         :position #js {:x x :y y}
@@ -175,7 +182,9 @@
             (if (= dist 0)
               (dispatch :element/select (:db/id token))
               (dispatch :token/translate (:db/id token) (.-x data) (.-y data)))))}
-       [:g.canvas-token {:class (css {:selected (= token (:canvas/selected workspace))})}
+       [:g.canvas-token
+        {:class (css {:selected (= token (:canvas/selected workspace))}
+                     (mapv #(str "flag--" (name %)) (:element/flags token)))}
         (let [{label :element/name {token-size :size} :token/size} token
               radius (/ (ft->px token-size size) 2)]
           [:g.canvas-token-shape

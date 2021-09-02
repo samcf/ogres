@@ -341,6 +341,11 @@ input[type="number"] {
     stroke-linecap: round;
 }
 
+.canvas-token.flag--hidden circle,
+.canvas-token.flag--invisible circle {
+    fill-opacity: 0.30;
+}
+
 .canvas-drawable line,
 .canvas-drawable path,
 .canvas-drawable polygon,
