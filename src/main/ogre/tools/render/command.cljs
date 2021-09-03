@@ -8,11 +8,11 @@
   [[:select :cursor 20 "Select"]
    [:canvas :image 18 "Canvas Options"]
    [:grid :grid 21 "Grid Options"]
-   [:ruler :ruler 20 "Ruler Tool"]
+   [:ruler :rulers 20 "Ruler Tool"]
    [:circle :circle 20 "Draw Circle"]
-   [:rect :rect 20 "Draw Rectangle"]
-   [:cone :cone 20 "Draw Cone"]
-   [:line :line 20 "Draw Line"]])
+   [:rect :square 20 "Draw Rectangle"]
+   [:cone :triangle 20 "Draw Cone"]
+   [:line :slash-lg 20 "Draw Line"]])
 
 (defn command [props]
   (let [{:keys [data workspace dispatch]} (uix/context context)
@@ -28,10 +28,10 @@
       {:type "button" :title "Toggle Grid" :class (css {:selected show}) :on-click #(dispatch :grid/toggle)}
       [:div.grid]]
      [:button
-      {:type "button" :title "Toggle Foreground" :on-click #(dispatch :canvas/toggle-theme)}
+      {:type "button" :title "Toggle Theme" :on-click #(dispatch :canvas/toggle-theme)}
       (if (= theme :dark)
-        [icon {:name :layer-dark :width 20 :height 20}]
-        [icon {:name :layer-light :width 20 :height 20}])]
+        [icon {:name :back :width 20 :height 20}]
+        [icon {:name :front :width 20 :height 20}])]
      [:button
       {:type "button" :title "Zoom Out" :on-click #(dispatch :zoom/out)}
       [icon {:name :zoom-out :width 18 :height 18}]]
@@ -46,8 +46,8 @@
       {:type "button" :title "Pause/Play" :class (css {:selected false})
        :disabled (not (:share/open? viewer)) :on-click #(dispatch :share/switch)}
       (if (:share/paused? viewer)
-        [icon {:name :play :width 24 :height 24}]
-        [icon {:name :pause :width 24 :height 24}])]
+        [icon {:name :play-fill :width 24 :height 24}]
+        [icon {:name :pause-fill :width 24 :height 24}])]
      [:a {:href "https://www.github.com/samcf/ogre.tools" :title "Project home" :target "_blank"}
       [:button {:type "button"}
        [icon {:name :github :width 20 :height 20}]]]
