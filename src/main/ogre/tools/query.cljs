@@ -4,6 +4,9 @@
 (defn viewer [data]
   (ds/entity data [:db/ident :viewer]))
 
+(defn host? [data]
+  (-> data (ds/entity [:db/ident :viewer]) :viewer/host?))
+
 (defn workspace [data]
   (:viewer/workspace (ds/entity data [:db/ident :viewer])))
 

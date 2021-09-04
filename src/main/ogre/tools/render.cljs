@@ -1,9 +1,8 @@
 (ns ogre.tools.render
   (:require [clojure.string :as string]
-            [uix.core.alpha :as uix :refer [defcontext]]
-            [datascript.core :as ds]))
-
-(defcontext context)
+            [ogre.tools.state :refer [state]]
+            [ogre.tools.storage :refer [storage]]
+            [uix.core.alpha :as uix]))
 
 (defn css [& class-names]
   (->> (reduce (fn [names value]
@@ -23,7 +22,8 @@
 
 (defn use-image [checksum]
   (let [url (uix/state nil)
-        {:keys [data store]} (uix/context context)]
+        {:keys [data]} (uix/context state)
+        {:keys [store]} (uix/context storage)]
     (when (and (string? checksum) (nil? @url))
       (-> (.get (.table store "images") checksum)
           (.then

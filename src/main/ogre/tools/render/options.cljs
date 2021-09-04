@@ -1,11 +1,12 @@
 (ns ogre.tools.render.options
   (:import goog.crypt.Md5)
-  (:require [clojure.string :as string]
-            [uix.core.alpha :as uix]
-            [datascript.core :as ds]
-            [ogre.tools.render :refer [css context use-image]]
-            [ogre.tools.render.pattern :refer [pattern]]
-            [ogre.tools.query :as query]))
+  (:require  [clojure.string :as string]
+             [ogre.tools.query :as query]
+             [ogre.tools.render :refer [css use-image]]
+             [ogre.tools.render.pattern :refer [pattern]]
+             [ogre.tools.state :refer [state]]
+             [ogre.tools.storage :refer [storage]]
+             [uix.core.alpha :as uix]))
 
 (def light-sources
   [["None" 0 0]
@@ -76,7 +77,8 @@
          (on-remove))} "×"]]))
 
 (defn canvas []
-  (let [{:keys [data workspace dispatch store]} (uix/context context)]
+  (let [{:keys [data workspace dispatch]} (uix/context state)
+        {:keys [store]} (uix/context storage)]
     [:div.options.options-canvas
      [:section
       [:label {:style {:flex 1 :margin-right "8px"}}
@@ -141,7 +143,7 @@
            (string/capitalize (name option))])]]]]))
 
 (defn token [props]
-  (let [{:keys [workspace dispatch]} (uix/context context)
+  (let [{:keys [workspace dispatch]} (uix/context state)
         {:keys [db/id element/name element/flags] :as token} (:canvas/selected workspace)]
     [:div.options.options-token {:key id}
      [:section
@@ -226,7 +228,7 @@
             (if (= radius 0) "None" (str radius " ft."))])]])]))
 
 (defn shape [props]
-  (let [{:keys [workspace dispatch]} (uix/context context)
+  (let [{:keys [workspace dispatch]} (uix/context state)
         {:keys [db/id element/name] :as shape} (:canvas/selected workspace)]
     [:div.options.options-shape {:key id}
      [:section
@@ -287,7 +289,7 @@
         :step 0.25}]]]))
 
 (defn grid [{:keys [workspace]}]
-  (let [{:keys [workspace dispatch]} (uix/context context)
+  (let [{:keys [workspace dispatch]} (uix/context state)
         {:keys [grid/size]} workspace]
     [:div.options.options-grid
      [:section
@@ -309,7 +311,7 @@
              the map. If its not quite right, edit the size above manually."]]]))
 
 (defn options []
-  (let [{:keys [workspace]} (uix/context context)
+  (let [{:keys [workspace]} (uix/context state)
         {:keys [canvas/mode canvas/selected]} workspace]
     (cond
       (= mode :canvas) [canvas]

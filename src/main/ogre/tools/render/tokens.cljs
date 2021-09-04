@@ -1,11 +1,11 @@
 (ns ogre.tools.render.tokens
-  (:require [uix.core.alpha :as uix]
+  (:require [ogre.tools.query :as query]
+            [ogre.tools.state :refer [state]]
             [react-draggable :as draggable]
-            [ogre.tools.render :refer [context]]
-            [ogre.tools.query :as query]))
+            [uix.core.alpha :as uix]))
 
 (defn tokens [props]
-  (let [{:keys [data workspace dispatch]} (uix/context context)
+  (let [{:keys [data workspace dispatch]} (uix/context state)
         {[px py _ _] :bounds/self} (query/viewer data)
         {scale :zoom/scale [tx ty] :pos/vec} workspace]
     [:div.tokens

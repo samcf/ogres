@@ -1,10 +1,11 @@
 (ns ogre.tools.render.workspaces
-  (:require [uix.core.alpha :as uix]
-            [ogre.tools.render :refer [context css]]
-            [ogre.tools.query :as query]))
+  (:require [ogre.tools.query :as query]
+            [ogre.tools.render :refer [css]]
+            [ogre.tools.state :refer [state]]
+            [uix.core.alpha :as uix]))
 
 (defn workspaces [props]
-  (let [{:keys [data dispatch] :as context} (uix/context context)]
+  (let [{:keys [data dispatch] :as context} (uix/context state)]
     [:div.workspaces
      (for [workspace (query/workspaces data) :let [id (:db/id workspace)]]
        [:div {:key id :class (css {:selected (= (:workspace context) workspace)})}

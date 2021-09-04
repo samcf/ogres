@@ -1,8 +1,9 @@
 (ns ogre.tools.render.command
-  (:require [uix.core.alpha :as uix]
-            [datascript.core :as ds]
-            [ogre.tools.render :refer [context css]]
-            [ogre.tools.render.icon :refer [icon]]))
+  (:require [ogre.tools.query :as query]
+            [ogre.tools.render :refer [css]]
+            [ogre.tools.render.icon :refer [icon]]
+            [ogre.tools.state :refer [state]]
+            [uix.core.alpha :as uix]))
 
 (def modes
   [[:select :cursor 20 "Select"]
@@ -15,9 +16,9 @@
    [:line :slash-lg 20 "Draw Line"]])
 
 (defn command [props]
-  (let [{:keys [data workspace dispatch]} (uix/context context)
+  (let [{:keys [data workspace dispatch]} (uix/context state)
         {show :grid/show current :canvas/mode theme :canvas/theme} workspace
-        viewer (ds/entity data [:db/ident :viewer])]
+        viewer (query/viewer data)]
     [:div.commands
      (for [[mode name size title] modes]
        [:button

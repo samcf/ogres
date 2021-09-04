@@ -1,11 +1,12 @@
 (ns ogre.tools.render.canvas
   (:require [clojure.string :as string]
             [datascript.core :as ds]
-            [uix.core.alpha :as uix]
-            [react-draggable :as draggable]
-            [ogre.tools.render :refer [context css use-image]]
+            [ogre.tools.query :as query]
+            [ogre.tools.render :refer [css use-image]]
             [ogre.tools.render.pattern :refer [pattern]]
-            [ogre.tools.query :as query]))
+            [ogre.tools.state :refer [state]]
+            [react-draggable :as draggable]
+            [uix.core.alpha :as uix]))
 
 (defn ft->px [ft size]
   (-> (/ ft 5) (* size)))
@@ -41,7 +42,7 @@
     (or (nil? flags) (flags :player) (not (some flags [:hidden :invisible])))))
 
 (defn board [{:keys [image]}]
-  (let [{:keys [data]} (uix/context context)
+  (let [{:keys [data]} (uix/context state)
         {:keys [viewer/host? viewer/workspace]} (query/viewer data)
         {:keys [canvas/lighting grid/size zoom/scale]} workspace
         tokens (query/elements data :token)
@@ -66,7 +67,7 @@
        [:image {:x 0 :y 0 :href url :clip-path (when (not (= lighting :bright)) "url(#clip-light-bright)")}]])))
 
 (defn mask []
-  (let [{:keys [data workspace]} (uix/context context)
+  (let [{:keys [data workspace]} (uix/context state)
         {:keys [viewer/host?]} (query/viewer data)
         {:keys [canvas/lighting canvas/map]} workspace
         {:keys [image/width image/height]} map]
@@ -80,7 +81,7 @@
        [:rect {:x 0 :y 0 :width width :height height :mask "url(#mask-light-all)"}]])))
 
 (defn grid []
-  (let [{:keys [data workspace]} (uix/context context)
+  (let [{:keys [data workspace]} (uix/context state)
         {:keys [canvas/mode grid/show]} workspace]
     (when (or (= mode :grid) show)
       (let [{[_ _ w h] :bounds/self} (query/viewer data)
@@ -140,7 +141,7 @@
        :stroke color})]))
 
 (defn shapes [props]
-  (let [{:keys [data workspace dispatch]} (uix/context context)
+  (let [{:keys [data workspace dispatch]} (uix/context state)
         {:keys [zoom/scale canvas/selected]} workspace
         elements (query/elements data :shape)]
     (for [element elements :let [[x y] (:pos/vec element)]]
@@ -165,7 +166,7 @@
           [shape {:element (into {} (ds/touch element)) :attrs {:fill (str "url(#" id ")")}}]])])))
 
 (defn tokens [props]
-  (let [{:keys [data workspace dispatch]} (uix/context context)
+  (let [{:keys [data workspace dispatch]} (uix/context state)
         {:keys [viewer/host?]} (query/viewer data)
         {:keys [grid/size zoom/scale canvas/map]} workspace
         elements (query/elements data :token)]
@@ -202,7 +203,7 @@
              [text {:x (+ cx 8) :y (+ cy 8)} label])])]])))
 
 (defn drawable [{:keys [on-release]} render-fn]
-  (let [{:keys [data]} (uix/context context)
+  (let [{:keys [data]} (uix/context state)
         {[x y w h] :bounds/self} (query/viewer data)
         points (uix/state nil)]
     [:<>
@@ -230,7 +231,7 @@
 (defmulti draw :mode)
 
 (defmethod draw :grid [props]
-  (let [{:keys [workspace dispatch]} (uix/context context)
+  (let [{:keys [workspace dispatch]} (uix/context state)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
      {:on-release
@@ -249,7 +250,7 @@
                (str "px"))]]))]))
 
 (defmethod draw :ruler [props]
-  (let [{:keys [workspace]} (uix/context context)
+  (let [{:keys [workspace]} (uix/context state)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
      {:on-release identity}
@@ -262,7 +263,7 @@
              (str "ft."))]])]))
 
 (defmethod draw :circle [props]
-  (let [{:keys [workspace dispatch]} (uix/context context)
+  (let [{:keys [workspace dispatch]} (uix/context state)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
      {:on-release
@@ -278,7 +279,7 @@
            (-> radius (px->ft (* size scale)) (str "ft. radius"))]]))]))
 
 (defmethod draw :rect [props]
-  (let [{:keys [workspace dispatch]} (uix/context context)
+  (let [{:keys [workspace dispatch]} (uix/context state)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
      {:on-release
@@ -295,7 +296,7 @@
            (str w "ft. x " h "ft."))]])]))
 
 (defmethod draw :line [props]
-  (let [{:keys [workspace dispatch]} (uix/context context)
+  (let [{:keys [workspace dispatch]} (uix/context state)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
      {:on-release
@@ -311,7 +312,7 @@
              (str "ft."))]])]))
 
 (defmethod draw :cone [props]
-  (let [{:keys [workspace dispatch]} (uix/context context)
+  (let [{:keys [workspace dispatch]} (uix/context state)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
      {:on-release
@@ -330,7 +331,7 @@
 (defmethod draw :default [] nil)
 
 (defn bounds []
-  (let [{:keys [data]} (uix/context context)
+  (let [{:keys [data]} (uix/context state)
         {[_ _ hw hh] :bounds/host
          [_ _ gw gh] :bounds/guest} (query/viewer data)
         [ox oy] [(/ (- hw gw) 2) (/ (- hh gh) 2)]]
@@ -338,7 +339,7 @@
      [:path {:d (string/join " " ["M" 0 0 "H" gw "V" gh "H" 0 "Z"])}]]))
 
 (defn canvas [props]
-  (let [{:keys [data workspace dispatch]} (uix/context context)
+  (let [{:keys [data workspace dispatch]} (uix/context state)
         {:keys [pos/vec canvas/mode canvas/map canvas/theme zoom/scale]} workspace
         {:keys [image/width image/height]} map
         {:keys [viewer/privileged? viewer/host?]
