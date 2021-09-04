@@ -6,9 +6,9 @@
              [ogre.tools.window :as window]))
 
 (defn root []
-  [state/provider
-   [storage/provider
-    [errors/boundary
+  [errors/boundary
+   [state/provider
+    [storage/provider
      [:<>
       [storage/unmarshaller]
       [storage/marshaller]
