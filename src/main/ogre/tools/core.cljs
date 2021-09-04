@@ -1,11 +1,23 @@
 (ns ogre.tools.core
-  (:require [uix.core.alpha :as uix]
-            [uix.dom.alpha :as uix.dom]
-            [ogre.tools.root :refer [root]]))
+  (:require [ogre.tools.errors :as errors]
+            [ogre.tools.render.layout :refer [layout]]
+            [ogre.tools.state :as state]
+            [ogre.tools.storage :as storage]
+            [ogre.tools.window :as window]
+            [uix.dom.alpha :as uix.dom]))
+
+(defn root []
+  [errors/boundary
+   [state/provider
+    [storage/provider
+     [:<>
+      [storage/handlers]
+      [window/provider]
+      [layout]]]]])
 
 (defn main []
-  (.removeEventListener js/window "DOMContentLoaded" main)
   (let [element (.querySelector js/document "#root")]
     (uix.dom/render [root] element)))
 
-(.addEventListener js/window "DOMContentLoaded" main)
+(defonce _
+  (do (.addEventListener js/window "DOMContentLoaded" main)))

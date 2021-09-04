@@ -1,6 +1,5 @@
 (ns ogre.tools.storage
-  (:require [ogre.tools.state :refer [state]]
-            [ogre.tools.txs :refer [schema]]
+  (:require [ogre.tools.state :refer [schema state]]
             [ogre.tools.query :as query]
             [uix.core.alpha :as uix :refer [defcontext]]
             [datascript.core :as ds]
@@ -81,8 +80,8 @@
        (fn [] (ds/unlisten! conn :marshaller))) [loaded?]) nil))
 
 (defn handlers
-  "Event handlers to perform side effects, such as resetting the IndexedDB
-   store and reloading the page." []
+  "Registers event handlers related to IndexedDB, such as those involved in
+   saving and loading the application state." []
   (let [{:keys [conn]} (uix/context state)
         {:keys [store]} (uix/context storage)]
     (uix/effect!
@@ -92,7 +91,10 @@
         (fn [{[event _ _] :tx-meta}]
           (when (= event :storage/reset)
             (do (.delete store)
-                (.reload (.-location js/window))))))) [nil]) nil))
+                (.reload (.-location js/window))))))) [nil])
+    [:<>
+     [unmarshaller]
+     [marshaller]]))
 
 (defn provider
   "Provides an instance of the Dexie object, a convenience wrapper around
