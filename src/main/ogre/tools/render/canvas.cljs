@@ -33,9 +33,7 @@
      (+ ay (* hyp (js/Math.sin (- rad 0.46))))]))
 
 (defn text [attrs child]
-  [:<>
-   [:text.canvas-text-outline (merge attrs) child]
-   [:text.canvas-text attrs child]])
+  [:text.canvas-text attrs child])
 
 (defn visible? [token]
   (let [{:keys [element/flags]} token]
