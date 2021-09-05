@@ -34,10 +34,10 @@
         [icon {:name :back :width 20 :height 20}]
         [icon {:name :front :width 20 :height 20}])]
      [:button
-      {:type "button" :title "Zoom Out" :on-click #(dispatch :zoom/out)}
+      {:type "button" :title "Zoom Out" :on-click #(dispatch :zoom/out 0 0)}
       [icon {:name :zoom-out :width 18 :height 18}]]
      [:button
-      {:type "button" :title "Zoom In" :on-click #(dispatch :zoom/in)}
+      {:type "button" :title "Zoom In" :on-click #(dispatch :zoom/in 0 0)}
       [icon {:name :zoom-in :width 18 :height 18}]]
      [:button
       {:type "button" :title "Toggle Player Window" :class (css {:selected (:share/open? viewer)})

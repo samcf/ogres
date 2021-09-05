@@ -24,7 +24,7 @@
    :grid/size 70
    :grid/origin [0 0]
    :grid/show true
-   :zoom/scales [0.5 0.75 1 1.25 1.50]
+   :zoom/scales [0.25 0.5 0.75 1 (/ 1 0.75) (/ 1 0.50) (/ 1 0.25)]
    :zoom/scale 1})
 
 (defmulti transact
@@ -191,17 +191,31 @@
     [[:db/add id :canvas/lighting level]]))
 
 (defmethod transact :zoom/step
-  [data event step]
-  (let [{:keys [db/id zoom/scale zoom/scales]} (query/workspace data)]
-    [[:db/add id :zoom/scale (-> (find-index scales scale) (+ step)
+  [data event step mx my]
+  (let [workspace (query/workspace data)
+        {:keys [zoom/scale zoom/scales]} workspace
+        {[cx cy] :pos/vec} workspace
+
+        next
+        (-> (find-index scales scale)
+            (+ step)
                                  (constrain 0 (- (count scales) 1))
-                                 (scales))]]))
+            (scales))
 
-(defmethod transact :zoom/in [data event]
-  (transact data :zoom/step 1))
+        factor
+        (/ next scale)
 
-(defmethod transact :zoom/out [data event]
-  (transact data :zoom/step -1))
+        [dx dy]
+        [(/ (- (* mx factor) mx) next)
+         (/ (- (* my factor) my) next)]]
+    [[:db/add (:db/id workspace) :pos/vec (round [(- cx dx) (- cy dy)] 1)]
+     [:db/add (:db/id workspace) :zoom/scale next]]))
+
+(defmethod transact :zoom/in [data event x y]
+  (transact data :zoom/step 1 x y))
+
+(defmethod transact :zoom/out [data event x y]
+  (transact data :zoom/step -1 x y))
 
 (defmethod transact :aura/change-label
   [data event token label]

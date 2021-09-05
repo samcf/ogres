@@ -33,7 +33,7 @@
     [:db/add -2 :grid/size 70]
     [:db/add -2 :grid/origin [0 0]]
     [:db/add -2 :grid/show true]
-    [:db/add -2 :zoom/scales [0.5 0.75 1 1.25 1.50]]
+    [:db/add -2 :zoom/scales [0.25 0.5 0.75 1 (/ 1 0.75) (/ 1 0.50) (/ 1 0.25)]]
     [:db/add -2 :zoom/scale 1]
     [:db/add -3 :element/type :token]
     [:db/add -3 :token/light [5 5]]
