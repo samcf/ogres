@@ -80,16 +80,18 @@
 
 (defn grid []
   (let [{:keys [data workspace]} (uix/context state)
-        {:keys [canvas/mode grid/show]} workspace]
+        {:keys [canvas/mode grid/show zoom/scale]} workspace]
     (when (or (= mode :grid) show)
       (let [{[_ _ w h] :bounds/self} (query/viewer data)
             {[cx cy] :pos/vec size :grid/size} workspace
+            w (/ w scale)
+            h (/ h scale)
             [sx sy ax ay bx]
-            [(- (* w -2) cx)
-             (- (* h -2) cy)
-             (- (* w  2) cx)
-             (- (* h  2) cy)
-             (- (* w -2) cx)]]
+            [(- (* w -3) cx)
+             (- (* h -3) cy)
+             (- (* w  3) cx)
+             (- (* h  3) cy)
+             (- (* w -3) cx)]]
         [:g {:class "canvas-grid"}
          [:defs
           [:pattern {:id "grid" :width size :height size :patternUnits "userSpaceOnUse"}
