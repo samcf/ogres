@@ -410,6 +410,21 @@ input[type="number"] {
     justify-content: space-between;
 }
 
+.options section:first-child > input[type="text"],
+.options section:first-child > input[type="number"] {
+    flex: 1;
+    margin-right: 4px;
+}
+
+.options section:first-child button {
+    padding: 0;
+    width: 27px;
+}
+
+.options section:first-child button + button {
+    margin-left: 4px;
+}
+
 .options section + section {
     margin-top: 8px;
 }

@@ -101,17 +101,16 @@
         {:keys [store]} (uix/context storage)]
     [:div.options.options-canvas
      [:section
-      [:label {:style {:flex 1 :margin-right "8px"}}
-       [:input
-        {:type "text"
-         :placeholder "Workspace name"
-         :maxLength 24
-         :spellCheck "false"
-         :value (or name "")
-         :on-change
-         (fn [event]
-           (let [value (.. event -target -value)]
-             (dispatch :element/update [id] :element/name value)))}]]
+      [:input
+       {:type "text"
+        :placeholder "Workspace name"
+        :maxLength 24
+        :spellCheck "false"
+        :value (or name "")
+        :on-change
+        (fn [event]
+          (let [value (.. event -target -value)]
+            (dispatch :element/update [id] :element/name value)))}]
       [:button
        {:type "button" :on-click #(dispatch :canvas/toggle-mode :canvas)} "×"]]
 
@@ -170,7 +169,6 @@
       (let [[match? value] (every-value? selected :element/name)]
         [:input
          {:type "text"
-          :style {:flex 1 :margin-right "8px"}
           :value (or value "")
           :placeholder (if match? "Label" "Multiple selected...")
           :maxLength 24
@@ -179,9 +177,10 @@
           (fn [event]
             (let [value (.. event -target -value)]
               (dispatch :element/update idents :element/name value)))}])
-      [:button {:type "button" :on-click #(dispatch :element/remove idents) :style {:margin-right "8px"}} "♼"]
+      [:button {:type "button" :on-click #(dispatch :element/remove idents)} "♼"]
       [:button {:type "button" :on-click #(dispatch :selection/clear)} "×"]]
      [:section
+      [:header "Status"]
       [:div.options-token-flags
        (for [flag [:player :hidden :darkvision]]
          [checkbox
@@ -257,12 +256,11 @@
           :value (or value "")
           :placeholder (if match? "Label" "Multiple selected...")
           :spellCheck "false"
-          :style {:flex 1 :margin-right "8px"}
           :on-change
           (fn [event]
             (let [value (.. event -target -value)]
               (dispatch :element/update idents :element/name value)))}])
-      [:button {:type "button" :style {:margin-right "8px"} :on-click #(dispatch :element/remove idents)} "♼"]
+      [:button {:type "button" :on-click #(dispatch :element/remove idents)} "♼"]
       [:button {:type "button" :on-click #(dispatch :selection/clear)} "×"]]
      [:section
       [:header "Color"]
@@ -316,7 +314,6 @@
       [:input
        {:type "number"
         :value (or size 0)
-        :style {:flex 1 :margin-right "8px"}
         :min 0
         :on-change
         (fn [event]
