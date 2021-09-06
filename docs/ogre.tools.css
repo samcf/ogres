@@ -295,16 +295,16 @@ input[type="number"] {
     shape-rendering: crispEdges;
 }
 
-.canvas-shape:hover > circle,
-.canvas-shape:hover > path,
-.canvas-shape:hover > line,
-.canvas-shape:hover > polygon,
-.canvas-shape.selected > circle,
-.canvas-shape.selected > path,
-.canvas-shape.selected > line,
-.canvas-shape.selected > polygon,
-.canvas-token-shape > circle:hover,
-.canvas-token.selected > .canvas-token-shape > circle {
+.theme--host .canvas-shape:hover > circle,
+.theme--host .canvas-shape:hover > path,
+.theme--host .canvas-shape:hover > line,
+.theme--host .canvas-shape:hover > polygon,
+.theme--host .canvas-shape.selected > circle,
+.theme--host .canvas-shape.selected > path,
+.theme--host .canvas-shape.selected > line,
+.theme--host .canvas-shape.selected > polygon,
+.theme--host .canvas-token-shape > circle:hover,
+.theme--host .canvas-token.selected > .canvas-token-shape > circle {
     cursor: pointer;
     stroke-dasharray: 4px;
     stroke-linecap: round;
@@ -437,12 +437,6 @@ input[type="number"] {
     justify-content: flex-end;
     position: relative;
     height: 88px;
-}
-
-.options-canvas-maps > div.selected > .name,
-.options-canvas-maps > div:hover > .name {
-    background-color: rgba(0, 0, 0, 1);
-    color: white;
 }
 
 .options-canvas-maps > div > div {
