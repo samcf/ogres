@@ -339,7 +339,7 @@
        [:g
         [:polygon {:points (string/join " " (cone-points ax ay bx by))}]
         [text {:x (+ bx 16) :y (+ by 16) :fill "white"}
-         (-> (chebyshev ax ay bx by)
+         (-> (euclidean ax ay bx by)
              (px->ft (* size scale))
              (str "ft."))]])]))
 
