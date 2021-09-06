@@ -1,11 +1,6 @@
 :root {
     --color-primary-a: #79bd8f;
-    --color-primary-b: hsl(46, 44%, 74%);
-    --color-primary-c: hsl(174, 8%, 24%);
-    --color-primary-d: hsl(150, 2%, 17%);
-    --color-primary-e: hsl(240, 3%, 12%);
     --theme-background-d: hsl(200, 20%, 12%);
-
     --theme-text: hsl(0, 0%, 92%);
     --theme-text-link: hsl(6, 73%, 60%);
 }
@@ -35,17 +30,13 @@ input[type="number"] {
     width: 100%;
 }
 
-.ogre-options-canvas-lighting {
-    text-transform: capitalize;
-}
-
-.ogre-radio-button {
+.ogre-checkbox {
     position: absolute;
     clip: rect(0,0,0,0);
     pointer-events: none;
 }
 
-.ogre-radio-button + label {
+.ogre-checkbox + label {
     border-radius: 2px;
     border: 1px solid hsl(0, 10%, 55%);
     box-sizing: border-box;
@@ -56,9 +47,14 @@ input[type="number"] {
     width: 100%;
 }
 
-.ogre-radio-button:checked + label {
+.ogre-checkbox:checked + label {
     background-color: var(--color-primary-a);
     color: white;
+}
+
+.ogre-checkbox:indeterminate + label {
+    background-color: rgba(121, 189, 143, 0.30);
+    color: #444;
 }
 
 /* Layout */
@@ -353,8 +349,14 @@ input[type="number"] {
 }
 
 .canvas-drawable-grid path,
-.canvas-drawable-rect path {
+.canvas-drawable-rect path,
+.canvas-drawable-select path {
     shape-rendering: crispEdges;
+}
+
+.canvas-drawable-select path {
+    fill: var(--canvas-stroke);
+    fill-opacity: 0.10;
 }
 
 .canvas-bounds path {
@@ -419,9 +421,6 @@ input[type="number"] {
 }
 
 .options-canvas-maps {
-    display: grid;
-    grid-gap: 2px;
-    grid-template-columns: repeat(3, 1fr);
     margin-bottom: 4px;
     max-height: 180px;
     overflow-y: auto;
@@ -459,25 +458,13 @@ input[type="number"] {
     background-color: rgba(0, 0, 0, 0.70);
 }
 
-.options-canvas-lighting {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-gap: 4px;
-}
-
-.options-token-flags {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-gap: 4px;
-}
-
-.options-token-lights {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-gap: 4px;
-}
-
-.options-token-sizes {
+.options-canvas-maps,
+.options-canvas-lighting,
+.options-token-flags,
+.options-token-lights,
+.options-token-sizes,
+.options-token-sizes,
+.options-shape-patterns {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-gap: 4px;
@@ -496,34 +483,28 @@ input[type="number"] {
     grid-template-columns: repeat(5, 1fr);
 }
 
-.options-shape-colors .ogre-radio-button + label,
-.options-shape-colors .ogre-radio-button:checked + label {
+.options-shape-colors .ogre-checkbox + label,
+.options-shape-colors .ogre-checkbox:checked + label {
     background-color: none;
     padding: 0;
 }
 
-.options-shape-colors .ogre-radio-button + label > div {
+.options-shape-colors .ogre-checkbox + label > div {
     height: 32px;
 }
 
-.options-shape-colors .ogre-radio-button:checked + label > div {
+.options-shape-colors .ogre-checkbox:checked + label > div {
     box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.55);
-}
-
-.options-shape-patterns {
-    display: grid;
-    grid-gap: 4px;
-    grid-template-columns: repeat(3, 1fr);
 }
 
 .options-shape-patterns svg {
     display: block;
 }
 
-.options-shape-patterns .ogre-radio-button + label {
+.options-shape-patterns .ogre-checkbox + label {
     padding: 0;
 }
 
-.options-shape-patterns .ogre-radio-button:checked + label #template-pattern-solid > rect {
+.options-shape-patterns .ogre-checkbox:checked + label #template-pattern-solid > rect {
     fill: var(--color-primary-a);
 }

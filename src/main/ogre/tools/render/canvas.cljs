@@ -159,14 +159,16 @@
        (let [{patt :shape/pattern color :shape/color kind :shape/kind} element
              id (ds/squuid)]
          [:g
-          {:class (css "canvas-shape" (str "canvas-shape-" (name kind)) {"selected" (= element selected)})}
+          {:class (css "canvas-shape"
+                       (str "canvas-shape-" (name kind))
+                       {:selected (contains? selected element)})}
           [:defs [pattern {:id id :name patt :color color}]]
           [shape {:element (into {} (ds/touch element)) :attrs {:fill (str "url(#" id ")")}}]])])))
 
 (defn tokens [props]
   (let [{:keys [data workspace dispatch]} (uix/context state)
         {:keys [viewer/host?]} (query/viewer data)
-        {:keys [grid/size zoom/scale canvas/map]} workspace
+        {:keys [grid/size zoom/scale canvas/map canvas/selected]} workspace
         elements (query/elements data :token)]
     (for [token elements :let [{[x y] :pos/vec} token] :when (or host? (visible? token))]
       [:> draggable
@@ -182,7 +184,7 @@
               (dispatch :element/select (:db/id token))
               (dispatch :token/translate (:db/id token) (.-x data) (.-y data)))))}
        [:g.canvas-token
-        {:class (css {:selected (= token (:canvas/selected workspace))}
+        {:class (css {:selected (contains? selected token)}
                      (mapv #(str "flag--" (name %)) (:element/flags token)))}
         (let [{label :element/name {token-size :size} :token/size} token
               radius (/ (ft->px token-size size) 2)]
@@ -220,11 +222,24 @@
                   [ax ay (+ ax (.-x data)) (+ ay (.-y data))])))
        :on-stop
        (fn []
-         (on-release @points)
-         (reset! points nil))}
+         (let [p @points]
+           (reset! points nil)
+           (on-release p)))}
       [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]]
      (when (seq @points)
        (render-fn @points))]))
+
+(defn select []
+  (let [{:keys [workspace dispatch]} (uix/context state)
+        {:keys [zoom/scale]} workspace]
+    [drawable
+     {:on-release
+      (fn [points]
+        (let [[ax ay bx by] (mapv #(/ % scale) points)
+              [cx cy] (:pos/vec workspace)]
+          (dispatch :selection/from-rect [(- ax cx) (- ay cy) (- bx cx) (- by cy)])))}
+     (fn [[ax ay bx by]]
+       [:path {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}])]))
 
 (defmulti draw :mode)
 
@@ -348,7 +363,9 @@
                     [(- tx (/ (max 0 (- hw gw)) 2 scale))
                      (- ty (/ (max 0 (- hh gh)) 2 scale))])]
     [:svg.canvas
-     {:class (css {:theme--guest (not host?)} (str "theme--" (name theme)))}
+     {:class (css {:theme--host host?
+                   :theme--guest (not host?)
+                   (str "theme--" (name theme)) true})}
      [:> draggable
       {:position #js {:x 0 :y 0}
        :on-start (fn [] (dispatch :view/clear))
@@ -364,6 +381,10 @@
         [shapes]
         [tokens]
         [mask]]
+
+       (when (and (= mode :select) (= (:canvas/modifier workspace) :shift))
+         [:g {:class "canvas-drawable canvas-drawable-select"}
+          [select]])
 
        [:g.canvas-drawable {:class (css (str "canvas-drawable-" (name mode)))}
         [draw {:mode mode}]]]]

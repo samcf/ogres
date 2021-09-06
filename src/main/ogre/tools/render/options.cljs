@@ -28,24 +28,25 @@
    "#00bcd4" "#009688" "#4caf50" "#cddc39"
    "#ffeb3b" "#ffc107" "#ff9800"])
 
+(defn checked? [pred coll]
+  (let [pass (filter pred coll)]
+    (cond
+      (= (count coll) (count pass)) true
+      (= (count pass) 0) false
+      :else :indeterminate)))
+
+(defn every-value? [coll f]
+  (let [sample (f (first coll))]
+    (if (every? #(= (f %) sample) coll)
+      [true sample]
+      [false nil])))
+
 (defn checksum [data]
   (let [hash (new Md5)]
     (.update hash data)
     (reduce
      (fn [s b]
        (str s (.slice (str "0" (.toString b 16)) -2))) "" (.digest hash))))
-
-(defn radio-button [props child]
-  (let [id (str (:name props) ":" (:value props))]
-    [:div
-     [:input (merge props {:id id :type "radio" :class "ogre-radio-button"})]
-     [:label {:for id} child]]))
-
-(defn check-button [props child]
-  (let [id (str (:name props) "/" (:value props))]
-    [:div
-     [:input (merge props {:id id :type "checkbox" :class "ogre-radio-button"})]
-     [:label {:for id} child]]))
 
 (defn load-image [file handler]
   (let [reader (new js/FileReader)]
@@ -60,6 +61,24 @@
           (fn []
             (this-as img (handler {:data data :filename (.-name file) :img img}))))
          (set! (.-src image) data))))))
+
+(defn checkbox [{:keys [name type checked on-change] :as props} child]
+  (let [indtr? (= checked :indeterminate)
+        input  (uix/ref)
+        id     (str name "/" (:value props))
+        attrs  (merge
+                props
+                {:id        id
+                 :ref       input
+                 :type      "checkbox"
+                 :class     "ogre-checkbox"
+                 :checked   (if indtr? false checked)
+                 :on-change (fn [event] (on-change (.. event -target -checked)))})]
+    (uix/effect!
+     (fn [] (set! (.-indeterminate @input) indtr?)) [indtr?])
+    [:div
+     [:input attrs]
+     [:label {:for id} child]]))
 
 (defn thumbnail [{:keys [board selected on-select on-remove]}]
   (let [url (use-image (:image/checksum board))]
@@ -78,6 +97,7 @@
 
 (defn canvas []
   (let [{:keys [data workspace dispatch]} (uix/context state)
+        {:keys [db/id element/name]} workspace
         {:keys [store]} (uix/context storage)]
     [:div.options.options-canvas
      [:section
@@ -85,14 +105,13 @@
        [:input
         {:type "text"
          :placeholder "Workspace name"
-         :autoFocus true
          :maxLength 24
          :spellCheck "false"
-         :value (or (:element/name workspace) "")
+         :value (or name "")
          :on-change
          (fn [event]
            (let [value (.. event -target -value)]
-             (dispatch :element/update (:db/id workspace) :element/name value)))}]]
+             (dispatch :element/update [id] :element/name value)))}]]
       [:button
        {:type "button" :on-click #(dispatch :canvas/toggle-mode :canvas)} "×"]]
 
@@ -134,159 +153,160 @@
        [:div.options-canvas-lighting
         (for [option [:bright :dim :dark]
               :let [checked (= option (:canvas/lighting workspace))]]
-          [radio-button
+          [checkbox
            {:key option
             :name "canvas/lighting"
             :value option
             :checked checked
             :on-change #(dispatch :canvas/change-lighting option)}
-           (string/capitalize (name option))])]]]]))
+           (string/capitalize (clojure.core/name option))])]]]]))
 
 (defn token [props]
   (let [{:keys [workspace dispatch]} (uix/context state)
-        {:keys [db/id element/name element/flags] :as token} (:canvas/selected workspace)]
-    [:div.options.options-token {:key id}
+        {:keys [canvas/selected]} workspace
+        idents (map :db/id selected)]
+    [:div.options.options-token
      [:section
-      [:input
-       {:type "text"
-        :style {:flex 1 :margin-right "8px"}
-        :value (or name "")
-        :placeholder "Label"
-        :maxLength 24
-        :autoFocus true
-        :spellCheck "false"
-        :on-change
-        (fn [event]
-          (let [value (.. event -target -value)]
-            (dispatch :element/update id :element/name value)))}]
-      [:button {:type "button" :on-click #(dispatch :element/remove id) :style {:margin-right "8px"}} "♼"]
-      [:button {:type "button" :on-click #(dispatch :element/select id)} "×"]]
+      (let [[match? value] (every-value? selected :element/name)]
+        [:input
+         {:type "text"
+          :style {:flex 1 :margin-right "8px"}
+          :value (or value "")
+          :placeholder (if match? "Label" "Multiple selected...")
+          :maxLength 24
+          :spellCheck "false"
+          :on-change
+          (fn [event]
+            (let [value (.. event -target -value)]
+              (dispatch :element/update idents :element/name value)))}])
+      [:button {:type "button" :on-click #(dispatch :element/remove idents) :style {:margin-right "8px"}} "♼"]
+      [:button {:type "button" :on-click #(dispatch :selection/clear)} "×"]]
      [:section
       [:div.options-token-flags
        (for [flag [:player :hidden :darkvision]]
-         [check-button
+         [checkbox
           {:key flag
            :name "token/flag"
            :value flag
-           :checked (contains? flags flag)
-           :on-change #(dispatch :element/flag id flag)}
+           :checked (checked? #(contains? (:element/flags %) flag) selected)
+           :on-change #(dispatch :element/flag idents flag %)}
           (string/capitalize (clojure.core/name flag))])]]
      [:section
       [:header "Size"]
       [:div.options-token-sizes
-       (for [[name size] [[:tiny 2.5] [:small 5] [:medium 5] [:large 10] [:huge 15] [:gargantuan 20]]
-             :let [checked (= name (:name (:token/size token)))]]
-         [radio-button
+       (for [[name size] [[:tiny 2.5] [:small 5] [:medium 5] [:large 10] [:huge 15] [:gargantuan 20]]]
+         [checkbox
           {:key name
            :name "token/size"
            :value name
-           :checked checked
-           :on-change #(dispatch :token/change-size id name size)}
+           :checked (checked? #(= (:name (:token/size %)) name) selected)
+           :on-change #(dispatch :token/change-size idents name size)}
           (string/capitalize (clojure.core/name name))])]]
      [:section
       [:header "Light"]
       [:div.options-token-lights
-       (for [[name bright dim] light-sources
-             :let [checked (= [bright dim] (:token/light token))]]
-         [radio-button
+       (for [[name bright dim] light-sources]
+         [checkbox
           {:key name
            :name "token/light"
            :value name
-           :checked checked
-           :on-change #(dispatch :token/change-light id bright dim)}
+           :checked (checked? #(= [bright dim] (:token/light %)) selected)
+           :on-change #(dispatch :token/change-light idents bright dim)}
           name])]]
      [:section
       [:header "Conditions"]
       [:div.options-token-flags
-       (for [flag conditions :let [checked (contains? flags flag)]]
-         [check-button
+       (for [flag conditions]
+         [checkbox
           {:key flag
            :name "token.flag"
            :value flag
-           :checked checked
-           :on-change #(dispatch :element/flag id flag)}
+           :checked (checked? #(contains? (:element/flags %) flag) selected)
+           :on-change #(dispatch :element/flag idents flag %)}
           (string/capitalize (clojure.core/name flag))])]]
-     (let [{:keys [aura/label aura/radius aura/color]} token]
-       [:section
-        [:header "Aura"]
+     [:section
+      [:header "Aura"]
+      (let [[match? value] (every-value? selected :aura/label)]
         [:div
          [:input
           {:type "text"
-           :placeholder "Label"
-           :value (or label "")
+           :placeholder (if match? "Label" "Multiple selected...")
+           :value (or value "")
            :maxLength 24
            :spellCheck "false"
-           :on-change #(dispatch :aura/change-label id (.. % -target -value))}]]
-        [:div.options-token-auras
-         (for [radius [0 10 15 20 30 60] :let [checked (= radius (:aura/radius token))]]
-           [radio-button
-            {:key radius
-             :name "token/aura-radius"
-             :checked checked
-             :value radius
-             :on-change #(dispatch :aura/change-radius id radius)}
-            (if (= radius 0) "None" (str radius " ft."))])]])]))
+           :on-change #(dispatch :aura/change-label idents (.. % -target -value))}]])
+      [:div.options-token-auras
+       (for [radius [0 10 15 20 30 60]]
+         [checkbox
+          {:key radius
+           :name "token/aura-radius"
+           :checked (checked? #(= (:aura/radius %) radius) selected)
+           :value radius
+           :on-change #(dispatch :aura/change-radius idents radius)}
+          (if (= radius 0) "None" (str radius " ft."))])]]]))
 
 (defn shape [props]
   (let [{:keys [workspace dispatch]} (uix/context state)
-        {:keys [db/id element/name] :as shape} (:canvas/selected workspace)]
-    [:div.options.options-shape {:key id}
+        {:keys [canvas/selected]} workspace
+        idents (map :db/id selected)]
+    [:div.options.options-shape
      [:section
-      [:input
-       {:type "text"
-        :value (or name "")
-        :placeholder "Label"
-        :auto-focus true
-        :spellCheck "false"
-        :style {:flex 1 :margin-right "8px"}
-        :on-change
-        (fn [event]
-          (let [value (.. event -target -value)]
-            (dispatch :element/update id :element/name value)))}]
-      [:button {:type "button" :style {:margin-right "8px"} :on-click #(dispatch :element/remove id)} "♼"]
-      [:button {:type "button" :on-click #(dispatch :element/select id)} "×"]]
+      (let [[match? value] (every-value? selected :element/name)]
+        [:input
+         {:type "text"
+          :value (or value "")
+          :placeholder (if match? "Label" "Multiple selected...")
+          :spellCheck "false"
+          :style {:flex 1 :margin-right "8px"}
+          :on-change
+          (fn [event]
+            (let [value (.. event -target -value)]
+              (dispatch :element/update idents :element/name value)))}])
+      [:button {:type "button" :style {:margin-right "8px"} :on-click #(dispatch :element/remove idents)} "♼"]
+      [:button {:type "button" :on-click #(dispatch :selection/clear)} "×"]]
      [:section
       [:header "Color"]
       [:div.options-shape-colors
        (for [color colors]
-         [radio-button
+         [checkbox
           {:key color
            :name "shape/color"
            :value color
-           :checked (= color (:shape/color shape))
+           :checked (checked? #(= (:shape/color %) color) selected)
            :on-change
            (fn []
-             (dispatch :element/update id :shape/color color))}
+             (dispatch :element/update idents :shape/color color))}
           [:div {:style {:background-color color}}]])]]
      [:section
       [:header "Pattern"]
       [:div.options-shape-patterns
        (for [name [:solid :lines :circles :crosses :caps :waves]]
-         [radio-button
+         [checkbox
           {:key name
            :name "shape/pattern"
            :value name
-           :checked (= name (:shape/pattern shape))
+           :checked (checked? #(= (:shape/pattern %) name) selected)
            :on-change
            (fn []
-             (dispatch :element/update id :shape/pattern name))}
+             (dispatch :element/update idents :shape/pattern name))}
           (let [id (str "template-pattern-" (clojure.core/name name))]
             [:svg {:width "100%" :height "32px"}
              [:defs [pattern {:id id :name name}]]
              [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill (str "url(#" id ")")}]])])]]
      [:section
       [:header "Opacity"]
-      [:input
-       {:type "range"
-        :style {:width "100%"}
-        :value (or (:shape/opacity shape) 0)
-        :on-change
-        (fn [event]
-          (let [value (.. event -target -value)]
-            (dispatch :element/update id :shape/opacity value)))
-        :min 0
-        :max 1
-        :step 0.25}]]]))
+      (let [[match? value] (every-value? selected :shape/opacity)]
+        [:input
+         {:type "range"
+          :style {:width "100%"}
+          :value (or value 0.25)
+          :on-change
+          (fn [event]
+            (let [value (.. event -target -value)]
+              (dispatch :element/update idents :shape/opacity value)))
+          :min 0
+          :max 1
+          :step 0.25}])]]))
 
 (defn grid [{:keys [workspace]}]
   (let [{:keys [workspace dispatch]} (uix/context state)
@@ -310,6 +330,9 @@
              the real grid size is based on your selection and the size of
              the map. If its not quite right, edit the size above manually."]]]))
 
+(defn type? [type entity]
+  (= (:element/type entity) type))
+
 (defn options []
   (let [{:keys [workspace]} (uix/context state)
         {:keys [canvas/mode canvas/selected]} workspace]
@@ -317,8 +340,9 @@
       (= mode :canvas) [canvas]
       (= mode :grid)   [grid]
       (= mode :select)
-      (case (:element/type selected)
-        :token [token]
-        :shape [shape]
-        nil)
+      (cond
+        (empty? selected) nil
+        (every? (partial type? :token) selected) [token]
+        (every? (partial type? :shape) selected) [shape]
+        :else nil)
       :default nil)))

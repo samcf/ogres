@@ -15,6 +15,12 @@
 (defn constrain [number minimum maximum]
   (max (min number maximum) minimum))
 
+(defn normalize [[ax ay bx by]]
+  [(min ax bx) (min ay by) (max ax bx) (max ay by)])
+
+(defn within? [x y [ax ay bx by]]
+  (and (> x ax) (> y ay) (< x bx) (< y by)))
+
 (defn initial-canvas []
   {:element/type :canvas
    :pos/vec [0 0]
@@ -74,28 +80,36 @@
   (let [{:keys [db/id canvas/theme]} (query/workspace data)]
     [[:db/add id :canvas/theme (if (= theme :dark) :light :dark)]]))
 
+(defmethod transact :canvas/modifier-start
+  [data event modifier]
+  (let [{:keys [db/id]} (query/workspace data)]
+    [[:db/add id :canvas/modifier modifier]]))
+
+(defmethod transact :canvas/modifier-release
+  [data event]
+  (let [{:keys [db/id]} (query/workspace data)]
+    [[:db/retract id :canvas/modifier]]))
+
 (defmethod transact :element/update
-  [data event id attr value]
-  [[:db/add id attr value]])
+  [data event idents attr value]
+  (for [id idents]
+    [:db/add id attr value]))
 
 (defmethod transact :element/select
   [data event element]
   (let [{:keys [db/id canvas/selected]} (query/workspace data)]
-    (if (= (:db/id selected) element)
-      [[:db/retract id :canvas/selected element]]
-      [[:db/add id :canvas/mode :select]
-       [:db/add id :canvas/selected element]])))
+    [[:db/retract id :canvas/selected]
+     [:db/add id :canvas/selected element]]))
 
 (defmethod transact :element/remove
-  [data event token]
-  [[:db/retractEntity token]])
+  [data event idents]
+  (for [id idents]
+    [:db/retractEntity id]))
 
 (defmethod transact :element/flag
-  [data event id flag]
-  (let [{:keys [element/flags]} (ds/entity data id)]
-    (if (contains? flags flag)
-      [[:db/retract id :element/flags flag]]
-      [[:db/add id :element/flags flag]])))
+  [data event idents flag add?]
+  (for [id idents]
+    [(if add? :db/add :db/retract) id :element/flags flag]))
 
 (defmethod transact :view/clear
   [data]
@@ -136,12 +150,14 @@
   [[:db/add id :pos/vec (round [x y] 1)]])
 
 (defmethod transact :token/change-light
-  [data event token bright dim]
-  [[:db/add token :token/light [bright dim]]])
+  [data event idents bright dim]
+  (for [id idents]
+    [:db/add id :token/light [bright dim]]))
 
 (defmethod transact :token/change-size
-  [data event token name size]
-  [[:db/add token :token/size {:name name :size size}]])
+  [data event idents name size]
+  (for [id idents]
+    [:db/add id :token/size {:name name :size size}]))
 
 (defmethod transact :shape/create
   [data event kind vecs]
@@ -199,7 +215,7 @@
         next
         (-> (find-index scales scale)
             (+ step)
-                                 (constrain 0 (- (count scales) 1))
+            (constrain 0 (- (count scales) 1))
             (scales))
 
         factor
@@ -218,16 +234,14 @@
   (transact data :zoom/step -1 x y))
 
 (defmethod transact :aura/change-label
-  [data event token label]
-  [[:db/add token :aura/label label]])
+  [data event idents label]
+  (for [id idents]
+    [:db/add id :aura/label label]))
 
 (defmethod transact :aura/change-radius
-  [data event token radius]
-  [[:db/add token :aura/radius radius]])
-
-(defmethod transact :aura/change-color
-  [data event token color]
-  [[:db/add token :aura/color color]])
+  [data event idents radius]
+  (for [id idents]
+    [:db/add id :aura/radius radius]))
 
 (defmethod transact :share/initiate []
   [])
@@ -252,6 +266,26 @@
       (= w-host? v-host?) (conj [:db/add id :bounds/self bounds])
       (= w-host? true) (conj [:db/add id :bounds/host bounds])
       (= w-host? false) (conj [:db/add id :bounds/guest bounds]))))
+
+(defmethod transact :selection/from-rect
+  [data event vecs]
+  (let [{:keys [db/id canvas/elements]} (query/workspace data)]
+    (concat [[:db/add id :canvas/mode :select]]
+            (for [element elements
+                  :let [{type :element/type [x y] :pos/vec} element]
+                  :when (and (= type :token) (within? x y (normalize vecs)))]
+              [:db/add id :canvas/selected (:db/id element)]))))
+
+(defmethod transact :selection/clear
+  [data event]
+  (let [{:keys [db/id]} (query/workspace data)]
+    [[:db/retract id :canvas/selected]]))
+
+(defmethod transact :selection/remove
+  [data event]
+  (let [{:keys [canvas/selected]} (query/workspace data)]
+    (for [{:keys [db/id]} selected]
+      [:db/retractEntity id])))
 
 (defmethod transact :storage/reset []
   [])

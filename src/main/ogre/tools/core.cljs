@@ -1,6 +1,7 @@
 (ns ogre.tools.core
   (:require [ogre.tools.errors :as errors]
             [ogre.tools.render.layout :refer [layout]]
+            [ogre.tools.shortcut :as shortcut]
             [ogre.tools.state :as state]
             [ogre.tools.storage :as storage]
             [ogre.tools.window :as window]
@@ -13,6 +14,7 @@
      [:<>
       [storage/handlers]
       [window/provider]
+      [shortcut/handlers]
       [layout]]]]])
 
 (defn main []

@@ -10,7 +10,7 @@
    :viewer/tokens    {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :canvas/elements  {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :canvas/map       {:db/valueType :db.type/ref}
-   :canvas/selected  {:db/valueType :db.type/ref}
+   :canvas/selected  {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :image/checksum   {:db/index true}
    :element/flags    {:db/cardinality :db.cardinality/many}})
 
