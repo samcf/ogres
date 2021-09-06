@@ -370,11 +370,12 @@
                    (str "theme--" (name theme)) true})}
      [:> draggable
       {:position #js {:x 0 :y 0}
-       :on-start (fn [] (dispatch :view/clear))
        :on-stop
        (fn [event data]
          (let [ox (.-x data) oy (.-y data)]
-           (dispatch :camera/translate (+ (/ ox scale) tx) (+ (/ oy scale) ty))))}
+           (if (and (= ox 0) (= oy 0))
+             (dispatch :selection/clear)
+             (dispatch :camera/translate (+ (/ ox scale) tx) (+ (/ oy scale) ty)))))}
       [:g
        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
        [:g.canvas-board {:transform (str "scale(" scale ") translate(" tx ", " ty ")")}

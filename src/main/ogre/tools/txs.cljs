@@ -111,12 +111,6 @@
   (for [id idents]
     [(if add? :db/add :db/retract) id :element/flags flag]))
 
-(defmethod transact :view/clear
-  [data]
-  (let [workspace (query/workspace data)]
-    (when (not (= (:element/type (:canvas/selected workspace)) :canvas))
-      [[:db/retract (:db/id workspace) :canvas/selected]])))
-
 (defmethod transact :camera/translate
   [data event x y]
   (let [{:keys [db/id]} (query/workspace data)]
