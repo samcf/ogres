@@ -363,11 +363,6 @@ input[type="number"] {
     stroke: var(--canvas-stroke);
 }
 
-.canvas-token-shape > circle {
-    filter: drop-shadow(1px 1px 4px rgba(0, 0, 0, .4));
-    stroke: var(--canvas-stroke);
-}
-
 .canvas-token-shape > text,
 .canvas-token-aura {
     pointer-events: none;

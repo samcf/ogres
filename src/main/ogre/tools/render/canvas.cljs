@@ -227,7 +227,9 @@
          (let [p @points]
            (reset! points nil)
            (on-release p)))}
-      [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]]
+      [:rect
+       {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"
+        :style {:will-change "transform"}}]]
      (when (seq @points)
        (render-fn @points))]))
 
@@ -376,7 +378,7 @@
            (if (and (= ox 0) (= oy 0))
              (dispatch :selection/clear)
              (dispatch :camera/translate (+ (/ ox scale) tx) (+ (/ oy scale) ty)))))}
-      [:g
+      [:g {:style {:will-change "transform"}}
        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
        [:g.canvas-board {:transform (str "scale(" scale ") translate(" tx ", " ty ")")}
         [board {:key (:image/checksum map) :image map}]
@@ -389,7 +391,8 @@
          [:g {:class "canvas-drawable canvas-drawable-select"}
           [select]])
 
-       [:g.canvas-drawable {:class (css (str "canvas-drawable-" (name mode)))}
-        [draw {:mode mode}]]]]
+       (when (not= mode :select)
+         [:g {:class (str "canvas-drawable canvas-drawable-" (name mode))}
+          [draw {:mode mode}]])]]
      (when privileged?
        [bounds])]))
