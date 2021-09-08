@@ -33,3 +33,11 @@
                [?ws :canvas/elements ?id]
                [?id :element/type ?type]] data type)
        (map #(ds/entity data %))))
+
+(defn initiating [data]
+  (map (partial ds/entity data)
+       (ds/q '[:find [?id ...]
+               :where
+               [_   :viewer/workspace ?ws]
+               [?ws :canvas/elements ?id]
+               [?id :initiative/member? true]] data)))

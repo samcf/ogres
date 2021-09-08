@@ -281,5 +281,61 @@
     (for [{:keys [db/id]} selected]
       [:db/retractEntity id])))
 
+(defmethod transact :initiative/toggle
+  [data event idents add?]
+  (if add?
+    (for [id idents]
+      [:db/add id :initiative/member? true])
+    (->> (for [id idents]
+           [[:db/retract id :initiative/member?]
+            [:db/retract id :initiative/roll]])
+         (apply concat))))
+
+(defmethod transact :initiative/change-roll
+  [data event id roll]
+  (let [parsed (.parseFloat js/window roll)]
+    (cond
+      (or (nil? roll) (= roll ""))
+      [[:db/retract id :initiative/roll]]
+
+      (.isNaN js/Number parsed)
+      []
+
+      :else
+      [[:db/add id :initiative/roll parsed]])))
+
+(defmethod transact :initiative/roll-inc
+  [data event id]
+  (let [{:keys [initiative/roll]} (ds/entity data id)]
+    [[:db/add id :initiative/roll (inc roll)]]))
+
+(defmethod transact :initiative/roll-dec
+  [data event id]
+  (let [{:keys [initiative/roll]} (ds/entity data id)]
+    [[:db/add id :initiative/roll (if (nil? roll) 0 (dec roll))]]))
+
+(defmethod transact :initiative/roll-all
+  [data event]
+  (let [elements (query/initiating data)]
+    (for [element elements
+          :let [{:keys [db/id initiative/roll]} element]
+          :when (and (nil? roll)
+                     (not (contains? (:element/flags element) :player)))]
+      [:db/add id :initiative/roll (inc (rand-int 20))])))
+
+(defmethod transact :initiative/reset-rolls
+  [data event]
+  (let [elements (query/initiating data)]
+    (for [{:keys [db/id]} elements]
+      [:db/retract id :initiative/roll])))
+
+(defmethod transact :initiative/leave
+  [data event]
+  (let [elements (query/initiating data)]
+    (->> (for [{:keys [db/id]} elements]
+           [[:db/retract id :initiative/member?]
+            [:db/retract id :initiative/roll]])
+         (apply concat))))
+
 (defmethod transact :storage/reset []
   [])

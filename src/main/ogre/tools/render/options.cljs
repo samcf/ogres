@@ -161,7 +161,7 @@
            (string/capitalize (clojure.core/name option))])]]]]))
 
 (defn token [props]
-  (let [{:keys [workspace dispatch]} (uix/context state)
+  (let [{:keys [data workspace dispatch]} (uix/context state)
         {:keys [canvas/selected]} workspace
         idents (map :db/id selected)]
     [:div.options.options-token
@@ -179,6 +179,18 @@
               (dispatch :element/update idents :element/name value)))}])
       [:button {:type "button" :on-click #(dispatch :element/remove idents)} "♼"]
       [:button {:type "button" :on-click #(dispatch :selection/clear)} "×"]]
+     [:section
+      (let [initiative? (not (empty? (query/initiating data)))
+            checked     (checked? :initiative/member? selected)]
+        [checkbox
+         {:name "token/initiative"
+          :value "on"
+          :checked checked
+          :on-change #(dispatch :initiative/toggle idents %)}
+         (case [initiative? checked]
+           [true true] "In Initiative - Remove"
+           ([true false] [true :indeterminate]) "In Initiative - Include"
+           "Start Initiative")])]
      [:section
       [:header "Status"]
       [:div.options-token-flags
