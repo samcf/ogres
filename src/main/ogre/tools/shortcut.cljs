@@ -23,12 +23,13 @@
 
    ["wheel"]
    (fn [{:keys [data dispatch]} event]
-     (let [{[ox oy _ _] :bounds/self} (query/viewer data)
-           [mx my] [(.-clientX event) (.-clientY event)]
-           [x y] [(- mx ox) (- my oy)]]
-       (if (pos? (.-deltaY event))
-         (dispatch :zoom/out x y)
-         (dispatch :zoom/in x y))))})
+     (when (.. event -target (closest "svg.canvas"))
+       (let [{[ox oy _ _] :bounds/self} (query/viewer data)
+             [mx my] [(.-clientX event) (.-clientY event)]
+             [x y] [(- mx ox) (- my oy)]]
+         (if (pos? (.-deltaY event))
+           (dispatch :zoom/out x y)
+           (dispatch :zoom/in x y)))))})
 
 (defn event-key [type event]
   (case type
