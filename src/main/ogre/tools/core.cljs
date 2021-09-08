@@ -21,5 +21,4 @@
   (let [element (.querySelector js/document "#root")]
     (uix.dom/render [root] element)))
 
-(defonce _
-  (do (.addEventListener js/window "DOMContentLoaded" main)))
+(.addEventListener js/window "DOMContentLoaded" main)

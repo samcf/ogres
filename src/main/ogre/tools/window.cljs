@@ -21,12 +21,8 @@
    (listen! handler js/window event dependencies))
   ([handler element event dependencies]
    (uix/effect!
-    (fn []
-      (when element
-        (.addEventListener element event handler))
-      (fn []
-        (when element
-          (.removeEventListener element event handler)))) dependencies)))
+    (fn [] (when element (.addEventListener element event handler))
+      (fn [] (when element (.removeEventListener element event handler)))) dependencies)))
 
 (defn debounce [f interval]
   (let [d (goog.async.Debouncer. f interval)]
