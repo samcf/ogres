@@ -13,7 +13,8 @@
     :viewer/loaded?
     :viewer/privileged?
     :share/open?
-    :share/paused?})
+    :share/paused?
+    :canvas/modifier})
 
 (defn host? [element]
   (->
