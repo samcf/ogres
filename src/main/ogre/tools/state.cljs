@@ -47,10 +47,14 @@
   "Provides a DataScript in-memory database to the application and causes
    re-renders when transactions are performed."
   [child]
-  (let [bean (uix/state 0)
-        pawn (uix/state (ds/conn-from-db (initial-data)))
-        conn (deref pawn)
-        data (deref conn)]
+  (let [bean     (uix/state 0)
+        pawn     (uix/state (ds/conn-from-db (initial-data)))
+        conn     (deref pawn)
+        data     (deref conn)
+        dispatch (uix/callback
+                  (fn [event & args]
+                    (let [tx (apply txs/transact @conn event args)]
+                      (ds/transact! conn tx [event args tx]))) [])]
 
     (uix/effect!
      (fn []
@@ -67,6 +71,4 @@
       {:conn      conn
        :data      data
        :workspace (query/workspace data)
-       :dispatch  (fn [event & args]
-                    (let [tx (apply txs/transact data event args)]
-                      (ds/transact! conn tx [event args tx])))}] child)))
+       :dispatch  dispatch}] child)))
