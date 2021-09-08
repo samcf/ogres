@@ -21,6 +21,9 @@
 (defn within? [x y [ax ay bx by]]
   (and (> x ax) (> y ay) (< x bx) (< y by)))
 
+(def initiative-attrs
+  #{:initiative/member? :initiative/roll :initiative/health})
+
 (defn initial-canvas []
   {:element/type :canvas
    :pos/vec [0 0]
@@ -286,10 +289,8 @@
   (if add?
     (for [id idents]
       [:db/add id :initiative/member? true])
-    (->> (for [id idents]
-           [[:db/retract id :initiative/member?]
-            [:db/retract id :initiative/roll]])
-         (apply concat))))
+    (for [id idents attr initiative-attrs]
+      [:db/retract id attr])))
 
 (defmethod transact :initiative/change-roll
   [data event id roll]
@@ -316,12 +317,11 @@
 
 (defmethod transact :initiative/roll-all
   [data event]
-  (let [elements (query/initiating data)]
-    (for [element elements
-          :let [{:keys [db/id initiative/roll]} element]
-          :when (and (nil? roll)
-                     (not (contains? (:element/flags element) :player)))]
-      [:db/add id :initiative/roll (inc (rand-int 20))])))
+  (for [entity (query/initiating data)
+        :let [{:keys [db/id initiative/roll]} entity]
+        :when (and (nil? roll)
+                   (not (contains? (:element/flags entity) :player)))]
+    [:db/add id :initiative/roll (inc (rand-int 20))]))
 
 (defmethod transact :initiative/reset-rolls
   [data event]
@@ -329,13 +329,18 @@
     (for [{:keys [db/id]} elements]
       [:db/retract id :initiative/roll])))
 
+(defmethod transact :initiative/change-health
+  [data event id f value]
+  (let [parsed (.parseFloat js/window value)]
+    (if (.isNaN js/Number parsed) []
+        (let [{:keys [initiative/health]} (ds/entity data id)]
+          [[:db/add id :initiative/health (f health parsed)]]))))
+
 (defmethod transact :initiative/leave
-  [data event]
-  (let [elements (query/initiating data)]
-    (->> (for [{:keys [db/id]} elements]
-           [[:db/retract id :initiative/member?]
-            [:db/retract id :initiative/roll]])
-         (apply concat))))
+  [data]
+  (for [entity (query/initiating data)
+        attr   initiative-attrs]
+    [:db/retract (:db/id entity) attr]))
 
 (defmethod transact :storage/reset []
   [])

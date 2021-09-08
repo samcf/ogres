@@ -12,14 +12,13 @@
    [(:initiative/roll b) (contains? (:element/flags a) :player) (:element/name a)]))
 
 (defn button [attrs child]
-  [:button.ogre-button (merge attrs {:type "button"}) child])
+  [:button.ogre-button (merge {:type "button"} attrs) child])
 
 (def initial-state
-  {:editing/roll? false :editing/life? false :input/roll nil})
+  {:editing/roll? false :editing/health? false :input/roll nil :input/health nil})
 
 (defn initiant [{:keys [element dispatch]}]
   (let [ident (:db/id element) state (uix/state initial-state)]
-
     (uix/effect!
      (fn [] (swap! state assoc :editing/roll? false))
      [(:initiative/roll element)])
@@ -50,8 +49,28 @@
            (swap! state assoc :input/roll (inc (rand-int 20))))}
         [icon {:name :dice-5 :width 32 :height 32}]]]
 
-      (:editing/life? @state)
-      nil
+      (:editing/health? @state)
+      [:div.initiant.initiant-layout-health
+       [:div.initiant-health-input
+        [:input
+         {:type "number"
+          :value (or (:input/health @state) "")
+          :autoFocus true
+          :placeholder "Hitpoints"
+          :on-change #(swap! state assoc :input/health (.. % -target -value))}]]
+       (for [[icon-name class updator]
+             [[:caret-down-fill "initiant-hp-take" -]
+              [:caret-up-fill "initiant-hp-give" +]]]
+         [:div
+          {:key class
+           :class class
+           :on-click
+           (fn []
+             (dispatch :initiative/change-health ident updator (:input/health @state))
+             (swap! state merge {:editing/health? false :input/health nil}))}
+          [icon {:name icon-name :width 26 :height 26}]])
+       [:div.initiant-hp
+        {:on-click #(swap! state assoc :editing/health? false)} "×"]]
 
       :else
       [:div.initiant.initiant-layout-default {:key ident}
@@ -75,7 +94,11 @@
         (let [flags (:element/flags element)]
           (if (seq flags)
             (join ", " (map #(capitalize (name %)) flags))
-            [:em "No Conditions"]))]])))
+            [:em "No Conditions"]))]
+       [:div.initiant-hp
+        {:on-click #(swap! state assoc :editing/health? true)}
+        (let [health (:initiative/health element)]
+          (if (blank? health) "HP" health))]])))
 
 (defn initiative []
   (let [context  (uix/context state/state)]

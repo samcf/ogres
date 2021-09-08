@@ -19,6 +19,7 @@ body {
     font-family: var(--theme-font);
     font-size: 16px;
     line-height: 1.5;
+    overflow-y: hidden;
 }
 
 em {
@@ -568,7 +569,9 @@ input[type="number"] {
     box-sizing: border-box;
     color: var(--theme-paper-dark);
     font-size: 14px;
-    height: 100%;
+    height: 0vh;
+    min-height: 100%;
+    overflow-y: auto;
     padding: 8px;
     width: 300px;
 }
@@ -593,6 +596,7 @@ input[type="number"] {
     line-height: 1;
     display: grid;
     grid-gap: 2px;
+    height: 34px;
 }
 
 .initiant + .initiant {
@@ -613,6 +617,11 @@ input[type="number"] {
         "e a c d";
 }
 
+.initiant-layout-health {
+    grid-template-columns: 2fr 34px 34px 34px;
+    grid-template-areas: "a b c d";
+}
+
 .initiant-inc { grid-area: b; }
 .initiant-dec { grid-area: e; }
 .initiant-roll { grid-area: a; }
@@ -622,6 +631,7 @@ input[type="number"] {
 .initiant-cond { grid-area: f; }
 .initiant-hp { grid-area: d; }
 
+.initiant-health-input input[type="number"],
 .initiant-dice-input input[type="number"] {
     font-size: 16px;
     height: 100%;
@@ -672,13 +682,25 @@ input[type="number"] {
     font-size: 12px;
 }
 
+.initiant-hp-take,
+.initiant-hp-give,
 .initiant-hp {
     align-items: center;
     background-color: var(--theme-paper-accent);
     border-radius: 50%;
-    border: 1px solid var(--theme-paper-accent);
     color: var(--theme-paper-light);
+    cursor: pointer;
     display: flex;
     font-size: 20px;
     justify-content: center;
+}
+
+.initiant-hp-take {
+    background-color: rgb(194, 112, 112);
+    padding-top: 2px;
+}
+
+.initiant-hp-give {
+    background-color: rgb(112, 133, 194);
+    padding-bottom: 2px;
 }
