@@ -1,7 +1,6 @@
 (ns ogre.tools.render.initiative
   (:require [clojure.string :refer [join capitalize blank?]]
             [datascript.core :as ds]
-            [goog.string :refer [format]]
             [ogre.tools.query :as query]
             [ogre.tools.render.icon :refer [icon]]
             [ogre.tools.state :as state]
@@ -11,7 +10,7 @@
   (cond-> ""
     (string? name)   (str name)
     (blank? name)    (str "Unknown")
-    (number? suffix) (str " " (format "(%s)" (char (+ suffix 64))))))
+    (number? suffix) (str " (" (char (+ suffix 64)) ")")))
 
 (defn initiative-order [a b]
   (compare

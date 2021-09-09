@@ -1,6 +1,5 @@
 (ns ogre.tools.render.canvas
   (:require [clojure.string :as string]
-            [goog.string :refer [format]]
             [datascript.core :as ds]
             [ogre.tools.query :as query]
             [ogre.tools.render :refer [css use-image]]
@@ -43,7 +42,7 @@
 (defn label [{:keys [element/name initiative/suffix]}]
   (cond-> ""
     (string? name) (str name)
-    (number? suffix) (str " " (format "(%s)" (char (+ suffix 64))))))
+    (number? suffix) (str " (" (char (+ suffix 64)) ")")))
 
 (defn board [{:keys [image]}]
   (let [{:keys [data]} (uix/context state)
