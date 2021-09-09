@@ -315,6 +315,10 @@ input[type="number"] {
     width: 100%;
 }
 
+.canvas text {
+    pointer-events: none;
+}
+
 .canvas.theme--light {
     --canvas-stroke: rgba(255, 255, 255, 1);
     --canvas-text: rgba(255, 255, 255, 1);
@@ -334,43 +338,31 @@ input[type="number"] {
     stroke: var(--canvas-text-outline);
 }
 
-@keyframes stroke-animation {
-    0% { stroke-dashoffset: 0; }
-    100% { stroke-dashoffset: 16px; }
+/* Canvas Tokens */
+.canvas-token.flag--hidden circle,
+.canvas-token.flag--invisible circle {
+    fill-opacity: 0.30;
 }
 
-.canvas-shape-rect > path {
-    shape-rendering: crispEdges;
-}
-
-.theme--host .canvas-shape:hover > circle,
-.theme--host .canvas-shape:hover > path,
-.theme--host .canvas-shape:hover > line,
-.theme--host .canvas-shape:hover > polygon,
-.theme--host .canvas-shape.selected > circle,
-.theme--host .canvas-shape.selected > path,
-.theme--host .canvas-shape.selected > line,
-.theme--host .canvas-shape.selected > polygon,
-.theme--host .canvas-token-shape:hover,
-.theme--host .canvas-token.selected > .canvas-token-shape {
+.canvas-token-shape {
+    stroke: white;
+    stroke-width: 1px;
     cursor: pointer;
-    stroke-dasharray: 2px;
-    stroke-linecap: round;
-    animation: stroke-animation 1s linear infinite;
-}
-
-.canvas-token-shape:hover,
-.canvas-token.selected > .canvas-token-shape {
-    stroke: var(--canvas-stroke);
-}
-
-.canvas-token > text,
-.canvas-token-aura {
-    pointer-events: none;
+    fill: var(--theme-background-d);
 }
 
 .canvas-token-shape + text {
     text-anchor: middle;
+}
+
+@keyframes fill-pulse {
+    0% { fill: var(--theme-background-d); }
+    100% { fill: #475f6b; }
+}
+
+.theme--host .canvas-token-shape:hover,
+.theme--host .canvas-token.selected > .canvas-token-shape {
+    animation: fill-pulse 0.30s alternate infinite;
 }
 
 .canvas-token-aura {
@@ -381,9 +373,30 @@ input[type="number"] {
     stroke-linecap: round;
 }
 
-.canvas-token.flag--hidden circle,
-.canvas-token.flag--invisible circle {
-    fill-opacity: 0.30;
+.canvas-shape-rect > path {
+    shape-rendering: crispEdges;
+}
+
+/* Canvas Shapes */
+.canvas-shape {
+    cursor: pointer;
+}
+
+@keyframes stroke-animation {
+    0% { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: 16px; }
+}
+
+.theme--host .canvas-shape:hover > circle,
+.theme--host .canvas-shape:hover > path,
+.theme--host .canvas-shape:hover > line,
+.theme--host .canvas-shape:hover > polygon,
+.theme--host .canvas-shape.selected > circle,
+.theme--host .canvas-shape.selected > path,
+.theme--host .canvas-shape.selected > line,
+.theme--host .canvas-shape.selected > polygon {
+    stroke-dasharray: 4px;
+    animation: stroke-animation 1s linear infinite;
 }
 
 .canvas-drawable line,

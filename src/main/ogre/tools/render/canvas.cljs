@@ -183,7 +183,7 @@
         [cx cy]     [(* (.cos js/Math 0.75) aura-length)
                      (* (.sin js/Math 0.75) aura-length)]]
     [:g {:class class-name}
-     [:circle.canvas-token-shape {:cx 0 :cy 0 :r (max (- token-radiu 4) 8) :fill "#172125"}]
+     [:circle.canvas-token-shape {:cx 0 :cy 0 :r (max (- token-radiu 4) 8)}]
      (when (seq token-label)
        [text {:x 0 :y (+ token-radiu 16)} token-label])
      (when (> aura-radius 0)
