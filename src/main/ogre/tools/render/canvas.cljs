@@ -1,5 +1,6 @@
 (ns ogre.tools.render.canvas
   (:require [clojure.string :as string]
+            [goog.string :refer [format]]
             [datascript.core :as ds]
             [ogre.tools.query :as query]
             [ogre.tools.render :refer [css use-image]]
@@ -38,6 +39,11 @@
 (defn visible? [token]
   (let [{:keys [element/flags]} token]
     (or (nil? flags) (flags :player) (not (some flags [:hidden :invisible])))))
+
+(defn label [{:keys [element/name initiative/suffix]}]
+  (cond-> ""
+    (string? name) (str name)
+    (number? suffix) (str " " (format "(%s)" (char (+ suffix 64))))))
 
 (defn board [{:keys [image]}]
   (let [{:keys [data]} (uix/context state)
@@ -167,14 +173,33 @@
           [:defs [pattern {:id id :name patt :color color}]]
           [shape {:element (into {} (ds/touch element)) :attrs {:fill (str "url(#" id ")")}}]])])))
 
+(defn token [{:keys [entity selected size] :as props}]
+  (let [flag-names  (mapv #(str "flag--" (name %)) (:element/flags entity))
+        class-name  (css "canvas-token" {:selected selected} flag-names)
+        token-radiu (/ (ft->px (:size (:token/size entity)) size) 2)
+        token-label (label entity)
+        aura-radius (:aura/radius entity)
+        aura-length (+ (ft->px aura-radius size) (/ size 2))
+        [cx cy]     [(* (.cos js/Math 0.75) aura-length)
+                     (* (.sin js/Math 0.75) aura-length)]]
+    [:g {:class class-name}
+     [:circle.canvas-token-shape {:cx 0 :cy 0 :r (max (- token-radiu 4) 8) :fill "#172125"}]
+     (when (seq token-label)
+       [text {:x 0 :y (+ token-radiu 16)} token-label])
+     (when (> aura-radius 0)
+       [:circle.canvas-token-aura {:cx 0 :cy 0 :r aura-length}])
+     (when (and (> aura-radius 0) (seq (:aura/label entity)))
+       [text {:x (+ cx 8) :y (+ cy 8)} (:aura/label entity)])]))
+
 (defn tokens [props]
   (let [{:keys [data workspace dispatch]} (uix/context state)
         {:keys [viewer/host?]} (query/viewer data)
-        {:keys [grid/size zoom/scale canvas/map canvas/selected]} workspace
-        elements (query/elements data :token)]
-    (for [token elements :let [{[x y] :pos/vec} token] :when (or host? (visible? token))]
+        {:keys [grid/size zoom/scale canvas/selected]} workspace]
+    (for [entity (query/elements data :token)
+          :let [{[x y] :pos/vec} entity]
+          :when (or host? (visible? entity))]
       [:> draggable
-       {:key      (:db/id token)
+       {:key      (:db/id entity)
         :position #js {:x x :y y}
         :scale    scale
         :on-start (fn [event] (.stopPropagation event))
@@ -183,26 +208,13 @@
           (.stopPropagation event)
           (let [dist (euclidean x y (.-x data) (.-y data))]
             (if (= dist 0)
-              (dispatch :element/select (:db/id token))
-              (dispatch :token/translate (:db/id token) (.-x data) (.-y data)))))}
-       [:g.canvas-token
-        {:class (css {:selected (contains? selected token)}
-                     (mapv #(str "flag--" (name %)) (:element/flags token)))}
-        (let [{label :element/name {token-size :size} :token/size} token
-              radius (/ (ft->px token-size size) 2)]
-          [:g.canvas-token-shape
-           [:circle {:cx 0 :cy 0 :r (max (- radius 4) 8) :fill "#172125"}]
-           (when (seq label)
-             [text {:x 0 :y (+ radius 16) :text-anchor "middle" :fill "white"} label])])
-        (let [{:keys [aura/radius aura/label]} token
-              length  (-> (ft->px radius size) (+ (/ size 2)))
-              [cx cy] [(* (js/Math.cos 0.75) length)
-                       (* (js/Math.sin 0.75) length)]]
-          [:g.canvas-token-aura
-           (when (> radius 0)
-             [:circle {:cx 0 :cy 0 :r length}])
-           (when (and (> radius 0) (seq label))
-             [text {:x (+ cx 8) :y (+ cy 8)} label])])]])))
+              (dispatch :element/select (:db/id entity))
+              (dispatch :token/translate (:db/id entity) (.-x data) (.-y data)))))}
+       [:g
+        [token
+         {:entity   (into {} (ds/touch entity))
+          :selected (contains? selected entity)
+          :size     size}]]])))
 
 (defn drawable [{:keys [on-release]} render-fn]
   (let [{:keys [data]} (uix/context state)

@@ -1,15 +1,22 @@
 (ns ogre.tools.render.initiative
   (:require [clojure.string :refer [join capitalize blank?]]
             [datascript.core :as ds]
+            [goog.string :refer [format]]
             [ogre.tools.query :as query]
             [ogre.tools.render.icon :refer [icon]]
             [ogre.tools.state :as state]
             [uix.core.alpha :as uix]))
 
+(defn label [{:keys [element/name initiative/suffix]}]
+  (cond-> ""
+    (string? name)   (str name)
+    (blank? name)    (str "Unknown")
+    (number? suffix) (str " " (format "(%s)" (char (+ suffix 64))))))
+
 (defn initiative-order [a b]
   (compare
-   [(:initiative/roll a) (contains? (:element/flags b) :player) (:element/name b)]
-   [(:initiative/roll b) (contains? (:element/flags a) :player) (:element/name a)]))
+   [(:initiative/roll a) (contains? (:element/flags b) :player) (label b)]
+   [(:initiative/roll b) (contains? (:element/flags a) :player) (label a)]))
 
 (defn button [attrs child]
   [:button.ogre-button (merge {:type "button"} attrs) child])
@@ -87,9 +94,7 @@
         {:on-click #(dispatch :initiative/roll-inc ident)} "+"]
        [:div.initiant-dec
         {:on-click #(dispatch :initiative/roll-dec ident)} "-"]
-       [:div.initiant-name
-        (let [name (:element/name element)]
-          (if (not (blank? name)) name [:em "Unknown"]))]
+       [:div.initiant-name [label element]]
        [:div.initiant-cond
         (let [flags (:element/flags element)]
           (if (seq flags)

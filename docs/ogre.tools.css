@@ -351,25 +351,29 @@ input[type="number"] {
 .theme--host .canvas-shape.selected > path,
 .theme--host .canvas-shape.selected > line,
 .theme--host .canvas-shape.selected > polygon,
-.theme--host .canvas-token-shape > circle:hover,
-.theme--host .canvas-token.selected > .canvas-token-shape > circle {
+.theme--host .canvas-token-shape:hover,
+.theme--host .canvas-token.selected > .canvas-token-shape {
     cursor: pointer;
-    stroke-dasharray: 4px;
+    stroke-dasharray: 2px;
     stroke-linecap: round;
     animation: stroke-animation 1s linear infinite;
 }
 
-.canvas-token-shape > circle:hover,
-.canvas-token.selected > .canvas-token-shape > circle {
+.canvas-token-shape:hover,
+.canvas-token.selected > .canvas-token-shape {
     stroke: var(--canvas-stroke);
 }
 
-.canvas-token-shape > text,
+.canvas-token > text,
 .canvas-token-aura {
     pointer-events: none;
 }
 
-.canvas-token-aura > circle {
+.canvas-token-shape + text {
+    text-anchor: middle;
+}
+
+.canvas-token-aura {
     fill: none;
     stroke: var(--canvas-stroke);
     stroke-width: 1px;

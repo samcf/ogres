@@ -1,5 +1,6 @@
 (ns ogre.tools.txs
   (:require [datascript.core :as ds]
+            [clojure.set :refer [union]]
             [ogre.tools.query :as query]))
 
 (defn round [[x y] n]
@@ -21,8 +22,35 @@
 (defn within? [x y [ax ay bx by]]
   (and (> x ax) (> y ay) (< x bx) (< y by)))
 
+(defn with-suffix-txs
+  "Returns a vector of tx tuples `[[:db/add id :initiative/suffix suffix] ...]`
+   for entities whose names are duplicates within the collection given and do
+   not already have a unique suffix assigned yet."
+  [entities]
+  (->>
+   (reduce
+    (fn [m {:keys [db/id element/name initiative/suffix]}]
+      (update
+       m name
+       (fn [[idents current]]
+         [(if (= suffix nil) (conj idents id) idents)
+          (max current suffix)]))) {} entities)
+   (mapcat
+    (fn [[_ [idents suffix]]]
+      (if (or (> (count idents) 1) (number? suffix))
+        (loop [idents idents suffix (inc suffix) txs []]
+          (if-let [id (first idents)]
+            (recur
+             (rest idents)
+             (inc suffix)
+             (conj txs [:db/add id :initiative/suffix suffix]))
+            txs)) [])))))
+
 (def initiative-attrs
-  #{:initiative/member? :initiative/roll :initiative/health})
+  #{:initiative/member?
+    :initiative/roll
+    :initiative/health
+    :initiative/suffix})
 
 (defn initial-canvas []
   {:element/type :canvas
@@ -287,8 +315,13 @@
 (defmethod transact :initiative/toggle
   [data event idents add?]
   (if add?
-    (for [id idents]
-      [:db/add id :initiative/member? true])
+    (let [adding (map #(ds/entity data %) idents)
+          exists (query/initiating data)]
+      (->> (union (set adding) (set exists))
+           (with-suffix-txs)
+           (concat
+            (for [id idents]
+              [:db/add id :initiative/member? true]))))
     (for [id idents attr initiative-attrs]
       [:db/retract id attr])))
 
