@@ -2,6 +2,7 @@
   (:require [clojure.string :refer [join capitalize blank?]]
             [datascript.core :as ds]
             [ogre.tools.query :as query]
+            [ogre.tools.render :refer [css]]
             [ogre.tools.render.icon :refer [icon]]
             [ogre.tools.state :as state]
             [uix.core.alpha :as uix]))
@@ -23,7 +24,7 @@
 (def initial-state
   {:editing/roll? false :editing/health? false :input/roll nil :input/health nil})
 
-(defn initiant [{:keys [element dispatch]}]
+(defn initiant [{:keys [element dispatch selected]}]
   (let [ident (:db/id element) state (uix/state initial-state)]
     (uix/effect!
      (fn [] (swap! state assoc :editing/roll? false))
@@ -31,7 +32,8 @@
 
     (cond
       (:editing/roll? @state)
-      [:div.initiant.initiant-layout-roll {:key ident}
+      [:div.initiant.initiant-layout-roll
+       {:class (css {:selected selected})}
        [:div.initiant-roll
         {:on-click
          (fn []
@@ -57,6 +59,7 @@
 
       (:editing/health? @state)
       [:div.initiant.initiant-layout-health
+       {:class (css {:selected selected})}
        [:div.initiant-health-input
         [:input
          {:type "number"
@@ -79,7 +82,8 @@
         {:on-click #(swap! state assoc :editing/health? false)} "×"]]
 
       :else
-      [:div.initiant.initiant-layout-default {:key ident}
+      [:div.initiant.initiant-layout-default
+       {:class (css {:selected selected})}
        [:div.initiant-roll
         {:on-click
          (fn []
@@ -93,7 +97,9 @@
         {:on-click #(dispatch :initiative/roll-inc ident)} "+"]
        [:div.initiant-dec
         {:on-click #(dispatch :initiative/roll-dec ident)} "-"]
-       [:div.initiant-name [label element]]
+       [:div.initiant-name
+        {:on-click #(dispatch :element/select ident)}
+        [label element]]
        [:div.initiant-cond
         (let [flags (:element/flags element)]
           (if (seq flags)
@@ -105,17 +111,18 @@
           (if (blank? health) "HP" health))]])))
 
 (defn initiative []
-  (let [context  (uix/context state/state)]
+  (let [{:keys [dispatch data workspace]} (uix/context state/state)]
     [:div.initiative
      [:section [:header "Initiative"]]
      [:section.initiative-actions
-      [button {:on-click #((:dispatch context) :initiative/roll-all)} "Roll"]
-      [button {:on-click #((:dispatch context) :initiative/reset-rolls)} "Reset"]
-      [button {:on-click #((:dispatch context) :initiative/leave)} "Leave"]]
-     (let [initiants (->> (query/initiating (:data context)) (sort initiative-order) (reverse))]
+      [button {:on-click #(dispatch :initiative/roll-all)} "Roll"]
+      [button {:on-click #(dispatch :initiative/reset-rolls)} "Reset"]
+      [button {:on-click #(dispatch :initiative/leave)} "Leave"]]
+     (let [initiants (->> (query/initiating data) (sort initiative-order) (reverse))]
        [:section
         (for [element initiants :let [id (:db/id element)]]
           [initiant
            {:key id
             :element (into {:db/id id} (ds/touch element))
-            :dispatch (:dispatch context)}])])]))
+            :selected (contains? (:canvas/selected workspace) element)
+            :dispatch dispatch}])])]))
