@@ -226,9 +226,9 @@ input[type="number"] {
 .commands {
     backdrop-filter: blur(4px);
     border-radius: 4px;
-    display: grid;
-    grid-gap: 4px;
-    grid-template-columns: repeat(2, 1fr);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
     pointer-events: all;
 }
 
@@ -414,6 +414,10 @@ input[type="number"] {
     animation: stroke-animation 1s linear infinite;
 }
 
+.canvas-drawable {
+    cursor: crosshair;
+}
+
 .canvas-drawable line,
 .canvas-drawable path,
 .canvas-drawable polygon,
@@ -423,7 +427,7 @@ input[type="number"] {
     stroke-dasharray: 8px;
 }
 
-.canvas-drawable-grid path,
+.canvas-drawable-canvas path,
 .canvas-drawable-rect path,
 .canvas-drawable-select path {
     shape-rendering: crispEdges;
@@ -540,6 +544,12 @@ input[type="number"] {
 
 .options-canvas-maps > div > div:hover {
     background-color: rgba(0, 0, 0, 0.70);
+}
+
+.options-canvas-theme {
+    display: grid;
+    grid-gap: 4px;
+    grid-template-columns: repeat(2, 1fr);
 }
 
 .options-canvas-maps,

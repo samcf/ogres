@@ -98,7 +98,8 @@
 (defmethod transact :canvas/change-map
   [data event map]
   (let [workspace (query/workspace data)]
-    [[:db/add (:db/id workspace) :canvas/map map]]))
+    [[:db/add (:db/id workspace) :canvas/map map]
+     [:db/add (:db/id workspace) :pos/vec [0 0]]]))
 
 (defmethod transact :canvas/toggle-mode
   [data event mode]

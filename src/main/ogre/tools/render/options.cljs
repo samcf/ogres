@@ -97,7 +97,7 @@
 
 (defn canvas []
   (let [{:keys [data workspace dispatch]} (uix/context state)
-        {:keys [db/id element/name]} workspace
+        {:keys [db/id element/name grid/size]} workspace
         {:keys [store]} (uix/context storage)]
     [:div.options.options-canvas
      [:section
@@ -115,6 +115,7 @@
        {:type "button" :on-click #(dispatch :canvas/toggle-mode :canvas)} "×"]]
 
      [:section
+      [:header "Scene"]
       (when-let [boards (query/boards data)]
         [:div
          [:div.options-canvas-maps
@@ -145,20 +146,48 @@
                 (-> (.put (.-images store) record)
                     (.then
                      (fn [] (dispatch :map/create workspace entity))))))))}]]
-
      [:section
-      [:fieldset
-       [:header "Lighting"]
-       [:div.options-canvas-lighting
-        (for [option [:bright :dim :dark]
-              :let [checked (= option (:canvas/lighting workspace))]]
-          [checkbox
-           {:key option
-            :name "canvas/lighting"
-            :value option
-            :checked checked
-            :on-change #(dispatch :canvas/change-lighting option)}
-           (string/capitalize (clojure.core/name option))])]]]]))
+      [:header "Grid Options"]
+      [:input
+       {:type "number"
+        :value (or size 0)
+        :min 0
+        :placeholder "Grid size"
+        :on-change
+        (fn [event]
+          (let [value (.. event -target -value)]
+            (dispatch :grid/change-size value)))}]
+      [:div {:style {:margin-top 4}}
+       [checkbox
+        {:name "canvas/display-grid"
+         :checked (or (:grid/show workspace) false)
+         :on-change #(dispatch :grid/toggle)}
+        "Display Grid"]]]
+     [:section
+      [:header "Theme"]
+      [:div.options-canvas-theme
+       (for [theme [:light :dark] :let [checked? (= theme (:canvas/theme workspace))]]
+         [checkbox
+          {:key theme
+           :name (str "canvas/theme/" theme)
+           :checked checked?
+           :on-change
+           (fn []
+             (when (not checked?)
+               (dispatch :canvas/toggle-theme)))}
+          (string/capitalize (clojure.core/name theme))])]]
+     [:section
+      [:header "Lighting"]
+      [:div.options-canvas-lighting
+       (for [option [:bright :dim :dark]
+             :let [checked (= option (:canvas/lighting workspace))]]
+         [checkbox
+          {:key option
+           :name "canvas/lighting"
+           :value option
+           :checked checked
+           :on-change #(dispatch :canvas/change-lighting option)}
+          (string/capitalize (clojure.core/name option))])]]]))
 
 (defn token [props]
   (let [{:keys [data workspace dispatch]} (uix/context state)
@@ -318,27 +347,6 @@
           :max 1
           :step 0.25}])]]))
 
-(defn grid [{:keys [workspace]}]
-  (let [{:keys [workspace dispatch]} (uix/context state)
-        {:keys [grid/size]} workspace]
-    [:div.options.options-grid
-     [:section
-      [:input
-       {:type "number"
-        :value (or size 0)
-        :min 0
-        :on-change
-        (fn [event]
-          (let [value (.. event -target -value)]
-            (dispatch :grid/change-size value)))}]
-      [:button
-       {:type "button" :on-click #(dispatch :canvas/toggle-mode :grid)} "×"]]
-     [:section
-      [:header "Setting the Grid Size"]
-      [:div "Draw a square that represents 5 feet. We'll try to guess what
-             the real grid size is based on your selection and the size of
-             the map. If its not quite right, edit the size above manually."]]]))
-
 (defn type? [type entity]
   (= (:element/type entity) type))
 
@@ -347,7 +355,6 @@
         {:keys [canvas/mode canvas/selected]} workspace]
     (cond
       (= mode :canvas) [canvas]
-      (= mode :grid)   [grid]
       (= mode :select)
       (cond
         (empty? selected) nil

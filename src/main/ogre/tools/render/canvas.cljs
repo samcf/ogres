@@ -217,7 +217,7 @@
             (if (= dist 0)
               (dispatch :element/select (:db/id entity))
               (dispatch :token/translate (:db/id entity) (.-x data) (.-y data)))))}
-       [:g
+       [:g.canvas-token
         [token
          {:entity   (into {} (ds/touch entity))
           :selected (contains? selected entity)
@@ -266,7 +266,7 @@
 
 (defmulti draw :mode)
 
-(defmethod draw :grid [props]
+(defmethod draw :canvas [props]
   (let [{:keys [workspace dispatch]} (uix/context state)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
