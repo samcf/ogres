@@ -172,6 +172,9 @@
           [:defs [pattern {:id id :name patt :color color}]]
           [shape {:element (into {} (ds/touch element)) :attrs {:fill (str "url(#" id ")")}}]])])))
 
+(defn marker []
+  [:path {:d "M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"}])
+
 (defn token [{:keys [entity selected size] :as props}]
   (let [flag-names  (mapv #(str "flag--" (name %)) (:element/flags entity))
         class-name  (css "canvas-token" {:selected selected} flag-names)
@@ -184,11 +187,16 @@
     [:g {:class class-name}
      [:circle.canvas-token-shape {:cx 0 :cy 0 :r (max (- token-radiu 4) 8)}]
      (when (seq token-label)
-       [text {:x 0 :y (+ token-radiu 16)} token-label])
+       [text {:x 0 :y (+ token-radiu 8)} token-label])
      (when (> aura-radius 0)
        [:circle.canvas-token-aura {:cx 0 :cy 0 :r aura-length}])
      (when (and (> aura-radius 0) (seq (:aura/label entity)))
-       [text {:x (+ cx 8) :y (+ cy 8)} (:aura/label entity)])]))
+       [text {:x (+ cx 8) :y (+ cy 8)} (:aura/label entity)])
+     (when selected
+       [:g.canvas-token-marker
+        {:transform (str "translate(-17, " (* -1 (+ token-radiu 16)) ") scale(2.20)")}
+        [:g.canvas-token-marker-bounce
+         [marker]]])]))
 
 (defn tokens [props]
   (let [{:keys [data workspace dispatch]} (uix/context state)

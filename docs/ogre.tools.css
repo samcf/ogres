@@ -351,18 +351,32 @@ input[type="number"] {
     fill: var(--theme-background-d);
 }
 
+.canvas-token-shape:hover {
+    fill:#314149
+}
+
 .canvas-token-shape + text {
     text-anchor: middle;
 }
 
-@keyframes fill-pulse {
-    0% { fill: var(--theme-background-d); }
-    100% { fill: #475f6b; }
+@keyframes marker-bounce {
+    0%   { transform: translate(0px, 0px); }
+    100% { transform: translate(0px, 3px); }
 }
 
-.theme--host .canvas-token-shape:hover,
-.theme--host .canvas-token.selected > .canvas-token-shape {
-    animation: fill-pulse 0.30s alternate infinite;
+.canvas-token-marker path {
+    fill: var(--theme-background-d);
+    stroke-linejoin: round;
+    stroke-width: 0.5px;
+    stroke: white;
+}
+
+.canvas-token.selected .canvas-token-marker-bounce {
+    animation: marker-bounce 0.25s alternate infinite;
+}
+
+.theme--guest .canvas-token-marker {
+    display: none;
 }
 
 .canvas-token-aura {
@@ -371,6 +385,7 @@ input[type="number"] {
     stroke-width: 1px;
     stroke-dasharray: 12px;
     stroke-linecap: round;
+    pointer-events: none;
 }
 
 .canvas-shape-rect > path {
