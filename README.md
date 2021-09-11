@@ -47,8 +47,8 @@ This is a **work in progress** and not intended for serious usage at this time. 
   - [x] Reset the local workspace data
   - [ ] Export and import workspace data
 - Other Features
-  - [ ] Simple initiative tracker
-  - [ ] Keyboard and mouse shortcuts
+  - [x] Simple initiative tracker
+  - [x] Keyboard and mouse shortcuts
 
 ### Contributing
 This project is licensed under the [GNU AGPLv3](https://choosealicense.com/licenses/agpl-3.0/) to ensure that any changes made to the project are freely available to all users.
