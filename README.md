@@ -4,7 +4,7 @@
 
 This is a **work in progress** and not intended for serious usage at this time. It is under heavy development and will go through many more changes as it matures.
 
-![Sample screenshot](docs/screenshot.jpg)
+![Sample screenshot](https://raw.githubusercontent.com/samcf/ogre.tools/main/docs/screenshot.jpg)
 
 ### Principles
 * Free and open source &ndash; forever.
