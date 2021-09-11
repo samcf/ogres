@@ -49,7 +49,7 @@
         {:keys [viewer/host? viewer/workspace]} (query/viewer data)
         {:keys [canvas/lighting grid/size zoom/scale]} workspace
         tokens (query/elements data :token)
-        url (use-image (:image/checksum image))]
+        url (use-image (:image/checksum image) {:persist? true})]
     (when (string? url)
       [:g.canvas-image
        (when (not (= lighting :bright))

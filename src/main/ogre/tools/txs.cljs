@@ -153,11 +153,16 @@
 
 (defmethod transact :map/create
   [data event workspace map-data]
-  (let [existing (first (ds/datoms data :avet :image/checksum (:image/checksum map-data)))]
+  (let [checksum (:image/checksum map-data)
+        existing (ds/entity data [:image/checksum checksum])]
     (if (nil? existing)
       [(assoc map-data :db/id -1)
        [:db/add (:db/id workspace) :canvas/map -1]]
-      [[:db/add (:db/id workspace) :canvas/map (first existing)]])))
+      [[:db/add (:db/id workspace) :canvas/map (:db/id existing)]])))
+
+(defmethod transact :image/set-url
+  [data event checksum url]
+  [[:db/add [:image/checksum checksum] :image/url url]])
 
 (defmethod transact :map/remove
   [data event map]

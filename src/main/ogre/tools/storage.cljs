@@ -14,7 +14,8 @@
     :viewer/privileged?
     :share/open?
     :share/paused?
-    :canvas/modifier})
+    :canvas/modifier
+    :image/url})
 
 (defn host? [element]
   (->
