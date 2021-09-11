@@ -242,6 +242,7 @@ input[type="number"] {
     cursor: pointer;
     height: 40px;
     padding-top: 4px;
+    position: relative;
     width: 40px;
 }
 
@@ -270,8 +271,17 @@ input[type="number"] {
     fill: black;
 }
 
-.commands button.selected div {
-    border-color: black;
+.commands-shortcut {
+    background-color: var(--theme-background-d);
+    border-radius: 4px;
+    border: 1px solid var(--theme-background-d);
+    font-size: 10px;
+    height: 10px;
+    position: absolute;
+    left: -4px;
+    top: -4px;
+    width: 10px;
+    line-height: 1;
 }
 
 .command-set {
@@ -294,6 +304,7 @@ input[type="number"] {
     position: absolute;
     right: 0;
     width: 0px;
+    z-index: 1;
 }
 
 .command-set-rest {
@@ -307,6 +318,7 @@ input[type="number"] {
     position: absolute;
     top: -4px;
     transition: opacity 0.10s ease-in-out;
+    z-index: 1;
 }
 
 .command-set-rest button.selected {

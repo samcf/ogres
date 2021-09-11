@@ -21,6 +21,43 @@
    (fn [{:keys [dispatch]}]
      (dispatch :selection/remove))
 
+   ["keydown" \s]
+   (fn [{:keys [dispatch]}]
+     (dispatch :canvas/toggle-mode :select))
+
+   ["keydown" \c]
+   (fn [{:keys [dispatch]}]
+     (dispatch :canvas/toggle-mode :canvas))
+
+   ["keydown" \r]
+   (fn [{:keys [dispatch]}]
+     (dispatch :canvas/toggle-mode :ruler))
+
+   ["keydown" \1]
+   (fn [{:keys [dispatch]}]
+     (dispatch :canvas/toggle-mode :circle))
+
+   ["keydown" \2]
+   (fn [{:keys [dispatch]}]
+     (dispatch :canvas/toggle-mode :rect))
+
+   ["keydown" \3]
+   (fn [{:keys [dispatch]}]
+     (dispatch :canvas/toggle-mode :cone))
+
+   ["keydown" \4]
+   (fn [{:keys [dispatch]}]
+     (dispatch :canvas/toggle-mode :line))
+
+   ["keydown" \v]
+   (fn [{:keys [dispatch]}]
+     (dispatch :share/initiate))
+
+   ["keydown" \p]
+   (fn [{:keys [dispatch data]}]
+     (when (:share/open? (query/viewer data))
+       (dispatch :share/switch)))
+
    ["wheel"]
    (fn [{:keys [data dispatch]} event]
      (when (.. event -target (closest "svg.canvas"))
@@ -40,6 +77,9 @@
 (defn allow-event? [event]
   (let [target (.-target event)]
     (not (or (.-repeat event)
+             (.-metaKey event)
+             (.-ctrlKey event)
+             (and (not= (.-key event) "Shift") (.-shiftKey event))
              (and (instance? js/HTMLInputElement target)
                   (or (= (.-type target) "text")
                       (= (.-type target) "number")))))))

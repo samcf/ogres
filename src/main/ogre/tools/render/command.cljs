@@ -11,11 +11,20 @@
    :cone :triangle
    :line :slash-lg})
 
-(defn command-set [first & rest]
+(def shape->shortcut
+  {:circle "1"
+   :rect "2"
+   :cone "3"
+   :line "4"})
+
+(defn commands [first & rest]
   [:div.command-set
    [:div.command-set-mark]
    [:div.command-set-first first]
    [:div.command-set-rest rest]])
+
+(defn shortcut [key]
+  [:div.commands-shortcut key])
 
 (defn command [props]
   (let [{:keys [dispatch data workspace]} (uix/context state)
@@ -28,22 +37,26 @@
            :class (css {:selected (= given mode)})
            :on-click #(dispatch :canvas/toggle-mode given)})]
     [:div.commands
-     [:button (mode-attrs :select) [icon {:name :cursor}]]
-     [:button (mode-attrs :canvas) [icon {:name :image}]]
-     [:button (mode-attrs :ruler) [icon {:name :rulers}]]
-     [command-set
+     [:button (mode-attrs :select) [icon {:name :cursor}] [shortcut "S"]]
+     [:button (mode-attrs :canvas) [icon {:name :image}] [shortcut "C"]]
+     [:button (mode-attrs :ruler) [icon {:name :rulers}] [shortcut "R"]]
+     [commands
       (let [last (or last-shape :circle)]
-        [:button (mode-attrs last) [icon {:name (shape->icon last)}]])
-      [:button (mode-attrs :circle) [icon {:name :circle}]]
-      [:button (mode-attrs :rect) [icon {:name :square}]]
-      [:button (mode-attrs :cone) [icon {:name :triangle}]]
-      [:button (mode-attrs :line) [icon {:name :slash-lg}]]]
-     [command-set
+        [:button (mode-attrs last)
+         [icon {:name (shape->icon last)}]
+         [shortcut (shape->shortcut last)]])
+      (for [shape [:circle :rect :cone :line]]
+        [:button (mode-attrs shape)
+         [icon {:name (shape->icon shape)}]
+         [shortcut (shape->shortcut shape)]])]
+     [commands
       [:button
        {:class (css {:active open?}) :on-click #(dispatch :share/initiate)}
-       [icon {:name :window}]]
+       [icon {:name :window}]
+       [shortcut "V"]]
       [:button {:key :switch :disabled (not open?) :on-click #(dispatch :share/switch)}
        (if paused?
          [icon {:name :play-fill}]
-         [icon {:name :pause-fill}])]]
+         [icon {:name :pause-fill}])
+       [shortcut "P"]]]
      #_[:button (mode-attrs :help) [icon {:name :question-diamond}]]]))

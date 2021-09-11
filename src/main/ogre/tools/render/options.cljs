@@ -112,7 +112,7 @@
           (let [value (.. event -target -value)]
             (dispatch :element/update [id] :element/name value)))}]
       [:button
-       {:type "button" :on-click #(dispatch :canvas/toggle-mode :canvas)} "×"]]
+       {:type "button" :on-click #(dispatch :canvas/toggle-mode :select)} "×"]]
 
      [:section
       [:header "Scene"]
