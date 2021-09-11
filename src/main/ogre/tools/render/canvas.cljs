@@ -272,7 +272,7 @@
     [drawable
      {:on-release
       (fn [[ax ay bx by]]
-        (let [size (js/Math.abs (- bx ax))]
+        (let [size (js/Math.abs (min (- bx ax) (- by ay)))]
           (when (> size 0)
             (dispatch :grid/draw ax ay size))))}
      (fn [[ax ay bx by]]
