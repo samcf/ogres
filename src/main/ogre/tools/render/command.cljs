@@ -59,4 +59,4 @@
          [icon {:name :play-fill}]
          [icon {:name :pause-fill}])
        [shortcut "P"]]]
-     #_[:button (mode-attrs :help) [icon {:name :question-diamond}]]]))
+     [:button (mode-attrs :help) [icon {:name :question-diamond}]]]))

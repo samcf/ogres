@@ -26,6 +26,14 @@ em {
     font-style: italic;
 }
 
+strong {
+    font-weight: bold;
+}
+
+p + p {
+    margin-top: 8px;
+}
+
 input[type="text"],
 input[type="number"] {
     background-color: var(--theme-paper-light);

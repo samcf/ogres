@@ -347,6 +347,28 @@
           :max 1
           :step 0.25}])]]))
 
+(defn help []
+  (let [{:keys [dispatch]} (uix/context state)]
+    [:div.options
+     [:div]
+     [:section
+      [:header "About"]
+      [:p "ogre.tools is a free and open-source virtual table top for your "
+       [:strong "Dungeons & Dragons 5th Edition"]
+       " games."]
+      [:p "Find a bug or want to explore the project code?"
+       [:br]
+       [:a {:href "https://github.com/samcf/ogre.tools" :target "_blank" :title "Repository home"}
+        "https://github.com/samcf/ogre.tools"]]]
+     [:section
+      [:header "Local Data"]
+      [:p "This application stores all uploaded images and work on your
+           browser. You may restore the application to its factory defaults
+           by clicking the button below."]
+      [:p [:strong "All uploaded images and work will be permanently deleted."]]
+      [:button {:type "button" :on-click #(dispatch :storage/reset) :style {:margin-top 8}}
+       "Reset Data"]]]))
+
 (defn type? [type entity]
   (= (:element/type entity) type))
 
@@ -355,6 +377,7 @@
         {:keys [canvas/mode canvas/selected]} workspace]
     (cond
       (= mode :canvas) [canvas]
+      (= mode :help)   [help]
       (= mode :select)
       (cond
         (empty? selected) nil
