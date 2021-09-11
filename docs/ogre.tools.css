@@ -224,12 +224,13 @@ input[type="number"] {
 
 /* Commands */
 .commands {
-    backdrop-filter: blur(4px);
     border-radius: 4px;
     display: flex;
     flex-direction: column;
     gap: 4px;
     pointer-events: all;
+    background-color: var(--theme-background-d);
+    padding: 4px;
 }
 
 .commands button {
@@ -239,9 +240,9 @@ input[type="number"] {
     box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.55);
     color: var(--theme-text);
     cursor: pointer;
-    height: 36px;
+    height: 40px;
     padding-top: 4px;
-    width: 36px;
+    width: 40px;
 }
 
 .commands button:disabled {
@@ -252,9 +253,13 @@ input[type="number"] {
     fill: #777;
 }
 
-.commands button:not(:disabled):not(.selected):hover {
+.commands button:not(:disabled, .selected, .active):hover {
     background-color: var(--theme-background-d);
     border-color: hsl(208deg 21% 20%);
+}
+
+.commands button.active {
+    border: 1px dashed var(--color-primary-a);
 }
 
 .commands button.selected {
@@ -269,20 +274,52 @@ input[type="number"] {
     border-color: black;
 }
 
-.commands .grid {
-    border: 1px dashed white;
-    height: 16px;
-    margin: auto;
-    margin-top: -4px;
-    width: 16px;
+.command-set {
+    display: flex;
+    position: relative;
 }
 
-.commands hr {
-    border-color: hsl(208deg 21% 20%);
-    border-width: 1px 0 0 0;
-    display: block;
-    grid-column: 1 / 3;
-    margin: 0;
+.command-set-rest:hover,
+.command-set-first:hover + .command-set-rest {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.command-set-mark {
+    border-right: 5px solid white;
+    border-top: 5px solid transparent;
+    bottom: 0;
+    height: 0px;
+    pointer-events: none;
+    position: absolute;
+    right: 0;
+    width: 0px;
+}
+
+.command-set-rest {
+    background-color: var(--theme-background-d);
+    border-radius: 0 4px 4px 0;
+    display: flex;
+    left: 40px;
+    opacity: 0%;
+    padding: 4px;
+    pointer-events: none;
+    position: absolute;
+    top: -4px;
+    transition: opacity 0.10s ease-in-out;
+}
+
+.command-set-rest button.selected {
+    background-color: inherit;
+    border: 1px dashed var(--color-primary-a);
+}
+
+.command-set-rest button.selected svg {
+    fill: white;
+}
+
+.command-set-rest button + button {
+    margin-left: 4px;
 }
 
 /* Token Templates */

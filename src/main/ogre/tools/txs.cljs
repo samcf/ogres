@@ -105,7 +105,9 @@
   [data event mode]
   (let [{id :db/id current :canvas/mode} (query/workspace data)]
     [[:db/add id :canvas/mode (if (= current mode) :select mode)]
-     [:db/retract id :canvas/selected]]))
+     [:db/retract id :canvas/selected]
+     (when (contains? #{:circle :rect :cone :line} mode)
+       [:db/add id :canvas/last-shape mode])]))
 
 (defmethod transact :canvas/toggle-theme
   [data event]

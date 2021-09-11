@@ -55,7 +55,7 @@
         {:on-click
          (fn []
            (swap! state assoc :input/roll (inc (rand-int 20))))}
-        [icon {:name :dice-5 :width 32 :height 32}]]]
+        [icon {:name :dice-5 :size 32}]]]
 
       (:editing/health? @state)
       [:div.initiant.initiant-layout-health
@@ -77,7 +77,7 @@
            (fn []
              (dispatch :initiative/change-health ident updator (:input/health @state))
              (swap! state merge {:editing/health? false :input/health nil}))}
-          [icon {:name icon-name :width 26 :height 26}]])
+          [icon {:name icon-name :size 26}]])
        [:div.initiant-hp
         {:on-click #(swap! state assoc :editing/health? false)} "×"]]
 

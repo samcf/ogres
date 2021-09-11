@@ -5,32 +5,45 @@
             [ogre.tools.state :refer [state]]
             [uix.core.alpha :as uix]))
 
-(def modes
-  [[:select :cursor 20 "Select"]
-   [:canvas :image 18 "Canvas Options"]
-   [:ruler :rulers 20 "Ruler Tool"]
-   [:circle :circle 20 "Draw Circle"]
-   [:rect :square 20 "Draw Rectangle"]
-   [:cone :triangle 20 "Draw Cone"]
-   [:line :slash-lg 20 "Draw Line"]])
+(def shape->icon
+  {:circle :circle
+   :rect :square
+   :cone :triangle
+   :line :slash-lg})
+
+(defn command-set [first & rest]
+  [:div.command-set
+   [:div.command-set-mark]
+   [:div.command-set-first first]
+   [:div.command-set-rest rest]])
 
 (defn command [props]
-  (let [{:keys [data workspace dispatch]} (uix/context state)
-        {show :grid/show current :canvas/mode theme :canvas/theme} workspace
-        viewer (query/viewer data)]
+  (let [{:keys [dispatch data workspace]} (uix/context state)
+        {:keys [grid/show canvas/mode canvas/theme canvas/last-shape]} workspace
+        {:keys [share/open? share/paused?]} (query/viewer data)
+        mode-attrs
+        (fn [given]
+          {:type "button"
+           :key given
+           :class (css {:selected (= given mode)})
+           :on-click #(dispatch :canvas/toggle-mode given)})]
     [:div.commands
-     (for [[mode name size title] modes]
-       [:button
-        {:key mode :type "button" :class (css {:selected (= current mode)})
-         :title title :on-click #(dispatch :canvas/toggle-mode mode)}
-        [icon {:name name :width size :height size}]])
-     [:button
-      {:type "button" :title "Toggle Player Window" :class (css {:selected (:share/open? viewer)})
-       :on-click #(dispatch :share/initiate)}
-      [icon {:name :window :width 18 :height 18}]]
-     [:button
-      {:type "button" :title "Pause/Play" :class (css {:selected false})
-       :disabled (not (:share/open? viewer)) :on-click #(dispatch :share/switch)}
-      (if (:share/paused? viewer)
-        [icon {:name :play-fill :width 24 :height 24}]
-        [icon {:name :pause-fill :width 24 :height 24}])]]))
+     [:button (mode-attrs :select) [icon {:name :cursor}]]
+     [:button (mode-attrs :canvas) [icon {:name :image}]]
+     [:button (mode-attrs :ruler) [icon {:name :rulers}]]
+     [command-set
+      (let [last (or last-shape :circle)]
+        [:button (mode-attrs last) [icon {:name (shape->icon last)}]])
+      [:button (mode-attrs :circle) [icon {:name :circle}]]
+      [:button (mode-attrs :rect) [icon {:name :square}]]
+      [:button (mode-attrs :cone) [icon {:name :triangle}]]
+      [:button (mode-attrs :line) [icon {:name :slash-lg}]]]
+     [command-set
+      [:button
+       {:class (css {:active open?}) :on-click #(dispatch :share/initiate)}
+       [icon {:name :window}]]
+      [:button {:key :switch :disabled (not open?) :on-click #(dispatch :share/switch)}
+       (if paused?
+         [icon {:name :play-fill}]
+         [icon {:name :pause-fill}])]]
+     #_[:button (mode-attrs :help) [icon {:name :question-diamond}]]]))
