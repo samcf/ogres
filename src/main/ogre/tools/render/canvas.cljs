@@ -86,7 +86,7 @@
 (defn grid []
   (let [{:keys [data workspace]} (uix/context state)
         {:keys [canvas/mode grid/show zoom/scale]} workspace]
-    (when (or (= mode :grid) show)
+    (when show
       (let [{[_ _ w h] :bounds/self} (query/viewer data)
             {[cx cy] :pos/vec size :grid/size} workspace
             w (/ w scale)

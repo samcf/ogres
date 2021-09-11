@@ -44,16 +44,15 @@
            (.get 1)
            (.then
             (fn [record]
-              (let []
-                (if (nil? record)
-                  (ds/transact! conn tx-data)
-                  (->
-                   (.-data record)
-                   (dt/read-transit-str)
-                   (ds/conn-from-datoms schema)
-                   (ds/db)
-                   (ds/db-with tx-data)
-                   (as-> data (ds/reset-conn! conn data))))))))) [nil]) nil))
+              (if (nil? record)
+                (ds/transact! conn tx-data)
+                (->
+                 (.-data record)
+                 (dt/read-transit-str)
+                 (ds/conn-from-datoms schema)
+                 (ds/db)
+                 (ds/db-with tx-data)
+                 (as-> data (ds/reset-conn! conn data)))))))) [nil]) nil))
 
 (defn marshaller
   "Listens to transactions to the DataScript database and serializes the
