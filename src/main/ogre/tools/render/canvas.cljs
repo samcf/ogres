@@ -1,6 +1,6 @@
 (ns ogre.tools.render.canvas
   (:require [clojure.set :refer [difference]]
-            [clojure.string :as string]
+            [clojure.string :as string :refer [join]]
             [datascript.core :as ds]
             [ogre.tools.query :as query]
             [ogre.tools.render :refer [css use-image]]
@@ -8,6 +8,25 @@
             [ogre.tools.state :refer [state]]
             [react-draggable :as draggable]
             [uix.core.alpha :as uix]))
+
+(def atmosphere
+  {:none
+   [1 0 0 0 0
+    0 1 0 0 0
+    0 0 1 0 0
+    0 0 0 1 0]
+
+   :dusk
+   [0.3 0.3 0.0 0.0 0.0
+    0.0 0.3 0.3 0.0 0.0
+    0.0 0.0 0.8 0.0 0.0
+    0.0 0.0 0.0 1.0 0.0]
+
+   :midnight
+   [0.0 0.0 0.0 0.0 0.0
+    0.0 0.1 0.0 0.0 0.0
+    0.1 0.1 0.1 0.0 0.0
+    0.0 0.0 0.0 1.0 0.0]})
 
 (defn ft->px [ft size]
   (-> (/ ft 5) (* size)))
@@ -57,27 +76,34 @@
 (defn board [{:keys [image]}]
   (let [{:keys [data]} (uix/context state)
         {:keys [viewer/host? viewer/workspace]} (query/viewer data)
-        {:keys [canvas/lighting grid/size zoom/scale]} workspace
+        {:keys [canvas/lighting canvas/color grid/size zoom/scale]} workspace
         tokens (query/elements data :token)
         url (use-image (:image/checksum image) {:persist? true})]
-    (when (string? url)
+    (if (string? url)
       [:g.canvas-image
-       (when (not (= lighting :bright))
+       [:defs
+        [:filter {:id "atmosphere"}
+         [:feColorMatrix
+          {:type "matrix"
+           :values (join " " (atmosphere (or color :none)))}]]]
+       (if (not (= lighting :bright))
          [:defs
           [:clipPath {:id "clip-light-bright"}
-           (for [token tokens :let [{[x y] :pos/vec [r _] :token/light} token]
+           (for [token tokens
+                 :let [{[x y] :pos/vec [r _] :token/light} token]
                  :when (and (> r 0) (or host? (visible? token)))]
              [:circle {:key (:db/id token) :cx x :cy y :r (+ (ft->px r size) (/ size 2))}])]
-          (when (= lighting :dark)
+          (if (= lighting :dark)
             [:clipPath {:id "clip-light-dim"}
-             (for [token tokens :let [{[x y] :pos/vec [br dr] :token/light} token]
+             (for [token tokens
+                   :let [{[x y] :pos/vec [br dr] :token/light} token]
                    :when (and (or (> br 0) (> dr 0)) (or host? (visible? token)))]
                [:circle {:key (:db/id token) :cx x :cy y :r (+ (ft->px br size) (ft->px dr size) (/ size 2))}])])])
-       (when (and (= lighting :dark) host?)
-         [:image {:x 0 :y 0 :href url :style {:filter "saturate(0%) brightness(20%)"}}])
-       (when (not (= lighting :bright))
-         [:image {:x 0 :y 0 :href url :clip-path (when (= lighting :dark) "url(#clip-light-dim)") :style {:filter "saturate(20%) brightness(50%)"}}])
-       [:image {:x 0 :y 0 :href url :clip-path (when (not (= lighting :bright)) "url(#clip-light-bright)")}]])))
+       (if (and (= lighting :dark) host?)
+         [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere) brightness(20%)"}}])
+       (if (not (= lighting :bright))
+         [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere) brightness(50%)"} :clip-path (if (= lighting :dark) "url(#clip-light-dim)")}])
+       [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere)"} :clip-path (if (not= lighting :bright) "url(#clip-light-bright)")}]])))
 
 (defn mask []
   (let [{:keys [data workspace]} (uix/context state)

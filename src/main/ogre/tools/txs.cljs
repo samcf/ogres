@@ -246,6 +246,11 @@
   (let [{:keys [db/id]} (query/workspace data)]
     [[:db/add id :canvas/lighting level]]))
 
+(defmethod transact :canvas/change-color
+  [data event color]
+  (let [{:keys [db/id]} (query/workspace data)]
+    [[:db/add id :canvas/color color]]))
+
 (defmethod transact :zoom/step
   [data event step mx my]
   (let [workspace (query/workspace data)

@@ -62,6 +62,9 @@
             (this-as img (handler {:data data :filename (.-name file) :img img}))))
          (set! (.-src image) data))))))
 
+(defn label [keyword]
+  (string/capitalize (name keyword)))
+
 (defn checkbox [{:keys [name type checked on-change] :as props} child]
   (let [indtr? (= checked :indeterminate)
         input  (uix/ref)
@@ -175,7 +178,7 @@
            (fn []
              (when (not checked?)
                (dispatch :canvas/toggle-theme)))}
-          (string/capitalize (clojure.core/name theme))])]]
+          [label theme]])]]
      [:section
       [:header "Lighting"]
       [:div.options-canvas-lighting
@@ -187,7 +190,20 @@
            :value option
            :checked checked
            :on-change #(dispatch :canvas/change-lighting option)}
-          (string/capitalize (clojure.core/name option))])]]]))
+          [label option]])]]
+     [:section
+      [:header "Filter"]
+      [:div.options-canvas-color
+       (for [color [:none :dusk :midnight]
+             :let  [current  (or (:canvas/color workspace) :none)
+                    checked? (= color current)]]
+         [checkbox
+          {:key color
+           :name "canvas/color"
+           :value color
+           :checked checked?
+           :on-change #(dispatch :canvas/change-color color)}
+          [label color]])]]]))
 
 (defn token [props]
   (let [{:keys [data workspace dispatch]} (uix/context state)
@@ -230,7 +246,7 @@
            :value flag
            :checked (checked? #(contains? (:element/flags %) flag) selected)
            :on-change #(dispatch :element/flag idents flag %)}
-          (string/capitalize (clojure.core/name flag))])]]
+          [label flag]])]]
      [:section
       [:header "Size"]
       [:div.options-token-sizes
@@ -241,7 +257,7 @@
            :value name
            :checked (checked? #(= (:name (:token/size %)) name) selected)
            :on-change #(dispatch :token/change-size idents name size)}
-          (string/capitalize (clojure.core/name name))])]]
+          [label name]])]]
      [:section
       [:header "Light"]
       [:div.options-token-lights
@@ -263,7 +279,7 @@
            :value flag
            :checked (checked? #(contains? (:element/flags %) flag) selected)
            :on-change #(dispatch :element/flag idents flag %)}
-          (string/capitalize (clojure.core/name flag))])]]
+          [label flag]])]]
      [:section
       [:header "Aura"]
       (let [[match? value] (every-value? selected :aura/label)]
