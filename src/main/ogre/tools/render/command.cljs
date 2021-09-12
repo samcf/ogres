@@ -38,7 +38,7 @@
            :on-click #(dispatch :canvas/toggle-mode given)})]
     [:div.commands
      [:button (mode-attrs :select) [icon {:name :cursor}] [shortcut "S"]]
-     [:button (mode-attrs :canvas) [icon {:name :image}] [shortcut "C"]]
+     [:button (mode-attrs :canvas) [icon {:name :images}] [shortcut "C"]]
      [:button (mode-attrs :ruler) [icon {:name :rulers}] [shortcut "R"]]
      [commands
       (let [last (or last-shape :circle)]
@@ -52,7 +52,7 @@
      [commands
       [:button
        {:class (css {:active open?}) :on-click #(dispatch :share/initiate)}
-       [icon {:name :window}]
+       [icon {:name :pip :size 22}]
        [shortcut "V"]]
       [:button {:key :switch :disabled (not open?) :on-click #(dispatch :share/switch)}
        (if paused?
