@@ -183,6 +183,12 @@
   [data event id x y]
   [[:db/add id :pos/vec (round [x y] 1)]])
 
+(defmethod transact :token/translate-all
+  [data event idents ox oy]
+  (for [id idents]
+    (let [{[x y] :pos/vec} (ds/entity data id)]
+      [:db/add id :pos/vec (round [(+ x ox) (+ y oy)] 1)])))
+
 (defmethod transact :token/change-light
   [data event idents bright dim]
   (for [id idents]

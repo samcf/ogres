@@ -1,5 +1,6 @@
 (ns ogre.tools.render.canvas
-  (:require [clojure.string :as string]
+  (:require [clojure.set :refer [difference]]
+            [clojure.string :as string]
             [datascript.core :as ds]
             [ogre.tools.query :as query]
             [ogre.tools.render :refer [css use-image]]
@@ -31,6 +32,15 @@
      (+ ay (* hyp (js/Math.sin (+ rad 0.46))))
      (+ ax (* hyp (js/Math.cos (- rad 0.46))))
      (+ ay (* hyp (js/Math.sin (- rad 0.46))))]))
+
+(defn xf [& kvs]
+  (->> (partition 2 kvs)
+       (map (fn [[k v]]
+              (case k
+                :scale (str "scale(" v ")")
+                :translate (let [[x y] v]
+                             (str "translate(" x ", " y ")")))))
+       (string/join " ")))
 
 (defn text [attrs child]
   [:text.canvas-text attrs child])
@@ -194,16 +204,16 @@
        [text {:x (+ cx 8) :y (+ cy 8)} (:aura/label entity)])
      (when selected
        [:g.canvas-token-marker
-        {:transform (str "translate(-17, " (* -1 (+ token-radiu 16)) ") scale(2.20)")}
+        {:transform (xf :translate [-17 (* -1 (+ token-radiu 16))] :scale 2.20)}
         [:g.canvas-token-marker-bounce
          [marker]]])]))
 
 (defn tokens [props]
   (let [{:keys [data workspace dispatch]} (uix/context state)
         {:keys [viewer/host?]} (query/viewer data)
-        {:keys [grid/size zoom/scale canvas/selected]} workspace]
-    (for [entity (query/elements data :token)
-          :let [{[x y] :pos/vec} entity]
+        {:keys [grid/size zoom/scale canvas/selected]} workspace
+        entities (-> (query/elements data :token) (set) (difference selected))]
+    (for [entity entities :let [{[x y] :pos/vec} entity]
           :when (or host? (visible? entity))]
       [:> draggable
        {:key      (:db/id entity)
@@ -220,8 +230,30 @@
        [:g.canvas-token
         [token
          {:entity   (into {} (ds/touch entity))
-          :selected (contains? selected entity)
-          :size     size}]]])))
+          :size     size
+          :selected false}]]])))
+
+(defn selection []
+  (let [{:keys [dispatch data workspace]} (uix/context state)
+        {:keys [canvas/selected grid/size zoom/scale]} workspace]
+    (when (= (:element/type (first selected)) :token)
+      [:> draggable
+       {:position #js {:x 0 :y 0}
+        :scale scale
+        :on-start (fn [event] (.stopPropagation event))
+        :on-stop
+        (fn [_ data]
+          (let [ox (.-x data) oy (.-y data)]
+            (when (not= [ox oy] [0 0])
+              (dispatch :token/translate-all (map :db/id selected) ox oy))))}
+       [:g.canvas-selected
+        (for [entity selected :let [{[x y] :pos/vec} entity]]
+          [:g.canvas-token
+           {:key (:db/id entity) :transform (xf :translate [x y])}
+           [token
+            {:entity   (into {} (ds/touch entity))
+             :size     size
+             :selected true}]])]])))
 
 (defn drawable [{:keys [on-release]} render-fn]
   (let [{:keys [data]} (uix/context state)
@@ -371,7 +403,7 @@
         {[_ _ hw hh] :bounds/host
          [_ _ gw gh] :bounds/guest} (query/viewer data)
         [ox oy] [(/ (- hw gw) 2) (/ (- hh gh) 2)]]
-    [:g.canvas-bounds {:transform (str "translate(" ox ", " oy ")")}
+    [:g.canvas-bounds {:transform (xf :translate [ox oy])}
      [:path {:d (string/join " " ["M" 0 0 "H" gw "V" gh "H" 0 "Z"])}]]))
 
 (defn canvas [props]
@@ -399,11 +431,13 @@
              (dispatch :camera/translate (+ (/ ox scale) tx) (+ (/ oy scale) ty)))))}
       [:g {:style {:will-change "transform"}}
        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
-       [:g.canvas-board {:transform (str "scale(" scale ") translate(" tx ", " ty ")")}
+       [:g.canvas-board
+        {:transform (xf :scale scale :translate [tx ty])}
         [board {:key (:image/checksum map) :image map}]
         [grid]
         [shapes]
         [tokens]
+        [selection]
         [mask]]
 
        (when (and (= mode :select) (= (:canvas/modifier workspace) :shift))
