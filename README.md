@@ -19,4 +19,4 @@
 ### Credits
 - [Valkyrie](https://mbtype.com/fonts/valkyrie/) by Matthew Butterick
 - [Bootstrap Icons](https://icons.getbootstrap.com/) by Bootstrap / [MIT](https://github.com/twbs/icons/blob/main/LICENSE.md)
-- [Tabletop Art Pack](https://stoneshore.itch.io/tabletop-art-pack) by [Stoneshore](stoneshore.trpg@gmail.com) / [CC4.0](https://creativecommons.org/licenses/by/4.0/legalcode) - *Cropped, resized, and lightened*
+- [Tabletop Art Pack](https://stoneshore.itch.io/tabletop-art-pack) by [Stoneshore](mailto:stoneshore.trpg@gmail.com) / [CC4.0](https://creativecommons.org/licenses/by/4.0/legalcode) - *Cropped, resized, and lightened*
