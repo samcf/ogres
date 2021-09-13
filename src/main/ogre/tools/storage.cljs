@@ -53,7 +53,10 @@
                  (ds/conn-from-datoms schema)
                  (ds/db)
                  (ds/db-with tx-data)
-                 (as-> data (ds/reset-conn! conn data)))))))) [nil]) nil))
+                 (as-> data (ds/reset-conn! conn data))))))
+           (.catch
+            (fn []
+              (ds/transact! conn tx-data))))) [nil]) nil))
 
 (defn marshaller
   "Listens to transactions to the DataScript database and serializes the
