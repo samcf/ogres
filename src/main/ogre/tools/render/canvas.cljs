@@ -245,8 +245,9 @@
 (defn selection []
   (let [{:keys [dispatch data workspace]} (uix/context state)
         {:keys [viewer/host?]} (query/viewer data)
-        {:keys [canvas/selected grid/size zoom/scale]} workspace]
-    (when (= (:element/type (first selected)) :token)
+        {:keys [canvas/selected grid/size zoom/scale]} workspace
+        idents (map :db/id selected)]
+    (if (= (:element/type (first selected)) :token)
       [:> draggable
        {:position #js {:x 0 :y 0}
         :scale scale
@@ -254,9 +255,9 @@
         :on-stop
         (fn [_ data]
           (let [ox (.-x data) oy (.-y data)]
-            (when (not= [ox oy] [0 0])
-              (dispatch :token/translate-all (map :db/id selected) ox oy))))}
-       [:g.canvas-selected
+            (if (not= [ox oy] [0 0])
+              (dispatch :token/translate-all idents ox oy))))}
+       [:g.canvas-selected {:key idents}
         (for [entity selected
               :let [{[x y] :pos/vec} entity]
               :when (or host? (visible? entity))]
