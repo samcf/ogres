@@ -64,7 +64,7 @@
         url (use-image (:image/checksum image) {:persist? true})]
     (if (string? url)
       [:g.canvas-image
-       [:defs
+       [:defs {:key color}
         [:filter {:id "atmosphere"}
          [:feColorMatrix
           {:type "matrix"
