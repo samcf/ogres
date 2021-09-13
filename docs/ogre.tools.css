@@ -691,7 +691,6 @@ input[type="number"] {
     background-color: #f2f2eb;
     background-image: url(image/making-camp.png);
     background-position: bottom;
-    background-position-x: -6px;
     background-repeat: no-repeat;
     background-size: contain;
     border-radius: 8px;
