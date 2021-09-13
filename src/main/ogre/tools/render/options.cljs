@@ -3,6 +3,7 @@
   (:require  [clojure.string :as string]
              [ogre.tools.query :as query]
              [ogre.tools.render :refer [css use-image]]
+             [ogre.tools.render.icon :refer [icon]]
              [ogre.tools.render.pattern :refer [pattern]]
              [ogre.tools.state :refer [state]]
              [ogre.tools.storage :refer [storage]]
@@ -222,7 +223,8 @@
           (fn [event]
             (let [value (.. event -target -value)]
               (dispatch :element/update idents :element/name value)))}])
-      [:button {:type "button" :on-click #(dispatch :element/remove idents)} "♼"]
+      [:button {:type "button" :on-click #(dispatch :element/remove idents) :style {:padding-top 4}}
+       [icon {:name "trash" :size 16}]]
       [:button {:type "button" :on-click #(dispatch :selection/clear)} "×"]]
      [:section
       (let [initiative? (not (empty? (query/initiating data)))
@@ -317,7 +319,8 @@
           (fn [event]
             (let [value (.. event -target -value)]
               (dispatch :element/update idents :element/name value)))}])
-      [:button {:type "button" :on-click #(dispatch :element/remove idents)} "♼"]
+      [:button {:type "button" :on-click #(dispatch :element/remove idents) :style {:padding-top 4}}
+       [icon {:name :trash :size 16}]]
       [:button {:type "button" :on-click #(dispatch :selection/clear)} "×"]]
      [:section
       [:header "Color"]
