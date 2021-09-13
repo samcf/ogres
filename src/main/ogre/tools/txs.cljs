@@ -1,7 +1,8 @@
 (ns ogre.tools.txs
   (:require [datascript.core :as ds]
             [clojure.set :refer [union]]
-            [ogre.tools.query :as query]))
+            [ogre.tools.query :as query]
+            [ogre.tools.vec :refer [normalize within?]]))
 
 (defn round [[x y] n]
   [(* (js/Math.round (/ x n)) n)
@@ -15,12 +16,6 @@
 
 (defn constrain [number minimum maximum]
   (max (min number maximum) minimum))
-
-(defn normalize [[ax ay bx by]]
-  [(min ax bx) (min ay by) (max ax bx) (max ay by)])
-
-(defn within? [x y [ax ay bx by]]
-  (and (> x ax) (> y ay) (< x bx) (< y by)))
 
 (defn with-suffix-txs
   "Returns a vector of tx tuples `[[:db/add id :initiative/suffix suffix] ...]`

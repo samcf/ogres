@@ -495,7 +495,7 @@ input[type="number"] {
     fill-opacity: 0.10;
 }
 
-.canvas-bounds path {
+.canvas-bounds rect {
     fill: transparent;
     pointer-events: none;
     shape-rendering: crispEdges;

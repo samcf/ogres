@@ -6,6 +6,7 @@
             [ogre.tools.render :refer [css use-image]]
             [ogre.tools.render.pattern :refer [pattern]]
             [ogre.tools.state :refer [state]]
+            [ogre.tools.vec :refer [chebyshev euclidean triangle]]
             [react-draggable :as draggable]
             [uix.core.alpha :as uix]))
 
@@ -33,24 +34,6 @@
 
 (defn px->ft [px size]
   (js/Math.round (* (/ px size) 5)))
-
-(defn euclidean [ax ay bx by]
-  (js/Math.hypot (- bx ax) (- by ay)))
-
-(defn chebyshev [ax ay bx by]
-  (max (js/Math.abs (- ax bx))
-       (js/Math.abs (- ay by))))
-
-(defn cone-points [ax ay bx by]
-  (let [alt (js/Math.hypot (- bx ax) (- by ay))
-        hyp (js/Math.hypot alt (/ alt 2))
-        rad (js/Math.atan2 (- by ay) (- bx ax))]
-    [ax
-     ay
-     (+ ax (* hyp (js/Math.cos (+ rad 0.46))))
-     (+ ay (* hyp (js/Math.sin (+ rad 0.46))))
-     (+ ax (* hyp (js/Math.cos (- rad 0.46))))
-     (+ ay (* hyp (js/Math.sin (- rad 0.46))))]))
 
 (defn xf [& kvs]
   (->> (partition 2 kvs)
@@ -177,7 +160,7 @@
     [:polygon
      (merge
       attrs
-      {:points (string/join " " (apply cone-points vecs))
+      {:points (string/join " " (apply triangle vecs))
        :fill-opacity opacity
        :stroke color})]))
 
@@ -419,7 +402,7 @@
           (dispatch :shape/create :cone [(- ax cx) (- ay cy) (- bx cx) (- by cy)])))}
      (fn [[ax ay bx by]]
        [:g
-        [:polygon {:points (string/join " " (cone-points ax ay bx by))}]
+        [:polygon {:points (string/join " " (triangle ax ay bx by))}]
         [text {:x (+ bx 16) :y (+ by 16) :fill "white"}
          (-> (euclidean ax ay bx by)
              (px->ft (* size scale))
@@ -433,7 +416,7 @@
          [_ _ gw gh] :bounds/guest} (query/viewer data)
         [ox oy] [(/ (- hw gw) 2) (/ (- hh gh) 2)]]
     [:g.canvas-bounds {:transform (xf :translate [ox oy])}
-     [:path {:d (string/join " " ["M" 0 0 "H" gw "V" gh "H" 0 "Z"])}]]))
+     [:rect {:x 0 :y 0 :width gw :height gh :rx 8}]]))
 
 (defn canvas [props]
   (let [{:keys [data workspace dispatch]} (uix/context state)
