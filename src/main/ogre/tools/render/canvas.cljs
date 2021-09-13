@@ -105,7 +105,7 @@
 (defn grid []
   (let [{:keys [data workspace]} (uix/context state)
         {:keys [canvas/mode grid/show zoom/scale]} workspace]
-    (when show
+    (if (or show (= mode :grid))
       (let [{[_ _ w h] :bounds/self} (query/viewer data)
             {[cx cy] :pos/vec size :grid/size} workspace
             w (/ w scale)
@@ -310,7 +310,7 @@
 
 (defmulti draw :mode)
 
-(defmethod draw :canvas [props]
+(defmethod draw :grid [props]
   (let [{:keys [workspace dispatch]} (uix/context state)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable

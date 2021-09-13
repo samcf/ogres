@@ -38,8 +38,9 @@
            :on-click #(dispatch :canvas/toggle-mode given)})]
     [:div.commands
      [:button (mode-attrs :select) [icon {:name :cursor}] [shortcut "S"]]
-     [:button (mode-attrs :canvas) [icon {:name :images}] [shortcut "C"]]
      [:button (mode-attrs :ruler) [icon {:name :rulers}] [shortcut "R"]]
+     [:button (mode-attrs :canvas) [icon {:name :images}] [shortcut "W"]]
+     [:button (mode-attrs :grid) [icon {:name :grid-3x3}] [shortcut "G"]]
      [commands
       (let [last (or last-shape :circle)]
         [:button (mode-attrs last)
@@ -52,8 +53,7 @@
      [commands
       [:button
        {:class (css {:active open?}) :on-click #(dispatch :share/initiate)}
-       [icon {:name :pip :size 22}]
-       [shortcut "V"]]
+       [icon {:name :pip :size 22}]]
       [:button {:key :switch :disabled (not open?) :on-click #(dispatch :share/switch)}
        (if paused?
          [icon {:name :play-fill}]

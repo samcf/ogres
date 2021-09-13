@@ -609,6 +609,31 @@ input[type="number"] {
     grid-template-columns: repeat(2, 1fr);
 }
 
+.options-canvas-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.options-canvas-option + .options-canvas-option {
+    border-top: 1px dotted var(--theme-paper-accent);
+    margin-top: 4px;
+    padding-top: 4px;
+}
+
+.options-canvas-option > div:first-child {
+    font-size: 13px;
+}
+
+.options-canvas-option > div:last-child {
+    display: flex;
+    gap: 4px;
+}
+
+.options-canvas-option > div:last-child > div {
+    width: 88px;
+}
+
 .options-canvas-maps,
 .options-canvas-lighting,
 .options-canvas-color,

@@ -101,26 +101,24 @@
 
 (defn canvas []
   (let [{:keys [data workspace dispatch]} (uix/context state)
-        {:keys [db/id element/name grid/size]} workspace
         {:keys [store]} (uix/context storage)]
     [:div.options.options-canvas
      [:section
       [:input
        {:type "text"
-        :placeholder "Workspace name"
+        :placeholder "Label"
         :maxLength 24
         :spellCheck "false"
-        :value (or name "")
+        :value (or (:element/name workspace) "")
         :on-change
         (fn [event]
           (let [value (.. event -target -value)]
-            (dispatch :element/update [id] :element/name value)))}]
+            (dispatch :element/update [(:db/id workspace)] :element/name value)))}]
       [:button
        {:type "button" :on-click #(dispatch :canvas/toggle-mode :select)} "×"]]
 
      [:section
-      [:header "Scene"]
-      (when-let [boards (query/boards data)]
+      (if-let [boards (query/boards data)]
         [:div
          [:div.options-canvas-maps
           (for [board boards]
@@ -151,60 +149,76 @@
                     (.then
                      (fn [] (dispatch :map/create workspace entity))))))))}]]
      [:section
-      [:header "Grid Options"]
+      [:div.options-canvas-option
+       [:div "Show Grid"]
+       [:div
+        (for [display? [true false] :let [checked? (= (:grid/show workspace) display?)]]
+          [checkbox
+           {:key display?
+            :name "canvas/display-grid"
+            :value display?
+            :checked checked?
+            :on-change
+            (fn []
+              (if (not checked?)
+                (dispatch :grid/toggle)))}
+           (if display? "Yes" "No")])]]
+      [:div.options-canvas-option
+       [:div "Theme"]
+       [:div
+        (for [theme [:light :dark] :let [checked? (= theme (:canvas/theme workspace))]]
+          [checkbox
+           {:key theme
+            :name "canvas/theme"
+            :value theme
+            :checked checked?
+            :on-change
+            (fn []
+              (when (not checked?)
+                (dispatch :canvas/toggle-theme)))}
+           [label theme]])]]
+      [:div.options-canvas-option
+       [:div "Lighting"]
+       [:div
+        (for [option [:bright :dim :dark] :let [checked (= option (:canvas/lighting workspace))]]
+          [checkbox
+           {:key option
+            :name "canvas/lighting"
+            :value option
+            :checked checked
+            :on-change #(dispatch :canvas/change-lighting option)}
+           [label option]])]]
+      [:div.options-canvas-option
+       [:div "Filter"]
+       [:div
+        (for [color [:none :dusk :midnight]
+              :let  [current  (or (:canvas/color workspace) :none)
+                     checked? (= color current)]]
+          [checkbox
+           {:key color
+            :name "canvas/color"
+            :value color
+            :checked checked?
+            :on-change #(dispatch :canvas/change-color color)}
+           [label color]])]]]]))
+
+(defn grid []
+  (let [{:keys [dispatch workspace]} (uix/context state)
+        {:keys [grid/size]} workspace]
+    [:div.options
+     [:section
       [:input
        {:type "number"
         :value (or size 0)
-        :min 0
-        :placeholder "Grid size"
         :on-change
         (fn [event]
-          (let [value (.. event -target -value)]
-            (dispatch :grid/change-size value)))}]
-      [:div {:style {:margin-top 4}}
-       [checkbox
-        {:name "canvas/display-grid"
-         :checked (or (:grid/show workspace) false)
-         :on-change #(dispatch :grid/toggle)}
-        "Display Grid"]]]
+          (dispatch :grid/change-size (.. event -target -value)))}]
+      [:button
+       {:type "button" :on-click #(dispatch :canvas/toggle-mode :select)} "×"]]
      [:section
-      [:header "Theme"]
-      [:div.options-canvas-theme
-       (for [theme [:light :dark] :let [checked? (= theme (:canvas/theme workspace))]]
-         [checkbox
-          {:key theme
-           :name (str "canvas/theme/" theme)
-           :checked checked?
-           :on-change
-           (fn []
-             (when (not checked?)
-               (dispatch :canvas/toggle-theme)))}
-          [label theme]])]]
-     [:section
-      [:header "Lighting"]
-      [:div.options-canvas-lighting
-       (for [option [:bright :dim :dark]
-             :let [checked (= option (:canvas/lighting workspace))]]
-         [checkbox
-          {:key option
-           :name "canvas/lighting"
-           :value option
-           :checked checked
-           :on-change #(dispatch :canvas/change-lighting option)}
-          [label option]])]]
-     [:section
-      [:header "Filter"]
-      [:div.options-canvas-color
-       (for [color [:none :dusk :midnight]
-             :let  [current  (or (:canvas/color workspace) :none)
-                    checked? (= color current)]]
-         [checkbox
-          {:key color
-           :name "canvas/color"
-           :value color
-           :checked checked?
-           :on-change #(dispatch :canvas/change-color color)}
-          [label color]])]]]))
+      [:header "Configuring the grid"]
+      [:p "Draw a square that represents 5ft. on the map so the application
+           knows how to measure distance and how big to make the tokens."]]]))
 
 (defn token [props]
   (let [{:keys [data workspace dispatch]} (uix/context state)
@@ -396,6 +410,7 @@
         {:keys [canvas/mode canvas/selected]} workspace]
     (cond
       (= mode :canvas) [canvas]
+      (= mode :grid)   [grid]
       (= mode :help)   [help]
       (= mode :select)
       (cond

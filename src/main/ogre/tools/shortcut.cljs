@@ -25,9 +25,13 @@
    (fn [{:keys [dispatch]}]
      (dispatch :canvas/toggle-mode :select))
 
-   ["keydown" \c]
+   ["keydown" \w]
    (fn [{:keys [dispatch]}]
      (dispatch :canvas/toggle-mode :canvas))
+
+   ["keydown" \g]
+   (fn [{:keys [dispatch]}]
+     (dispatch :canvas/toggle-mode :grid))
 
    ["keydown" \r]
    (fn [{:keys [dispatch]}]
