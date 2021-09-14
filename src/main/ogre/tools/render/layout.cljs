@@ -13,23 +13,25 @@
 (defn layout []
   (let [context     (uix/context state)
         viewer      (query/viewer (:data context))
-        initiative? (not (empty? (query/initiating (:data context))))]
-    (cond
-      (and (:viewer/loaded? viewer) (:viewer/host? viewer))
-      [:div.layout
-       {:class (css {:layout--initiative initiative?})}
-       [:div.layout-workspaces [workspaces]]
-       [:div.layout-container
-        [:div.layout-workspace
-         [:div.layout-canvas [canvas]]
-         [:div.layout-overlay
-          [:div.layout-command [command]]
-          [:div.layout-options [options]]
-          [:div.layout-tokens [tokens]]]]
-        (when initiative?
-          [:div.layout-initiative [initiative]])]]
-      (and (:viewer/loaded? viewer) (not (:viewer/host? viewer)))
-      [:div.layout.layout--guest
-       [:div.layout-workspace
-        [:div.layout-canvas [canvas]]]]
-      :else nil)))
+        initiative? (not (empty? (query/initiating (:data context))))
+        class-names (css {:global--host       (:viewer/host? viewer)
+                          :global--guest      (not (:viewer/host? viewer))
+                          :global--shortcuts  (:viewer/shortcuts? viewer)
+                          :global--tooltips   (:viewer/tooltips? viewer)
+                          :global--initiative initiative?})]
+    (if (:viewer/loaded? viewer)
+      (if (:viewer/host? viewer)
+        [:div.layout {:class class-names}
+         [:div.layout-workspaces [workspaces]]
+         [:div.layout-container
+          [:div.layout-workspace
+           [:div.layout-canvas [canvas]]
+           [:div.layout-overlay
+            [:div.layout-command [command]]
+            [:div.layout-options [options]]
+            [:div.layout-tokens [tokens]]]]
+          (when initiative?
+            [:div.layout-initiative [initiative]])]]
+        [:div.layout {:class class-names}
+         [:div.layout-workspace
+          [:div.layout-canvas [canvas]]]]))))

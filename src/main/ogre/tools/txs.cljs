@@ -392,3 +392,11 @@
 
 (defmethod transact :storage/reset []
   [])
+
+(defmethod transact :interface/toggle-shortcuts
+  [_ _ display?]
+  [[:db/add [:db/ident :viewer] :viewer/shortcuts? display?]])
+
+(defmethod transact :interface/toggle-tooltips
+  [_ _ display?]
+  [[:db/add [:db/ident :viewer] :viewer/tooltips? display?]])

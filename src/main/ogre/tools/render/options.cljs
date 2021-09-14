@@ -381,7 +381,8 @@
           :step 0.25}])]]))
 
 (defn help []
-  (let [{:keys [dispatch]} (uix/context state)]
+  (let [{:keys [dispatch data]} (uix/context state)
+        {:keys [viewer/shortcuts? viewer/tooltips?]} (query/viewer data)]
     [:div.options
      [:div]
      [:section
@@ -393,6 +394,36 @@
        [:br]
        [:a {:href "https://github.com/samcf/ogre.tools" :target "_blank" :title "Repository home"}
         "https://github.com/samcf/ogre.tools"]]]
+     [:section
+      [:header "Options"]
+      [:div.options-canvas-option
+       [:div "Show Shortcuts"]
+       [:div
+        (for [display? [true false] :let [checked? (= display? shortcuts?)]]
+          [checkbox
+           {:key display?
+            :name "viewer/shortcuts"
+            :value display?
+            :checked checked?
+            :on-change
+            (fn []
+              (if (not checked?)
+                (dispatch :interface/toggle-shortcuts display?)))}
+           (if display? "Yes" "No")])]]
+      [:div.options-canvas-option
+       [:div "Show Tooltips"]
+       [:div
+        (for [display? [true false] :let [checked? (= display? tooltips?)]]
+          [checkbox
+           {:key display?
+            :name "viewer/tooltips"
+            :value display?
+            :checked checked?
+            :on-change
+            (fn []
+              (if (not checked?)
+                (dispatch :interface/toggle-tooltips display?)))}
+           (if display? "Yes" "No")])]]]
      [:section
       [:header "Local Data"]
       [:p "This application stores all uploaded images and work on your

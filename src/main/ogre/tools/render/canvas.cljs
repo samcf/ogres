@@ -430,10 +430,7 @@
         [tx ty] (if host? [tx ty]
                     [(- tx (/ (max 0 (- hw gw)) 2 scale))
                      (- ty (/ (max 0 (- hh gh)) 2 scale))])]
-    [:svg.canvas
-     {:class (css {:theme--host host?
-                   :theme--guest (not host?)
-                   (str "theme--" (name theme)) true})}
+    [:svg.canvas {:class (str "theme--" (name theme))}
      [:> draggable
       {:position #js {:x 0 :y 0}
        :on-stop

@@ -22,6 +22,8 @@
     [:db/add -1 :viewer/workspace -2]
     [:db/add -1 :viewer/tokens -3]
     [:db/add -1 :viewer/host? true]
+    [:db/add -1 :viewer/shortcuts? true]
+    [:db/add -1 :viewer/tooltips? true]
     [:db/add -1 :bounds/self [0 0 0 0]]
     [:db/add -1 :bounds/host [0 0 0 0]]
     [:db/add -1 :bounds/guest [0 0 0 0]]

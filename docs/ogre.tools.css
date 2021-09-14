@@ -99,28 +99,6 @@ input[type="number"] {
     height: 100%;
 }
 
-.layout--guest {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr;
-}
-
-.layout--guest .layout-workspace {
-    margin: 16px;
-}
-
-.layout--guest .canvas {
-    pointer-events: none;
-}
-
-.layout--initiative .layout-workspace,
-.layout--initiative .canvas {
-    border-radius: 8px 2px 2px 8px;
-}
-
-.layout--initiative .initiative {
-    border-radius: 2px 8px 8px 2px;
-}
-
 .layout-workspaces {
     margin: 8px 16px 4px 16px;
 }
@@ -432,10 +410,6 @@ input[type="number"] {
     animation: marker-bounce 0.25s alternate infinite;
 }
 
-.theme--guest .canvas-token-marker {
-    display: none;
-}
-
 .canvas-token-aura {
     fill: none;
     stroke: var(--canvas-stroke);
@@ -457,18 +431,6 @@ input[type="number"] {
 @keyframes stroke-animation {
     0% { stroke-dashoffset: 0; }
     100% { stroke-dashoffset: 16px; }
-}
-
-.theme--host .canvas-shape:hover > circle,
-.theme--host .canvas-shape:hover > path,
-.theme--host .canvas-shape:hover > line,
-.theme--host .canvas-shape:hover > polygon,
-.theme--host .canvas-shape.selected > circle,
-.theme--host .canvas-shape.selected > path,
-.theme--host .canvas-shape.selected > line,
-.theme--host .canvas-shape.selected > polygon {
-    stroke-dasharray: 4px;
-    animation: stroke-animation 1s linear infinite;
 }
 
 .canvas-drawable {
@@ -517,9 +479,9 @@ input[type="number"] {
     opacity: 0.60;
 }
 
-.theme--guest .canvas-board,
-.theme--guest .canvas-token,
-.theme--guest .canvas-shape {
+.global--guest .canvas-board,
+.global--guest .canvas-token,
+.global--guest .canvas-shape {
     transition: transform 0.25s ease-in-out;
 }
 
@@ -840,4 +802,42 @@ input[type="number"] {
 .initiant-hp-give {
     background-color: rgb(112, 133, 194);
     padding-bottom: 2px;
+}
+
+/* Global */
+.global--host .canvas-shape:hover > circle,
+.global--host .canvas-shape:hover > path,
+.global--host .canvas-shape:hover > line,
+.global--host .canvas-shape:hover > polygon,
+.global--host .canvas-shape.selected > circle,
+.global--host .canvas-shape.selected > path,
+.global--host .canvas-shape.selected > line,
+.global--host .canvas-shape.selected > polygon {
+    stroke-dasharray: 4px;
+    animation: stroke-animation 1s linear infinite;
+}
+
+.global--guest .canvas-token-marker {
+    display: none;
+}
+
+.global--guest {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+}
+
+.global--guest .layout-workspace { margin: 16px; }
+.global--guest .canvas { pointer-events: none; }
+
+.global--initiative .layout-workspace,
+.global--initiative .canvas {
+    border-radius: 8px 2px 2px 8px;
+}
+
+.global--initiative .initiative {
+    border-radius: 2px 8px 8px 2px;
+}
+
+.layout:not(.global--shortcuts) .commands-shortcut {
+    display: none;
 }
