@@ -26,6 +26,9 @@
 (defn shortcut [key]
   [:div.commands-shortcut key])
 
+(defn tooltip [message]
+  [:div.commands-tooltip message])
+
 (defn command [props]
   (let [{:keys [dispatch data workspace]} (uix/context state)
         {:keys [grid/show canvas/mode canvas/theme canvas/last-shape]} workspace
@@ -37,10 +40,22 @@
            :class (css {:selected (= given mode)})
            :on-click #(dispatch :canvas/toggle-mode given)})]
     [:div.commands
-     [:button (mode-attrs :select) [icon {:name :cursor}] [shortcut "S"]]
-     [:button (mode-attrs :ruler) [icon {:name :rulers}] [shortcut "R"]]
-     [:button (mode-attrs :canvas) [icon {:name :images}] [shortcut "W"]]
-     [:button (mode-attrs :grid) [icon {:name :grid-3x3}] [shortcut "G"]]
+     [:button (mode-attrs :select)
+      [icon {:name :cursor}]
+      [shortcut "S"]
+      [tooltip "Select"]]
+     [:button (mode-attrs :ruler)
+      [icon {:name :rulers}]
+      [shortcut "R"]
+      [tooltip "Ruler"]]
+     [:button (mode-attrs :canvas)
+      [icon {:name :images}]
+      [shortcut "W"]
+      [tooltip "Map options"]]
+     [:button (mode-attrs :grid)
+      [icon {:name :grid-3x3}]
+      [shortcut "G"]
+      [tooltip "Grid options"]]
      [commands
       (let [last (or last-shape :circle)]
         [:button (mode-attrs last)
@@ -58,5 +73,8 @@
        (if paused?
          [icon {:name :play-fill}]
          [icon {:name :pause-fill}])
-       [shortcut "P"]]]
-     [:button (mode-attrs :help) [icon {:name :question-diamond}]]]))
+       [shortcut "P"]
+       [tooltip "Pause / resume"]]]
+     [:button (mode-attrs :help)
+      [icon {:name :question-diamond}]
+      [tooltip "Help"]]]))

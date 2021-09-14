@@ -257,17 +257,35 @@ input[type="number"] {
     fill: black;
 }
 
-.commands-shortcut {
+.commands-shortcut,
+.commands-tooltip {
     background-color: var(--theme-background-d);
     border-radius: 4px;
     border: 1px solid var(--theme-background-d);
     font-size: 10px;
     height: 10px;
+    line-height: 1;
     position: absolute;
+}
+
+.commands-shortcut {
     left: -4px;
     top: -4px;
     width: 10px;
-    line-height: 1;
+}
+
+.commands-tooltip {
+    display: none;
+    left: 0;
+    margin-left: 40px;
+    padding: 0 2px;
+    top: 0;
+    white-space: nowrap;
+    z-index: 1;
+}
+
+.commands button:hover .commands-tooltip {
+    display: inline-block;
 }
 
 .command-set {
@@ -839,5 +857,9 @@ input[type="number"] {
 }
 
 .layout:not(.global--shortcuts) .commands-shortcut {
-    display: none;
+    display: none !important;
+}
+
+.layout:not(.global--tooltips) .commands-tooltip {
+    display: none !important;
 }
