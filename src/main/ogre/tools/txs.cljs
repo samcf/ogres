@@ -4,6 +4,9 @@
             [ogre.tools.query :as query]
             [ogre.tools.vec :refer [normalize within?]]))
 
+(def zoom-scales
+  [0.25 0.5 0.75 1 (/ 1 0.75) (/ 1 0.50) (/ 1 0.25)])
+
 (defn round [[x y] n]
   [(* (js/Math.round (/ x n)) n)
    (* (js/Math.round (/ y n)) n)])
@@ -56,7 +59,6 @@
    :grid/size 70
    :grid/origin [0 0]
    :grid/show true
-   :zoom/scales [0.25 0.5 0.75 1 (/ 1 0.75) (/ 1 0.50) (/ 1 0.25)]
    :zoom/scale 1})
 
 (defmulti transact
@@ -249,14 +251,14 @@
 (defmethod transact :zoom/step
   [data event step mx my]
   (let [workspace (query/workspace data)
-        {:keys [zoom/scale zoom/scales]} workspace
+        {:keys [zoom/scale]} workspace
         {[cx cy] :pos/vec} workspace
 
         next
-        (-> (find-index scales scale)
+        (-> (find-index zoom-scales scale)
             (+ step)
-            (constrain 0 (- (count scales) 1))
-            (scales))
+            (constrain 0 (- (count zoom-scales) 1))
+            (zoom-scales))
 
         factor
         (/ next scale)
