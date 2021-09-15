@@ -2,7 +2,7 @@
   (:import goog.crypt.Md5)
   (:require  [clojure.string :as string]
              [ogre.tools.query :as query]
-             [ogre.tools.render :refer [css use-image]]
+             [ogre.tools.render :refer [button css use-image]]
              [ogre.tools.render.icon :refer [icon]]
              [ogre.tools.render.pattern :refer [pattern]]
              [ogre.tools.state :refer [state]]
@@ -106,7 +106,7 @@
      [:section
       [:input
        {:type "text"
-        :placeholder "Label"
+        :placeholder "New Workspace"
         :maxLength 24
         :spellCheck "false"
         :value (or (:element/name workspace) "")
@@ -114,8 +114,7 @@
         (fn [event]
           (let [value (.. event -target -value)]
             (dispatch :element/update [(:db/id workspace)] :element/name value)))}]
-      [:button
-       {:type "button" :on-click #(dispatch :canvas/toggle-mode :select)} "×"]]
+      [button {:on-click #(dispatch :canvas/toggle-mode :select)} "×"]]
 
      [:section
       (if-let [boards (query/boards data)]
@@ -213,8 +212,7 @@
         :on-change
         (fn [event]
           (dispatch :grid/change-size (.. event -target -value)))}]
-      [:button
-       {:type "button" :on-click #(dispatch :canvas/toggle-mode :select)} "×"]]
+      [button {:on-click #(dispatch :canvas/toggle-mode :select)} "×"]]
      [:section
       [:header "Configuring the grid"]
       [:p "Draw a square that represents 5ft. on the map so the application
@@ -237,9 +235,9 @@
           (fn [event]
             (let [value (.. event -target -value)]
               (dispatch :element/update idents :element/name value)))}])
-      [:button {:type "button" :on-click #(dispatch :element/remove idents) :style {:padding-top 4}}
+      [button {:on-click #(dispatch :element/remove idents)}
        [icon {:name "trash" :size 16}]]
-      [:button {:type "button" :on-click #(dispatch :selection/clear)} "×"]]
+      [button {:on-click #(dispatch :selection/clear)} "×"]]
      [:section
       (let [initiative? (not (empty? (query/initiating data)))
             checked     (checked? :initiative/member? selected)]
@@ -333,9 +331,9 @@
           (fn [event]
             (let [value (.. event -target -value)]
               (dispatch :element/update idents :element/name value)))}])
-      [:button {:type "button" :on-click #(dispatch :element/remove idents) :style {:padding-top 4}}
+      [button {:on-click #(dispatch :element/remove idents)}
        [icon {:name :trash :size 16}]]
-      [:button {:type "button" :on-click #(dispatch :selection/clear)} "×"]]
+      [button {:on-click #(dispatch :selection/clear)} "×"]]
      [:section
       [:header "Color"]
       [:div.options-shape-colors
@@ -430,7 +428,7 @@
            browser. You may restore the application to its factory defaults
            by clicking the button below."]
       [:p [:strong "All uploaded images and work will be permanently deleted."]]
-      [:button {:type "button" :on-click #(dispatch :storage/reset) :style {:margin-top 8}}
+      [button {:on-click #(dispatch :storage/reset) :style {:margin-top 8}}
        "Reset Data"]]]))
 
 (defn type? [type entity]

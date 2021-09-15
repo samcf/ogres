@@ -92,26 +92,26 @@ input[type="number"] {
 /* Layout */
 .layout {
     background-color: hsl(208deg 21% 20%);
+    box-sizing: border-box;
     color: var(--theme-text);
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(36px, auto) 1fr;
+    grid-template-rows: auto 1fr;
     height: 100%;
-}
-
-.layout-workspaces {
-    margin: 8px 16px 4px 16px;
+    padding: 16px;
 }
 
 .layout-container {
     display: flex;
-    margin: 0 16px 20px 16px;
+}
+
+.layout-workspace,
+.layout-initiative {
+    box-shadow: 2px 2px 12px rgba(0, 0, 0, 0.45);
 }
 
 .layout-workspace {
     background-color: var(--theme-background-d);
-    border-radius: 8px;
-    box-shadow: 2px 2px 16px rgba(0, 0, 0, 0.65);
     flex: 1;
     position: relative;
 }
@@ -152,65 +152,66 @@ input[type="number"] {
 .workspaces {
     display: flex;
     flex-wrap: wrap;
+    font-size: 14px;
+    gap: 4px;
 }
 
 .workspaces > div {
-    background-color: transparent;
-    border-radius: 4px;
-    border: 1px solid var(--theme-background-d);
-    color: rgba(255, 255, 255, 0.50);
+    border-color: var(--theme-background-d);
+    border-radius: 3px 3px 0 0;
+    border-style: solid;
+    border-width: 1px 1px 0px 1px;
+    color: rgb(180, 180, 180);
+    cursor: pointer;
     display: flex;
-    margin: 0 4px 4px 0;
+    flex: 1;
+    justify-content: space-between;
+    max-width: 200px;
+    min-width: 0px;
 }
 
 .workspaces > div.selected {
     background-color: var(--theme-background-d);
-    color: var(--theme-text);
 }
 
-.workspaces > div > label {
-    cursor: pointer;
-    font-size: 13px;
+.workspaces > div.selected > div,
+.workspaces > div > div:hover,
+.workspaces > div > button:hover,
+.workspaces > button:hover {
+    color: white;
+}
+
+.workspaces > div > div {
+    flex: 1;
     overflow: hidden;
-    padding: 4px 32px 4px 12px;
+    padding: 4px 4px 4px 12px;
     text-overflow: ellipsis;
     white-space: nowrap;
-    width: 140px;
 }
 
 .workspaces > div > button {
-    background-color: transparent;
+    background: transparent;
     border: none;
-    color: var(--theme-text);
+    color: inherit;
     cursor: pointer;
     font-size: 16px;
+    outline: none;
     padding: 4px 8px;
 }
 
-.workspaces > div > label > input {
-    position: absolute;
-    clip: rect(0, 0, 0, 0);
-    pointer-events: none;
-}
-
 .workspaces > button {
-    background-color: var(--theme-background-d);
-    border-radius: 4px;
-    border: none;
-    color: var(--theme-text);
+    background: transparent;
+    border-color: var(--theme-background-d);
+    border-radius: 3px 3px 0 0;
+    border-style: solid;
+    border-width: 1px 1px 0 1px;
+    color: rgb(180, 180, 180);
     cursor: pointer;
-    display: block;
-    margin-bottom: 4px;
     width: 30px;
-}
-
-.workspaces > button:hover {
-    background-color: rgba(255, 255, 255, 0.10);
 }
 
 /* Commands */
 .commands {
-    border-radius: 4px;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -221,15 +222,18 @@ input[type="number"] {
 
 .commands button {
     background-color: hsl(208deg 21% 20%);
-    border-radius: 4px;
     border: 1px solid transparent;
-    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.55);
+    box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.40);
     color: var(--theme-text);
     cursor: pointer;
     height: 40px;
     padding-top: 4px;
     position: relative;
     width: 40px;
+}
+
+.commands button:focus-visible {
+    outline: 1px dashed var(--color-primary-a);
 }
 
 .commands button:disabled {
@@ -362,7 +366,6 @@ input[type="number"] {
 
 /* Canvas */
 .canvas {
-    border-radius: 8px;
     pointer-events: all;
     height: 100%;
     width: 100%;
@@ -508,7 +511,6 @@ input[type="number"] {
     background-color: #f2f2eb;
     border: 1px solid black;
     border-radius: 4px;
-    box-shadow: 1px 1px 6px rgba(0, 0, 0, 0.55);
     color: #461b0e;
     display: flex;
     flex-direction: column;
@@ -533,8 +535,13 @@ input[type="number"] {
 }
 
 .options section:first-child button {
+    align-items: center;
+    display: flex;
+    font-size: 17px;
+    justify-content: center;
+    line-height: 27px;
     padding: 0;
-    width: 27px;
+    width: 29px;
 }
 
 .options section:first-child button + button {
@@ -650,10 +657,6 @@ input[type="number"] {
     height: 32px;
 }
 
-.options-shape-colors .ogre-checkbox:checked + label > div {
-    box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.55);
-}
-
 .options-shape-patterns svg {
     display: block;
 }
@@ -673,8 +676,6 @@ input[type="number"] {
     background-position: bottom;
     background-repeat: no-repeat;
     background-size: contain;
-    border-radius: 8px;
-    box-shadow: 2px 2px 16px rgba(0, 0, 0, 0.65);
     box-sizing: border-box;
     color: var(--theme-paper-dark);
     font-size: 14px;
@@ -762,7 +763,7 @@ input[type="number"] {
 .initiant-roll {
     align-items: center;
     background-color: var(--theme-paper-light);
-    border-radius: 4px;
+    border-radius: 3px;
     border: 1px solid var(--theme-paper-accent);
     cursor: pointer;
     display: flex;
@@ -773,7 +774,7 @@ input[type="number"] {
 .initiant-inc,
 .initiant-dec {
     background-color: var(--theme-paper-light);
-    border-radius: 4px;
+    border-radius: 3px;
     border: 1px solid var(--theme-paper-accent);
     cursor: pointer;
     text-align: center;
@@ -822,6 +823,20 @@ input[type="number"] {
     padding-bottom: 2px;
 }
 
+/* Shared */
+.layout-workspace,
+.canvas,
+.initiative,
+.commands,
+.commands button {
+    border-radius: 3px;
+}
+
+.global--host .layout-workspace,
+.global--host .canvas {
+    border-radius: 0 3px 3px 3px;
+}
+
 /* Global */
 .global--host .canvas-shape:hover > circle,
 .global--host .canvas-shape:hover > path,
@@ -844,16 +859,8 @@ input[type="number"] {
     grid-template-rows: 1fr;
 }
 
-.global--guest .layout-workspace { margin: 16px; }
-.global--guest .canvas { pointer-events: none; }
-
-.global--initiative .layout-workspace,
-.global--initiative .canvas {
-    border-radius: 8px 2px 2px 8px;
-}
-
-.global--initiative .initiative {
-    border-radius: 2px 8px 8px 2px;
+.global--guest .canvas {
+    pointer-events: none;
 }
 
 .layout:not(.global--shortcuts) .commands-shortcut {

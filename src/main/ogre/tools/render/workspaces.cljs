@@ -1,5 +1,6 @@
 (ns ogre.tools.render.workspaces
-  (:require [ogre.tools.query :as query]
+  (:require [clojure.string :refer [blank? trim]]
+            [ogre.tools.query :as query]
             [ogre.tools.render :refer [css]]
             [ogre.tools.state :refer [state]]
             [uix.core.alpha :as uix]))
@@ -7,16 +8,10 @@
 (defn workspaces [props]
   (let [{:keys [data dispatch] :as context} (uix/context state)]
     [:div.workspaces
-     (for [workspace (query/workspaces data) :let [id (:db/id workspace)]]
-       [:div {:key id :class (css {:selected (= (:workspace context) workspace)})}
-        [:label
-         [:input
-          {:type "radio"
-           :name "window"
-           :value id
-           :checked (= (:workspace context) workspace)
-           :on-change #(dispatch :workspace/change id)}]
-         (let [name (clojure.string/trim (or (:element/name workspace) ""))]
-           (if (empty? name) [:em "Unnamed Workspace"] [:span name]))]
-        [:button {:type "button" :on-click #(dispatch :workspace/remove id)} "×"]])
-     [:button {:type "button" :on-click #(dispatch :workspace/create)} "+"]]))
+     (for [{:keys [db/id element/name] :as ws} (query/workspaces data)
+           :let [selected? (= ws (:workspace context))]]
+       [:div {:key id :class (css {:selected selected?})}
+        [:div {:on-click #(dispatch :workspace/change id)}
+         (if (blank? name) [:em "New Workspace"] (trim name))]
+        [:button {:type "button" :on-click #(dispatch :workspace/remove id) :title "Close workspace"} "×"]])
+     [:button {:type "button" :on-click #(dispatch :workspace/create) :title "Create new workspace"} "+"]]))

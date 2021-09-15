@@ -21,6 +21,9 @@
        (mapv name)
        (string/join " ")))
 
+(defn button [props children]
+  [:button (merge {:class "ogre-button" :type "button"} props) children])
+
 (defn use-image
   ([checksum]
    (use-image checksum {:persist? false}))

@@ -2,7 +2,7 @@
   (:require [clojure.string :refer [join capitalize blank?]]
             [datascript.core :as ds]
             [ogre.tools.query :as query]
-            [ogre.tools.render :refer [css]]
+            [ogre.tools.render :refer [button css]]
             [ogre.tools.render.icon :refer [icon]]
             [ogre.tools.state :as state]
             [uix.core.alpha :as uix]))
@@ -17,9 +17,6 @@
   (compare
    [(:initiative/roll a) (contains? (:element/flags b) :player) (label b)]
    [(:initiative/roll b) (contains? (:element/flags a) :player) (label a)]))
-
-(defn button [attrs child]
-  [:button.ogre-button (merge {:type "button"} attrs) child])
 
 (def initial-state
   {:editing/roll? false :editing/health? false :input/roll nil :input/health nil})
