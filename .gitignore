@@ -11,6 +11,7 @@ pom.xml.asc
 *.jar
 *.log
 .calva
+.clj-kondo
 .cpcache
 .shadow-cljs
 .idea
