@@ -2,11 +2,11 @@
   (:require
    [clojure.string :refer [capitalize]]
    [ogre.tools.form.render :refer [form]]
+   [ogre.tools.form.util :refer [checked? every-value?]]
    [ogre.tools.query :as query]
    [ogre.tools.render :refer [button checkbox]]
    [ogre.tools.render.icon :refer [icon]]
    [ogre.tools.state :refer [state]]
-   [ogre.tools.util :refer [checked? every-value?]]
    [uix.core.alpha :as uix]))
 
 (def light-sources

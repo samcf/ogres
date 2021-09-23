@@ -1,4 +1,4 @@
-(ns ogre.tools.util)
+(ns ogre.tools.form.util)
 
 (defn checked? [pred coll]
   (let [pass (filter pred coll)]
