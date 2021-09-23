@@ -12,6 +12,6 @@
            :let [selected? (= ws (:workspace context))]]
        [:div {:key id :class (css {:selected selected?})}
         [:div {:on-click #(dispatch :workspace/change id)}
-         (if (blank? name) [:em "New Workspace"] (trim name))]
-        [:button {:type "button" :on-click #(dispatch :workspace/remove id) :title "Close workspace"} "×"]])
-     [:button {:type "button" :on-click #(dispatch :workspace/create) :title "Create new workspace"} "+"]]))
+         (if (blank? name) [:em "New Canvas"] (trim name))]
+        [:button {:type "button" :on-click #(dispatch :workspace/remove id) :title "Close canvas"} "×"]])
+     [:button {:type "button" :on-click #(dispatch :workspace/create) :title "Create new canvas"} "+"]]))

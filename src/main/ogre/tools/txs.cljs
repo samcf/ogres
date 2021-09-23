@@ -59,6 +59,7 @@
    :grid/size 70
    :grid/origin [0 0]
    :grid/show true
+   :panel/selected :canvas
    :zoom/scale 1})
 
 (defmulti transact
@@ -91,6 +92,9 @@
 
       :else
       [[:db.fn/retractEntity id]])))
+
+(defmethod transact :ui/change-panel
+  [data event])
 
 (defmethod transact :canvas/change-map
   [data event map]
@@ -402,3 +406,8 @@
 (defmethod transact :interface/toggle-tooltips
   [_ _ display?]
   [[:db/add [:db/ident :viewer] :viewer/tooltips? display?]])
+
+(defmethod transact :interface/change-panel
+  [data _ panel]
+  (let [{:keys [db/id]} (query/workspace data)]
+    [[:db/add id :panel/selected panel]]))

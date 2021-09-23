@@ -1,10 +1,10 @@
 (ns ogre.tools.render.layout
-  (:require [ogre.tools.query :as query]
+  (:require ogre.tools.form.core
+            [ogre.tools.query :as query]
             [ogre.tools.render :refer [css]]
             [ogre.tools.render.canvas :refer [canvas]]
             [ogre.tools.render.command :refer [command]]
-            [ogre.tools.render.initiative :refer [initiative]]
-            [ogre.tools.render.options :refer [options]]
+            [ogre.tools.render.panel :refer [container]]
             [ogre.tools.render.tokens :refer [tokens]]
             [ogre.tools.render.workspaces :refer [workspaces]]
             [ogre.tools.state :refer [state]]
@@ -28,10 +28,8 @@
            [:div.layout-canvas [canvas]]
            [:div.layout-overlay
             [:div.layout-command [command]]
-            [:div.layout-options [options]]
             [:div.layout-tokens [tokens]]]]
-          (when initiative?
-            [:div.layout-initiative [initiative]])]]
+          [:div.layout-panel [container]]]]
         [:div.layout {:class class-names}
          [:div.layout-workspace
           [:div.layout-canvas [canvas]]]]))))

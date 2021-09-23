@@ -21,6 +21,18 @@
        (mapv name)
        (string/join " ")))
 
+(defn checkbox [{:keys [checked on-change]} child]
+  (let [key   (uix/state (ds/squuid))
+        indtr (= checked :indeterminate)
+        input (uix/ref)]
+    (uix/effect!
+     (fn [] (set! (.-indeterminate @input) indtr)) [indtr])
+    [:div
+     [:input
+      {:id @key :ref input :type "checkbox" :class "ogre-checkbox" :checked checked
+       :on-change (fn [event] (on-change (.. event -target -checked)))}]
+     [:label {:for @key} child]]))
+
 (defn button [props children]
   [:button (merge {:class "ogre-button" :type "button"} props) children])
 

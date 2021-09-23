@@ -1,6 +1,7 @@
-(ns ogre.tools.render.initiative
+(ns ogre.tools.form.initiative
   (:require [clojure.string :refer [join capitalize blank?]]
             [datascript.core :as ds]
+            [ogre.tools.form.render :refer [form]]
             [ogre.tools.query :as query]
             [ogre.tools.render :refer [button css]]
             [ogre.tools.render.icon :refer [icon]]
@@ -13,16 +14,19 @@
     (blank? name)    (str "Unknown")
     (number? suffix) (str " (" (char (+ suffix 64)) ")")))
 
-(defn initiative-order [a b]
+(defn order [a b]
   (compare
    [(:initiative/roll a) (contains? (:element/flags b) :player) (label b)]
    [(:initiative/roll b) (contains? (:element/flags a) :player) (label a)]))
 
-(def initial-state
-  {:editing/roll? false :editing/health? false :input/roll nil :input/health nil})
+(def initial
+  {:editing/roll?   false
+   :editing/health? false
+   :input/roll      nil
+   :input/health    nil})
 
 (defn initiant [{:keys [element dispatch selected]}]
-  (let [ident (:db/id element) state (uix/state initial-state)]
+  (let [ident (:db/id element) state (uix/state initial)]
     (uix/effect!
      (fn [] (swap! state assoc :editing/roll? false))
      [(:initiative/roll element)])
@@ -107,19 +111,29 @@
         (let [health (:initiative/health element)]
           (if (blank? health) "HP" health))]])))
 
-(defn initiative []
+(defmethod form :initiative [props]
   (let [{:keys [dispatch data workspace]} (uix/context state/state)]
-    [:div.initiative
-     [:section [:header "Initiative"]]
-     [:section.initiative-actions
-      [button {:on-click #(dispatch :initiative/roll-all)} "Roll"]
-      [button {:on-click #(dispatch :initiative/reset-rolls)} "Reset"]
-      [button {:on-click #(dispatch :initiative/leave)} "Leave"]]
-     (let [initiants (->> (query/initiating data) (sort initiative-order) (reverse))]
+    (if-let [initiating (seq (query/initiating data))]
+      [:div.initiative
+       [:section [:header "Initiative"]]
        [:section
-        (for [element initiants :let [id (:db/id element)]]
-          [initiant
-           {:key id
-            :element (into {:db/id id} (ds/touch element))
-            :selected (contains? (:canvas/selected workspace) element)
-            :dispatch dispatch}])])]))
+        [:fieldset.table {:style {:padding "0 12px"}}
+         [button {:on-click #(dispatch :initiative/roll-all)} "Roll"]
+         [button {:on-click #(dispatch :initiative/reset-rolls)} "Reset"]
+         [button {:on-click #(dispatch :initiative/leave)} "Leave"]]]
+       (let [initiants (->> initiating (sort order) (reverse))]
+         [:section
+          (for [element initiants :let [id (:db/id element)]]
+            [initiant
+             {:key id
+              :element (into {:db/id id} (ds/touch element))
+              :selected (contains? (:canvas/selected workspace) element)
+              :dispatch dispatch}])])]
+      [:div.initiative
+       [:section [:header "Initiative"]]
+       [:section
+        [:div.prompt
+         [icon {:name :hourglass-split :size 48}]
+         [:br] "Begin initiative by selecting"
+         [:br] "one or more tokens and clicking"
+         [:br] "'Start Initiative'"]]])))

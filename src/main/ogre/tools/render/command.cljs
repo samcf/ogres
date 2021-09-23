@@ -31,7 +31,7 @@
 
 (defn command [props]
   (let [{:keys [dispatch data workspace]} (uix/context state)
-        {:keys [grid/show canvas/mode canvas/theme canvas/last-shape]} workspace
+        {:keys [canvas/mode canvas/theme canvas/last-shape]} workspace
         {:keys [share/open? share/paused?]} (query/viewer data)
         mode-attrs
         (fn [given]
@@ -48,14 +48,6 @@
       [icon {:name :rulers}]
       [shortcut "R"]
       [tooltip "Ruler"]]
-     [:button (mode-attrs :canvas)
-      [icon {:name :images}]
-      [shortcut "W"]
-      [tooltip "Map options"]]
-     [:button (mode-attrs :grid)
-      [icon {:name :grid-3x3}]
-      [shortcut "G"]
-      [tooltip "Grid options"]]
      [commands
       (let [last (or last-shape :circle)]
         [:button (mode-attrs last)
@@ -74,7 +66,4 @@
          [icon {:name :play-fill}]
          [icon {:name :pause-fill}])
        [shortcut "P"]
-       [tooltip "Pause / resume"]]]
-     [:button (mode-attrs :help)
-      [icon {:name :question-diamond}]
-      [tooltip "Help"]]]))
+       [tooltip "Pause / resume"]]]]))
