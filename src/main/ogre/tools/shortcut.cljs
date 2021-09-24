@@ -62,6 +62,10 @@
      (when (:share/open? (query/viewer data))
        (dispatch :share/switch)))
 
+   ["keydown" \ ]
+   (fn [{:keys [dispatch]}]
+     (dispatch :interface/toggle-panel))
+
    ["wheel"]
    (fn [{:keys [data dispatch]} event]
      (when (.. event -target (closest "svg.canvas"))
