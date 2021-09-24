@@ -1,14 +1,13 @@
 (ns ogre.tools.form.shape
-  (:require
-   [clojure.string :refer [capitalize]]
-   [ogre.tools.form.render :refer [form]]
-   [ogre.tools.form.util :refer [checked? every-value?]]
-   [ogre.tools.query :as query]
-   [ogre.tools.render :refer [button checkbox]]
-   [ogre.tools.render.icon :refer [icon]]
-   [ogre.tools.render.pattern :refer [pattern]]
-   [ogre.tools.state :refer [state]]
-   [uix.core.alpha :as uix]))
+  (:require [clojure.string :refer [capitalize]]
+            [ogre.tools.form.render :refer [form]]
+            [ogre.tools.form.util :refer [checked? every-value?]]
+            [ogre.tools.query :as query]
+            [ogre.tools.render :refer [button checkbox]]
+            [ogre.tools.render.icon :refer [icon]]
+            [ogre.tools.render.pattern :refer [pattern]]
+            [ogre.tools.state :refer [state]]
+            [uix.core.alpha :as uix]))
 
 (def colors
   ["#182125" "#f2f2f2" "#f44336" "#e91e63"

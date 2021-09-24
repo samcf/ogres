@@ -1,14 +1,13 @@
 (ns ogre.tools.form.canvas
-  (:require
-   [clojure.string :refer [capitalize]]
-   [ogre.tools.form.render :refer [form]]
-   [ogre.tools.image :as image]
-   [ogre.tools.query :as query]
-   [ogre.tools.render :refer [css checkbox use-image]]
-   [ogre.tools.render.icon :refer [icon]]
-   [ogre.tools.state :refer [state]]
-   [ogre.tools.storage :refer [storage]]
-   [uix.core.alpha :as uix]))
+  (:require [clojure.string :refer [capitalize]]
+            [ogre.tools.form.render :refer [form]]
+            [ogre.tools.image :as image]
+            [ogre.tools.query :as query]
+            [ogre.tools.render :refer [css checkbox use-image]]
+            [ogre.tools.render.icon :refer [icon]]
+            [ogre.tools.state :refer [state]]
+            [ogre.tools.storage :refer [storage]]
+            [uix.core.alpha :as uix]))
 
 (defn thumbnail [{:keys [board selected on-select on-remove]}]
   (let [checksum (:image/checksum board)

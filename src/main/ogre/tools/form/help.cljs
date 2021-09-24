@@ -1,10 +1,9 @@
 (ns ogre.tools.form.help
-  (:require
-   [ogre.tools.form.render :refer [form]]
-   [ogre.tools.query :as query]
-   [ogre.tools.render :refer [button checkbox]]
-   [ogre.tools.state :refer [state]]
-   [uix.core.alpha :as uix]))
+  (:require [ogre.tools.form.render :refer [form]]
+            [ogre.tools.query :as query]
+            [ogre.tools.render :refer [button checkbox]]
+            [ogre.tools.state :refer [state]]
+            [uix.core.alpha :as uix]))
 
 (defmethod form :help [props]
   (let [{:keys [dispatch data]} (uix/context state)

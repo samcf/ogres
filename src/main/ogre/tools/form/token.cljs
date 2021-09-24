@@ -1,13 +1,12 @@
 (ns ogre.tools.form.token
-  (:require
-   [clojure.string :refer [capitalize]]
-   [ogre.tools.form.render :refer [form]]
-   [ogre.tools.form.util :refer [checked? every-value?]]
-   [ogre.tools.query :as query]
-   [ogre.tools.render :refer [button checkbox]]
-   [ogre.tools.render.icon :refer [icon]]
-   [ogre.tools.state :refer [state]]
-   [uix.core.alpha :as uix]))
+  (:require [clojure.string :refer [capitalize]]
+            [ogre.tools.form.render :refer [form]]
+            [ogre.tools.form.util :refer [checked? every-value?]]
+            [ogre.tools.query :as query]
+            [ogre.tools.render :refer [button checkbox]]
+            [ogre.tools.render.icon :refer [icon]]
+            [ogre.tools.state :refer [state]]
+            [uix.core.alpha :as uix]))
 
 (def light-sources
   [["None" 0 0] ["Candle" 5 5] ["Torch" 20 20] ["Lamp" 15 30] ["Lantern" 30 30]])
