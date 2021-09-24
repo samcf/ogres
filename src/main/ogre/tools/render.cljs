@@ -29,7 +29,8 @@
      (fn [] (set! (.-indeterminate @input) indtr)) [indtr])
     [:div
      [:input
-      {:id @key :ref input :type "checkbox" :class "ogre-checkbox" :checked checked
+      {:id @key :ref input :type "checkbox"
+       :class "ogre-checkbox" :checked (if indtr false checked)
        :on-change (fn [event] (on-change (.. event -target -checked)))}]
      [:label {:for @key} child]]))
 

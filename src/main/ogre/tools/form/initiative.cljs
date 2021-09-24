@@ -3,7 +3,7 @@
             [datascript.core :as ds]
             [ogre.tools.form.render :refer [form]]
             [ogre.tools.query :as query]
-            [ogre.tools.render :refer [button css]]
+            [ogre.tools.render :refer [button]]
             [ogre.tools.render.icon :refer [icon]]
             [ogre.tools.state :as state]
             [uix.core.alpha :as uix]))
@@ -34,7 +34,7 @@
     (cond
       (:editing/roll? @state)
       [:div.initiant.initiant-layout-roll
-       {:class (css {:selected selected})}
+       {:css {:selected selected}}
        [:div.initiant-roll
         {:on-click
          (fn []
@@ -60,7 +60,7 @@
 
       (:editing/health? @state)
       [:div.initiant.initiant-layout-health
-       {:class (css {:selected selected})}
+       {:css {:selected selected}}
        [:div.initiant-health-input
         [:input
          {:type "number"
@@ -84,7 +84,7 @@
 
       :else
       [:div.initiant.initiant-layout-default
-       {:class (css {:selected selected})}
+       {:css {:selected selected}}
        [:div.initiant-roll
         {:on-click
          (fn []
@@ -111,7 +111,7 @@
         (let [health (:initiative/health element)]
           (if (blank? health) "HP" health))]])))
 
-(defmethod form :initiative [props]
+(defn initiative []
   (let [{:keys [dispatch data workspace]} (uix/context state/state)]
     (if-let [initiating (seq (query/initiating data))]
       [:div.initiative
@@ -124,9 +124,9 @@
        (let [initiants (->> initiating (sort order) (reverse))]
          [:section
           (for [element initiants :let [id (:db/id element)]]
+            ^{:key id}
             [initiant
-             {:key id
-              :element (into {:db/id id} (ds/touch element))
+             {:element (into {:db/id id} (ds/touch element))
               :selected (contains? (:canvas/selected workspace) element)
               :dispatch dispatch}])])]
       [:div.initiative
@@ -137,3 +137,6 @@
          [:br] "Begin initiative by selecting"
          [:br] "one or more tokens and clicking"
          [:br] "'Start Initiative'"]]])))
+
+(defmethod form :initiative []
+  initiative)

@@ -185,9 +185,9 @@
        (let [{patt :shape/pattern color :shape/color kind :shape/kind} element
              id (ds/squuid)]
          [:g
-          {:class (css "canvas-shape"
-                       (str "canvas-shape-" (name kind))
-                       {:selected (contains? selected element)})}
+          {:css {"canvas-shape" true
+                 "selected" (contains? selected element)
+                 (str "canvas-shape-" (name kind)) true}}
           [:defs [pattern {:id id :name patt :color color}]]
           [shape {:element (into {} (ds/touch element)) :attrs {:fill (str "url(#" id ")")}}]])])))
 

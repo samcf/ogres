@@ -71,7 +71,7 @@
           :max 1
           :step 0.25}])]]))
 
-(defmethod form :shape [props]
+(defn container []
   (let [{:keys [workspace]} (uix/context state)]
     [:<>
      [:section [:header "Shape Options"]]
@@ -83,3 +83,6 @@
            [icon {:name :triangle :size 48}]
            [:br] "Configure shapes by selecting"
            [:br] "one or more of them from the canvas"]]))]))
+
+(defmethod form :shape []
+  container)

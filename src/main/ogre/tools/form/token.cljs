@@ -46,9 +46,7 @@
       (let [initiative? (not (empty? (query/initiating data)))
             checked     (checked? :initiative/member? selected)]
         [checkbox
-         {:name "token/initiative"
-          :value "on"
-          :checked checked
+         {:checked checked
           :on-change #(dispatch :initiative/toggle idents %)}
          (case [initiative? checked]
            [true true] "In Initiative - Remove"
@@ -119,7 +117,7 @@
            :on-change #(dispatch :aura/change-radius idents radius)}
           (if (= radius 0) "None" (str radius " ft."))])]]]))
 
-(defmethod form :token [props]
+(defn container []
   (let [{:keys [workspace]} (uix/context state)]
     [:<>
      [:section [:header "Token Options"]]
@@ -131,3 +129,6 @@
            [icon {:name :person-circle :size 48}]
            [:br] "Configure tokens by selecting"
            [:br] "one or more of them from the canvas"]]))]))
+
+(defmethod form :token []
+  container)

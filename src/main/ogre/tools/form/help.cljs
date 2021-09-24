@@ -5,7 +5,7 @@
             [ogre.tools.state :refer [state]]
             [uix.core.alpha :as uix]))
 
-(defmethod form :help [props]
+(defn help []
   (let [{:keys [dispatch data]} (uix/context state)
         {:keys [viewer/shortcuts? viewer/tooltips?]} (query/viewer data)]
     [:<>
@@ -50,3 +50,6 @@
       [:p [:strong "All uploaded images and work will be permanently deleted."]]
       [button {:on-click #(dispatch :storage/reset) :style {:margin-top 8}}
        "Reset Data"]]]))
+
+(defmethod form :help []
+  help)

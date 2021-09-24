@@ -3,7 +3,7 @@
             [ogre.tools.form.render :refer [form]]
             [ogre.tools.image :as image]
             [ogre.tools.query :as query]
-            [ogre.tools.render :refer [css checkbox use-image]]
+            [ogre.tools.render :refer [checkbox use-image]]
             [ogre.tools.render.icon :refer [icon]]
             [ogre.tools.state :refer [state]]
             [ogre.tools.storage :refer [storage]]
@@ -14,7 +14,7 @@
         url      (use-image checksum)]
     [:div
      {:key checksum
-      :class (css {:selected selected})
+      :css {:selected selected}
       :style {:background-image (str "url(" url ")")}
       :on-click
       (fn [event]
@@ -26,7 +26,7 @@
          (.stopPropagation event)
          (on-remove))} "×"]]))
 
-(defmethod form :canvas [props]
+(defn canvas []
   (let [{:keys [data workspace dispatch]} (uix/context state)
         {:keys [store]} (uix/context storage)]
     [:<>
@@ -35,7 +35,7 @@
      [:section
       [:input
        {:type "text"
-        :placeholder "New canvas"
+        :placeholder "New Canvas"
         :maxLength 36
         :spellCheck "false"
         :value (or (:element/name workspace) "")
@@ -44,7 +44,7 @@
           (let [value (.. event -target -value)]
             (dispatch :element/update [(:db/id workspace)] :element/name value)))}]]
      [:section
-      [:div.thumbnails
+      [:fieldset.thumbnails
        (for [board (query/boards data)]
          [thumbnail
           {:key       (:image/checksum board)
@@ -54,24 +54,25 @@
            :on-remove (fn []
                         (.delete (.-images store) (:image/checksum board))
                         (dispatch :map/remove (:db/id board)))}])]
-      [:input
-       {:type "file"
-        :accept "image/*"
-        :multiple true
-        :on-change
-        #(doseq [file (.. % -target -files)]
-           (image/load
-            file
-            (fn [{:keys [data filename img]}]
-              (let [checks (image/checksum data)
-                    record #js {:checksum checks :data data :created-at (.now js/Date)}
-                    entity {:image/checksum checks
-                            :image/name     filename
-                            :image/width    (.-width img)
-                            :image/height   (.-height img)}]
-                (-> (.put (.-images store) record)
-                    (.then
-                     (fn [] (dispatch :map/create workspace entity))))))))}]]
+      [:fieldset
+       [:input
+        {:type "file"
+         :accept "image/*"
+         :multiple true
+         :on-change
+         #(doseq [file (.. % -target -files)]
+            (image/load
+             file
+             (fn [{:keys [data filename img]}]
+               (let [checks (image/checksum data)
+                     record #js {:checksum checks :data data :created-at (.now js/Date)}
+                     entity {:image/checksum checks
+                             :image/name     filename
+                             :image/width    (.-width img)
+                             :image/height   (.-height img)}]
+                 (-> (.put (.-images store) record)
+                     (.then
+                      (fn [] (dispatch :map/create workspace entity))))))))}]]]
      [:section
       [:legend "Options"]
       [:fieldset.setting
@@ -112,7 +113,7 @@
           {:checked checked?
            :on-change #(dispatch :canvas/change-color color)}
           (capitalize (name color))])]]
-     [:section
+     [:section.form-canvas-grid
       [:legend "Grid Configuration"]
       [:fieldset.group
        [:input
@@ -134,3 +135,6 @@
        "Manually enter the grid size or click the button to draw a square
         that represents 5ft. on the map so the application knows how to
         measure distance and how big to make tokens."]]]))
+
+(defmethod form :canvas []
+  canvas)

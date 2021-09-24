@@ -1,6 +1,5 @@
 (ns ogre.tools.render.command
   (:require [ogre.tools.query :as query]
-            [ogre.tools.render :refer [css]]
             [ogre.tools.render.icon :refer [icon]]
             [ogre.tools.state :refer [state]]
             [uix.core.alpha :as uix]))
@@ -37,7 +36,7 @@
         (fn [given]
           {:type "button"
            :key given
-           :class (css {:selected (= given mode)})
+           :css {:selected (= given mode)}
            :on-click #(dispatch :canvas/toggle-mode given)})]
     [:div.commands
      [:button (mode-attrs :select)
@@ -59,7 +58,7 @@
          [shortcut (shape->shortcut shape)]])]
      [commands
       [:button
-       {:class (css {:active open?}) :on-click #(dispatch :share/initiate)}
+       {:css {:active open?} :on-click #(dispatch :share/initiate)}
        [icon {:name :pip :size 22}]]
       [:button {:key :switch :disabled (not open?) :on-click #(dispatch :share/switch)}
        (if paused?
