@@ -629,10 +629,6 @@ legend {
     display: flex;
     height: 40px;
     justify-content: center;
-    transition:
-      background-color 0.10s ease-in-out,
-      border-color 0.10s ease-in-out,
-      color 0.10s ease-in-out;
     width: 40px;
 }
 
