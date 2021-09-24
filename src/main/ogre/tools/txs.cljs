@@ -423,4 +423,10 @@
   [data _ panel]
   (let [{:keys [db/id]} (query/workspace data)]
     [[:db/add id :panel/current panel]
-     [:db/add id :panel/prev panel]]))
+     [:db/add id :panel/prev panel]
+     [:db/add id :panel/collapsed? false]]))
+
+(defmethod transact :interface/toggle-panel
+  [data event]
+  (let [{:keys [db/id panel/collapsed?]} (query/workspace data)]
+    [[:db/add id :panel/collapsed? (not (or collapsed? false))]]))
