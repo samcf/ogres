@@ -8,7 +8,7 @@
 
 (defn container []
   (let [{:keys [dispatch workspace]} (uix/context state)
-        {:keys [panel/selected]} workspace]
+        {:keys [panel/current]} workspace]
     [:aside.panel
      [:nav.panel-tabs
       (for [[panel icon-name]
@@ -19,9 +19,9 @@
              [:help :question-diamond]]]
         [:div
          {:key panel
-          :class (css {:panel-tab true :selected (= panel selected)})
+          :class (css {:panel-tab true :selected (= panel current)})
           :on-click #(dispatch :interface/change-panel panel)}
          [icon {:name icon-name}]])
       [:div.panel-tab [icon {:name :chevron-double-right}]]]
-     [:div {:class (css "panel-content" (str "panel-content-" (name selected)))}
-      [form {:form selected}]]]))
+     [:div {:class (css "panel-content" (str "panel-content-" (name current)))}
+      [form {:form current}]]]))
