@@ -13,8 +13,8 @@ git clone --single-branch --branch gh-pages git@github.com:samcf/ogre.tools.git 
 # copy, commit, and push
 cp -r web/. "$dst"/
 cd "$dst"
+rm -rf script/cljs-runtime
 git add --all
-git rm -r script/cljs-runtime
 git commit --allow-empty --amend -m "Publish changes."
 git push --force-with-lease origin gh-pages
 
