@@ -59,6 +59,8 @@
    :grid/size 70
    :grid/origin [0 0]
    :grid/show true
+   :panel/curr :canvas
+   :panel/prev :canvas
    :zoom/scale 1})
 
 (defmulti transact
@@ -100,12 +102,13 @@
 
 (defmethod transact :canvas/toggle-mode
   [data event mode]
-  (let [{id :db/id current :canvas/mode} (query/workspace data)]
-    [[:db/add id :canvas/mode mode]
-     (if (not= current mode)
-       [:db/retract id :canvas/selected])
-     (if (contains? #{:circle :rect :cone :line} mode)
-       [:db/add id :canvas/last-shape mode])]))
+  (let [{:keys [db/id] :as w} (query/workspace data)]
+    (concat [[:db/add id :canvas/mode mode]]
+            (if (not= mode (:canvas/mode w))
+              [[:db/retract id :canvas/selected]
+               [:db/add id :panel/curr (:panel/prev w)]])
+            (if (contains? #{:circle :rect :cone :line} mode)
+              [[:db/add id :canvas/last-shape mode]]))))
 
 (defmethod transact :canvas/toggle-theme
   [data event]
@@ -129,14 +132,21 @@
 
 (defmethod transact :element/select
   [data event element]
-  (let [{:keys [db/id canvas/selected]} (query/workspace data)]
-    [[:db/retract id :canvas/selected]
-     [:db/add id :canvas/selected element]]))
+  (let [{:keys [db/id canvas/selected panel/prev]} (query/workspace data)
+        {:keys [element/type]} (ds/entity data element)]
+    (if (contains? selected element)
+      [[:db/retract id :canvas/selected]
+       [:db/add id :panel/curr prev]]
+      [[:db/retract id :canvas/selected]
+       [:db/add id :canvas/selected element]
+       [:db/add id :panel/curr type]])))
 
 (defmethod transact :element/remove
   [data event idents]
-  (for [id idents]
-    [:db/retractEntity id]))
+  (let [{:keys [db/id panel/prev]} (query/workspace data)]
+    (concat [[:db/add id :panel/curr prev]]
+            (for [id idents]
+              [:db/retractEntity id]))))
 
 (defmethod transact :element/flag
   [data event idents flag add?]
@@ -172,6 +182,7 @@
     [[:db/add id :canvas/elements -1]
      [:db/add id :canvas/selected -1]
      [:db/add id :canvas/mode :select]
+     [:db/add id :panel/curr :token]
      (merge
       (into {} (ds/touch template))
       {:db/id -1 :pos/vec vector})]))
@@ -206,7 +217,9 @@
      [:db/add -1 :shape/color "#f44336"]
      [:db/add -1 :shape/opacity 0.25]
      [:db/add -1 :shape/pattern :solid]
-     [:db/add id :canvas/elements -1]]))
+     [:db/add id :canvas/elements -1]
+     [:db/add id :canvas/selected -1]
+     [:db/add id :panel/curr :shape]]))
 
 (defmethod transact :shape/translate
   [data event id x y]
@@ -311,23 +324,29 @@
 
 (defmethod transact :selection/from-rect
   [data event vecs]
-  (let [{:keys [db/id canvas/elements]} (query/workspace data)]
+  (let [{:keys [db/id] :as w} (query/workspace data)
+        normalized            (normalize vecs)
+        selected              (filter (fn [{type  :element/type
+                                            [x y] :pos/vec}]
+                                        (and (= type :token) (within? x y normalized))) (:canvas/elements w))]
     (concat [[:db/add id :canvas/mode :select]]
-            (for [element elements
-                  :let [{type :element/type [x y] :pos/vec} element]
-                  :when (and (= type :token) (within? x y (normalize vecs)))]
-              [:db/add id :canvas/selected (:db/id element)]))))
+            (if (seq selected)
+              [[:db/add id :panel/curr :token]])
+            (for [entity selected]
+              [:db/add id :canvas/selected (:db/id entity)]))))
 
 (defmethod transact :selection/clear
   [data event]
-  (let [{:keys [db/id]} (query/workspace data)]
-    [[:db/retract id :canvas/selected]]))
+  (let [{:keys [db/id panel/prev]} (query/workspace data)]
+    [[:db/retract id :canvas/selected]
+     [:db/add id :panel/curr prev]]))
 
 (defmethod transact :selection/remove
   [data event]
-  (let [{:keys [canvas/selected]} (query/workspace data)]
-    (for [{:keys [db/id]} selected]
-      [:db/retractEntity id])))
+  (let [{:keys [db/id canvas/selected panel/prev]} (query/workspace data)]
+    (concat [[:db/add id :panel/curr prev]]
+            (for [entity selected]
+              [:db/retractEntity (:db/id entity)]))))
 
 (defmethod transact :initiative/toggle
   [data event idents add?]
@@ -402,3 +421,15 @@
 (defmethod transact :interface/toggle-tooltips
   [_ _ display?]
   [[:db/add [:db/ident :viewer] :viewer/tooltips? display?]])
+
+(defmethod transact :interface/change-panel
+  [data _ panel]
+  (let [{:keys [db/id]} (query/workspace data)]
+    [[:db/add id :panel/curr panel]
+     [:db/add id :panel/prev panel]
+     [:db/add id :panel/collapsed? false]]))
+
+(defmethod transact :interface/toggle-panel
+  [data event]
+  (let [{:keys [db/id panel/collapsed?]} (query/workspace data)]
+    [[:db/add id :panel/collapsed? (not (or collapsed? false))]]))

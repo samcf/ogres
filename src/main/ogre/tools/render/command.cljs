@@ -1,6 +1,5 @@
 (ns ogre.tools.render.command
   (:require [ogre.tools.query :as query]
-            [ogre.tools.render :refer [css]]
             [ogre.tools.render.icon :refer [icon]]
             [ogre.tools.state :refer [state]]
             [uix.core.alpha :as uix]))
@@ -31,13 +30,13 @@
 
 (defn command [props]
   (let [{:keys [dispatch data workspace]} (uix/context state)
-        {:keys [grid/show canvas/mode canvas/theme canvas/last-shape]} workspace
+        {:keys [canvas/mode canvas/theme canvas/last-shape]} workspace
         {:keys [share/open? share/paused?]} (query/viewer data)
         mode-attrs
         (fn [given]
           {:type "button"
            :key given
-           :class (css {:selected (= given mode)})
+           :css {:selected (= given mode)}
            :on-click #(dispatch :canvas/toggle-mode given)})]
     [:div.commands
      [:button (mode-attrs :select)
@@ -48,14 +47,6 @@
       [icon {:name :rulers}]
       [shortcut "R"]
       [tooltip "Ruler"]]
-     [:button (mode-attrs :canvas)
-      [icon {:name :images}]
-      [shortcut "W"]
-      [tooltip "Map options"]]
-     [:button (mode-attrs :grid)
-      [icon {:name :grid-3x3}]
-      [shortcut "G"]
-      [tooltip "Grid options"]]
      [commands
       (let [last (or last-shape :circle)]
         [:button (mode-attrs last)
@@ -67,14 +58,11 @@
          [shortcut (shape->shortcut shape)]])]
      [commands
       [:button
-       {:class (css {:active open?}) :on-click #(dispatch :share/initiate)}
+       {:css {:active open?} :on-click #(dispatch :share/initiate)}
        [icon {:name :pip :size 22}]]
       [:button {:key :switch :disabled (not open?) :on-click #(dispatch :share/switch)}
        (if paused?
          [icon {:name :play-fill}]
          [icon {:name :pause-fill}])
        [shortcut "P"]
-       [tooltip "Pause / resume"]]]
-     [:button (mode-attrs :help)
-      [icon {:name :question-diamond}]
-      [tooltip "Help"]]]))
+       [tooltip "Pause / resume"]]]]))
