@@ -152,57 +152,47 @@ legend {
 
 /* Layout */
 .layout {
-    background-color: hsl(208deg 21% 20%);
     box-sizing: border-box;
-    color: var(--theme-text);
     display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
     height: 100%;
     padding: 16px;
+    grid-template-columns: 1fr min-content;
+    grid-template-rows: min-content 1fr;
+    grid-template-areas:
+      "a a"
+      "b c";
 }
 
-.layout-container {
-    display: flex;
+.layout-workspaces {
+    grid-area: a;
 }
 
-.layout-workspace {
-    background-color: var(--theme-background-d);
-    flex: 1;
-    position: relative;
+.layout-canvas,
+.layout-command,
+.layout-tokens {
+    grid-area: b;
 }
 
 .layout-panel {
-    margin-left: 8px;
-    z-index: 0;
+    grid-area: c;
 }
 
-.layout-canvas {
-    height: 100%;
-}
-
-.layout-overlay {
-    display: flex;
-    margin: 8px;
+.layout-command,
+.layout-tokens {
     pointer-events: none;
-    position: absolute;
-    justify-content: space-between;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
 }
 
-.layout-options {
+.layout-command {
     display: flex;
-    flex-direction: column;
-    flex: 1;
-    margin: 0 8px;
+    padding: 16px;
+    align-items: flex-start;
+    z-index: 1;
 }
 
 .layout-tokens {
     display: flex;
-    flex-direction: row-reverse;
+    justify-content: end;
+    padding: 16px;
 }
 
 /* Workspaces */
@@ -422,6 +412,7 @@ legend {
 
 /* Canvas */
 .canvas {
+    background-color: var(--theme-background-d);
     pointer-events: all;
     height: 100%;
     width: 100%;
@@ -610,6 +601,7 @@ legend {
 .panel {
     display: flex;
     height: 100%;
+    margin-left: 8px;
 }
 
 .panel-tabs {
@@ -835,14 +827,12 @@ legend {
 }
 
 /* Shared */
-.layout-workspace,
 .canvas,
 .commands,
 .commands button {
     border-radius: 3px;
 }
 
-.global--host .layout-workspace,
 .global--host .canvas {
     border-radius: 0 3px 3px 3px;
 }
@@ -865,6 +855,7 @@ legend {
 }
 
 .global--guest {
+    grid-template-areas: "b";
     grid-template-columns: 1fr;
     grid-template-rows: 1fr;
 }

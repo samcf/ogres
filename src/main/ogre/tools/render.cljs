@@ -37,6 +37,19 @@
 (defn button [props children]
   [:button (merge {:class "ogre-button" :type "button"} props) children])
 
+(def root-query
+  '[:find (pull $ ?id pattern) . :in $ pattern :where [?id :db/ident :viewer]])
+
+(defn use-query
+  ([]
+   (let [context (uix/context state)]
+     [(:dispatch context)]))
+  ([{:keys [query pull args]
+     :or {query root-query args []}}]
+   (let [context (uix/context state)
+         result  (apply ds/q query (:data context) (if pull (conj args pull) args))]
+     [result (:dispatch context)])))
+
 (defn use-image
   ([checksum]
    (use-image checksum {:persist? false}))
