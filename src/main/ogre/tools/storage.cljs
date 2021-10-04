@@ -1,10 +1,9 @@
 (ns ogre.tools.storage
-  (:require [ogre.tools.state :refer [schema state]]
-            [ogre.tools.query :as query]
-            [uix.core.alpha :as uix :refer [defcontext]]
-            [datascript.core :as ds]
+  (:require [datascript.core :as ds]
             [datascript.transit :as dt]
-            [dexie]))
+            [dexie]
+            [ogre.tools.state :refer [schema state use-query]]
+            [uix.core.alpha :as uix :refer [defcontext]]))
 
 (defcontext storage)
 
@@ -33,12 +32,11 @@
   "Initializes the DataScript database from the serialized state within the
    browser's IndexedDB store. This is only run once for both the host and
    guest windows." []
-  (let [{:keys [conn data]}            (uix/context state)
-        {:keys [store]}                (uix/context storage)
-        {:keys [db/id viewer/loaded?]} (query/viewer data)
+  (let [{:keys [conn]} (uix/context state)
+        {:keys [store]} (uix/context storage)
         tx-data
-        [[:db/add id :viewer/loaded? true]
-         [:db/add id :viewer/host? (host? js/window)]]]
+        [[:db/add [:db/ident :viewer] :viewer/loaded? true]
+         [:db/add [:db/ident :viewer] :viewer/host? (host? js/window)]]]
     (uix/effect!
      (fn []
        (-> (.table store "app")
@@ -63,9 +61,10 @@
    application state to the browser's IndexedDB store. This is only performed
    on the host window and only after the application has already initialized
    the state." []
-  (let [{:keys [conn data]} (uix/context state)
+  (let [{:keys [conn]}  (uix/context state)
         {:keys [store]} (uix/context storage)
-        {:keys [viewer/host? viewer/loaded?]} (query/viewer data)]
+        [data]          (use-query {:pull [:viewer/host? :viewer/loaded?]})
+        {:viewer/keys [host? loaded?]} data]
     (uix/effect!
      (fn []
        (ds/listen!

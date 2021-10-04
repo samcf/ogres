@@ -1,13 +1,14 @@
 (ns ogre.tools.form.help
   (:require [ogre.tools.form.render :refer [form]]
-            [ogre.tools.query :as query]
             [ogre.tools.render :refer [button checkbox]]
-            [ogre.tools.state :refer [state]]
-            [uix.core.alpha :as uix]))
+            [ogre.tools.state :refer [use-query]]))
+
+(def attrs
+  [:viewer/shortcuts? :viewer/tooltips?])
 
 (defn help []
-  (let [{:keys [dispatch data]} (uix/context state)
-        {:keys [viewer/shortcuts? viewer/tooltips?]} (query/viewer data)]
+  (let [[result dispatch] (use-query {:pull attrs})
+        {:viewer/keys [shortcuts? tooltips?]} result]
     [:<>
      [:section
       [:header "About"]

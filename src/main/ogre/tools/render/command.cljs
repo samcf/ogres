@@ -1,8 +1,6 @@
 (ns ogre.tools.render.command
-  (:require [ogre.tools.query :as query]
-            [ogre.tools.render.icon :refer [icon]]
-            [ogre.tools.state :refer [state]]
-            [uix.core.alpha :as uix]))
+  (:require [ogre.tools.render.icon :refer [icon]]
+            [ogre.tools.state :refer [use-query]]))
 
 (def shape->icon
   {:circle :circle
@@ -28,10 +26,18 @@
 (defn tooltip [message]
   [:div.commands-tooltip message])
 
+(def attrs
+  [:share/open?
+   :share/paused?
+   {:viewer/workspace
+    [:canvas/mode
+     :canvas/theme
+     :canvas/last-shape]}])
+
 (defn command [props]
-  (let [{:keys [dispatch data workspace]} (uix/context state)
-        {:keys [canvas/mode canvas/theme canvas/last-shape]} workspace
-        {:keys [share/open? share/paused?]} (query/viewer data)
+  (let [[result dispatch]                      (use-query {:pull attrs})
+        {:keys [share/open? shape/paused?]}    result
+        {:canvas/keys [mode theme last-shape]} (:viewer/workspace result)
         mode-attrs
         (fn [given]
           {:type "button"

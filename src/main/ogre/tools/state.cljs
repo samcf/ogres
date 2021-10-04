@@ -1,7 +1,6 @@
 (ns ogre.tools.state
   (:require [uix.core.alpha :as uix :refer [defcontext]]
             [datascript.core :as ds]
-            [ogre.tools.query :as query]
             [ogre.tools.txs :as txs]))
 
 (def schema
@@ -10,7 +9,7 @@
    :viewer/tokens    {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :canvas/elements  {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :canvas/map       {:db/valueType :db.type/ref}
-   :canvas/selected  {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
+   :canvas/selected  {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/index true}
    :image/checksum   {:db/index true :db/unique :db.unique/identity}
    :element/flags    {:db/cardinality :db.cardinality/many}})
 
@@ -46,6 +45,17 @@
 
 (defcontext state)
 
+(def root-query
+  '[:find (pull $ ?id pattern) . :in $ pattern :where [?id :db/ident :viewer]])
+
+(defn use-query
+  "React hook to run queries against the underlying DataScript database."
+  ([] (let [{:keys [dispatch]} (uix/context state)] [dispatch]))
+  ([{:keys [query pull args] :or {query root-query args []}}]
+   (let [{:keys [conn dispatch]} (uix/context state)
+         result (apply ds/q query @conn (if pull (conj args pull) args))]
+     [result dispatch])))
+
 (defn provider
   "Provides a DataScript in-memory database to the application and causes
    re-renders when transactions are performed."
@@ -64,14 +74,12 @@
        (ds/listen!
         conn :rerender
         (fn [{:keys [db-after]}]
-          (let [{:keys [viewer/host? share/paused?]} (query/viewer db-after)]
-            (when (or host? (not paused?))
+          (let [data (ds/pull db-after [:viewer/host? :share/paused?] [:db/ident :viewer])]
+            (if (or (:viewer/host? data) (not (:share/paused? data)))
               (swap! bean inc)))))
        (fn [] (ds/unlisten! conn :rerender))) [nil])
 
     (uix/context-provider
      [state
-      {:conn      conn
-       :data      data
-       :workspace (query/workspace data)
-       :dispatch  dispatch}] child)))
+      {:conn conn
+       :dispatch dispatch}] child)))

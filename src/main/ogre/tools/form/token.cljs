@@ -2,11 +2,9 @@
   (:require [clojure.string :refer [capitalize]]
             [ogre.tools.form.render :refer [form]]
             [ogre.tools.form.util :refer [checked? every-value?]]
-            [ogre.tools.query :as query]
             [ogre.tools.render :refer [button checkbox]]
             [ogre.tools.render.icon :refer [icon]]
-            [ogre.tools.state :refer [state]]
-            [uix.core.alpha :as uix]))
+            [ogre.tools.state :refer [use-query]]))
 
 (def light-sources
   [["None" 0 0] ["Candle" 5 5] ["Torch" 20 20] ["Lamp" 15 30] ["Lantern" 30 30]])
@@ -21,10 +19,38 @@
 (defn label [keyword]
   (capitalize (name keyword)))
 
+(def query
+  '[:find [(pull $ ?id pattern) (sum ?weight)]
+    :keys attrs in-initiative
+    :in $ pattern :with ?group
+    :where
+    [?id :db/ident :viewer]
+    [?id :viewer/workspace ?ws]
+    [?ws :canvas/elements ?el]
+    (or-join
+     [?el ?group ?weight]
+     (and [?el :initiative/member? true]
+          [(identity ?el) ?group]
+          [(ground 1) ?weight])
+     (and [(identity ?el) ?group]
+          [(ground 0) ?weight]))])
+
+(def form-attrs
+  [{:viewer/workspace
+    [{:canvas/selected
+      [:db/id
+       :element/name
+       :element/flags
+       :initiative/member?
+       :token/size
+       :token/light
+       :aura/label
+       :aura/radius]}]}])
+
 (defn token [props]
-  (let [{:keys [data workspace dispatch]} (uix/context state)
-        {:keys [canvas/selected]} workspace
-        idents (map :db/id selected)]
+  (let [[result dispatch] (use-query {:query query :pull form-attrs})
+        selected          (-> result :attrs :viewer/workspace :canvas/selected)
+        idents            (map :db/id selected)]
     [:<>
      [:section
       [:fieldset.group
@@ -43,12 +69,11 @@
        [button {:style {:flex 0} :on-click #(dispatch :element/remove idents)}
         [icon {:name "trash" :size 16}]]]]
      [:section
-      (let [initiative? (not (empty? (query/initiating data)))
-            checked     (checked? :initiative/member? selected)]
+      (let [checked (checked? :initiative/member? selected)]
         [checkbox
          {:checked checked
           :on-change #(dispatch :initiative/toggle idents %)}
-         (case [initiative? checked]
+         (case [(> (:in-initiative result) 0) checked]
            [true true] "In Initiative - Remove"
            ([true false] [true :indeterminate]) "In Initiative - Include"
            "Start Initiative")])]
@@ -60,7 +85,7 @@
           {:key flag
            :name "token/flag"
            :value flag
-           :checked (checked? #(contains? (:element/flags %) flag) selected)
+           :checked (checked? #(contains? (set (:element/flags %)) flag) selected)
            :on-change #(dispatch :element/flag idents flag %)}
           [label flag]])]]
      [:section
@@ -93,7 +118,7 @@
           {:key flag
            :name "token.flag"
            :value flag
-           :checked (checked? #(contains? (:element/flags %) flag) selected)
+           :checked (checked? #(contains? (set (:element/flags %)) flag) selected)
            :on-change #(dispatch :element/flag idents flag %)}
           [label flag]])]]
      [:section
@@ -117,18 +142,22 @@
            :on-change #(dispatch :aura/change-radius idents radius)}
           (if (= radius 0) "None" (str radius " ft."))])]]]))
 
+(def attrs
+  [{:viewer/workspace
+    [{:canvas/selected
+      [:element/type]}]}])
+
 (defn container []
-  (let [{:keys [workspace]} (uix/context state)]
+  (let [[{{selected :canvas/selected} :viewer/workspace}] (use-query {:pull attrs})]
     [:<>
      [:section [:header "Token Options"]]
-     (let [selected (:canvas/selected workspace)]
-       (if (and (seq selected) (every? #(= :token (:element/type %)) selected))
-         [token]
-         [:section
-          [:div.prompt
-           [icon {:name :person-circle :size 48}]
-           [:br] "Configure tokens by selecting"
-           [:br] "one or more of them from the canvas"]]))]))
+     (if (and (seq selected) (every? #(= :token (:element/type %)) selected))
+       [token]
+       [:section
+        [:div.prompt
+         [icon {:name :person-circle :size 48}]
+         [:br] "Configure tokens by selecting"
+         [:br] "one or more of them from the canvas"]])]))
 
 (defmethod form :token []
   container)

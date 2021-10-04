@@ -2,12 +2,10 @@
   (:require [clojure.string :refer [capitalize]]
             [ogre.tools.form.render :refer [form]]
             [ogre.tools.form.util :refer [checked? every-value?]]
-            [ogre.tools.query :as query]
             [ogre.tools.render :refer [button checkbox]]
             [ogre.tools.render.icon :refer [icon]]
             [ogre.tools.render.pattern :refer [pattern]]
-            [ogre.tools.state :refer [state]]
-            [uix.core.alpha :as uix]))
+            [ogre.tools.state :refer [use-query]]))
 
 (def colors
   ["#182125" "#f2f2f2" "#f44336" "#e91e63"
@@ -15,10 +13,20 @@
    "#00bcd4" "#009688" "#4caf50" "#cddc39"
    "#ffeb3b" "#ffc107" "#ff9800"])
 
+(def attrs
+  [{:viewer/workspace
+    [{:canvas/selected
+      [:db/id
+       :element/name
+       :element/type
+       :shape/color
+       :shape/pattern
+       :shape/opacity]}]}])
+
 (defn shape [props]
-  (let [{:keys [workspace dispatch]} (uix/context state)
-        {:keys [canvas/selected]} workspace
-        idents (map :db/id selected)]
+  (let [[result dispatch] (use-query {:pull attrs})
+        selected          (-> result :viewer/workspace :canvas/selected)
+        idents            (map :db/id selected)]
     [:<>
      [:section
       [:fieldset.group
@@ -72,17 +80,17 @@
           :step 0.25}])]]))
 
 (defn container []
-  (let [{:keys [workspace]} (uix/context state)]
+  (let [[result] (use-query {:pull attrs})
+        selected (-> result :viewer/workspace :canvas/selected)]
     [:<>
      [:section [:header "Shape Options"]]
-     (let [selected (:canvas/selected workspace)]
-       (if (and (seq selected) (every? #(= :shape (:element/type %)) selected))
-         [shape]
-         [:section
-          [:div.prompt
-           [icon {:name :triangle :size 48}]
-           [:br] "Configure shapes by selecting"
-           [:br] "one or more of them from the canvas"]]))]))
+     (if (and (seq selected) (every? #(= :shape (:element/type %)) selected))
+       [shape]
+       [:section
+        [:div.prompt
+         [icon {:name :triangle :size 48}]
+         [:br] "Configure shapes by selecting"
+         [:br] "one or more of them from the canvas"]])]))
 
 (defmethod form :shape []
   container)

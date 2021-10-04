@@ -1,15 +1,19 @@
 (ns ogre.tools.render.tokens
-  (:require [ogre.tools.query :as query]
-            [ogre.tools.state :refer [state]]
-            [react-draggable :as draggable]
-            [uix.core.alpha :as uix]))
+  (:require [ogre.tools.state :refer [use-query]]
+            [react-draggable :as draggable]))
+
+(def attrs
+  [:bounds/self
+   {:viewer/tokens [:db/id]}
+   {:viewer/workspace [:zoom/scale :pos/vec]}])
 
 (defn tokens [props]
-  (let [{:keys [data workspace dispatch]} (uix/context state)
-        {[px py _ _] :bounds/self} (query/viewer data)
-        {scale :zoom/scale [tx ty] :pos/vec} workspace]
+  (let [[result dispatch] (use-query {:pull attrs})
+        {tokens :viewer/tokens
+         [px py _ _] :bounds/self
+         {scale :zoom/scale [tx ty] :pos/vec} :viewer/workspace} result]
     [:div.tokens
-     (for [token (query/templates data) :let [{:keys [db/id]} token]]
+     (for [{:keys [db/id]} tokens]
        [:div.tokens-token {:key id}
         [:> draggable
          {:position #js {:x 0 :y 0}

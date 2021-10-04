@@ -1,10 +1,8 @@
 (ns ogre.tools.render.panel
   (:require [ogre.tools.render :refer [button checkbox]]
             [ogre.tools.form.render :refer [form]]
-            [ogre.tools.query :as query]
             [ogre.tools.render.icon :refer [icon]]
-            [ogre.tools.state :refer [state]]
-            [uix.core.alpha :as uix]))
+            [ogre.tools.state :refer [use-query]]))
 
 (def panels
   [[:canvas :images]
@@ -13,9 +11,13 @@
    [:shape :triangle]
    [:help :question-diamond]])
 
+(def attrs
+  [{:viewer/workspace
+    [:panel/curr :panel/collapsed?]}])
+
 (defn container []
-  (let [{:keys [dispatch workspace]} (uix/context state)
-        {:keys [panel/curr panel/collapsed?]} workspace]
+  (let [[result dispatch] (use-query {:pull attrs})
+        {{:keys [panel/curr panel/collapsed?]} :viewer/workspace} result]
     [:aside.panel
      {:css {:panel--collapsed collapsed?
             :panel--expanded (not collapsed?)}}

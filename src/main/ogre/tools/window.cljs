@@ -3,8 +3,7 @@
             [cognitect.transit :as t]
             [datascript.core :as ds]
             [uix.core.alpha :as uix :refer [defcontext]]
-            [ogre.tools.state :refer [state]]
-            [ogre.tools.query :as query]))
+            [ogre.tools.state :refer [state use-query]]))
 
 (defcontext context)
 
@@ -138,8 +137,8 @@
 (defn provider
   "Provides a reference to the guest window, if any, and registers several
    event handlers needed for them." []
-  (let [{:keys [data dispatch]} (uix/context state)
-        guest (uix/state nil)
+  (let [[data dispatch] (use-query {:pull [:viewer/host? :viewer/loaded?]})
+        guest           (uix/state nil)
         reset (fn
                 ([]
                  (when-let [element @guest]
@@ -149,10 +148,10 @@
                 ([element]
                  (reset! guest element)))]
 
-    (when (:viewer/loaded? (query/viewer data))
+    (if (:viewer/loaded? data)
       (uix/context-provider
        [context {:guest @guest :reset reset}]
-       (if (query/host? data)
+       (if (:viewer/host? data)
          [:<>
           [initialize]
           [dispatcher]

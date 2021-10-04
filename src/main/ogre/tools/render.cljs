@@ -1,7 +1,7 @@
 (ns ogre.tools.render
   (:require [clojure.string :as string]
-            [datascript.core :as ds]
-            [ogre.tools.state :refer [state]]
+            [datascript.core :refer [squuid]]
+            [ogre.tools.state :refer [use-query]]
             [ogre.tools.storage :refer [storage]]
             [uix.core.alpha :as uix]))
 
@@ -22,7 +22,7 @@
        (string/join " ")))
 
 (defn checkbox [{:keys [checked on-change]} child]
-  (let [key   (uix/state (ds/squuid))
+  (let [key   (uix/state (squuid))
         indtr (= checked :indeterminate)
         input (uix/ref)]
     (uix/effect!
@@ -37,50 +37,42 @@
 (defn button [props children]
   [:button (merge {:class "ogre-button" :type "button"} props) children])
 
-(def root-query
-  '[:find (pull $ ?id pattern) . :in $ pattern :where [?id :db/ident :viewer]])
-
-(defn use-query
-  ([]
-   (let [context (uix/context state)]
-     [(:dispatch context)]))
-  ([{:keys [query pull args]
-     :or {query root-query args []}}]
-   (let [context (uix/context state)
-         result  (apply ds/q query (:data context) (if pull (conj args pull) args))]
-     [result (:dispatch context)])))
-
 (defn use-image
   ([checksum]
    (use-image checksum {:persist? false}))
   ([checksum {:keys [persist?] :or {persist? false}}]
    (let [result (uix/state {:loading? false :url nil})
-         {:keys [data dispatch]} (uix/context state)
-         {:keys [store]} (uix/context storage)]
+         {:keys [store]} (uix/context storage)
+         [{url :image/url} dispatch]
+         (use-query
+          {:query '[:find (pull $ ?id pattern) .
+                    :in $ ?checksum pattern
+                    :where [?id :image/checksum ?checksum]]
+           :pull  '[:image/url]
+           :args  [checksum]})]
      (when (string? checksum)
-       (let [{:keys [image/url]} (ds/entity data [:image/checksum checksum])]
-         (cond
-           (string? url)
-           url
+       (cond
+         (string? url)
+         url
 
-           (:loading? @result)
-           nil
+         (:loading? @result)
+         nil
 
-           (string? (:url @result))
-           (:url @result)
+         (string? (:url @result))
+         (:url @result)
 
-           :else
-           (do (swap! result assoc :loading? true)
-               (-> (.get (.table store "images") checksum)
-                   (.then
-                    (fn [record]
-                      (when record
-                        (if (not persist?)
-                          (reset! result {:loading? false :url (.-data record)})
-                          (-> (.fetch js/window (.-data record))
-                              (.then (fn [r] (.blob r)))
-                              (.then (fn [b]
-                                       (let [file (js/File. #js [b] "image" #js {:type (.-type b)})
-                                             url  (.createObjectURL js/URL file)]
-                                         (dispatch :image/set-url checksum url)
-                                         (reset! result {:loading? false :url url})))))))))))))))))
+         :else
+         (do (swap! result assoc :loading? true)
+             (-> (.get (.table store "images") checksum)
+                 (.then
+                  (fn [record]
+                    (when record
+                      (if (not persist?)
+                        (reset! result {:loading? false :url (.-data record)})
+                        (-> (.fetch js/window (.-data record))
+                            (.then (fn [r] (.blob r)))
+                            (.then (fn [b]
+                                     (let [file (js/File. #js [b] "image" #js {:type (.-type b)})
+                                           url  (.createObjectURL js/URL file)]
+                                       (dispatch :image/set-url checksum url)
+                                       (reset! result {:loading? false :url url}))))))))))))))))

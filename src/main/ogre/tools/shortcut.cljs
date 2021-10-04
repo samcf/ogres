@@ -1,12 +1,12 @@
 (ns ogre.tools.shortcut
-  (:require [ogre.tools.query :as query]
+  (:require [datascript.core :refer [pull]]
             [ogre.tools.state :refer [state]]
             [ogre.tools.window :refer [listen!]]
             [uix.core.alpha :as uix]))
 
 (def events
   {["keydown" "Shift"]
-   (fn [{:keys [workspace dispatch]}]
+   (fn [{:keys [dispatch]}]
      (dispatch :canvas/modifier-start :shift))
 
    ["keyup" "Shift"]
@@ -24,10 +24,6 @@
    ["keydown" \s]
    (fn [{:keys [dispatch]}]
      (dispatch :canvas/toggle-mode :select))
-
-   ["keydown" \w]
-   (fn [{:keys [dispatch]}]
-     (dispatch :canvas/toggle-mode :canvas))
 
    ["keydown" \g]
    (fn [{:keys [dispatch]}]
@@ -58,20 +54,23 @@
      (dispatch :share/initiate))
 
    ["keydown" \p]
-   (fn [{:keys [dispatch data]}]
-     (when (:share/open? (query/viewer data))
-       (dispatch :share/switch)))
+   (fn [{:keys [conn dispatch]}]
+     (let [{:keys [share/open?]} (pull @conn [:share/open?] [:db/ident :viewer])]
+       (if open?
+         (dispatch :share/switch))))
 
    ["keydown" \ ]
    (fn [{:keys [dispatch]}]
      (dispatch :interface/toggle-panel))
 
    ["wheel"]
-   (fn [{:keys [data dispatch]} event]
-     (when (.. event -target (closest "svg.canvas"))
-       (let [{[ox oy _ _] :bounds/self} (query/viewer data)
-             [mx my] [(.-clientX event) (.-clientY event)]
-             [x y] [(- mx ox) (- my oy)]]
+   (fn [{:keys [conn dispatch]} event]
+     (if (.. event -target (closest "svg.canvas"))
+       (let [{[ox oy _ _] :bounds/self} (pull @conn [:bounds/self] [:db/ident :viewer])
+             mx (.-clientX event)
+             my (.-clientY event)
+             x (- mx ox)
+             y (- my oy)]
          (if (pos? (.-deltaY event))
            (dispatch :zoom/out x y)
            (dispatch :zoom/in x y)))))})

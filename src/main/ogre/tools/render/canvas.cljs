@@ -1,11 +1,10 @@
 (ns ogre.tools.render.canvas
   (:require [clojure.set :refer [difference]]
             [clojure.string :as string :refer [join]]
-            [datascript.core :as ds]
-            [ogre.tools.query :as query]
+            [datascript.core :refer [squuid]]
             [ogre.tools.render :refer [css use-image]]
+            [ogre.tools.state :refer [use-query]]
             [ogre.tools.render.pattern :refer [pattern]]
-            [ogre.tools.state :refer [state]]
             [ogre.tools.vec :refer [chebyshev euclidean triangle]]
             [react-draggable :as draggable]
             [uix.core.alpha :as uix]))
@@ -47,21 +46,49 @@
 (defn text [attrs child]
   [:text.canvas-text attrs child])
 
-(defn visible? [token]
-  (let [{:keys [element/flags]} token]
-    (or (nil? flags) (flags :player) (not (some flags [:hidden :invisible])))))
+(defn visible? [flags]
+  (or (nil? flags)
+      (flags :player)
+      (not (some flags [:hidden :invisible]))))
 
 (defn label [{:keys [element/name initiative/suffix]}]
   (cond-> ""
     (string? name) (str name)
     (number? suffix) (str " (" (char (+ suffix 64)) ")")))
 
-(defn board [{:keys [image]}]
-  (let [{:keys [data]} (uix/context state)
-        {:keys [viewer/host? viewer/workspace]} (query/viewer data)
-        {:keys [canvas/lighting canvas/color grid/size zoom/scale]} workspace
-        tokens (query/elements data :token)
-        url (use-image (:image/checksum image) {:persist? true})]
+(def board-query
+  {:query
+   '[:find [(pull $ ?tk pattern) ...]
+     :in $ pattern
+     :where
+     [?id :db/ident :viewer]
+     [?id :viewer/workspace ?ws]
+     [?ws :canvas/elements ?tk]
+     [?tk :element/type :token]]
+
+   :pull
+   [:db/id
+    :element/flags
+    :token/light
+    :pos/vec]})
+
+(def board-attrs
+  [:viewer/host?
+   {:viewer/workspace
+    [:canvas/lighting
+     :canvas/color
+     :grid/size
+     :zoom/scale]}])
+
+(defn board [{:keys [checksum]}]
+  (let [url      (use-image checksum {:persist? true})
+        [root]   (use-query {:pull board-attrs})
+        [tokens] (use-query board-query)
+        {host? :viewer/host?
+         {lighting :canvas/lighting
+          color    :canvas/color
+          size     :grid/size
+          scale    :zoom/scale} :viewer/workspace} root]
     (if (string? url)
       [:g.canvas-image
        [:defs {:key color}
@@ -74,13 +101,15 @@
           [:clipPath {:id "clip-light-bright"}
            (for [token tokens
                  :let [{[x y] :pos/vec [r _] :token/light} token]
-                 :when (and (> r 0) (or host? (visible? token)))]
+                 :when (and (> r 0)
+                            (or host? (visible? (set (:element/flags token)))))]
              [:circle {:key (:db/id token) :cx x :cy y :r (+ (ft->px r size) (/ size 2))}])]
           (if (= lighting :dark)
             [:clipPath {:id "clip-light-dim"}
              (for [token tokens
                    :let [{[x y] :pos/vec [br dr] :token/light} token]
-                   :when (and (or (> br 0) (> dr 0)) (or host? (visible? token)))]
+                   :when (and (or (> br 0) (> dr 0))
+                              (or host? (visible? (set (:element/flags token)))))]
                [:circle {:key (:db/id token) :cx x :cy y :r (+ (ft->px br size) (ft->px dr size) (/ size 2))}])])])
        (if (and (= lighting :dark) host?)
          [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere) brightness(20%)"}}])
@@ -88,11 +117,21 @@
          [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere) brightness(50%)"} :clip-path (if (= lighting :dark) "url(#clip-light-dim)")}])
        [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere)"} :clip-path (if (not= lighting :bright) "url(#clip-light-bright)")}]])))
 
+(def mask-query
+  {:pull
+   [:viewer/host?
+    {:viewer/workspace
+     [:canvas/lighting
+      {:canvas/map
+       [:image/width
+        :image/height]}]}]})
+
 (defn mask []
-  (let [{:keys [data workspace]} (uix/context state)
-        {:keys [viewer/host?]} (query/viewer data)
-        {:keys [canvas/lighting canvas/map]} workspace
-        {:keys [image/width image/height]} map]
+  (let [[data dispatch] (use-query mask-query)
+        {host? :viewer/host?
+         {lighting :canvas/lighting
+          {width  :image/width
+           height :image/height} :canvas/map} :viewer/workspace} data]
     (when (and (not host?) (= lighting :dark))
       [:g.canvas-mask
        [:defs
@@ -102,13 +141,26 @@
          [:rect {:x 0 :y 0 :width width :height height :clip-path "url(#clip-light-bright)" :fill "black"}]]]
        [:rect {:x 0 :y 0 :width width :height height :mask "url(#mask-light-all)"}]])))
 
+(def grid-query
+  {:pull
+   [:bounds/self
+    {:viewer/workspace
+     [:canvas/mode
+      :pos/vec
+      :grid/size
+      :grid/show
+      :zoom/scale]}]})
+
 (defn grid []
-  (let [{:keys [data workspace]} (uix/context state)
-        {:keys [canvas/mode grid/show zoom/scale]} workspace]
+  (let [[data dispatch] (use-query grid-query)
+        {[_ _ w h] :bounds/self
+         {mode    :canvas/mode
+          size    :grid/size
+          show    :grid/show
+          scale   :zoom/scale
+          [cx cy] :pos/vec} :viewer/workspace} data]
     (if (or show (= mode :grid))
-      (let [{[_ _ w h] :bounds/self} (query/viewer data)
-            {[cx cy] :pos/vec size :grid/size} workspace
-            w (/ w scale)
+      (let [w (/ w scale)
             h (/ h scale)
             [sx sy ax ay bx]
             [(- (* w -3) cx)
@@ -164,15 +216,28 @@
        :fill-opacity opacity
        :stroke color})]))
 
+(def shapes-query
+  {:query
+   '[:find [(pull $ ?e pattern) ...]
+     :in $ pattern
+     :where
+     [?v :db/ident :viewer]
+     [?v :viewer/workspace ?w]
+     [?w :canvas/elements ?e]
+     [?e :element/type :shape]]
+   :pull
+   '[*
+     :canvas/_selected
+     {:canvas/_elements
+      [:zoom/scale]}]})
+
 (defn shapes [props]
-  (let [{:keys [data workspace dispatch]} (uix/context state)
-        {:keys [zoom/scale canvas/selected]} workspace
-        elements (query/elements data :shape)]
-    (for [element elements :let [[x y] (:pos/vec element)]]
+  (let [[entities dispatch] (use-query shapes-query)]
+    (for [element entities :let [{id :db/id [x y] :pos/vec} element]]
       [:> draggable
-       {:key (:db/id element)
+       {:key      id
+        :scale    (-> element :canvas/_elements :zoom/scale)
         :position #js {:x x :y y}
-        :scale scale
         :on-start
         (fn [event data]
           (.stopPropagation event))
@@ -180,72 +245,119 @@
         (fn [_ data]
           (let [dist (euclidean x y (.-x data) (.-y data))]
             (if (> dist 0)
-              (dispatch :shape/translate (:db/id element) (.-x data) (.-y data))
-              (dispatch :element/select (:db/id element)))))}
+              (dispatch :shape/translate id (.-x data) (.-y data))
+              (dispatch :element/select id))))}
        (let [{patt :shape/pattern color :shape/color kind :shape/kind} element
-             id (ds/squuid)]
+             id (squuid)]
          [:g
-          {:css {"canvas-shape" true
-                 "selected" (contains? selected element)
-                 (str "canvas-shape-" (name kind)) true}}
+          {:css
+           {:canvas-shape true
+            :selected (:canvas/_selected element)
+            (str "canvas-shape-" (name kind)) true}}
           [:defs [pattern {:id id :name patt :color color}]]
-          [shape {:element (into {} (ds/touch element)) :attrs {:fill (str "url(#" id ")")}}]])])))
+          [shape {:element element :attrs {:fill (str "url(#" id ")")}}]])])))
 
 (defn marker []
   [:path {:d "M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"}])
 
-(defn token [{:keys [entity selected size] :as props}]
-  (let [flag-names  (mapv #(str "flag--" (name %)) (:element/flags entity))
-        class-name  (css "canvas-token" {:selected selected} flag-names)
-        token-radiu (/ (ft->px (:size (:token/size entity)) size) 2)
-        token-label (label entity)
-        aura-radius (:aura/radius entity)
+(defn token-query [id]
+  {:query
+   '[:find (pull $ ?id pattern) . :in $ ?id pattern]
+
+   :pull
+   [:element/name
+    :element/flags
+    :token/size
+    :aura/label
+    :aura/radius
+    :initiative/suffix
+    :canvas/_selected
+    {:canvas/_elements [:grid/size]}]
+
+   :args
+   [id]})
+
+(defn token [props]
+  (let [[data dispatch] (use-query (token-query (:id props)))
+        flag-names  (mapv #(str "flag--" (name %)) (:element/flags data))
+        class-name  (css "canvas-token" {:selected (:canvas/_selected data)} flag-names)
+        size        (-> data :canvas/_elements :grid/size)
+        token-radiu (/ (ft->px (:size (:token/size data)) size) 2)
+        token-label (label data)
+        aura-radius (:aura/radius data)
         aura-length (+ (ft->px aura-radius size) (/ size 2))
         [cx cy]     [(* (.cos js/Math 0.75) aura-length)
                      (* (.sin js/Math 0.75) aura-length)]]
     [:g {:class class-name}
      [:circle.canvas-token-shape {:cx 0 :cy 0 :r (max (- token-radiu 4) 8)}]
-     (when (seq token-label)
+     (if (seq token-label)
        [text {:x 0 :y (+ token-radiu 8)} token-label])
-     (when (> aura-radius 0)
+     (if (> aura-radius 0)
        [:circle.canvas-token-aura {:cx 0 :cy 0 :r aura-length}])
-     (when (and (> aura-radius 0) (seq (:aura/label entity)))
-       [text {:x (+ cx 8) :y (+ cy 8)} (:aura/label entity)])
-     (when selected
+     (if (and (> aura-radius 0) (seq (:aura/label data)))
+       [text {:x (+ cx 8) :y (+ cy 8)} (:aura/label data)])
+     (if (:canvas/_selected data)
        [:g.canvas-token-marker
         {:transform (xf :translate [-17 (* -1 (+ token-radiu 16))] :scale 2.20)}
         [:g.canvas-token-marker-bounce
          [marker]]])]))
 
+(def tokens-query
+  {:query
+   '[:find [(pull $ ?e pattern) ...]
+     :in $ pattern
+     :where
+     [?v :db/ident :viewer]
+     [?v :viewer/workspace ?w]
+     [?w :canvas/elements ?e]
+     (not [?w :canvas/selected ?e])]
+
+   :pull
+   [:db/id
+    :pos/vec
+    :element/flags
+    {:canvas/_elements
+     [:zoom/scale
+      {:viewer/_workspace
+       [:viewer/host?]}]}]})
+
 (defn tokens [props]
-  (let [{:keys [data workspace dispatch]} (uix/context state)
-        {:keys [viewer/host?]} (query/viewer data)
-        {:keys [grid/size zoom/scale canvas/selected]} workspace
-        entities (-> (query/elements data :token) (set) (difference selected))]
-    (for [entity entities :let [{[x y] :pos/vec} entity]
-          :when (or host? (visible? entity))]
+  (let [[entities dispatch] (use-query tokens-query)
+        host?               (-> entities first :canvas/_elements :viewer/_workspace first :viewer/host?)]
+    (for [entity entities
+          :let [{id :db/id [x y] :pos/vec} entity]
+          :when (or host? (visible? (set (:element/flags entity))))]
       [:> draggable
-       {:key      (:db/id entity)
+       {:key      id
         :position #js {:x x :y y}
-        :scale    scale
+        :scale    (-> entity :canvas/_elements :zoom/scale)
         :on-start (fn [event] (.stopPropagation event))
         :on-stop
         (fn [event data]
           (.stopPropagation event)
           (let [dist (euclidean x y (.-x data) (.-y data))]
             (if (= dist 0)
-              (dispatch :element/select (:db/id entity))
-              (dispatch :token/translate (:db/id entity) (.-x data) (.-y data)))))}
+              (dispatch :element/select id)
+              (dispatch :token/translate id (.-x data) (.-y data)))))}
        [:g.canvas-token
-        [token
-         {:entity   (into {} (ds/touch entity))
-          :size     size
-          :selected false}]]])))
+        [token {:id id}]]])))
+
+(def selection-query
+  {:pull
+   [:viewer/host?
+    {:viewer/workspace
+     [:grid/size
+      :zoom/scale
+      {:canvas/selected
+       [:db/id
+        :element/type
+        :element/flags
+        :pos/vec]}]}]})
 
 (defn selection []
-  (let [{:keys [dispatch data workspace]} (uix/context state)
-        {:keys [viewer/host?]} (query/viewer data)
-        {:keys [canvas/selected grid/size zoom/scale]} workspace
+  (let [[result dispatch] (use-query selection-query)
+        {:keys [viewer/host? viewer/workspace]} result
+        {:keys [canvas/selected zoom/scale]} workspace
         idents (map :db/id selected)]
     (if (= (:element/type (first selected)) :token)
       [:> draggable
@@ -260,17 +372,13 @@
        [:g.canvas-selected {:key idents}
         (for [entity selected
               :let [{[x y] :pos/vec} entity]
-              :when (or host? (visible? entity))]
+              :when (or host? (visible? (set (:element/flags entity))))]
           [:g.canvas-token
            {:key (:db/id entity) :transform (xf :translate [x y])}
-           [token
-            {:entity   (into {} (ds/touch entity))
-             :size     size
-             :selected true}]])]])))
+           [token {:id (:db/id entity)}]])]])))
 
 (defn drawable [{:keys [on-release]} render-fn]
-  (let [{:keys [data]} (uix/context state)
-        {[x y w h] :bounds/self} (query/viewer data)
+  (let [[{[x y] :bounds/self} dispatch] (use-query {:pull [:bounds/self]})
         points (uix/state nil)]
     [:<>
      [:> draggable
@@ -298,21 +406,25 @@
        (render-fn @points))]))
 
 (defn select []
-  (let [{:keys [workspace dispatch]} (uix/context state)
-        {:keys [zoom/scale]} workspace]
+  (let [[result dispatch] (use-query {:pull [{:viewer/workspace [:zoom/scale :pos/vec]}]})
+        {{scale :zoom/scale [cx cy] :pos/vec} :viewer/workspace} result]
     [drawable
      {:on-release
       (fn [points]
-        (let [[ax ay bx by] (mapv #(/ % scale) points)
-              [cx cy] (:pos/vec workspace)]
+        (let [[ax ay bx by] (mapv #(/ % scale) points)]
           (dispatch :selection/from-rect [(- ax cx) (- ay cy) (- bx cx) (- by cy)])))}
      (fn [[ax ay bx by]]
        [:path {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}])]))
 
+(def draw-query
+  {:pull
+   [{:viewer/workspace
+     [:grid/size :zoom/scale :pos/vec]}]})
+
 (defmulti draw :mode)
 
 (defmethod draw :grid [props]
-  (let [{:keys [workspace dispatch]} (uix/context state)
+  (let [[{:keys [viewer/workspace]} dispatch] (use-query draw-query)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
      {:on-release
@@ -331,7 +443,7 @@
                (str "px"))]]))]))
 
 (defmethod draw :ruler [props]
-  (let [{:keys [workspace]} (uix/context state)
+  (let [[{:keys [viewer/workspace]} dispatch] (use-query draw-query)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
      {:on-release identity}
@@ -344,7 +456,7 @@
              (str "ft."))]])]))
 
 (defmethod draw :circle [props]
-  (let [{:keys [workspace dispatch]} (uix/context state)
+  (let [[{:keys [viewer/workspace]} dispatch] (use-query draw-query)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
      {:on-release
@@ -360,7 +472,7 @@
            (-> radius (px->ft (* size scale)) (str "ft. radius"))]]))]))
 
 (defmethod draw :rect [props]
-  (let [{:keys [workspace dispatch]} (uix/context state)
+  (let [[{:keys [viewer/workspace]} dispatch] (use-query draw-query)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
      {:on-release
@@ -377,7 +489,7 @@
            (str w "ft. x " h "ft."))]])]))
 
 (defmethod draw :line [props]
-  (let [{:keys [workspace dispatch]} (uix/context state)
+  (let [[{:keys [viewer/workspace]} dispatch] (use-query draw-query)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
      {:on-release
@@ -393,7 +505,7 @@
              (str "ft."))]])]))
 
 (defmethod draw :cone [props]
-  (let [{:keys [workspace dispatch]} (uix/context state)
+  (let [[{:keys [viewer/workspace]} dispatch] (use-query draw-query)
         {:keys [grid/size zoom/scale]} workspace]
     [drawable
      {:on-release
@@ -412,21 +524,42 @@
 (defmethod draw :default [] nil)
 
 (defn bounds []
-  (let [{:keys [data]} (uix/context state)
+  (let [[result] (use-query {:pull [:bounds/host :bounds/guest]})
         {[_ _ hw hh] :bounds/host
-         [_ _ gw gh] :bounds/guest} (query/viewer data)
+         [_ _ gw gh] :bounds/guest} result
         [ox oy] [(/ (- hw gw) 2) (/ (- hh gh) 2)]]
     [:g.canvas-bounds {:transform (xf :translate [ox oy])}
      [:rect {:x 0 :y 0 :width gw :height gh :rx 8}]]))
 
+(def canvas-query
+  {:pull
+   [:viewer/privileged?
+    :viewer/host?
+    :bounds/host
+    :bounds/guest
+    {:viewer/workspace
+     [:pos/vec
+      :canvas/mode
+      :canvas/theme
+      :canvas/modifier
+      :zoom/scale
+      {:canvas/map
+       [:image/checksum
+        :image/width
+        :image/height]}]}]})
+
 (defn canvas [props]
-  (let [{:keys [data workspace dispatch]} (uix/context state)
-        {:keys [pos/vec canvas/mode canvas/map canvas/theme zoom/scale]} workspace
-        {:keys [image/width image/height]} map
-        {:keys [viewer/privileged? viewer/host?]
+  (let [[result dispatch] (use-query canvas-query)
+        {privileged? :viewer/privileged?
+         host?       :viewer/host?
          [_ _ hw hh] :bounds/host
-         [_ _ gw gh] :bounds/guest} (query/viewer data)
-        [tx ty] vec
+         [_ _ gw gh] :bounds/guest
+         {scale   :zoom/scale
+          mode    :canvas/mode
+          theme   :canvas/theme
+          modif   :canvas/modifier
+          [tx ty] :pos/vec
+          {:image/keys [checksum width height] :as map} :canvas/map} :viewer/workspace} result
         [tx ty] (if host? [tx ty]
                     [(- tx (/ (max 0 (- hw gw)) 2 scale))
                      (- ty (/ (max 0 (- hh gh)) 2 scale))])]
@@ -443,14 +576,14 @@
        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
        [:g.canvas-board
         {:transform (xf :scale scale :translate [tx ty])}
-        [board {:key (:image/checksum map) :image map}]
+        ^{:key checksum} [board {:checksum checksum}]
         [grid]
         [shapes]
         [tokens]
         [selection]
         [mask]]
 
-       (when (and (= mode :select) (= (:canvas/modifier workspace) :shift))
+       (when (and (= mode :select) (= modif :shift))
          [:g {:class "canvas-drawable canvas-drawable-select"}
           [select]])
 

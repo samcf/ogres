@@ -2,16 +2,31 @@
   (:require [clojure.string :refer [capitalize]]
             [ogre.tools.form.render :refer [form]]
             [ogre.tools.image :as image]
-            [ogre.tools.query :as query]
             [ogre.tools.render :refer [checkbox use-image]]
+            [ogre.tools.state :refer [use-query]]
             [ogre.tools.render.icon :refer [icon]]
-            [ogre.tools.state :refer [state]]
             [ogre.tools.storage :refer [storage]]
             [uix.core.alpha :as uix]))
 
-(defn thumbnail [{:keys [board selected on-select on-remove]}]
-  (let [checksum (:image/checksum board)
-        url      (use-image checksum)]
+(def query
+  '[:find ?id ?checksum ?tx
+    :keys db/id image/checksum tx
+    :where [?id :image/checksum ?checksum ?tx]])
+
+(def attrs
+  [{:viewer/workspace
+    [:db/id
+     :element/name
+     :canvas/map
+     :grid/show
+     :grid/size
+     :canvas/theme
+     :canvas/lighting
+     :canvas/color
+     :canvas/mode]}])
+
+(defn thumbnail [{:keys [checksum selected on-select on-remove]}]
+  (let [url (use-image checksum)]
     [:div
      {:key checksum
       :css {:selected selected}
@@ -27,8 +42,10 @@
          (on-remove))} "×"]]))
 
 (defn canvas []
-  (let [{:keys [data workspace dispatch]} (uix/context state)
-        {:keys [store]} (uix/context storage)]
+  (let [[result dispatch] (use-query {:pull attrs})
+        [boards]          (use-query {:query query})
+        {:keys [store]}   (uix/context storage)
+        {:keys [viewer/workspace]} result]
     [:<>
      [:section
       [:header "Canvas Options"]]
@@ -45,15 +62,15 @@
             (dispatch :element/update [(:db/id workspace)] :element/name value)))}]]
      [:section
       [:fieldset.thumbnails
-       (for [board (query/boards data)]
+       (for [{:keys [db/id image/checksum]} (sort-by :tx boards)]
+         ^{:key checksum}
          [thumbnail
-          {:key       (:image/checksum board)
-           :board     board
-           :selected  (= board (:canvas/map workspace))
-           :on-select (fn [] (dispatch :canvas/change-map (:db/id board)))
+          {:checksum  checksum
+           :selected  (= id (:db/id (:canvas/map workspace)))
+           :on-select (fn [] (dispatch :canvas/change-map id))
            :on-remove (fn []
-                        (.delete (.-images store) (:image/checksum board))
-                        (dispatch :map/remove (:db/id board)))}])]
+                        (.delete (.-images store) checksum)
+                        (dispatch :map/remove id))}])]
       [:fieldset
        [:input
         {:type "file"

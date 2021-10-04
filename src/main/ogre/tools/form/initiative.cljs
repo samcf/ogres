@@ -1,11 +1,9 @@
 (ns ogre.tools.form.initiative
   (:require [clojure.string :refer [join capitalize blank?]]
-            [datascript.core :as ds]
             [ogre.tools.form.render :refer [form]]
-            [ogre.tools.query :as query]
             [ogre.tools.render :refer [button]]
             [ogre.tools.render.icon :refer [icon]]
-            [ogre.tools.state :as state]
+            [ogre.tools.state :refer [use-query]]
             [uix.core.alpha :as uix]))
 
 (defn label [{:keys [element/name initiative/suffix]}]
@@ -16,8 +14,8 @@
 
 (defn order [a b]
   (compare
-   [(:initiative/roll a) (contains? (:element/flags b) :player) (label b)]
-   [(:initiative/roll b) (contains? (:element/flags a) :player) (label a)]))
+   [(:initiative/roll b) (contains? (:element/flags a) :player) (label a)]
+   [(:initiative/roll a) (contains? (:element/flags b) :player) (label b)]))
 
 (def initial
   {:editing/roll?   false
@@ -111,9 +109,27 @@
         (let [health (:initiative/health element)]
           (if (blank? health) "HP" health))]])))
 
+(def query
+  '[:find [(pull $ ?id pattern) ...]
+    :in $ pattern
+    :where
+    [?r :db/ident :viewer]
+    [?r :viewer/workspace ?w]
+    [?w :canvas/elements ?id]
+    [?id :initiative/member? true]])
+
+(def attrs
+  [:db/id
+   :canvas/_selected
+   :element/name
+   :element/flags
+   :initiative/roll
+   :initiative/health
+   :initiative/suffix])
+
 (defn initiative []
-  (let [{:keys [dispatch data workspace]} (uix/context state/state)]
-    (if-let [initiating (seq (query/initiating data))]
+  (let [[initiating dispatch] (use-query {:query query :pull attrs})]
+    (if (seq initiating)
       [:div.initiative
        [:section [:header "Initiative"]]
        [:section
@@ -121,13 +137,13 @@
          [button {:on-click #(dispatch :initiative/roll-all)} "Roll"]
          [button {:on-click #(dispatch :initiative/reset-rolls)} "Reset"]
          [button {:on-click #(dispatch :initiative/leave)} "Leave"]]]
-       (let [initiants (->> initiating (sort order) (reverse))]
+       (let [ordered (sort order initiating)]
          [:section
-          (for [element initiants :let [id (:db/id element)]]
+          (for [{:keys [db/id] :as entity} ordered]
             ^{:key id}
             [initiant
-             {:element (into {:db/id id} (ds/touch element))
-              :selected (contains? (:canvas/selected workspace) element)
+             {:element  entity
+              :selected (contains? entity :canvas/_selected)
               :dispatch dispatch}])])]
       [:div.initiative
        [:section [:header "Initiative"]]
