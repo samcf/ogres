@@ -89,7 +89,7 @@
                              :image/height   (.-height img)}]
                  (-> (.put (.-images store) record)
                      (.then
-                      (fn [] (dispatch :map/create workspace entity))))))))}]]]
+                      (fn [] (dispatch :map/create entity))))))))}]]]
      [:section
       [:legend "Options"]
       [:fieldset.setting
