@@ -4,14 +4,16 @@
             [ogre.tools.txs :as txs]))
 
 (def schema
-  {:db/ident         {:db/unique :db.unique/identity}
-   :viewer/workspace {:db/valueType :db.type/ref}
-   :viewer/tokens    {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
-   :canvas/elements  {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
-   :canvas/map       {:db/valueType :db.type/ref}
-   :canvas/selected  {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/index true}
-   :image/checksum   {:db/index true :db/unique :db.unique/identity}
-   :element/flags    {:db/cardinality :db.cardinality/many}})
+  {:db/ident          {:db/unique :db.unique/identity}
+   :viewer/tokens     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
+   :viewer/workspace  {:db/valueType :db.type/ref}
+   :canvas/map        {:db/valueType :db.type/ref}
+   :canvas/tokens     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :canvas/shapes     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :canvas/selected   {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/index true}
+   :canvas/initiative {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/index true}
+   :image/checksum    {:db/unique :db.unique/identity :db/index true}
+   :element/flags     {:db/cardinality :db.cardinality/many}})
 
 (defn initial-data []
   (ds/db-with

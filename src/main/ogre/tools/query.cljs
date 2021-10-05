@@ -18,5 +18,5 @@
        (ds/q '[:find [?id ...]
                :where
                [_   :viewer/workspace ?ws]
-               [?ws :canvas/elements ?id]
+               [?ws :canvas/tokens ?id]
                [?id :initiative/member? true]] data)))

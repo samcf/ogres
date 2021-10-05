@@ -110,25 +110,26 @@
           (if (blank? health) "HP" health))]])))
 
 (def query
-  '[:find [(pull $ ?id pattern) ...]
-    :in $ pattern
-    :where
-    [?r :db/ident :viewer]
-    [?r :viewer/workspace ?w]
-    [?w :canvas/elements ?id]
-    [?id :initiative/member? true]])
+  {:query
+   '[:find [(pull $ ?id pattern) ...]
+     :in $ pattern
+     :where
+     [?r :db/ident :viewer]
+     [?r :viewer/workspace ?w]
+     [?w :canvas/tokens ?id]
+     [?id :initiative/member? true]]
 
-(def attrs
-  [:db/id
-   :canvas/_selected
-   :element/name
-   :element/flags
-   :initiative/roll
-   :initiative/health
-   :initiative/suffix])
+   :pull
+   [:db/id
+    :canvas/_selected
+    :element/name
+    :element/flags
+    :initiative/roll
+    :initiative/health
+    :initiative/suffix]})
 
 (defn initiative []
-  (let [[initiating dispatch] (use-query {:query query :pull attrs})]
+  (let [[initiating dispatch] (use-query query)]
     (if (seq initiating)
       [:div.initiative
        [:section [:header "Initiative"]]

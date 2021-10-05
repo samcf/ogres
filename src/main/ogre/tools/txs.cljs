@@ -177,15 +177,14 @@
 
 (defmethod transact :token/create
   [data event token vector]
-  (let [{:keys [db/id]} (query/workspace data)
-        template        (ds/entity data token)]
-    [[:db/add id :canvas/elements -1]
+  (let [{{id :db/id} :viewer/workspace}
+        (ds/pull data [{:viewer/workspace [:db/id]}] [:db/ident :viewer])]
+    [[:db/add id :canvas/tokens -1]
      [:db/add id :canvas/selected -1]
      [:db/add id :canvas/mode :select]
      [:db/add id :panel/curr :token]
-     (merge
-      (into {} (ds/touch template))
-      {:db/id -1 :pos/vec vector})]))
+     (merge (ds/pull data '[*] token)
+            {:db/id -1 :pos/vec vector})]))
 
 (defmethod transact :token/translate
   [data event id x y]
@@ -217,7 +216,7 @@
      [:db/add -1 :shape/color "#f44336"]
      [:db/add -1 :shape/opacity 0.25]
      [:db/add -1 :shape/pattern :solid]
-     [:db/add id :canvas/elements -1]
+     [:db/add id :canvas/shapes -1]
      [:db/add id :canvas/selected -1]
      [:db/add id :panel/curr :shape]]))
 
@@ -324,16 +323,18 @@
 
 (defmethod transact :selection/from-rect
   [data event vecs]
-  (let [{:keys [db/id] :as w} (query/workspace data)
-        normalized            (normalize vecs)
-        selected              (filter (fn [{type  :element/type
-                                            [x y] :pos/vec}]
-                                        (and (= type :token) (within? x y normalized))) (:canvas/elements w))]
-    (concat [[:db/add id :canvas/mode :select]]
+  (let [selector   [{:viewer/workspace [:db/id {:canvas/tokens [:db/id :pos/vec]}]}]
+        root       (ds/pull data selector [:db/ident :viewer])
+        canvas     (:viewer/workspace root)
+        normalized (normalize vecs)
+        selected   (filter
+                    (fn [{[x y] :pos/vec}]
+                      (within? x y normalized)) (:canvas/tokens canvas))]
+    (concat [[:db/add (:db/id canvas) :canvas/mode :select]]
             (if (seq selected)
-              [[:db/add id :panel/curr :token]])
+              [[:db/add (:db/id canvas) :panel/curr :token]])
             (for [entity selected]
-              [:db/add id :canvas/selected (:db/id entity)]))))
+              [:db/add (:db/id canvas) :canvas/selected (:db/id entity)]))))
 
 (defmethod transact :selection/clear
   [data event]

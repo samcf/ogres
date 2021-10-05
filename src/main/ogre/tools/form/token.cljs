@@ -26,7 +26,7 @@
     :where
     [?id :db/ident :viewer]
     [?id :viewer/workspace ?ws]
-    [?ws :canvas/elements ?el]
+    [?ws :canvas/tokens ?el]
     (or-join
      [?el ?group ?weight]
      (and [?el :initiative/member? true]
@@ -145,13 +145,14 @@
 (def attrs
   [{:viewer/workspace
     [{:canvas/selected
-      [:element/type]}]}])
+      [:canvas/_tokens]}]}])
 
 (defn container []
-  (let [[{{selected :canvas/selected} :viewer/workspace}] (use-query {:pull attrs})]
+  (let [[data]   (use-query {:pull attrs})
+        selected (-> data :viewer/workspace :canvas/selected)]
     [:<>
      [:section [:header "Token Options"]]
-     (if (and (seq selected) (every? #(= :token (:element/type %)) selected))
+     (if (seq selected)
        [token]
        [:section
         [:div.prompt

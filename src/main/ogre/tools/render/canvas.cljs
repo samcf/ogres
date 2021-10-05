@@ -57,36 +57,26 @@
     (number? suffix) (str " (" (char (+ suffix 64)) ")")))
 
 (def board-query
-  {:query
-   '[:find [(pull $ ?tk pattern) ...]
-     :in $ pattern
-     :where
-     [?id :db/ident :viewer]
-     [?id :viewer/workspace ?ws]
-     [?ws :canvas/elements ?tk]
-     [?tk :element/type :token]]
-
-   :pull
-   [:db/id
-    :element/flags
-    :token/light
-    :pos/vec]})
-
-(def board-attrs
-  [:viewer/host?
-   {:viewer/workspace
-    [:canvas/lighting
-     :canvas/color
-     :grid/size
-     :zoom/scale]}])
+  {:pull
+   [:viewer/host?
+    {:viewer/workspace
+     [:canvas/lighting
+      :canvas/color
+      :grid/size
+      :zoom/scale
+      {:canvas/tokens
+       [:db/id
+        :element/flags
+        :token/light
+        :pos/vec]}]}]})
 
 (defn board [{:keys [checksum]}]
   (let [url      (use-image checksum {:persist? true})
-        [root]   (use-query {:pull board-attrs})
-        [tokens] (use-query board-query)
+        [root]   (use-query board-query)
         {host? :viewer/host?
          {lighting :canvas/lighting
           color    :canvas/color
+          tokens   :canvas/tokens
           size     :grid/size
           scale    :zoom/scale} :viewer/workspace} root]
     (if (string? url)
@@ -217,26 +207,18 @@
        :stroke color})]))
 
 (def shapes-query
-  {:query
-   '[:find [(pull $ ?e pattern) ...]
-     :in $ pattern
-     :where
-     [?v :db/ident :viewer]
-     [?v :viewer/workspace ?w]
-     [?w :canvas/elements ?e]
-     [?e :element/type :shape]]
-   :pull
-   '[*
-     :canvas/_selected
-     {:canvas/_elements
-      [:zoom/scale]}]})
+  {:pull
+   '[{:viewer/workspace
+      [:zoom/scale
+       {:canvas/shapes [* :canvas/_selected]}]}]})
 
 (defn shapes [props]
-  (let [[entities dispatch] (use-query shapes-query)]
+  (let [[data dispatch] (use-query shapes-query)
+        entities        (-> data :viewer/workspace :canvas/shapes)]
     (for [element entities :let [{id :db/id [x y] :pos/vec} element]]
       [:> draggable
        {:key      id
-        :scale    (-> element :canvas/_elements :zoom/scale)
+        :scale    (-> data :viewer/workspace :zoom/scale)
         :position #js {:x x :y y}
         :on-start
         (fn [event data]
@@ -272,7 +254,7 @@
     :aura/radius
     :initiative/suffix
     :canvas/_selected
-    {:canvas/_elements [:grid/size]}]
+    {:canvas/_tokens [:grid/size]}]
 
    :args
    [id]})
@@ -281,7 +263,7 @@
   (let [[data dispatch] (use-query (token-query (:id props)))
         flag-names  (mapv #(str "flag--" (name %)) (:element/flags data))
         class-name  (css "canvas-token" {:selected (:canvas/_selected data)} flag-names)
-        size        (-> data :canvas/_elements :grid/size)
+        size        (-> data :canvas/_tokens :grid/size)
         token-radiu (/ (ft->px (:size (:token/size data)) size) 2)
         token-label (label data)
         aura-radius (:aura/radius data)
@@ -303,34 +285,25 @@
          [marker]]])]))
 
 (def tokens-query
-  {:query
-   '[:find [(pull $ ?e pattern) ...]
-     :in $ pattern
-     :where
-     [?v :db/ident :viewer]
-     [?v :viewer/workspace ?w]
-     [?w :canvas/elements ?e]
-     (not [?w :canvas/selected ?e])]
-
-   :pull
-   [:db/id
-    :pos/vec
-    :element/flags
-    {:canvas/_elements
+  {:pull
+   [:viewer/host?
+    {:viewer/workspace
      [:zoom/scale
-      {:viewer/_workspace
-       [:viewer/host?]}]}]})
+      {:canvas/tokens
+       [:db/id :pos/vec :element/flags :canvas/_selected]}]}]})
 
 (defn tokens [props]
-  (let [[entities dispatch] (use-query tokens-query)
-        host?               (-> entities first :canvas/_elements :viewer/_workspace first :viewer/host?)]
+  (let [[data dispatch] (use-query tokens-query)
+        entities        (-> data :viewer/workspace :canvas/tokens)]
     (for [entity entities
           :let [{id :db/id [x y] :pos/vec} entity]
-          :when (or host? (visible? (set (:element/flags entity))))]
+          :when (and (not (:canvas/_selected entity))
+                     (or (:viewer/host? data)
+                         (visible? (set (:element/flags entity)))))]
       [:> draggable
        {:key      id
         :position #js {:x x :y y}
-        :scale    (-> entity :canvas/_elements :zoom/scale)
+        :scale    (-> data :viewer/workspace :zoom/scale)
         :on-start (fn [event] (.stopPropagation event))
         :on-stop
         (fn [event data]
