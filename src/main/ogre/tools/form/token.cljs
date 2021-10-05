@@ -20,37 +20,24 @@
   (capitalize (name keyword)))
 
 (def query
-  '[:find [(pull $ ?id pattern) (sum ?weight)]
-    :keys attrs in-initiative
-    :in $ pattern :with ?group
-    :where
-    [?id :db/ident :viewer]
-    [?id :viewer/workspace ?ws]
-    [?ws :canvas/tokens ?el]
-    (or-join
-     [?el ?group ?weight]
-     (and [?el :initiative/member? true]
-          [(identity ?el) ?group]
-          [(ground 1) ?weight])
-     (and [(identity ?el) ?group]
-          [(ground 0) ?weight]))])
-
-(def form-attrs
-  [{:viewer/workspace
-    [{:canvas/selected
-      [:db/id
-       :element/name
-       :element/flags
-       :initiative/member?
-       :token/size
-       :token/light
-       :aura/label
-       :aura/radius]}]}])
+  {:pull
+   [{:viewer/workspace
+     [:canvas/initiative
+      {:canvas/selected
+       [:db/id
+        :canvas/_initiative
+        :element/name
+        :element/flags
+        :token/size
+        :token/light
+        :aura/label
+        :aura/radius]}]}]})
 
 (defn token [props]
-  (let [[result dispatch] (use-query {:query query :pull form-attrs})
-        selected          (-> result :attrs :viewer/workspace :canvas/selected)
-        idents            (map :db/id selected)]
+  (let [[data dispatch] (use-query query)
+        initiative      (-> data :viewer/workspace :canvas/initiative)
+        selected        (-> data :viewer/workspace :canvas/selected)
+        idents          (map :db/id selected)]
     [:<>
      [:section
       [:fieldset.group
@@ -69,11 +56,11 @@
        [button {:style {:flex 0} :on-click #(dispatch :element/remove idents)}
         [icon {:name "trash" :size 16}]]]]
      [:section
-      (let [checked (checked? :initiative/member? selected)]
+      (let [checked (checked? :canvas/_initiative selected)]
         [checkbox
          {:checked checked
           :on-change #(dispatch :initiative/toggle idents %)}
-         (case [(> (:in-initiative result) 0) checked]
+         (case [(> (count initiative) 0) checked]
            [true true] "In Initiative - Remove"
            ([true false] [true :indeterminate]) "In Initiative - Include"
            "Start Initiative")])]

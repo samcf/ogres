@@ -65,7 +65,6 @@
   (let [bean     (uix/state 0)
         pawn     (uix/state (ds/conn-from-db (initial-data)))
         conn     (deref pawn)
-        data     (deref conn)
         dispatch (uix/callback
                   (fn [event & args]
                     (let [tx (apply txs/transact @conn event args)]

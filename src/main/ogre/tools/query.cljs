@@ -12,11 +12,3 @@
        (sort-by second)
        (map first)
        (map #(ds/entity data %))))
-
-(defn initiating [data]
-  (map (partial ds/entity data)
-       (ds/q '[:find [?id ...]
-               :where
-               [_   :viewer/workspace ?ws]
-               [?ws :canvas/tokens ?id]
-               [?id :initiative/member? true]] data)))

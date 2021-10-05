@@ -20,7 +20,7 @@
 (defn constrain [number minimum maximum]
   (max (min number maximum) minimum))
 
-(defn with-suffix-txs
+(defn suffix-txs
   "Returns a vector of tx tuples `[[:db/add id :initiative/suffix suffix] ...]`
    for entities whose names are duplicates within the collection given and do
    not already have a unique suffix assigned yet."
@@ -45,8 +45,7 @@
             txs)) [])))))
 
 (def initiative-attrs
-  #{:initiative/member?
-    :initiative/roll
+  #{:initiative/roll
     :initiative/health
     :initiative/suffix})
 
@@ -144,9 +143,8 @@
 (defmethod transact :element/remove
   [data event idents]
   (let [{:keys [db/id panel/prev]} (query/workspace data)]
-    (concat [[:db/add id :panel/curr prev]]
-            (for [id idents]
-              [:db/retractEntity id]))))
+    (into [[:db/add id :panel/curr prev]]
+          (for [id idents] [:db/retractEntity id]))))
 
 (defmethod transact :element/flag
   [data event idents flag add?]
@@ -345,22 +343,23 @@
 (defmethod transact :selection/remove
   [data event]
   (let [{:keys [db/id canvas/selected panel/prev]} (query/workspace data)]
-    (concat [[:db/add id :panel/curr prev]]
-            (for [entity selected]
-              [:db/retractEntity (:db/id entity)]))))
+    (into [[:db/add id :panel/curr prev]]
+          (for [entity selected]
+            [:db/retractEntity (:db/id entity)]))))
 
 (defmethod transact :initiative/toggle
-  [data event idents add?]
-  (if add?
-    (let [adding (map #(ds/entity data %) idents)
-          exists (query/initiating data)]
+  [data event idents adding?]
+  (let [select-t [:db/id :element/name :initiative/suffix]
+        select-r [{:viewer/workspace [:db/id {:canvas/initiative select-t}]}]
+        result   (ds/pull data select-r [:db/ident :viewer])
+        adding   (ds/pull-many data select-t idents)
+        {{id :db/id exists :canvas/initiative} :viewer/workspace} result]
+    (if adding?
       (->> (union (set adding) (set exists))
-           (with-suffix-txs)
-           (concat
-            (for [id idents]
-              [:db/add id :initiative/member? true]))))
-    (for [id idents attr initiative-attrs]
-      [:db/retract id attr])))
+           (suffix-txs)
+           (into [{:db/id id :canvas/initiative idents}]))
+      (into (for [tk idents] [:db/retract id :canvas/initiative tk])
+            (for [tk idents attr initiative-attrs] [:db/retract tk attr])))))
 
 (defmethod transact :initiative/change-roll
   [data event id roll]
@@ -387,16 +386,20 @@
 
 (defmethod transact :initiative/roll-all
   [data event]
-  (for [entity (query/initiating data)
-        :let [{:keys [db/id initiative/roll]} entity]
-        :when (and (nil? roll)
-                   (not (contains? (:element/flags entity) :player)))]
-    [:db/add id :initiative/roll (inc (rand-int 20))]))
+  (let [attrs     [:db/id :element/flags :initiative/roll]
+        selection [{:viewer/workspace [{:canvas/initiative attrs}]}]
+        result    (ds/pull data selection [:db/ident :viewer])
+        {{initiative :canvas/initiative} :viewer/workspace} result]
+    (for [{:keys [db/id initiative/roll element/flags]} initiative
+          :when (and (nil? roll) (not (contains? (set flags) :player)))]
+      [:db/add id :initiative/roll (inc (rand-int 20))])))
 
 (defmethod transact :initiative/reset-rolls
   [data event]
-  (let [elements (query/initiating data)]
-    (for [{:keys [db/id]} elements]
+  (let [selection  [{:viewer/workspace [:canvas/initiative]}]
+        result     (ds/pull data selection [:db/ident :viewer])
+        initiative (-> result :viewer/workspace :canvas/initiative)]
+    (for [{:keys [db/id]} initiative]
       [:db/retract id :initiative/roll])))
 
 (defmethod transact :initiative/change-health
@@ -408,9 +411,12 @@
 
 (defmethod transact :initiative/leave
   [data]
-  (for [entity (query/initiating data)
-        attr   initiative-attrs]
-    [:db/retract (:db/id entity) attr]))
+  (let [selection [{:viewer/workspace [:db/id :canvas/initiative]}]
+        result    (ds/pull data selection [:db/ident :viewer])
+        {{id :db/id initiative :canvas/initiative} :viewer/workspace} result]
+    (into [[:db/retract id :canvas/initiative]]
+          (for [{:keys [db/id]} initiative attr initiative-attrs]
+            [:db/retract id attr]))))
 
 (defmethod transact :storage/reset []
   [])
