@@ -3,20 +3,18 @@
             [ogre.tools.state :refer [use-query]]))
 
 (def query
-  '[:find (pull $ ?id pattern) ?tx
-    :keys attrs tx
-    :in $ pattern
-    :where [?id :element/type :canvas ?tx]])
-
-(def attrs
-  [:db/id :element/name :viewer/_workspace])
+  {:pull
+   [:viewer/workspace
+    {:viewer/workspaces
+     [:db/id :element/name]}]})
 
 (defn workspaces [props]
-  (let [[workspaces dispatch] (use-query {:query query :pull attrs})]
+  (let [[data dispatch] (use-query query)
+        {current :viewer/workspace
+         workspaces :viewer/workspaces} data]
     [:div.workspaces
-     (for [workspace (sort-by :tx workspaces)
-           :let [{:keys [db/id element/name viewer/_workspace]} (:attrs workspace)]]
-       [:div {:key id :css {:selected _workspace}}
+     (for [{:keys [db/id element/name]} (sort-by :tx workspaces)]
+       [:div {:key id :css {:selected (= id (:db/id current))}}
         [:div {:on-click #(dispatch :workspace/change id)}
          (if (blank? name) [:em "New Canvas"] (trim name))]
         [:button {:type "button" :on-click #(dispatch :workspace/remove id) :title "Close canvas"} "×"]])

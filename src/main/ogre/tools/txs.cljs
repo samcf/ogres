@@ -67,7 +67,8 @@
 
 (defmethod transact :workspace/create
   [data event]
-  [[:db/add [:db/ident :viewer] :viewer/workspace -1]
+  [[:db/add [:db/ident :viewer] :viewer/workspaces -1]
+   [:db/add [:db/ident :viewer] :viewer/workspace -1]
    (assoc (initial-canvas) :db/id -1)])
 
 (defmethod transact :workspace/change
@@ -76,17 +77,19 @@
 
 (defmethod transact :workspace/remove
   [data event id]
-  (let [workspaces (query/workspaces data)
-        workspace  (ds/entity data id)]
+  (let [result     (ds/pull data [{:viewer/workspaces [:db/id]}] [:db/ident :viewer])
+        workspace  (ds/pull data [:db/id] id)
+        workspaces (:viewer/workspaces result)]
     (cond
       (= (count workspaces) 1)
-      (let [next (-> (initial-canvas) (assoc :db/id -1))]
+      (let [next (assoc (initial-canvas) :db/id -1)]
         [[:db.fn/retractEntity id]
+         [:db/add [:db/ident :viewer] :viewer/workspaces -1]
          [:db/add [:db/ident :viewer] :viewer/workspace -1]
          next])
 
       (= (:db/id workspace) id)
-      (let [next (-> (into #{} workspaces) (disj workspace) (first))]
+      (let [next (-> (set workspaces) (disj workspace) (first))]
         [[:db.fn/retractEntity id]
          [:db/add [:db/ident :viewer] :viewer/workspace (:db/id next)]])
 

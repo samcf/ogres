@@ -5,7 +5,8 @@
 
 (def schema
   {:db/ident          {:db/unique :db.unique/identity}
-   :viewer/tokens     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
+   :viewer/tokens     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :viewer/workspaces {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :viewer/workspace  {:db/valueType :db.type/ref}
    :canvas/map        {:db/valueType :db.type/ref}
    :canvas/tokens     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
@@ -20,6 +21,7 @@
    (ds/empty-db schema)
    [[:db/add -1 :db/ident :viewer]
     [:db/add -1 :viewer/loaded? false]
+    [:db/add -1 :viewer/workspaces -2]
     [:db/add -1 :viewer/workspace -2]
     [:db/add -1 :viewer/tokens -3]
     [:db/add -1 :viewer/host? true]
