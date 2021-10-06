@@ -14,13 +14,13 @@
     {:root/canvas
      [:db/id
       :element/name
-      :canvas/map
-      :grid/show
-      :grid/size
+      :canvas/scene
       :canvas/theme
       :canvas/lighting
       :canvas/color
-      :canvas/mode]}]})
+      :canvas/mode
+      :grid/show
+      :grid/size]}]})
 
 (defn thumbnail [{:keys [checksum selected on-select on-remove]}]
   (let [url (use-image checksum)]
@@ -63,8 +63,8 @@
          ^{:key checksum}
          [thumbnail
           {:checksum  checksum
-           :selected  (= id (:db/id (:canvas/map canvas)))
-           :on-select (fn [] (dispatch :canvas/change-map id))
+           :selected  (= id (:db/id (:canvas/scene canvas)))
+           :on-select (fn [] (dispatch :canvas/change-scene id))
            :on-remove (fn []
                         (.delete (.-images store) checksum)
                         (dispatch :map/remove id))}])]
@@ -86,7 +86,7 @@
                              :image/height   (.-height img)}]
                  (-> (.put (.-images store) record)
                      (.then
-                      (fn [] (dispatch :map/create entity))))))))}]]]
+                      (fn [] (dispatch :scene/create entity))))))))}]]]
      [:section
       [:legend "Options"]
       [:fieldset.setting

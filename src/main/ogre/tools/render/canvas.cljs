@@ -112,7 +112,7 @@
    [:root/host?
     {:root/canvas
      [:canvas/lighting
-      {:canvas/map
+      {:canvas/scene
        [:image/width
         :image/height]}]}]})
 
@@ -121,7 +121,7 @@
         {host? :root/host?
          {lighting :canvas/lighting
           {width  :image/width
-           height :image/height} :canvas/map} :root/canvas} data]
+           height :image/height} :canvas/scene} :root/canvas} data]
     (when (and (not host?) (= lighting :dark))
       [:g.canvas-mask
        [:defs
@@ -516,7 +516,7 @@
       :canvas/theme
       :canvas/modifier
       :zoom/scale
-      {:canvas/map
+      {:canvas/scene
        [:image/checksum
         :image/width
         :image/height]}]}]})
@@ -532,7 +532,7 @@
           theme   :canvas/theme
           modif   :canvas/modifier
           [tx ty] :pos/vec
-          {:image/keys [checksum width height] :as map} :canvas/map} :root/canvas} result
+          {:image/keys [checksum width height] :as map} :canvas/scene} :root/canvas} result
         [tx ty] (if host? [tx ty]
                     [(- tx (/ (max 0 (- hw gw)) 2 scale))
                      (- ty (/ (max 0 (- hh gh)) 2 scale))])]

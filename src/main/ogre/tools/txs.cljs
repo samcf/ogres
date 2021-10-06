@@ -99,9 +99,9 @@
       :else
       [[:db.fn/retractEntity id]])))
 
-(defmethod transact :canvas/change-map
-  [data event map]
-  [[:db/add [:db/ident :canvas] :canvas/map map]
+(defmethod transact :canvas/change-scene
+  [data event scene]
+  [[:db/add [:db/ident :canvas] :canvas/scene scene]
    [:db/add [:db/ident :canvas] :pos/vec [0 0]]])
 
 (defmethod transact :canvas/toggle-mode
@@ -160,15 +160,15 @@
   [data event x y]
   [[:db/add [:db/ident :canvas] :pos/vec (round [x y] 1)]])
 
-(defmethod transact :map/create
+(defmethod transact :scene/create
   [data event map-data]
   (let [checksum (:image/checksum map-data)
         existing (ds/entity data [:image/checksum checksum])]
     (if (nil? existing)
       [(assoc map-data :db/id -1)
        [:db/add [:db/ident :root] :root/scenes -1]
-       [:db/add [:db/ident :canvas] :canvas/map -1]]
-      [[:db/add [:db/ident :canvas] :canvas/map [:image/checksum checksum]]])))
+       [:db/add [:db/ident :canvas] :canvas/scene -1]]
+      [[:db/add [:db/ident :canvas] :canvas/scene [:image/checksum checksum]]])))
 
 (defmethod transact :image/set-url
   [data event checksum url]
@@ -231,12 +231,12 @@
 (defmethod transact :grid/draw
   [data event ox oy size]
   (let [ident  [:db/ident :canvas]
-        select [:db/id :zoom/scale :pos/vec {:canvas/map [:image/width]}]
+        select [:db/id :zoom/scale :pos/vec {:canvas/scene [:image/width]}]
         result (ds/pull data select ident)
         {scale :zoom/scale
          [x y] :pos/vec
-         image :canvas/map
-         {width :image/width} :canvas/map} result
+         image :canvas/scene
+         {width :image/width} :canvas/scene} result
         size    (js/Math.round (/ size scale))
         [sx sy] [(/ ox scale) (/ oy scale)]
         origin  [(- sx x) (- sy y)]]
