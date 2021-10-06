@@ -4,11 +4,11 @@
             [ogre.tools.state :refer [use-query]]))
 
 (def attrs
-  [:viewer/shortcuts? :viewer/tooltips?])
+  [:root/shortcuts? :root/tooltips?])
 
 (defn help []
   (let [[result dispatch] (use-query {:pull attrs})
-        {:viewer/keys [shortcuts? tooltips?]} result]
+        {:root/keys [shortcuts? tooltips?]} result]
     [:<>
      [:section
       [:header "About"]

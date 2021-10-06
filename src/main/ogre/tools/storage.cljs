@@ -8,9 +8,9 @@
 (defcontext storage)
 
 (def ignored-attrs
-  #{:viewer/host?
-    :viewer/loaded?
-    :viewer/privileged?
+  #{:root/host?
+    :root/loaded?
+    :root/privileged?
     :share/open?
     :share/paused?
     :canvas/modifier
@@ -35,8 +35,8 @@
   (let [[conn]          (uix/context state)
         {:keys [store]} (uix/context storage)
         tx-data
-        [[:db/add [:db/ident :viewer] :viewer/loaded? true]
-         [:db/add [:db/ident :viewer] :viewer/host? (host? js/window)]]]
+        [[:db/add [:db/ident :root] :root/loaded? true]
+         [:db/add [:db/ident :root] :root/host? (host? js/window)]]]
     (uix/effect!
      (fn []
        (-> (.table store "app")
@@ -63,8 +63,8 @@
    the state." []
   (let [[conn]          (uix/context state)
         {:keys [store]} (uix/context storage)
-        [data]          (use-query {:pull [:viewer/host? :viewer/loaded?]})
-        {:viewer/keys [host? loaded?]} data]
+        [data]          (use-query {:pull [:root/host? :root/loaded?]})
+        {:root/keys [host? loaded?]} data]
     (uix/effect!
      (fn []
        (ds/listen!

@@ -12,12 +12,12 @@
    [:help :question-diamond]])
 
 (def attrs
-  [{:viewer/workspace
+  [{:root/canvas
     [:panel/curr :panel/collapsed?]}])
 
 (defn container []
   (let [[result dispatch] (use-query {:pull attrs})
-        {{:keys [panel/curr panel/collapsed?]} :viewer/workspace} result]
+        {{:keys [panel/curr panel/collapsed?]} :root/canvas} result]
     [:aside.panel
      {:css {:panel--collapsed collapsed?
             :panel--expanded (not collapsed?)}}

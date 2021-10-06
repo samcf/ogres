@@ -4,14 +4,14 @@
 
 (def attrs
   [:bounds/self
-   {:viewer/tokens [:db/id]}
-   {:viewer/workspace [:zoom/scale :pos/vec]}])
+   {:root/tokens [:db/id]}
+   {:root/canvas [:zoom/scale :pos/vec]}])
 
 (defn tokens [props]
   (let [[result dispatch] (use-query {:pull attrs})
-        {tokens :viewer/tokens
+        {tokens :root/tokens
          [px py _ _] :bounds/self
-         {scale :zoom/scale [tx ty] :pos/vec} :viewer/workspace} result]
+         {scale :zoom/scale [tx ty] :pos/vec} :root/canvas} result]
     [:div.tokens
      (for [{:keys [db/id]} tokens]
        [:div.tokens-token {:key id}

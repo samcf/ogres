@@ -21,7 +21,7 @@
 
 (def query
   {:pull
-   [{:viewer/workspace
+   [{:root/canvas
      [:canvas/initiative
       {:canvas/selected
        [:db/id
@@ -35,8 +35,8 @@
 
 (defn token [props]
   (let [[data dispatch] (use-query query)
-        initiative      (-> data :viewer/workspace :canvas/initiative)
-        selected        (-> data :viewer/workspace :canvas/selected)
+        initiative      (-> data :root/canvas :canvas/initiative)
+        selected        (-> data :root/canvas :canvas/selected)
         idents          (map :db/id selected)]
     [:<>
      [:section
@@ -130,13 +130,13 @@
           (if (= radius 0) "None" (str radius " ft."))])]]]))
 
 (def attrs
-  [{:viewer/workspace
+  [{:root/canvas
     [{:canvas/selected
       [:canvas/_tokens]}]}])
 
 (defn container []
   (let [[data]   (use-query {:pull attrs})
-        selected (-> data :viewer/workspace :canvas/selected)]
+        selected (-> data :root/canvas :canvas/selected)]
     [:<>
      [:section [:header "Token Options"]]
      (if (seq selected)

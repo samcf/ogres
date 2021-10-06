@@ -14,7 +14,7 @@
    "#ffeb3b" "#ffc107" "#ff9800"])
 
 (def attrs
-  [{:viewer/workspace
+  [{:root/canvas
     [{:canvas/selected
       [:db/id
        :element/name
@@ -25,7 +25,7 @@
 
 (defn shape [props]
   (let [[result dispatch] (use-query {:pull attrs})
-        selected          (-> result :viewer/workspace :canvas/selected)
+        selected          (-> result :root/canvas :canvas/selected)
         idents            (map :db/id selected)]
     [:<>
      [:section
@@ -81,7 +81,7 @@
 
 (defn container []
   (let [[result] (use-query {:pull attrs})
-        selected (-> result :viewer/workspace :canvas/selected)]
+        selected (-> result :root/canvas :canvas/selected)]
     [:<>
      [:section [:header "Shape Options"]]
      (if (and (seq selected) (every? #(= :shape (:element/type %)) selected))

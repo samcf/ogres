@@ -58,8 +58,8 @@
 
 (def board-query
   {:pull
-   [:viewer/host?
-    {:viewer/workspace
+   [:root/host?
+    {:root/canvas
      [:canvas/lighting
       :canvas/color
       :grid/size
@@ -73,12 +73,12 @@
 (defn board [{:keys [checksum]}]
   (let [url      (use-image checksum {:persist? true})
         [root]   (use-query board-query)
-        {host? :viewer/host?
+        {host? :root/host?
          {lighting :canvas/lighting
           color    :canvas/color
           tokens   :canvas/tokens
           size     :grid/size
-          scale    :zoom/scale} :viewer/workspace} root]
+          scale    :zoom/scale} :root/canvas} root]
     (if (string? url)
       [:g.canvas-image
        [:defs {:key color}
@@ -109,8 +109,8 @@
 
 (def mask-query
   {:pull
-   [:viewer/host?
-    {:viewer/workspace
+   [:root/host?
+    {:root/canvas
      [:canvas/lighting
       {:canvas/map
        [:image/width
@@ -118,10 +118,10 @@
 
 (defn mask []
   (let [[data dispatch] (use-query mask-query)
-        {host? :viewer/host?
+        {host? :root/host?
          {lighting :canvas/lighting
           {width  :image/width
-           height :image/height} :canvas/map} :viewer/workspace} data]
+           height :image/height} :canvas/map} :root/canvas} data]
     (when (and (not host?) (= lighting :dark))
       [:g.canvas-mask
        [:defs
@@ -134,7 +134,7 @@
 (def grid-query
   {:pull
    [:bounds/self
-    {:viewer/workspace
+    {:root/canvas
      [:canvas/mode
       :pos/vec
       :grid/size
@@ -148,7 +148,7 @@
           size    :grid/size
           show    :grid/show
           scale   :zoom/scale
-          [cx cy] :pos/vec} :viewer/workspace} data]
+          [cx cy] :pos/vec} :root/canvas} data]
     (if (or show (= mode :grid))
       (let [w (/ w scale)
             h (/ h scale)
@@ -208,17 +208,17 @@
 
 (def shapes-query
   {:pull
-   '[{:viewer/workspace
+   '[{:root/canvas
       [:zoom/scale
        {:canvas/shapes [* :canvas/_selected]}]}]})
 
 (defn shapes [props]
   (let [[data dispatch] (use-query shapes-query)
-        entities        (-> data :viewer/workspace :canvas/shapes)]
+        entities        (-> data :root/canvas :canvas/shapes)]
     (for [element entities :let [{id :db/id [x y] :pos/vec} element]]
       [:> draggable
        {:key      id
-        :scale    (-> data :viewer/workspace :zoom/scale)
+        :scale    (-> data :root/canvas :zoom/scale)
         :position #js {:x x :y y}
         :on-start
         (fn [event data]
@@ -286,24 +286,24 @@
 
 (def tokens-query
   {:pull
-   [:viewer/host?
-    {:viewer/workspace
+   [:root/host?
+    {:root/canvas
      [:zoom/scale
       {:canvas/tokens
        [:db/id :pos/vec :element/flags :canvas/_selected]}]}]})
 
 (defn tokens [props]
   (let [[data dispatch] (use-query tokens-query)
-        entities        (-> data :viewer/workspace :canvas/tokens)]
+        entities        (-> data :root/canvas :canvas/tokens)]
     (for [entity entities
           :let [{id :db/id [x y] :pos/vec} entity]
           :when (and (not (:canvas/_selected entity))
-                     (or (:viewer/host? data)
+                     (or (:root/host? data)
                          (visible? (set (:element/flags entity)))))]
       [:> draggable
        {:key      id
         :position #js {:x x :y y}
-        :scale    (-> data :viewer/workspace :zoom/scale)
+        :scale    (-> data :root/canvas :zoom/scale)
         :on-start (fn [event] (.stopPropagation event))
         :on-stop
         (fn [event data]
@@ -317,8 +317,8 @@
 
 (def selection-query
   {:pull
-   [:viewer/host?
-    {:viewer/workspace
+   [:root/host?
+    {:root/canvas
      [:grid/size
       :zoom/scale
       {:canvas/selected
@@ -329,8 +329,8 @@
 
 (defn selection []
   (let [[result dispatch] (use-query selection-query)
-        {:keys [viewer/host? viewer/workspace]} result
-        {:keys [canvas/selected zoom/scale]} workspace
+        {:keys [root/host? root/canvas]} result
+        {:keys [canvas/selected zoom/scale]} canvas
         idents (map :db/id selected)]
     (if (= (:element/type (first selected)) :token)
       [:> draggable
@@ -379,8 +379,8 @@
        (render-fn @points))]))
 
 (defn select []
-  (let [[result dispatch] (use-query {:pull [{:viewer/workspace [:zoom/scale :pos/vec]}]})
-        {{scale :zoom/scale [cx cy] :pos/vec} :viewer/workspace} result]
+  (let [[result dispatch] (use-query {:pull [{:root/canvas [:zoom/scale :pos/vec]}]})
+        {{scale :zoom/scale [cx cy] :pos/vec} :root/canvas} result]
     [drawable
      {:on-release
       (fn [points]
@@ -391,14 +391,14 @@
 
 (def draw-query
   {:pull
-   [{:viewer/workspace
+   [{:root/canvas
      [:grid/size :zoom/scale :pos/vec]}]})
 
 (defmulti draw :mode)
 
 (defmethod draw :grid [props]
-  (let [[{:keys [viewer/workspace]} dispatch] (use-query draw-query)
-        {:keys [grid/size zoom/scale]} workspace]
+  (let [[{:keys [root/canvas]} dispatch] (use-query draw-query)
+        {:keys [grid/size zoom/scale]} canvas]
     [drawable
      {:on-release
       (fn [[ax ay bx by]]
@@ -416,8 +416,8 @@
                (str "px"))]]))]))
 
 (defmethod draw :ruler [props]
-  (let [[{:keys [viewer/workspace]} dispatch] (use-query draw-query)
-        {:keys [grid/size zoom/scale]} workspace]
+  (let [[{:keys [root/canvas]} dispatch] (use-query draw-query)
+        {:keys [grid/size zoom/scale]} canvas]
     [drawable
      {:on-release identity}
      (fn [[ax ay bx by]]
@@ -429,13 +429,13 @@
              (str "ft."))]])]))
 
 (defmethod draw :circle [props]
-  (let [[{:keys [viewer/workspace]} dispatch] (use-query draw-query)
-        {:keys [grid/size zoom/scale]} workspace]
+  (let [[{:keys [root/canvas]} dispatch] (use-query draw-query)
+        {:keys [grid/size zoom/scale]} canvas]
     [drawable
      {:on-release
       (fn [points]
         (let [[ax ay bx by] (mapv #(/ % scale) points)
-              [cx cy] (:pos/vec workspace)]
+              [cx cy] (:pos/vec canvas)]
           (dispatch :shape/create :circle [(- ax cx) (- ay cy) (- bx cx) (- by cy)])))}
      (fn [[ax ay bx by]]
        (let [radius (chebyshev ax ay bx by)]
@@ -445,13 +445,13 @@
            (-> radius (px->ft (* size scale)) (str "ft. radius"))]]))]))
 
 (defmethod draw :rect [props]
-  (let [[{:keys [viewer/workspace]} dispatch] (use-query draw-query)
-        {:keys [grid/size zoom/scale]} workspace]
+  (let [[{:keys [root/canvas]} dispatch] (use-query draw-query)
+        {:keys [grid/size zoom/scale]} canvas]
     [drawable
      {:on-release
       (fn [points]
         (let [[ax ay bx by] (mapv #(/ % scale) points)
-              [cx cy] (:pos/vec workspace)]
+              [cx cy] (:pos/vec canvas)]
           (dispatch :shape/create :rect [(- ax cx) (- ay cy) (- bx cx) (- by cy)])))}
      (fn [[ax ay bx by]]
        [:g
@@ -462,13 +462,13 @@
            (str w "ft. x " h "ft."))]])]))
 
 (defmethod draw :line [props]
-  (let [[{:keys [viewer/workspace]} dispatch] (use-query draw-query)
-        {:keys [grid/size zoom/scale]} workspace]
+  (let [[{:keys [root/canvas]} dispatch] (use-query draw-query)
+        {:keys [grid/size zoom/scale]} canvas]
     [drawable
      {:on-release
       (fn [points]
         (let [[ax ay bx by] (mapv #(/ % scale) points)
-              [cx cy] (:pos/vec workspace)]
+              [cx cy] (:pos/vec canvas)]
           (dispatch :shape/create :line [(- ax cx) (- ay cy) (- bx cx) (- by cy)])))}
      (fn [[ax ay bx by]]
        [:g [:line {:x1 ax :y1 ay :x2 bx :y2 by}]
@@ -478,13 +478,13 @@
              (str "ft."))]])]))
 
 (defmethod draw :cone [props]
-  (let [[{:keys [viewer/workspace]} dispatch] (use-query draw-query)
-        {:keys [grid/size zoom/scale]} workspace]
+  (let [[{:keys [root/canvas]} dispatch] (use-query draw-query)
+        {:keys [grid/size zoom/scale]} canvas]
     [drawable
      {:on-release
       (fn [points]
         (let [[ax ay bx by] (mapv #(/ % scale) points)
-              [cx cy] (:pos/vec workspace)]
+              [cx cy] (:pos/vec canvas)]
           (dispatch :shape/create :cone [(- ax cx) (- ay cy) (- bx cx) (- by cy)])))}
      (fn [[ax ay bx by]]
        [:g
@@ -506,11 +506,11 @@
 
 (def canvas-query
   {:pull
-   [:viewer/privileged?
-    :viewer/host?
+   [:root/privileged?
+    :root/host?
     :bounds/host
     :bounds/guest
-    {:viewer/workspace
+    {:root/canvas
      [:pos/vec
       :canvas/mode
       :canvas/theme
@@ -523,8 +523,8 @@
 
 (defn canvas [props]
   (let [[result dispatch] (use-query canvas-query)
-        {privileged? :viewer/privileged?
-         host?       :viewer/host?
+        {privileged? :root/privileged?
+         host?       :root/host?
          [_ _ hw hh] :bounds/host
          [_ _ gw gh] :bounds/guest
          {scale   :zoom/scale
@@ -532,7 +532,7 @@
           theme   :canvas/theme
           modif   :canvas/modifier
           [tx ty] :pos/vec
-          {:image/keys [checksum width height] :as map} :canvas/map} :viewer/workspace} result
+          {:image/keys [checksum width height] :as map} :canvas/map} :root/canvas} result
         [tx ty] (if host? [tx ty]
                     [(- tx (/ (max 0 (- hw gw)) 2 scale))
                      (- ty (/ (max 0 (- hh gh)) 2 scale))])]

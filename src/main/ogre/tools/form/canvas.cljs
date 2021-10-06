@@ -14,7 +14,7 @@
     :where [?id :image/checksum ?checksum ?tx]])
 
 (def attrs
-  [{:viewer/workspace
+  [{:root/canvas
     [:db/id
      :element/name
      :canvas/map
@@ -45,7 +45,7 @@
   (let [[result dispatch] (use-query {:pull attrs})
         [boards]          (use-query {:query query})
         {:keys [store]}   (uix/context storage)
-        {:keys [viewer/workspace]} result]
+        {:keys [root/canvas]} result]
     [:<>
      [:section
       [:header "Canvas Options"]]
@@ -55,18 +55,18 @@
         :placeholder "New Canvas"
         :maxLength 36
         :spellCheck "false"
-        :value (or (:element/name workspace) "")
+        :value (or (:element/name canvas) "")
         :on-change
         (fn [event]
           (let [value (.. event -target -value)]
-            (dispatch :element/update [(:db/id workspace)] :element/name value)))}]]
+            (dispatch :element/update [(:db/id canvas)] :element/name value)))}]]
      [:section
       [:fieldset.thumbnails
        (for [{:keys [db/id image/checksum]} (sort-by :tx boards)]
          ^{:key checksum}
          [thumbnail
           {:checksum  checksum
-           :selected  (= id (:db/id (:canvas/map workspace)))
+           :selected  (= id (:db/id (:canvas/map canvas)))
            :on-select (fn [] (dispatch :canvas/change-map id))
            :on-remove (fn []
                         (.delete (.-images store) checksum)
@@ -94,7 +94,7 @@
       [:legend "Options"]
       [:fieldset.setting
        [:label "Show Grid"]
-       (for [display? [true false] :let [checked? (= (:grid/show workspace) display?)]]
+       (for [display? [true false] :let [checked? (= (:grid/show canvas) display?)]]
          ^{:key display?}
          [checkbox
           {:checked checked?
@@ -103,7 +103,7 @@
           (if display? "Yes" "No")])]
       [:fieldset.setting
        [:label "Theme"]
-       (for [theme [:light :dark] :let [checked? (= theme (:canvas/theme workspace))]]
+       (for [theme [:light :dark] :let [checked? (= theme (:canvas/theme canvas))]]
          ^{:key theme}
          [checkbox
           {:checked checked?
@@ -114,7 +114,7 @@
           (capitalize (name theme))])]
       [:fieldset.setting
        [:label "Lighting"]
-       (for [option [:bright :dim :dark] :let [checked (= option (:canvas/lighting workspace))]]
+       (for [option [:bright :dim :dark] :let [checked (= option (:canvas/lighting canvas))]]
          ^{:key option}
          [checkbox
           {:checked checked
@@ -123,7 +123,7 @@
       [:fieldset.setting
        [:label "Filter"]
        (for [color [:none :dusk :midnight]
-             :let  [current  (or (:canvas/color workspace) :none)
+             :let  [current  (or (:canvas/color canvas) :none)
                     checked? (= color current)]]
          ^{:key color}
          [checkbox
@@ -136,12 +136,12 @@
        [:input
         {:type "number"
          :placeholder "Grid size"
-         :value (or (:grid/size workspace) 0)
+         :value (or (:grid/size canvas) 0)
          :on-change
          (fn [event]
            (dispatch :grid/change-size (.. event -target -value)))}]
        [checkbox
-        {:checked (= (:canvas/mode workspace) :grid)
+        {:checked (= (:canvas/mode canvas) :grid)
          :on-change
          (fn [checked]
            (if checked

@@ -137,7 +137,7 @@
 (defn provider
   "Provides a reference to the guest window, if any, and registers several
    event handlers needed for them." []
-  (let [[data dispatch] (use-query {:pull [:viewer/host? :viewer/loaded?]})
+  (let [[data dispatch] (use-query {:pull [:root/host? :root/loaded?]})
         guest           (uix/state nil)
         reset (fn
                 ([]
@@ -148,10 +148,10 @@
                 ([element]
                  (reset! guest element)))]
 
-    (if (:viewer/loaded? data)
+    (if (:root/loaded? data)
       (uix/context-provider
        [context {:guest @guest :reset reset}]
-       (if (:viewer/host? data)
+       (if (:root/host? data)
          [:<>
           [initialize]
           [dispatcher]

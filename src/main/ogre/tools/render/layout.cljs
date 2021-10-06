@@ -9,14 +9,14 @@
             [ogre.tools.render.workspaces :refer [workspaces]]))
 
 (def attrs
-  [:viewer/loaded?
-   :viewer/host?
-   :viewer/shortcuts?
-   :viewer/tooltips?])
+  [:root/loaded?
+   :root/host?
+   :root/shortcuts?
+   :root/tooltips?])
 
 (defn layout []
   (let [[result] (use-query {:pull attrs})
-        {:viewer/keys [loaded? host? shortcuts? tooltips?]} result
+        {:root/keys [loaded? host? shortcuts? tooltips?]} result
         classes
         {:global--host       host?
          :global--guest      (not host?)

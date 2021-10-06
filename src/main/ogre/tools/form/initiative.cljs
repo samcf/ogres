@@ -111,7 +111,7 @@
 
 (def query
   {:pull
-   [{:viewer/workspace
+   [{:root/canvas
      [{:canvas/initiative
        [:db/id
         :canvas/_selected
@@ -123,7 +123,7 @@
 
 (defn initiative []
   (let [[data dispatch] (use-query query)
-        initiating      (-> data :viewer/workspace :canvas/initiative)]
+        initiating      (-> data :root/canvas :canvas/initiative)]
     (if (seq initiating)
       [:div.initiative
        [:section [:header "Initiative"]]

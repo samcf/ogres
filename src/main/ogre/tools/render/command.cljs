@@ -29,7 +29,7 @@
 (def attrs
   [:share/open?
    :share/paused?
-   {:viewer/workspace
+   {:root/canvas
     [:canvas/mode
      :canvas/theme
      :canvas/last-shape]}])
@@ -37,7 +37,7 @@
 (defn command [props]
   (let [[result dispatch]                      (use-query {:pull attrs})
         {:keys [share/open? shape/paused?]}    result
-        {:canvas/keys [mode theme last-shape]} (:viewer/workspace result)
+        {:canvas/keys [mode theme last-shape]} (:root/canvas result)
         mode-attrs
         (fn [given]
           {:type "button"

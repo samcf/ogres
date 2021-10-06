@@ -5,9 +5,9 @@
 
 (def schema
   {:db/ident          {:db/unique :db.unique/identity}
-   :viewer/tokens     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
-   :viewer/workspaces {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
-   :viewer/workspace  {:db/valueType :db.type/ref}
+   :root/tokens       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :root/canvases     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :root/canvas       {:db/valueType :db.type/ref}
    :canvas/map        {:db/valueType :db.type/ref}
    :canvas/tokens     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :canvas/shapes     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
@@ -19,14 +19,14 @@
 (defn initial-data []
   (ds/db-with
    (ds/empty-db schema)
-   [[:db/add -1 :db/ident :viewer]
-    [:db/add -1 :viewer/loaded? false]
-    [:db/add -1 :viewer/workspaces -2]
-    [:db/add -1 :viewer/workspace -2]
-    [:db/add -1 :viewer/tokens -3]
-    [:db/add -1 :viewer/host? true]
-    [:db/add -1 :viewer/shortcuts? true]
-    [:db/add -1 :viewer/tooltips? true]
+   [[:db/add -1 :db/ident :root]
+    [:db/add -1 :root/loaded? false]
+    [:db/add -1 :root/canvases -2]
+    [:db/add -1 :root/canvas -2]
+    [:db/add -1 :root/tokens -3]
+    [:db/add -1 :root/host? true]
+    [:db/add -1 :root/shortcuts? true]
+    [:db/add -1 :root/tooltips? true]
     [:db/add -1 :bounds/self [0 0 0 0]]
     [:db/add -1 :bounds/host [0 0 0 0]]
     [:db/add -1 :bounds/guest [0 0 0 0]]
@@ -51,7 +51,7 @@
 (defcontext state)
 
 (def root-query
-  '[:find (pull $ ?id pattern) . :in $ pattern :where [?id :db/ident :viewer]])
+  '[:find (pull $ ?id pattern) . :in $ pattern :where [?id :db/ident :root]])
 
 (defn use-query
   "React hook to run queries against the underlying DataScript database."
@@ -78,8 +78,8 @@
        (ds/listen!
         conn :rerender
         (fn [{:keys [db-after]}]
-          (let [data (ds/pull db-after [:viewer/host? :share/paused?] [:db/ident :viewer])]
-            (if (or (:viewer/host? data) (not (:share/paused? data)))
+          (let [data (ds/pull db-after [:root/host? :share/paused?] [:db/ident :root])]
+            (if (or (:root/host? data) (not (:share/paused? data)))
               (swap! bean inc)))))
        (fn [] (ds/unlisten! conn :rerender))) [nil])
 

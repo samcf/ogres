@@ -4,14 +4,14 @@
 
 (def query
   {:pull
-   [:viewer/workspace
-    {:viewer/workspaces
+   [:root/canvas
+    {:root/canvases
      [:db/id :element/name]}]})
 
 (defn workspaces [props]
   (let [[data dispatch] (use-query query)
-        {current :viewer/workspace
-         workspaces :viewer/workspaces} data]
+        {current :root/canvas
+         workspaces :root/canvases} data]
     [:div.workspaces
      (for [{:keys [db/id element/name]} (sort-by :tx workspaces)]
        [:div {:key id :css {:selected (= id (:db/id current))}}

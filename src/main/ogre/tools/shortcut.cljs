@@ -55,7 +55,7 @@
 
    ["keydown" \p]
    (fn [[conn dispatch]]
-     (let [{:keys [share/open?]} (pull @conn [:share/open?] [:db/ident :viewer])]
+     (let [{:keys [share/open?]} (pull @conn [:share/open?] [:db/ident :root])]
        (if open?
          (dispatch :share/switch))))
 
@@ -66,7 +66,7 @@
    ["wheel"]
    (fn [[conn dispatch] event]
      (if (.. event -target (closest "svg.canvas"))
-       (let [{[ox oy _ _] :bounds/self} (pull @conn [:bounds/self] [:db/ident :viewer])
+       (let [{[ox oy _ _] :bounds/self} (pull @conn [:bounds/self] [:db/ident :root])
              mx (.-clientX event)
              my (.-clientY event)
              x (- mx ox)
