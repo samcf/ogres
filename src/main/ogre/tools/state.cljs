@@ -14,8 +14,7 @@
    :canvas/shapes     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :canvas/selected   {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :canvas/initiative {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
-   :image/checksum    {:db/unique :db.unique/identity}
-   :element/flags     {:db/cardinality :db.cardinality/many}})
+   :image/checksum    {:db/unique :db.unique/identity}})
 
 (defn initial-data []
   (ds/db-with

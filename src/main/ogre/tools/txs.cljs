@@ -153,8 +153,9 @@
 
 (defmethod transact :element/flag
   [data event idents flag add?]
-  (for [id idents]
-    [(if add? :db/add :db/retract) id :element/flags flag]))
+  (let [tokens (ds/pull-many data [:db/id :element/flags] idents)]
+    (for [{:keys [db/id element/flags] :or {flags #{}}} tokens]
+      [:db/add id :element/flags ((if add? conj disj) flags flag)])))
 
 (defmethod transact :camera/translate
   [data event x y]
@@ -396,7 +397,7 @@
         result (ds/pull data select [:db/ident :root])
         {{initiative :canvas/initiative} :root/canvas} result]
     (for [{:keys [db/id initiative/roll element/flags]} initiative
-          :when (and (nil? roll) (not (contains? (set flags) :player)))]
+          :when (and (nil? roll) (not (contains? flags :player)))]
       [:db/add id :initiative/roll (inc (rand-int 20))])))
 
 (defmethod transact :initiative/reset-rolls

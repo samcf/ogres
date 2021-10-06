@@ -92,14 +92,14 @@
            (for [token tokens
                  :let [{[x y] :pos/vec [r _] :token/light} token]
                  :when (and (> r 0)
-                            (or host? (visible? (set (:element/flags token)))))]
+                            (or host? (visible? (:element/flags token))))]
              [:circle {:key (:db/id token) :cx x :cy y :r (+ (ft->px r size) (/ size 2))}])]
           (if (= lighting :dark)
             [:clipPath {:id "clip-light-dim"}
              (for [token tokens
                    :let [{[x y] :pos/vec [br dr] :token/light} token]
                    :when (and (or (> br 0) (> dr 0))
-                              (or host? (visible? (set (:element/flags token)))))]
+                              (or host? (visible? (:element/flags token))))]
                [:circle {:key (:db/id token) :cx x :cy y :r (+ (ft->px br size) (ft->px dr size) (/ size 2))}])])])
        (if (and (= lighting :dark) host?)
          [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere) brightness(20%)"}}])
@@ -299,7 +299,7 @@
           :let [{id :db/id [x y] :pos/vec} entity]
           :when (and (not (:canvas/_selected entity))
                      (or (:root/host? data)
-                         (visible? (set (:element/flags entity)))))]
+                         (visible? (:element/flags entity))))]
       [:> draggable
        {:key      id
         :position #js {:x x :y y}
@@ -345,7 +345,7 @@
        [:g.canvas-selected {:key idents}
         (for [entity selected
               :let [{[x y] :pos/vec} entity]
-              :when (or host? (visible? (set (:element/flags entity))))]
+              :when (or host? (visible? (:element/flags entity)))]
           [:g.canvas-token
            {:key (:db/id entity) :transform (xf :translate [x y])}
            [token {:id (:db/id entity)}]])]])))

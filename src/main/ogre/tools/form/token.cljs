@@ -72,7 +72,7 @@
           {:key flag
            :name "token/flag"
            :value flag
-           :checked (checked? #(contains? (set (:element/flags %)) flag) selected)
+           :checked (checked? #(contains? (:element/flags %) flag) selected)
            :on-change #(dispatch :element/flag idents flag %)}
           [label flag]])]]
      [:section
@@ -105,7 +105,7 @@
           {:key flag
            :name "token.flag"
            :value flag
-           :checked (checked? #(contains? (set (:element/flags %)) flag) selected)
+           :checked (checked? #(contains? (:element/flags %) flag) selected)
            :on-change #(dispatch :element/flag idents flag %)}
           [label flag]])]]
      [:section
