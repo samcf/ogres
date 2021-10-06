@@ -12,9 +12,9 @@
    :canvas/map        {:db/valueType :db.type/ref}
    :canvas/tokens     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :canvas/shapes     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
-   :canvas/selected   {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/index true}
-   :canvas/initiative {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/index true}
-   :image/checksum    {:db/unique :db.unique/identity :db/index true}
+   :canvas/selected   {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
+   :canvas/initiative {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
+   :image/checksum    {:db/unique :db.unique/identity}
    :element/flags     {:db/cardinality :db.cardinality/many}})
 
 (defn initial-data []
