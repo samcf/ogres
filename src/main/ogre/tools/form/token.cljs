@@ -129,13 +129,14 @@
            :on-change #(dispatch :aura/change-radius idents radius)}
           (if (= radius 0) "None" (str radius " ft."))])]]]))
 
-(def attrs
-  [{:root/canvas
-    [{:canvas/selected
-      [:canvas/_tokens]}]}])
+(def selected-query
+  {:pull
+   [{:root/canvas
+     [{:canvas/selected
+       [:canvas/_tokens]}]}]})
 
 (defn container []
-  (let [[data]   (use-query {:pull attrs})
+  (let [[data]   (use-query selected-query)
         selected (-> data :root/canvas :canvas/selected)]
     [:<>
      [:section [:header "Token Options"]]

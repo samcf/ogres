@@ -31,7 +31,6 @@
     [:db/add -1 :bounds/host [0 0 0 0]]
     [:db/add -1 :bounds/guest [0 0 0 0]]
     [:db/add -2 :db/ident :canvas]
-    [:db/add -2 :element/type :canvas]
     [:db/add -2 :canvas/mode :select]
     [:db/add -2 :canvas/lighting :bright]
     [:db/add -2 :canvas/theme :light]

@@ -13,18 +13,18 @@
    "#00bcd4" "#009688" "#4caf50" "#cddc39"
    "#ffeb3b" "#ffc107" "#ff9800"])
 
-(def attrs
-  [{:root/canvas
-    [{:canvas/selected
-      [:db/id
-       :element/name
-       :element/type
-       :shape/color
-       :shape/pattern
-       :shape/opacity]}]}])
+(def query
+  {:pull
+   [{:root/canvas
+     [{:canvas/selected
+       [:db/id
+        :element/name
+        :shape/color
+        :shape/pattern
+        :shape/opacity]}]}]})
 
 (defn shape [props]
-  (let [[result dispatch] (use-query {:pull attrs})
+  (let [[result dispatch] (use-query query)
         selected          (-> result :root/canvas :canvas/selected)
         idents            (map :db/id selected)]
     [:<>
@@ -79,12 +79,18 @@
           :max 1
           :step 0.25}])]]))
 
+(def selected-query
+  {:pull
+   [{:root/canvas
+     [{:canvas/selected
+       [:canvas/_shapes]}]}]})
+
 (defn container []
-  (let [[result] (use-query {:pull attrs})
+  (let [[result] (use-query selected-query)
         selected (-> result :root/canvas :canvas/selected)]
     [:<>
      [:section [:header "Shape Options"]]
-     (if (and (seq selected) (every? #(= :shape (:element/type %)) selected))
+     (if (seq selected)
        [shape]
        [:section
         [:div.prompt

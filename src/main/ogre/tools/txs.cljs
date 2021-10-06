@@ -49,8 +49,7 @@
     :initiative/suffix})
 
 (defn initial-canvas []
-  {:element/type :canvas
-   :pos/vec [0 0]
+  {:pos/vec [0 0]
    :canvas/mode :select
    :canvas/lighting :bright
    :canvas/theme :light
