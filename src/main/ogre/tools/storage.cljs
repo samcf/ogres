@@ -32,7 +32,7 @@
   "Initializes the DataScript database from the serialized state within the
    browser's IndexedDB store. This is only run once for both the host and
    guest windows." []
-  (let [{:keys [conn]} (uix/context state)
+  (let [[conn]          (uix/context state)
         {:keys [store]} (uix/context storage)
         tx-data
         [[:db/add [:db/ident :viewer] :viewer/loaded? true]
@@ -61,7 +61,7 @@
    application state to the browser's IndexedDB store. This is only performed
    on the host window and only after the application has already initialized
    the state." []
-  (let [{:keys [conn]}  (uix/context state)
+  (let [[conn]          (uix/context state)
         {:keys [store]} (uix/context storage)
         [data]          (use-query {:pull [:viewer/host? :viewer/loaded?]})
         {:viewer/keys [host? loaded?]} data]
@@ -85,7 +85,7 @@
 (defn handlers
   "Registers event handlers related to IndexedDB, such as those involved in
    saving and loading the application state." []
-  (let [{:keys [conn]} (uix/context state)
+  (let [[conn]          (uix/context state)
         {:keys [store]} (uix/context storage)]
     (uix/effect!
      (fn []

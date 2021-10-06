@@ -31,7 +31,7 @@
 (defn initialize
   "Registers a DataScript listener in order to manage the guest window, the
    player's view of the canvas." []
-  (let [{:keys [conn dispatch]} (uix/context state)
+  (let [[conn dispatch]       (uix/context state)
         {:keys [guest reset]} (uix/context context)]
     (uix/effect!
      (fn []
@@ -51,7 +51,7 @@
 (defn dispatcher
   "Registers a DataScript listener in order to forward transactions from the
    host window to the guest window." []
-  (let [{:keys [conn]}  (uix/context state)
+  (let [[conn]          (uix/context state)
         {:keys [guest]} (uix/context context)
         writer          (t/writer :json)]
     (uix/effect!
@@ -70,7 +70,7 @@
   "Registers an event handler to listen for application state changes in the
    form of serialized EDN DataScript transactions. Unmarshals and transacts
    those against the local DataScript connection." []
-  (let [{:keys [conn]} (uix/context state)
+  (let [[conn] (uix/context state)
         reader (t/reader :json)]
     (listen!
      (fn [event]
@@ -84,8 +84,8 @@
    order to put those dimensions in the application state. Dimensions are
    of the form [x y width height]."
   [{:keys [target host?]}]
-  (let [selector ".layout-canvas"
-        context  (uix/context state)
+  (let [[_ dispatch] (uix/context state)
+        selector ".layout-canvas"
         canvas   (uix/state nil)
         handler  (debounce
                   (fn []
@@ -93,7 +93,7 @@
                      (.querySelector (.-document target) selector)
                      (.getBoundingClientRect)
                      (bounds->vector)
-                     ((:dispatch context) :bounds/change host?))) 100)
+                     (dispatch :bounds/change host?))) 100)
         observer (uix/state (js/ResizeObserver. handler))]
 
     (listen! handler "resize" [nil])

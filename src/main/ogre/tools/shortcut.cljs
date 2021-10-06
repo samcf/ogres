@@ -6,65 +6,65 @@
 
 (def events
   {["keydown" "Shift"]
-   (fn [{:keys [dispatch]}]
+   (fn [[_ dispatch]]
      (dispatch :canvas/modifier-start :shift))
 
    ["keyup" "Shift"]
-   (fn [{:keys [dispatch]}]
+   (fn [[_ dispatch]]
      (dispatch :canvas/modifier-release))
 
    ["keydown" "Escape"]
-   (fn [{:keys [dispatch]}]
+   (fn [[_ dispatch]]
      (dispatch :selection/clear))
 
    ["keydown" "Delete"]
-   (fn [{:keys [dispatch]}]
+   (fn [[_ dispatch]]
      (dispatch :selection/remove))
 
    ["keydown" \s]
-   (fn [{:keys [dispatch]}]
+   (fn [[_ dispatch]]
      (dispatch :canvas/toggle-mode :select))
 
    ["keydown" \g]
-   (fn [{:keys [dispatch]}]
+   (fn [[_ dispatch]]
      (dispatch :canvas/toggle-mode :grid))
 
    ["keydown" \r]
-   (fn [{:keys [dispatch]}]
+   (fn [[_ dispatch]]
      (dispatch :canvas/toggle-mode :ruler))
 
    ["keydown" \1]
-   (fn [{:keys [dispatch]}]
+   (fn [[_ dispatch]]
      (dispatch :canvas/toggle-mode :circle))
 
    ["keydown" \2]
-   (fn [{:keys [dispatch]}]
+   (fn [[_ dispatch]]
      (dispatch :canvas/toggle-mode :rect))
 
    ["keydown" \3]
-   (fn [{:keys [dispatch]}]
+   (fn [[_ dispatch]]
      (dispatch :canvas/toggle-mode :cone))
 
    ["keydown" \4]
-   (fn [{:keys [dispatch]}]
+   (fn [[_ dispatch]]
      (dispatch :canvas/toggle-mode :line))
 
    ["keydown" \v]
-   (fn [{:keys [dispatch]}]
+   (fn [[_ dispatch]]
      (dispatch :share/initiate))
 
    ["keydown" \p]
-   (fn [{:keys [conn dispatch]}]
+   (fn [[conn dispatch]]
      (let [{:keys [share/open?]} (pull @conn [:share/open?] [:db/ident :viewer])]
        (if open?
          (dispatch :share/switch))))
 
    ["keydown" \ ]
-   (fn [{:keys [dispatch]}]
+   (fn [[_ dispatch]]
      (dispatch :interface/toggle-panel))
 
    ["wheel"]
-   (fn [{:keys [conn dispatch]} event]
+   (fn [[conn dispatch] event]
      (if (.. event -target (closest "svg.canvas"))
        (let [{[ox oy _ _] :bounds/self} (pull @conn [:bounds/self] [:db/ident :viewer])
              mx (.-clientX event)

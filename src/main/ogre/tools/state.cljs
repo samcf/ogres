@@ -55,9 +55,9 @@
 
 (defn use-query
   "React hook to run queries against the underlying DataScript database."
-  ([] (let [{:keys [dispatch]} (uix/context state)] [dispatch]))
+  ([] (let [[_ dispatch] (uix/context state)] [dispatch]))
   ([{:keys [query pull args] :or {query root-query args []}}]
-   (let [{:keys [conn dispatch]} (uix/context state)
+   (let [[conn dispatch] (uix/context state)
          result (apply ds/q query @conn (if pull (conj args pull) args))]
      [result dispatch])))
 
@@ -84,6 +84,4 @@
        (fn [] (ds/unlisten! conn :rerender))) [nil])
 
     (uix/context-provider
-     [state
-      {:conn conn
-       :dispatch dispatch}] child)))
+     [state [conn dispatch]] child)))
