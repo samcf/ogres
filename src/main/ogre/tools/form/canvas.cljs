@@ -9,21 +9,18 @@
             [uix.core.alpha :as uix]))
 
 (def query
-  '[:find ?id ?checksum ?tx
-    :keys db/id image/checksum tx
-    :where [?id :image/checksum ?checksum ?tx]])
-
-(def attrs
-  [{:root/canvas
-    [:db/id
-     :element/name
-     :canvas/map
-     :grid/show
-     :grid/size
-     :canvas/theme
-     :canvas/lighting
-     :canvas/color
-     :canvas/mode]}])
+  {:pull
+   [{:root/scenes [:db/id :image/checksum]}
+    {:root/canvas
+     [:db/id
+      :element/name
+      :canvas/map
+      :grid/show
+      :grid/size
+      :canvas/theme
+      :canvas/lighting
+      :canvas/color
+      :canvas/mode]}]})
 
 (defn thumbnail [{:keys [checksum selected on-select on-remove]}]
   (let [url (use-image checksum)]
@@ -42,10 +39,10 @@
          (on-remove))} "×"]]))
 
 (defn canvas []
-  (let [[result dispatch] (use-query {:pull attrs})
-        [boards]          (use-query {:query query})
+  (let [[result dispatch] (use-query query)
         {:keys [store]}   (uix/context storage)
-        {:keys [root/canvas]} result]
+        {canvas :root/canvas
+         scenes :root/scenes} result]
     [:<>
      [:section
       [:header "Canvas Options"]]
@@ -62,7 +59,7 @@
             (dispatch :element/update [(:db/id canvas)] :element/name value)))}]]
      [:section
       [:fieldset.thumbnails
-       (for [{:keys [db/id image/checksum]} (sort-by :tx boards)]
+       (for [{:keys [db/id image/checksum]} scenes]
          ^{:key checksum}
          [thumbnail
           {:checksum  checksum

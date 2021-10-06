@@ -166,8 +166,9 @@
         existing (ds/entity data [:image/checksum checksum])]
     (if (nil? existing)
       [(assoc map-data :db/id -1)
+       [:db/add [:db/ident :root] :root/scenes -1]
        [:db/add [:db/ident :canvas] :canvas/map -1]]
-      [[:db/add [:db/ident :canvas] :canvas/map (:db/id existing)]])))
+      [[:db/add [:db/ident :canvas] :canvas/map [:image/checksum checksum]]])))
 
 (defmethod transact :image/set-url
   [data event checksum url]
