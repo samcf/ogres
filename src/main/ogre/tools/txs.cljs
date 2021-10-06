@@ -80,7 +80,7 @@
 (defmethod transact :workspace/remove
   [data event id]
   (let [result   (ds/pull data [{:root/canvases [:db/id]}] [:db/ident :root])
-        canvas   (ds/pull data [:db/id] id)
+        canvas   (ds/pull data [:db/id] [:db/ident :canvas])
         canvases (:root/canvases result)]
     (cond
       (= (count canvases) 1)
