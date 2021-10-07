@@ -5,7 +5,9 @@
 (def attrs
   [:bounds/self
    {:root/tokens [:db/id]}
-   {:root/canvas [:zoom/scale :pos/vec]}])
+   {:root/canvas
+    [[:zoom/scale :default 1]
+     [:pos/vec :default [0 0]]]}])
 
 (defn tokens [props]
   (let [[result dispatch] (use-query {:pull attrs})

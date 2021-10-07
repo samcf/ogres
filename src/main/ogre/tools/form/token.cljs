@@ -28,10 +28,10 @@
         :canvas/_initiative
         :element/name
         :element/flags
-        :token/size
-        :token/light
+        [:token/size :default {:name :medium :size 5}]
+        [:token/light :default [5 5]]
         :aura/label
-        :aura/radius]}]}]})
+        [:aura/radius :default 0]]}]}]})
 
 (defn token [props]
   (let [[data dispatch] (use-query query)

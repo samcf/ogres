@@ -27,12 +27,12 @@
   [:div.commands-tooltip message])
 
 (def attrs
-  [:share/open?
-   :share/paused?
+  [[:share/open? :default false]
+   [:share/paused? :default false]
    {:root/canvas
-    [:canvas/mode
-     :canvas/theme
-     :canvas/last-shape]}])
+    [[:canvas/mode :default :select]
+     [:canvas/theme :default :light]
+     [:canvas/last-shape :default :circle]]}])
 
 (defn command [props]
   (let [[result dispatch]                      (use-query {:pull attrs})
@@ -54,7 +54,7 @@
       [shortcut "R"]
       [tooltip "Ruler"]]
      [commands
-      (let [last (or last-shape :circle)]
+      (let [last last-shape]
         [:button (mode-attrs last)
          [icon {:name (shape->icon last)}]
          [shortcut (shape->shortcut last)]])

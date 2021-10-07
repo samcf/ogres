@@ -48,18 +48,6 @@
     :initiative/health
     :initiative/suffix})
 
-(defn initial-canvas []
-  {:pos/vec [0 0]
-   :canvas/mode :select
-   :canvas/lighting :bright
-   :canvas/theme :light
-   :grid/size 70
-   :grid/origin [0 0]
-   :grid/show true
-   :panel/curr :canvas
-   :panel/prev :canvas
-   :zoom/scale 1})
-
 (defmulti transact
   (fn [data event & args] event))
 
@@ -68,7 +56,7 @@
   [[:db/retract [:db/ident :canvas] :db/ident]
    [:db/add [:db/ident :root] :root/canvases -1]
    [:db/add [:db/ident :root] :root/canvas -1]
-   (assoc (initial-canvas) :db/id -1 :db/ident :canvas)])
+   {:db/id -1 :db/ident :canvas :element/name ""}])
 
 (defmethod transact :workspace/change
   [data event id]
@@ -83,7 +71,7 @@
         canvases (:root/canvases result)]
     (cond
       (= (count canvases) 1)
-      (let [next (assoc (initial-canvas) :db/id -1 :db/ident :canvas)]
+      (let [next {:db/id -1 :db/ident :canvas}]
         [[:db.fn/retractEntity id]
          [:db/add [:db/ident :root] :root/canvases -1]
          [:db/add [:db/ident :root] :root/canvas -1]
@@ -114,7 +102,7 @@
     (concat [[:db/add ident :canvas/mode mode]]
             (if (not= mode curr)
               [[:db/retract ident :canvas/selected]
-               [:db/add ident :panel/curr prev]])
+               [:db/add ident :panel/curr (or prev :canvas)]])
             (if (contains? #{:circle :rect :cone :line} mode)
               [[:db/add ident :canvas/last-shape mode]]))))
 
@@ -211,11 +199,7 @@
   [data event kind vecs]
   [[:db/add -1 :element/type :shape]
    [:db/add -1 :shape/kind kind]
-   [:db/add -1 :pos/vec [0 0]]
    [:db/add -1 :shape/vecs vecs]
-   [:db/add -1 :shape/color "#f44336"]
-   [:db/add -1 :shape/opacity 0.25]
-   [:db/add -1 :shape/pattern :solid]
    [:db/add [:db/ident :canvas] :canvas/shapes -1]
    [:db/add [:db/ident :canvas] :canvas/selected -1]
    [:db/add [:db/ident :canvas] :panel/curr :shape]])
@@ -250,7 +234,7 @@
 
 (defmethod transact :grid/toggle
   [data event]
-  (let [{:keys [grid/show]} (ds/pull data [:grid/show] [:db/ident :canvas])]
+  (let [{:keys [grid/show]} (ds/pull data [[:grid/show :default :true]] [:db/ident :canvas])]
     [[:db/add [:db/ident :canvas] :grid/show (not show)]]))
 
 (defmethod transact :canvas/change-lighting
@@ -341,14 +325,14 @@
   [data event]
   (let [{:keys [panel/prev]} (ds/pull data [:panel/prev] [:db/ident :canvas])]
     [[:db/retract [:db/ident :canvas] :canvas/selected]
-     [:db/add [:db/ident :canvas] :panel/curr prev]]))
+     [:db/add [:db/ident :canvas] :panel/curr (or prev :canvas)]]))
 
 (defmethod transact :selection/remove
   [data event]
   (let [select [:canvas/selected :panel/prev]
         result (ds/pull data select [:db/ident :canvas])
         {:keys [canvas/selected panel/prev]} result]
-    (into [[:db/add [:db/ident :canvas] :panel/curr prev]]
+    (into [[:db/add [:db/ident :canvas] :panel/curr (or prev :canvas)]]
           (for [entity selected]
             [:db/retractEntity (:db/id entity)]))))
 

@@ -15,12 +15,12 @@
      [:db/id
       :element/name
       :canvas/scene
-      :canvas/theme
-      :canvas/lighting
-      :canvas/color
-      :canvas/mode
-      :grid/show
-      :grid/size]}]})
+      [:canvas/theme :default :light]
+      [:canvas/lighting :default :bright]
+      [:canvas/color :default :none]
+      [:canvas/mode :default :select]
+      [:grid/show :default true]
+      [:grid/size :default 70]]}]})
 
 (defn thumbnail [{:keys [checksum selected on-select on-remove]}]
   (let [url (use-image checksum)]

@@ -20,32 +20,14 @@
   (ds/db-with
    (ds/empty-db schema)
    [[:db/add -1 :db/ident :root]
-    [:db/add -1 :root/loaded? false]
     [:db/add -1 :root/canvases -2]
     [:db/add -1 :root/canvas -2]
     [:db/add -1 :root/tokens -3]
-    [:db/add -1 :root/host? true]
-    [:db/add -1 :root/shortcuts? true]
-    [:db/add -1 :root/tooltips? true]
     [:db/add -1 :bounds/self [0 0 0 0]]
     [:db/add -1 :bounds/host [0 0 0 0]]
     [:db/add -1 :bounds/guest [0 0 0 0]]
     [:db/add -2 :db/ident :canvas]
-    [:db/add -2 :canvas/mode :select]
-    [:db/add -2 :canvas/lighting :bright]
-    [:db/add -2 :canvas/theme :light]
-    [:db/add -2 :pos/vec [0 0]]
-    [:db/add -2 :grid/size 70]
-    [:db/add -2 :grid/origin [0 0]]
-    [:db/add -2 :grid/show true]
-    [:db/add -2 :zoom/scale 1]
-    [:db/add -2 :panel/curr :canvas]
-    [:db/add -2 :panel/prev :canvas]
-    [:db/add -3 :element/type :token]
-    [:db/add -3 :token/light [5 5]]
-    [:db/add -3 :token/size {:name :medium :size 5}]
-    [:db/add -3 :aura/label ""]
-    [:db/add -3 :aura/radius 0]]))
+    [:db/add -3 :element/type :token]]))
 
 (defcontext state)
 
@@ -80,7 +62,7 @@
           (let [data (ds/pull db-after [:root/host? :share/paused?] [:db/ident :root])]
             (if (or (:root/host? data) (not (:share/paused? data)))
               (swap! bean inc)))))
-       (fn [] (ds/unlisten! conn :rerender))) [nil])
+       (fn [] (ds/unlisten! conn :rerender))) [])
 
     (uix/context-provider
      [state [conn dispatch]] child)))

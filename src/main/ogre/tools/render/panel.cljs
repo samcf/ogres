@@ -13,7 +13,8 @@
 
 (def attrs
   [{:root/canvas
-    [:panel/curr :panel/collapsed?]}])
+    [[:panel/curr :default :canvas]
+     [:panel/collapsed? :default false]]}])
 
 (defn container []
   (let [[result dispatch] (use-query {:pull attrs})

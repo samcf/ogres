@@ -4,7 +4,8 @@
             [ogre.tools.state :refer [use-query]]))
 
 (def attrs
-  [:root/shortcuts? :root/tooltips?])
+  [[:root/shortcuts? :default false]
+   [:root/tooltips? :default false]])
 
 (defn help []
   (let [[result dispatch] (use-query {:pull attrs})

@@ -19,9 +19,9 @@
      [{:canvas/selected
        [:db/id
         :element/name
-        :shape/color
-        :shape/pattern
-        :shape/opacity]}]}]})
+        [:shape/color :default "#f44336"]
+        [:shape/pattern :default :solid]
+        [:shape/opacity :default 0.25]]}]}]})
 
 (defn shape [props]
   (let [[result dispatch] (use-query query)

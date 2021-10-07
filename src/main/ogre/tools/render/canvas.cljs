@@ -60,15 +60,15 @@
   {:pull
    [:root/host?
     {:root/canvas
-     [:canvas/lighting
-      :canvas/color
-      :grid/size
-      :zoom/scale
+     [[:canvas/lighting :default :bright]
+      [:canvas/color :default :none]
+      [:grid/size :default 70]
+      [:zoom/scale :default 1]
       {:canvas/tokens
        [:db/id
-        :element/flags
-        :token/light
-        :pos/vec]}]}]})
+        [:element/flags :default #{}]
+        [:token/light :default [5 5]]
+        [:pos/vec :default [0 0]]]}]}]})
 
 (defn board [{:keys [checksum]}]
   (let [url      (use-image checksum {:persist? true})
@@ -85,7 +85,7 @@
         [:filter {:id "atmosphere"}
          [:feColorMatrix
           {:type "matrix"
-           :values (join " " (atmosphere (or color :none)))}]]]
+           :values (join " " (atmosphere color))}]]]
        (if (not (= lighting :bright))
          [:defs
           [:clipPath {:id "clip-light-bright"}
@@ -135,11 +135,11 @@
   {:pull
    [:bounds/self
     {:root/canvas
-     [:canvas/mode
-      :pos/vec
-      :grid/size
-      :grid/show
-      :zoom/scale]}]})
+     [[:canvas/mode :default :select]
+      [:pos/vec :default [0 0]]
+      [:grid/size :default 70]
+      [:grid/show :default true]
+      [:zoom/scale :default 1]]}]})
 
 (defn grid []
   (let [[data dispatch] (use-query grid-query)
@@ -191,7 +191,7 @@
        :fill-opacity opacity :stroke color})]))
 
 (defmethod shape :line [props]
-  (let [{:keys [element attrs]} props
+  (let [{:keys [element]} props
         {:keys [shape/vecs shape/color shape/opacity]} element
         [ax ay bx by] vecs]
     [:line {:x1 ax :y1 ay :x2 bx :y2 by :stroke color :stroke-width 4 :stroke-linecap "round"}]))
@@ -209,8 +209,17 @@
 (def shapes-query
   {:pull
    '[{:root/canvas
-      [:zoom/scale
-       {:canvas/shapes [* :canvas/_selected]}]}]})
+      [[:zoom/scale :default 1]
+       {:canvas/shapes
+        [:db/id
+         [:pos/vec :default [0 0]]
+         :element/name
+         :shape/kind
+         :shape/vecs
+         [:shape/color :default "#f44336"]
+         [:shape/opacity :default 0.25]
+         [:shape/pattern :default :solid]
+         :canvas/_selected]}]}]})
 
 (defn shapes [props]
   (let [[data dispatch] (use-query shapes-query)
@@ -248,13 +257,13 @@
 
    :pull
    [:element/name
-    :element/flags
-    :token/size
+    [:element/flags :default #{}]
+    [:token/size :default {:name :medium :size 5}]
     :aura/label
-    :aura/radius
+    [:aura/radius :default 0]
     :initiative/suffix
     :canvas/_selected
-    {:canvas/_tokens [:grid/size]}]
+    {:canvas/_tokens [[:grid/size :default 70]]}]
 
    :args
    [id]})
@@ -288,9 +297,12 @@
   {:pull
    [:root/host?
     {:root/canvas
-     [:zoom/scale
+     [[:zoom/scale :default 1]
       {:canvas/tokens
-       [:db/id :pos/vec :element/flags :canvas/_selected]}]}]})
+       [:db/id
+        [:pos/vec :default [0 0]]
+        [:element/flags :default #{}]
+        :canvas/_selected]}]}]})
 
 (defn tokens [props]
   (let [[data dispatch] (use-query tokens-query)
@@ -319,13 +331,13 @@
   {:pull
    [:root/host?
     {:root/canvas
-     [:grid/size
-      :zoom/scale
+     [[:grid/size :default 70]
+      [:zoom/scale :default 1]
       {:canvas/selected
        [:db/id
         :element/type
         :element/flags
-        :pos/vec]}]}]})
+        [:pos/vec :default [0 0]]]}]}]})
 
 (defn selection []
   (let [[result dispatch] (use-query selection-query)
@@ -378,8 +390,14 @@
      (when (seq @points)
        (render-fn @points))]))
 
+(def select-query
+  {:pull
+   [{:root/canvas
+     [[:zoom/scale :default 1]
+      [:pos/vec :default [0 0]]]}]})
+
 (defn select []
-  (let [[result dispatch] (use-query {:pull [{:root/canvas [:zoom/scale :pos/vec]}]})
+  (let [[result dispatch] (use-query select-query)
         {{scale :zoom/scale [cx cy] :pos/vec} :root/canvas} result]
     [drawable
      {:on-release
@@ -392,7 +410,9 @@
 (def draw-query
   {:pull
    [{:root/canvas
-     [:grid/size :zoom/scale :pos/vec]}]})
+     [[:grid/size :default 70]
+      [:zoom/scale :default 1]
+      [:pos/vec :default [0 0]]]}]})
 
 (defmulti draw :mode)
 
@@ -511,11 +531,11 @@
     :bounds/host
     :bounds/guest
     {:root/canvas
-     [:pos/vec
-      :canvas/mode
-      :canvas/theme
+     [[:pos/vec :default [0 0]]
+      [:canvas/mode :default :select]
+      [:canvas/theme :default :light]
       :canvas/modifier
-      :zoom/scale
+      [:zoom/scale :default 1]
       {:canvas/scene
        [:image/checksum
         :image/width
@@ -532,7 +552,7 @@
           theme   :canvas/theme
           modif   :canvas/modifier
           [tx ty] :pos/vec
-          {:image/keys [checksum width height] :as map} :canvas/scene} :root/canvas} result
+          {:image/keys [checksum width height]} :canvas/scene} :root/canvas} result
         [tx ty] (if host? [tx ty]
                     [(- tx (/ (max 0 (- hw gw)) 2 scale))
                      (- ty (/ (max 0 (- hh gh)) 2 scale))])]
