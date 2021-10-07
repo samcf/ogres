@@ -54,7 +54,7 @@
                  (as-> data (ds/reset-conn! conn data))))))
            (.catch
             (fn []
-              (ds/transact! conn tx-data))))) [nil]) nil))
+              (ds/transact! conn tx-data))))) []) nil))
 
 (defn marshaller
   "Listens to transactions to the DataScript database and serializes the
@@ -70,7 +70,7 @@
        (ds/listen!
         conn :marshaller
         (fn [report]
-          (when (and host? loaded?)
+          (if (and host? loaded?)
             (-> (ds/filter
                  (:db-after report)
                  (fn [_ [_ attr _ _]]
@@ -94,7 +94,7 @@
         (fn [{[event _ _] :tx-meta}]
           (when (= event :storage/reset)
             (do (.delete store)
-                (.reload (.-location js/window))))))) [nil])
+                (.reload (.-location js/window))))))) [])
     [:<>
      [unmarshaller]
      [marshaller]]))

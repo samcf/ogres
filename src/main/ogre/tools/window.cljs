@@ -77,7 +77,7 @@
        (->>
         (.-detail event)
         (t/read reader)
-        (ds/transact! conn))) "AppStateTx" [nil]) nil))
+        (ds/transact! conn))) "AppStateTx" []) nil))
 
 (defn bounds
   "Registers event handlers to watch for changes in the canvas dimensions in
@@ -96,12 +96,12 @@
                      (dispatch :bounds/change host?))) 100)
         observer (uix/state (js/ResizeObserver. handler))]
 
-    (listen! handler "resize" [nil])
+    (listen! handler "resize" [])
 
     (uix/effect!
      (fn []
        (when host?
-         (.dispatchEvent target (js/Event. "resize")))) [nil])
+         (.dispatchEvent target (js/Event. "resize")))) [])
 
     (uix/effect!
      (fn []
@@ -109,7 +109,7 @@
           (let [element (.querySelector (.-document target) selector)]
             (if element
               (reset! canvas element)
-              (.requestAnimationFrame js/window f)))))) [nil])
+              (.requestAnimationFrame js/window f)))))) [])
 
     (uix/effect!
      (fn []
@@ -132,12 +132,15 @@
 
     (listen!
      (fn []
-       (reset)) "beforeunload" [nil]) nil))
+       (reset)) "beforeunload" []) nil))
+
+(def query
+  {:pull [:root/host? :root/loaded?]})
 
 (defn provider
   "Provides a reference to the guest window, if any, and registers several
    event handlers needed for them." []
-  (let [[data dispatch] (use-query {:pull [:root/host? :root/loaded?]})
+  (let [[data dispatch] (use-query query)
         guest           (uix/state nil)
         reset (fn
                 ([]

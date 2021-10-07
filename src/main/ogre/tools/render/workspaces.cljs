@@ -13,7 +13,7 @@
         {current :root/canvas
          workspaces :root/canvases} data]
     [:div.workspaces
-     (for [{:keys [db/id element/name]} (sort-by :tx workspaces)]
+     (for [{:keys [db/id element/name]} workspaces]
        [:div {:key id :css {:selected (= id (:db/id current))}}
         [:div {:on-click #(dispatch :workspace/change id)}
          (if (blank? name) [:em "New Canvas"] (trim name))]
