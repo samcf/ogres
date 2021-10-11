@@ -37,32 +37,40 @@
 (defn use-query
   "React hook to run queries against the underlying DataScript database."
   ([] (let [[_ dispatch] (uix/context state)] [dispatch]))
-  ([{:keys [query pull args] :or {query root-query args []}}]
+  ([{:keys [query pull args key] :or {query root-query args []}}]
    (let [[conn dispatch] (uix/context state)
-         result (apply ds/q query @conn (if pull (conj args pull) args))]
-     [result dispatch])))
+         listen-key      (deref (uix/state (ds/squuid)))
+         get-result      (uix/callback
+                          (fn []
+                            (let [args (if pull (conj args pull) args)]
+                              (apply ds/q query @conn args))) [])
+         prev-state      (uix/state (get-result))]
+
+     (uix/effect!
+      (fn []
+        (let [canceled? (atom false)]
+          (ds/listen!
+           conn listen-key
+           (fn []
+             (if-not @canceled?
+               (let [next-state (get-result)]
+                 (if-not (= @prev-state next-state)
+                   (reset! prev-state next-state))))))
+          (fn []
+            (reset! canceled? true)
+            (ds/unlisten! conn listen-key)))) [])
+
+     [@prev-state dispatch])))
+
+(defn create-dispatch [conn]
+  (fn [event & args]
+    (let [tx (apply txs/transact @conn event args)]
+      (ds/transact! conn tx [event args tx]) nil)))
 
 (defn provider
   "Provides a DataScript in-memory database to the application and causes
    re-renders when transactions are performed."
   [child]
-  (let [bean     (uix/state 0)
-        pawn     (uix/state (ds/conn-from-db (initial-data)))
-        conn     (deref pawn)
-        dispatch (uix/callback
-                  (fn [event & args]
-                    (let [tx (apply txs/transact @conn event args)]
-                      (ds/transact! conn tx [event args tx]))) [])]
-
-    (uix/effect!
-     (fn []
-       (ds/listen!
-        conn :rerender
-        (fn [{:keys [db-after]}]
-          (let [data (ds/pull db-after [:root/host? :share/paused?] [:db/ident :root])]
-            (if (or (:root/host? data) (not (:share/paused? data)))
-              (swap! bean inc)))))
-       (fn [] (ds/unlisten! conn :rerender))) [])
-
+  (let [conn (ds/conn-from-db (initial-data))]
     (uix/context-provider
-     [state [conn dispatch]] child)))
+     [state [conn (create-dispatch conn)]] child)))

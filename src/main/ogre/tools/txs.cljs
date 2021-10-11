@@ -247,7 +247,8 @@
 
 (defmethod transact :zoom/step
   [data event step mx my]
-  (let [result (ds/pull data [:zoom/scale :pos/vec] [:db/ident :canvas])
+  (let [select [[:zoom/scale :default 1] [:pos/vec :default [0 0]]]
+        result (ds/pull data select [:db/ident :canvas])
         {scale   :zoom/scale
          [cx cy] :pos/vec} result
 
@@ -257,12 +258,9 @@
             (constrain 0 (- (count zoom-scales) 1))
             (zoom-scales))
 
-        factor
-        (/ next scale)
-
-        [dx dy]
-        [(/ (- (* mx factor) mx) next)
-         (/ (- (* my factor) my) next)]]
+        fx (/ next scale)
+        dx (/ (- (* mx fx) mx) next)
+        dy (/ (- (* my fx) my) next)]
     [[:db/add [:db/ident :canvas] :pos/vec (round [(- cx dx) (- cy dy)] 1)]
      [:db/add [:db/ident :canvas] :zoom/scale next]]))
 
