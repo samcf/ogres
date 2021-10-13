@@ -66,12 +66,12 @@
 
 (defmethod transact :workspace/remove
   [data event id]
-  (let [result   (ds/pull data [{:root/canvases [:db/id]}] [:db/ident :root])
-        canvas   (ds/pull data [:db/id] [:db/ident :canvas])
+  (let [result   (ds/pull data '[{:root/canvases [*]}] [:db/ident :root])
+        canvas   (ds/pull data '[*] [:db/ident :canvas])
         canvases (:root/canvases result)]
     (cond
       (= (count canvases) 1)
-      (let [next {:db/id -1 :db/ident :canvas}]
+      (let [next {:db/id -1 :db/ident :canvas :element/name ""}]
         [[:db.fn/retractEntity id]
          [:db/add [:db/ident :root] :root/canvases -1]
          [:db/add [:db/ident :root] :root/canvas -1]

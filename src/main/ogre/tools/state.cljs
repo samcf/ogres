@@ -27,6 +27,7 @@
     [:db/add -1 :bounds/host [0 0 0 0]]
     [:db/add -1 :bounds/guest [0 0 0 0]]
     [:db/add -2 :db/ident :canvas]
+    [:db/add -2 :element/name ""]
     [:db/add -3 :element/type :token]]))
 
 (defcontext state)
