@@ -2,9 +2,12 @@
   (:require [clojure.string :refer [capitalize]]
             [ogre.tools.form.render :refer [form]]
             [ogre.tools.form.util :refer [checked? every-value?]]
-            [ogre.tools.render :refer [button checkbox]]
+            [ogre.tools.storage :refer [storage]]
+            [ogre.tools.render :refer [button checkbox use-image]]
             [ogre.tools.render.icon :refer [icon]]
-            [ogre.tools.state :refer [use-query]]))
+            [ogre.tools.state :refer [use-query]]
+            [ogre.tools.image :as image]
+            [uix.core.alpha :as uix]))
 
 (def light-sources
   [["None" 0 0] ["Candle" 5 5] ["Torch" 20 20] ["Lamp" 15 30] ["Lantern" 30 30]])
@@ -21,7 +24,8 @@
 
 (def query
   {:pull
-   [{:root/canvas
+   [{:root/stamps [:image/checksum]}
+    {:root/canvas
      [:canvas/initiative
       {:canvas/selected
        [:db/id
@@ -33,37 +37,88 @@
         :aura/label
         [:aura/radius :default 0]]}]}]})
 
+(defn stamp [{:keys [checksum on-select]}]
+  (let [url (use-image checksum)]
+    [:div.form-token-image
+     {:style    {:background-image (str "url(" url ")")}
+      :on-click #(on-select checksum)}]))
+
+(defn upload [{:keys [ref]}]
+  (let [[dispatch]      (use-query)
+        {:keys [store]} (uix/context storage)]
+    [:input
+     {:type "file"
+      :ref ref
+      :accept "image/*"
+      :multiple true
+      :style {:display "none"}
+      :on-change
+      (fn [event]
+        (let [files (.. event -target -files)]
+          (doseq [file files]
+            (.then
+             (image/load file)
+             (fn [{:keys [data filename element]}]
+               (let [checksum (image/checksum data)
+                     record   #js {:checksum checksum :data data :created-at (.now js/Date)}
+                     entity   {:image/checksum checksum
+                               :image/name     filename
+                               :image/width    (.-width element)
+                               :image/height   (.-height element)}]
+                 (.then
+                  (.put (.-images store) record)
+                  (fn [] (dispatch :stamp/create entity)))))))))}]))
+
 (defn token [props]
   (let [[data dispatch] (use-query query)
+        display-tokens? (uix/state false)
+        file-upload     (uix/ref)
         initiative      (-> data :root/canvas :canvas/initiative)
         selected        (-> data :root/canvas :canvas/selected)
+        stamps          (-> data :root/stamps)
         idents          (map :db/id selected)]
     [:<>
-     [:section
-      [:fieldset.group
-       (let [[match? value] (every-value? selected :element/name)]
-         [:input
-          {:type "text"
-           :value (or value "")
-           :placeholder (if match? "Label" "Multiple selected...")
-           :maxLength 24
-           :spellCheck "false"
-           :style {:flex 1 :width "100%"}
-           :on-change
-           (fn [event]
-             (let [value (.. event -target -value)]
-               (dispatch :element/update idents :element/name value)))}])
-       [button {:style {:flex 0} :on-click #(dispatch :element/remove idents)}
-        [icon {:name "trash" :size 16}]]]]
-     [:section
+     [:section.form-token-profile
+      [:div.form-token-avatar
+       {:on-click #(swap! display-tokens? not)}
+       [icon {:name :person-circle :size 36}]]
+      (let [[match? value] (every-value? selected :element/name)]
+        [:input
+         {:type "text"
+          :value (or value "")
+          :placeholder (if match? "Label" "Multiple selected...")
+          :maxLength 24
+          :spellCheck "false"
+          :style {:flex 1 :width "100%"}
+          :on-change
+          (fn [event]
+            (let [value (.. event -target -value)]
+              (dispatch :element/update idents :element/name value)))}])
+      [button {:on-click #(dispatch :element/remove idents)}
+       [icon {:name "trash" :size 16}]]
       (let [checked (checked? :canvas/_initiative selected)]
-        [checkbox
-         {:checked checked
-          :on-change #(dispatch :initiative/toggle idents %)}
-         (case [(> (count initiative) 0) checked]
-           [true true] "In Initiative - Remove"
-           ([true false] [true :indeterminate]) "In Initiative - Include"
-           "Start Initiative")])]
+        [:div {:style {:grid-column "2 / 4"}}
+         [checkbox
+          {:checked checked
+           :on-change #(dispatch :initiative/toggle idents %)}
+          (case [(> (count initiative) 0) checked]
+            [true true] "In Initiative - Remove"
+            ([true false] [true :indeterminate]) "In Initiative - Include"
+            "Start Initiative")]])]
+     (if @display-tokens?
+       [:section
+        [:legend "Image"]
+        [:div.form-token-images
+         [:div.form-token-image [icon {:name :person-circle :size 36}]]
+         [:div.form-token-image
+          {:on-click #(.click @file-upload)}
+          [icon {:name :plus-circle :size 36}]]
+         (for [{:keys [image/checksum]} (:root/stamps data)]
+           ^{:key checksum}
+           [stamp
+            {:checksum checksum
+             :on-select (fn [id] (dispatch :token/change-stamp idents id))}])]
+        [upload {:ref file-upload}]])
      [:section
       [:legend "Status"]
       [:fieldset.table

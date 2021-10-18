@@ -8,12 +8,14 @@
    :root/tokens       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :root/canvases     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :root/scenes       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :root/stamps       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :root/canvas       {:db/valueType :db.type/ref}
    :canvas/scene      {:db/valueType :db.type/ref}
    :canvas/tokens     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :canvas/shapes     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :canvas/selected   {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :canvas/initiative {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
+   :token/stamp       {:db/valueType :db.type/ref}
    :image/checksum    {:db/unique :db.unique/identity}})
 
 (defn initial-data []

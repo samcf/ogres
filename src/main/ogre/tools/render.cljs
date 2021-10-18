@@ -1,7 +1,6 @@
 (ns ogre.tools.render
   (:require [clojure.string :as string]
             [datascript.core :refer [squuid]]
-            [ogre.tools.state :refer [use-query]]
             [ogre.tools.storage :refer [storage]]
             [uix.core.alpha :as uix]))
 
@@ -37,42 +36,39 @@
 (defn button [props children]
   [:button (merge {:class "ogre-button" :type "button"} props) children])
 
-(defn use-image
-  ([checksum]
-   (use-image checksum {:persist? false}))
-  ([checksum {:keys [persist?] :or {persist? false}}]
-   (let [result (uix/state {:loading? false :url nil})
-         {:keys [store]} (uix/context storage)
-         [{url :image/url} dispatch]
-         (use-query
-          {:query '[:find (pull $ ?id pattern) .
-                    :in $ ?checksum pattern
-                    :where [?id :image/checksum ?checksum]]
-           :pull  '[:image/url]
-           :args  [checksum]})]
-     (when (string? checksum)
-       (cond
-         (string? url)
-         url
+(def cache (atom {}))
 
-         (:loading? @result)
-         nil
+(defn use-image [checksum]
+  (let [{:keys [store]}  (uix/context storage)
+        sentinel         (uix/state 0)
+        watch-key        (deref (uix/state (squuid)))
+        [loading cached] (get @cache checksum [false nil])]
 
-         (string? (:url @result))
-         (:url @result)
+    (if (not (or loading cached))
+      (swap! cache assoc checksum [true nil]))
 
-         :else
-         (do (swap! result assoc :loading? true)
-             (-> (.get (.table store "images") checksum)
-                 (.then
-                  (fn [record]
-                    (when record
-                      (if (not persist?)
-                        (reset! result {:loading? false :url (.-data record)})
-                        (-> (.fetch js/window (.-data record))
-                            (.then (fn [r] (.blob r)))
-                            (.then (fn [b]
-                                     (let [file (js/File. #js [b] "image" #js {:type (.-type b)})
-                                           url  (.createObjectURL js/URL file)]
-                                       (dispatch :image/set-url checksum url)
-                                       (reset! result {:loading? false :url url}))))))))))))))))
+    (uix/effect!
+     (fn []
+       (if (string? checksum)
+         (add-watch
+          cache watch-key
+          (fn [_ _ _ value]
+            (if (not cached)
+              (let [[_ cached] (get value checksum [false nil])]
+                (if cached (swap! sentinel inc)))))))
+       (fn [] (remove-watch cache watch-key))) [checksum cached])
+
+    (uix/effect!
+     (fn []
+       (if (and (string? checksum) (not (or loading cached)))
+         (-> (.table store "images")
+             (.get checksum)
+             (.then (fn [r] (.fetch js/window (.-data r))))
+             (.then (fn [r] (.blob r)))
+             (.then (fn [b]
+                      (->> (js/File. #js [b] "image" #js {:type (.-type b)})
+                           (.createObjectURL js/URL)
+                           (vector false)
+                           (swap! cache assoc checksum))))))) [checksum])
+
+    cached))

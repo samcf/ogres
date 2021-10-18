@@ -13,8 +13,7 @@
     :root/privileged?
     :share/open?
     :share/paused?
-    :canvas/modifier
-    :image/url})
+    :canvas/modifier})
 
 (defn host? [element]
   (->

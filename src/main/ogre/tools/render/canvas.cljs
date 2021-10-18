@@ -71,7 +71,7 @@
         [:pos/vec :default [0 0]]]}]}]})
 
 (defn board [{:keys [checksum]}]
-  (let [url      (use-image checksum {:persist? true})
+  (let [url      (use-image checksum)
         [root]   (use-query board-query)
         {host? :root/host?
          {lighting :canvas/lighting
@@ -259,6 +259,7 @@
    [:element/name
     [:element/flags :default #{}]
     [:token/size :default {:name :medium :size 5}]
+    {:token/stamp [:image/checksum]}
     :aura/label
     [:aura/radius :default 0]
     :initiative/suffix
@@ -277,10 +278,13 @@
         token-label (label data)
         aura-radius (:aura/radius data)
         aura-length (+ (ft->px aura-radius size) (/ size 2))
+        checksum    (-> data :token/stamp :image/checksum)
         [cx cy]     [(* (.cos js/Math 0.75) aura-length)
                      (* (.sin js/Math 0.75) aura-length)]]
     [:g {:class class-name}
-     [:circle.canvas-token-shape {:cx 0 :cy 0 :r (max (- token-radiu 4) 8)}]
+     [:circle.canvas-token-shape
+      {:cx 0 :cy 0 :r (max (- token-radiu 4) 8)
+       :fill (if checksum (str "url(#token-stamp-" checksum ")"))}]
      (if (seq token-label)
        [text {:x 0 :y (+ token-radiu 8)} token-label])
      (if (> aura-radius 0)
@@ -289,9 +293,28 @@
        [text {:x (+ cx 8) :y (+ cy 8)} (:aura/label data)])
      (if (:canvas/_selected data)
        [:g.canvas-token-marker
-        {:transform (xf :translate [-17 (* -1 (+ token-radiu 16))] :scale 2.20)}
+        {:transform (xf :translate [-17 (* -1 (+ token-radiu 20))] :scale 2.20)}
         [:g.canvas-token-marker-bounce
          [marker]]])]))
+
+(defn stamp [{:keys [checksum]}]
+  (let [url (use-image checksum)]
+    [:image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMid slice"}]))
+
+(def stamps-query
+  {:pull
+   [{:root/canvas
+     [{:canvas/tokens
+       [{:token/stamp [:image/checksum]}]}]}]})
+
+(defn stamps [props]
+  (let [[data] (use-query stamps-query)
+        lookup (fn [t] (-> t :token/stamp :image/checksum))
+        checksums (->> data :root/canvas :canvas/tokens (map lookup) set)]
+    [:defs.canvas-token-stamps
+     (for [checksum checksums :let [id (str "token-stamp-" checksum)]]
+       [:pattern {:key checksum :id id :width "100%" :height "100%" :patternContentUnits "objectBoundingBox"}
+        [stamp {:checksum checksum}]])]))
 
 (def tokens-query
   {:pull
@@ -572,6 +595,7 @@
         ^{:key checksum} [board {:checksum checksum}]
         [grid]
         [shapes]
+        [stamps]
         [tokens]
         [selection]
         [mask]]

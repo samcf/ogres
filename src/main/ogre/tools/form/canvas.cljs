@@ -75,18 +75,18 @@
          :multiple true
          :on-change
          #(doseq [file (.. % -target -files)]
-            (image/load
-             file
-             (fn [{:keys [data filename img]}]
-               (let [checks (image/checksum data)
-                     record #js {:checksum checks :data data :created-at (.now js/Date)}
-                     entity {:image/checksum checks
-                             :image/name     filename
-                             :image/width    (.-width img)
-                             :image/height   (.-height img)}]
-                 (-> (.put (.-images store) record)
-                     (.then
-                      (fn [] (dispatch :scene/create entity))))))))}]]]
+            (-> (image/load file)
+                (.then
+                 (fn [{:keys [data filename element]}]
+                   (let [checks (image/checksum data)
+                         record #js {:checksum checks :data data :created-at (.now js/Date)}
+                         entity {:image/checksum checks
+                                 :image/name     filename
+                                 :image/width    (.-width element)
+                                 :image/height   (.-height element)}]
+                     (-> (.put (.-images store) record)
+                         (.then
+                          (fn [] (dispatch :scene/create entity)))))))))}]]]
      [:section
       [:legend "Options"]
       [:fieldset.setting

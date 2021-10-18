@@ -158,10 +158,6 @@
        [:db/add [:db/ident :canvas] :canvas/scene -1]]
       [[:db/add [:db/ident :canvas] :canvas/scene [:image/checksum checksum]]])))
 
-(defmethod transact :image/set-url
-  [data event checksum url]
-  [[:db/add [:image/checksum checksum] :image/url url]])
-
 (defmethod transact :map/remove
   [data event map]
   [[:db/retractEntity map]])
@@ -194,6 +190,11 @@
   [data event idents name size]
   (for [id idents]
     [:db/add id :token/size {:name name :size size}]))
+
+(defmethod transact :token/change-stamp
+  [data event idents checksum]
+  (for [id idents]
+    [:db/add id :token/stamp [:image/checksum checksum]]))
 
 (defmethod transact :shape/create
   [data event kind vecs]
@@ -426,3 +427,12 @@
   [data event]
   (let [{:keys [panel/collapsed?]} (ds/pull data [:panel/collapsed?] [:db/ident :canvas])]
     [[:db/add [:db/ident :canvas] :panel/collapsed? (not (or collapsed? false))]]))
+
+(defmethod transact :stamp/create
+  [data event stamp-data]
+  (let [checksum (:image/checksum stamp-data)
+        exists?  (ds/entity data [:image/checksum checksum])]
+    (if-not exists?
+      [(assoc stamp-data :db/id -1)
+       [:db/add [:db/ident :root] :root/stamps -1]]
+      [])))
