@@ -195,6 +195,11 @@
   (for [id idents]
     [:db/add id :token/stamp [:image/checksum checksum]]))
 
+(defmethod transact :token/remove-stamp
+  [data event idents]
+  (for [id idents]
+    [:db/retract id :token/stamp]))
+
 (defmethod transact :shape/create
   [data event kind vecs]
   [[:db/add -1 :element/type :shape]
@@ -435,3 +440,7 @@
       [(assoc stamp-data :db/id -1)
        [:db/add [:db/ident :root] :root/stamps -1]]
       [])))
+
+(defmethod transact :stamp/remove
+  [data event checksum]
+  [[:db/retractEntity [:image/checksum checksum]]])

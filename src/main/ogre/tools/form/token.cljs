@@ -9,6 +9,9 @@
             [ogre.tools.image :as image]
             [uix.core.alpha :as uix]))
 
+(defn linear [dx dy rx ry]
+  (fn [n] (+ (* (/ (- n dx) (- dy dx)) (- ry rx)) rx)))
+
 (def light-sources
   [["None" 0 0] ["Candle" 5 5] ["Torch" 20 20] ["Lamp" 15 30] ["Lantern" 30 30]])
 
@@ -32,16 +35,16 @@
         :canvas/_initiative
         :element/name
         :element/flags
+        {:token/stamp [:image/checksum]}
         [:token/size :default {:name :medium :size 5}]
         [:token/light :default [5 5]]
         :aura/label
         [:aura/radius :default 0]]}]}]})
 
-(defn stamp [{:keys [checksum on-select]}]
+(defn stamp [{:keys [checksum]}]
   (let [url (use-image checksum)]
-    [:div.form-token-image
-     {:style    {:background-image (str "url(" url ")")}
-      :on-click #(on-select checksum)}]))
+    [:div.stamp-image
+     {:style {:background-image (str "url(" url ")")}}]))
 
 (defn upload [{:keys [ref]}]
   (let [[dispatch]      (use-query)
@@ -79,9 +82,17 @@
         idents          (map :db/id selected)]
     [:<>
      [:section.form-token-profile
-      [:div.form-token-avatar
-       {:on-click #(swap! display-tokens? not)}
-       [icon {:name :person-circle :size 36}]]
+      (let [sample    (take 3 selected)
+            samples   (count sample)
+            size      ((linear 1 3 54 42) samples)
+            icon-size ((linear 1 3 38 30) samples)]
+        [:div.stamp-profile
+         {:on-click #(swap! display-tokens? not)}
+         (for [token sample :let [checksum (-> token :token/stamp :image/checksum)]]
+           (let [attrs {:key (:db/id token) :style {:width size :height size}}]
+             (if checksum
+               [:div attrs [stamp {:checksum checksum}]]
+               [:div.stamp-default attrs [icon {:name :person-circle :size icon-size}]])))])
       (let [[match? value] (every-value? selected :element/name)]
         [:input
          {:type "text"
@@ -108,16 +119,19 @@
      (if @display-tokens?
        [:section
         [:legend "Image"]
-        [:div.form-token-images
-         [:div.form-token-image [icon {:name :person-circle :size 36}]]
-         [:div.form-token-image
-          {:on-click #(.click @file-upload)}
+        [:div.stamp-options
+         [:div.stamp-default {:on-click #(dispatch :token/remove-stamp idents)}
+          [icon {:name :person-circle :size 36}]]
+         [:div.stamp-default {:on-click #(.click @file-upload)}
           [icon {:name :plus-circle :size 36}]]
          (for [{:keys [image/checksum]} (:root/stamps data)]
-           ^{:key checksum}
-           [stamp
-            {:checksum checksum
-             :on-select (fn [id] (dispatch :token/change-stamp idents id))}])]
+           [:div {:key checksum :on-click #(dispatch :token/change-stamp idents checksum)}
+            [:div
+             {:on-click
+              (fn [event]
+                (.stopPropagation event)
+                (dispatch :stamp/remove checksum))} "×"]
+            [stamp {:checksum checksum}]])]
         [upload {:ref file-upload}]])
      [:section
       [:legend "Status"]
