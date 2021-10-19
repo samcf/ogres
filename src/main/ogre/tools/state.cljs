@@ -5,7 +5,6 @@
 
 (def schema
   {:db/ident          {:db/unique :db.unique/identity}
-   :root/tokens       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :root/canvases     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :root/scenes       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :root/stamps       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
@@ -24,13 +23,11 @@
    [[:db/add -1 :db/ident :root]
     [:db/add -1 :root/canvases -2]
     [:db/add -1 :root/canvas -2]
-    [:db/add -1 :root/tokens -3]
     [:db/add -1 :bounds/self [0 0 0 0]]
     [:db/add -1 :bounds/host [0 0 0 0]]
     [:db/add -1 :bounds/guest [0 0 0 0]]
     [:db/add -2 :db/ident :canvas]
-    [:db/add -2 :element/name ""]
-    [:db/add -3 :element/type :token]]))
+    [:db/add -2 :element/name ""]]))
 
 (defcontext state)
 

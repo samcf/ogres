@@ -190,9 +190,8 @@ legend {
 }
 
 .layout-tokens {
-    display: flex;
-    justify-content: end;
     padding: 16px;
+    justify-self: end;
 }
 
 /* Workspaces */
@@ -389,25 +388,21 @@ legend {
 }
 
 /* Token Templates */
-.tokens {
-    display: flex;
-    flex-direction: column;
-    pointer-events: none;
+.layout-tokens {
+    width: 64px;
 }
 
-.tokens-token {
-    margin-bottom: 8px;
+.layout-tokens > svg {
+    height: 64px;
     pointer-events: all;
-    position: relative;
-}
-
-.tokens-token > svg {
-    height: 72px;
-    width: 72px;
-}
-
-.tokens-token > svg.draggable {
     position: absolute;
+    width: 64px;
+}
+
+.layout-tokens > svg > circle {
+    cursor: pointer;
+    stroke-width: 2px;
+    stroke: black;
 }
 
 /* Canvas */

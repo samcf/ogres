@@ -134,7 +134,7 @@
 
 (defmethod transact :element/remove
   [data event idents]
-  (let [{:keys [panel/prev]} (ds/pull data [:panel/prev] [:db/ident :canvas])]
+  (let [{:keys [panel/prev]} (ds/pull data [[:panel/prev :default :canvas]] [:db/ident :canvas])]
     (into [[:db/add [:db/ident :canvas] :panel/curr prev]]
           (for [id idents] [:db/retractEntity id]))))
 
@@ -163,13 +163,12 @@
   [[:db/retractEntity map]])
 
 (defmethod transact :token/create
-  [data event token vector]
+  [data event vector]
   [[:db/add [:db/ident :canvas] :canvas/tokens -1]
    [:db/add [:db/ident :canvas] :canvas/selected -1]
    [:db/add [:db/ident :canvas] :canvas/mode :select]
    [:db/add [:db/ident :canvas] :panel/curr :token]
-   (merge (ds/pull data '[*] token)
-          {:db/id -1 :pos/vec vector})])
+   {:db/id -1 :element/type :token :pos/vec vector}])
 
 (defmethod transact :token/translate
   [data event id x y]

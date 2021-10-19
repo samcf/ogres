@@ -279,12 +279,12 @@
         aura-radius (:aura/radius data)
         aura-length (+ (ft->px aura-radius size) (/ size 2))
         checksum    (-> data :token/stamp :image/checksum)
+        pattern-url (if checksum (str "token-stamp-" checksum) "token-stamp-default")
         [cx cy]     [(* (.cos js/Math 0.75) aura-length)
                      (* (.sin js/Math 0.75) aura-length)]]
     [:g {:class class-name}
      [:circle.canvas-token-shape
-      {:cx 0 :cy 0 :r (max (- token-radiu 4) 8)
-       :fill (if checksum (str "url(#token-stamp-" checksum ")"))}]
+      {:cx 0 :cy 0 :r (max (- token-radiu 4) 8) :fill (str "url(#" pattern-url ")")}]
      (if (seq token-label)
        [text {:x 0 :y (+ token-radiu 8)} token-label])
      (if (> aura-radius 0)
@@ -310,10 +310,15 @@
 (defn stamps [props]
   (let [[data] (use-query stamps-query)
         lookup (fn [t] (-> t :token/stamp :image/checksum))
-        checksums (->> data :root/canvas :canvas/tokens (map lookup) set)]
-    [:defs.canvas-token-stamps
-     (for [checksum checksums :let [id (str "token-stamp-" checksum)]]
-       [:pattern {:key checksum :id id :width "100%" :height "100%" :patternContentUnits "objectBoundingBox"}
+        images (->> data :root/canvas :canvas/tokens (map lookup) set)
+        attrs  {:width "100%" :height "100%" :patternContentUnits "objectBoundingBox"}]
+    [:defs
+     [:pattern (merge attrs {:id "token-stamp-default" :viewBox "0 0 16 16" :fill "#f2f2eb"})
+      [:rect {:x 0 :y 0 :width 16 :height 16 :fill "hsl(200, 20%, 12%)"}]
+      [:path {:d "M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"}]
+      [:path {:d "M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z" :fill-rule "evenodd"}]]
+     (for [checksum images]
+       [:pattern (merge attrs {:key checksum :id (str "token-stamp-" checksum)})
         [stamp {:checksum checksum}]])]))
 
 (def tokens-query
