@@ -299,7 +299,7 @@
 
 (defn stamp [{:keys [checksum]}]
   (let [url (use-image checksum)]
-    [:image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMid slice"}]))
+    [:image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"}]))
 
 (def stamps-query
   {:pull
