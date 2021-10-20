@@ -34,6 +34,10 @@
 (def root-query
   '[:find (pull $ ?id pattern) . :in $ pattern :where [?id :db/ident :root]])
 
+(defn listening? [data]
+  (let [result (ds/pull data [:root/host? :share/paused?] [:db/ident :root])]
+    (or (:root/host? result) (not (:share/paused? result)))))
+
 (defn use-query
   "React hook to run queries against the underlying DataScript database."
   ([] (let [[_ dispatch] (uix/context state)] [dispatch]))
@@ -51,8 +55,8 @@
         (let [canceled? (atom false)]
           (ds/listen!
            conn listen-key
-           (fn []
-             (if-not @canceled?
+           (fn [{:keys [db-after]}]
+             (if (and (listening? db-after) (not @canceled?))
                (let [next-state (get-result)]
                  (if-not (= @prev-state next-state)
                    (reset! prev-state next-state))))))

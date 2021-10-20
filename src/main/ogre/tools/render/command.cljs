@@ -36,7 +36,7 @@
 
 (defn command [props]
   (let [[result dispatch]                      (use-query {:pull attrs})
-        {:keys [share/open? shape/paused?]}    result
+        {:keys [share/open? share/paused?]}    result
         {:canvas/keys [mode theme last-shape]} (:root/canvas result)
         mode-attrs
         (fn [given]
