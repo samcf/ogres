@@ -3,6 +3,9 @@
             [datascript.core :as ds]
             [ogre.tools.txs :as txs]))
 
+(goog-define VERSION "latest")
+(goog-define PATH "/assets")
+
 (def schema
   {:db/ident          {:db/unique :db.unique/identity}
    :root/canvases     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}

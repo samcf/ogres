@@ -6,6 +6,7 @@
             [ogre.tools.state :as state]
             [ogre.tools.storage :as storage]
             [ogre.tools.window :as window]
+            [react-helmet :refer [Helmet]]
             [uix.core.alpha :as uix]
             [uix.dom.alpha :as uix.dom]))
 
@@ -15,18 +16,23 @@
      (assoc (dissoc attrs :css) :class (css (:class attrs) (:css attrs)))
      attrs)))
 
-(defn root []
-  [errors/boundary
-   [state/provider
-    [storage/provider
-     [:<>
-      [storage/handlers]
-      [window/provider]
-      [shortcut/handlers]
-      [layout]]]]])
+(defn root [{:keys [path]}]
+  [:<>
+   [:> Helmet
+    [:link {:rel "stylesheet" :href (str path "/reset.css")}]
+    [:link {:rel "stylesheet" :href (str path "/fonts.css")}]
+    [:link {:rel "stylesheet" :href (str path "/ogre.tools.css")}]]
+   [errors/boundary
+    [state/provider
+     [storage/provider
+      [:<>
+       [storage/handlers]
+       [window/provider]
+       [shortcut/handlers]
+       [layout]]]]]])
 
 (defn main []
   (let [element (.querySelector js/document "#root")]
-    (uix.dom/render [root] element)))
+    (uix.dom/render [root {:path state/PATH}] element)))
 
-(.addEventListener js/window "DOMContentLoaded" main)
+(main)

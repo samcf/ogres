@@ -9,7 +9,8 @@
     "dexie": "^3.0.3",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "react-draggable": "^4.4.3"
+    "react-draggable": "^4.4.3",
+    "react-helmet": "^6.1.0"
   },
   "scripts": {
     "build": "npx shadow-cljs release app",
