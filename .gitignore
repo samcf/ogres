@@ -1,5 +1,4 @@
 node_modules/
-web/script
 
 /target
 /checkouts
@@ -13,6 +12,7 @@ pom.xml.asc
 .calva
 .clj-kondo
 .cpcache
+.lsp
 .shadow-cljs
 .idea
 .lein-*
@@ -21,3 +21,7 @@ pom.xml.asc
 
 .hgignore
 .hg/
+
+manifest.edn
+cljs-runtime
+ogre.tools.js
