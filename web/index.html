@@ -1,19 +1,58 @@
 <!DOCTYPE html>
 <html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="description" content="Free and open-source virtual tabletop to help you run your Dungeons & Dragons 5th Edition games." />
+        <title>ogre.tools &ndash; Virtual Tabletop</title>
+        <script src="https://unpkg.com/dexie@3.0.3/dist/dexie.js"></script>
+        <script>
+            function initialize(path) {
+                let element = document.createElement("script");
+                element.type = "text/javascript";
+                element.src = path + "/ogre.tools.js";
+                document.head.appendChild(element);
+            }
 
-<head>
-    <meta charset="utf-8" />
-    <meta name="description"
-        content="Free and open-source virtual table top to help you run your Dungeons & Dragons 5th Edition games." />
-    <title>ogre.tools</title>
-    <link rel="stylesheet" href="reset.css" />
-    <link rel="stylesheet" href="fonts.css" />
-    <link rel="stylesheet" href="ogre.tools.css" />
-    <script src="script/ogre.tools.js"></script>
-</head>
+            // Initializes the application at the correct version by searching
+            // your browser's local storage for a record that was put there
+            // when you previously used this site. If this is your first time
+            // visiting, it initializes the application with the latest stable
+            // release.
+            function main() {
+                // This checks to see if this application is being run locally
+                // for development and loads from a special directory instead.
+                if (window.location.hostname === "localhost") {
+                    initialize("release");
+                    return;
+                }
 
-<body>
-    <div id="root" />
-</body>
+                // By adding a search parameter to the URL, the client can
+                // request to load a release at the specified directory name.
+                let params = new URLSearchParams(window.location.search);
+                if (params.get("r")) {
+                    initialize("release/" + params.get("r"));
+                    return;
+                }
 
+                // Search for a record in local storage and load the release
+                // specified by it. When no record is found, initialize the
+                // "latest" release instead.
+                let db = new Dexie("ogre.tools");
+                db.version(1).stores({app: "release, updated", images: "checksum"});
+                db.table("app").orderBy("updated").first().then(function (record) {
+                    if (!record) {
+                        initialize("release/latest");
+                        return;
+                    }
+
+                    initialize("release/" + record.release);
+                });
+            }
+
+            document.addEventListener("DOMContentLoaded", main);
+        </script>
+    </head>
+    <body>
+        <div id="root" />
+    </body>
 </html>

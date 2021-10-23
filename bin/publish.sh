@@ -1,23 +1,22 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+set -o nounset
 
 src="$PWD"
 dst=$(mktemp -d -t ogre.tools)
+vrs=$1
 
-# build
-npm run build
-
-# checkout
 git clone --single-branch --branch gh-pages git@github.com:samcf/ogre.tools.git "$dst"
 
-# copy, commit, and push
-cp -r web/. "$dst"/
-cd "$dst"
-rm -rf script/cljs-runtime
-git add --all
-git commit --allow-empty --amend -m "Publish changes."
-git push --force-with-lease origin gh-pages
+rm -rf "$dst"/release/latest
+mkdir -p "$dst"/release/latest
+cp -r "$dst"/release/"$vrs"/. "$dst"/release/latest
 
-# return
+cd "$dst"
+git add --all
+git commit -m "Publish version $vrs as the latest release."
+git push origin gh-pages
+
 cd "$src"
 rm -rf "$dst"
