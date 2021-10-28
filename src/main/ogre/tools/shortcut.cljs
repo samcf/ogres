@@ -21,6 +21,10 @@
    (fn [[_ dispatch]]
      (dispatch :selection/remove))
 
+   ["keydown" "Backspace"]
+   (fn [[_ dispatch]]
+     (dispatch :selection/remove))
+
    ["keydown" \s]
    (fn [[_ dispatch]]
      (dispatch :canvas/toggle-mode :select))
