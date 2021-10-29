@@ -6,6 +6,7 @@
             [ogre.tools.render.panel :refer [container]]
             [ogre.tools.state :refer [use-query]]
             [ogre.tools.render.tokens :refer [tokens]]
+            [ogre.tools.render.controls :as controls]
             [ogre.tools.render.workspaces :refer [workspaces]]))
 
 (def attrs
@@ -29,6 +30,7 @@
          [:div.layout-canvas [canvas]]
          [:div.layout-command [command]]
          [:div.layout-tokens [tokens]]
+         [:div.layout-controls [controls/container]]
          [:div.layout-panel [container]]]
         [:div.layout {:class (css classes)}
          [:div.layout-canvas [canvas]]]))))

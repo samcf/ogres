@@ -28,21 +28,18 @@
 
 (def attrs
   [[:share/open? :default false]
-   [:share/paused? :default false]
    {:root/canvas
     [[:canvas/mode :default :select]
-     [:canvas/theme :default :light]
      [:canvas/last-shape :default :circle]]}])
 
 (defn command [props]
-  (let [[result dispatch]                      (use-query {:pull attrs})
-        {:keys [share/open? share/paused?]}    result
-        {:canvas/keys [mode theme last-shape]} (:root/canvas result)
+  (let [[data dispatch] (use-query {:pull attrs})
+        canvas          (:root/canvas data)
         mode-attrs
         (fn [given]
           {:type "button"
            :key given
-           :css {:selected (= given mode)}
+           :css {:selected (= given (:canvas/mode canvas))}
            :on-click #(dispatch :canvas/toggle-mode given)})]
     [:div.commands
      [:button (mode-attrs :select)
@@ -54,7 +51,7 @@
       [shortcut "R"]
       [tooltip "Ruler"]]
      [commands
-      (let [last last-shape]
+      (let [last (:canvas/last-shape canvas)]
         [:button (mode-attrs last)
          [icon {:name (shape->icon last)}]
          [shortcut (shape->shortcut last)]])
@@ -62,13 +59,8 @@
         [:button (mode-attrs shape)
          [icon {:name (shape->icon shape)}]
          [shortcut (shape->shortcut shape)]])]
-     [commands
-      [:button
-       {:css {:active open?} :on-click #(dispatch :share/initiate)}
-       [icon {:name :pip :size 22}]]
-      [:button {:key :switch :disabled (not open?) :on-click #(dispatch :share/switch)}
-       (if paused?
-         [icon {:name :play-fill}]
-         [icon {:name :pause-fill}])
-       [shortcut "P"]
-       [tooltip "Pause / resume"]]]]))
+     [:button
+      {:css {:active (:share/open? data)} :on-click #(dispatch :share/initiate)}
+      [icon {:name :pip :size 22}]
+      [shortcut "W"]
+      [tooltip "Toggle Player Window"]]]))
