@@ -178,7 +178,8 @@ legend {
 }
 
 .layout-command,
-.layout-tokens {
+.layout-tokens,
+.layout-controls {
     pointer-events: none;
 }
 
@@ -192,6 +193,14 @@ legend {
 .layout-tokens {
     padding: 16px;
     justify-self: end;
+}
+
+.layout-controls {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    grid-area: b;
+    justify-content: flex-end;
 }
 
 /* Workspaces */
@@ -403,6 +412,36 @@ legend {
     cursor: pointer;
     stroke-width: 2px;
     stroke: black;
+}
+
+/* Controls */
+.controls {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 16px;
+    pointer-events: all;
+    border: 1px solid rgba(255, 255, 255, 0.60);
+    backdrop-filter: blur(4px);
+    border-radius: 3px;
+    box-sizing: border-box;
+}
+
+.controls-control {
+    align-items: center;
+    aspect-ratio: 1;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    width: 40px;
+    transition: color 84ms ease-in;
+}
+
+.controls-control:not(.disabled) {
+    cursor: pointer;
+}
+
+.controls-control.disabled {
+    color: rgba(255, 255, 255, 0.25);
 }
 
 /* Canvas */
