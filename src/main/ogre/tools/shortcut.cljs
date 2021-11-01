@@ -62,6 +62,10 @@
      (let [{:keys [share/open?]} (pull @conn [:share/open?] [:db/ident :root])]
        (if open?
          (dispatch :share/switch))))
+   
+   ["keydown" \w]
+   (fn [[_ dispatch]]
+     (dispatch :share/initiate))
 
    ["keydown" \ ]
    (fn [[_ dispatch]]
