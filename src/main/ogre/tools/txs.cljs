@@ -220,7 +220,7 @@
 (defmethod transact :grid/draw
   [data event ox oy size]
   (let [ident  [:db/ident :canvas]
-        select [:db/id :zoom/scale :pos/vec {:canvas/scene [:image/width]}]
+        select [:db/id [:zoom/scale :default 1] [:pos/vec :default [0 0]] {:canvas/scene [:image/width]}]
         result (ds/pull data select ident)
         {scale :zoom/scale
          [x y] :pos/vec
