@@ -2,7 +2,7 @@
   (:require [clojure.string :refer [capitalize]]
             [ogre.tools.form.render :refer [form]]
             [ogre.tools.image :as image]
-            [ogre.tools.render :refer [checkbox use-image]]
+            [ogre.tools.render :refer [button checkbox use-image]]
             [ogre.tools.state :refer [use-query]]
             [ogre.tools.render.icon :refer [icon]]
             [ogre.tools.storage :refer [storage]]
@@ -14,7 +14,8 @@
     {:root/canvas
      [:db/id
       :element/name
-      :canvas/scene
+      {:canvas/scene
+       [:image/checksum]}
       [:canvas/theme :default :light]
       [:canvas/lighting :default :bright]
       [:canvas/color :default :none]
@@ -38,15 +39,30 @@
          (.stopPropagation event)
          (on-remove))} "×"]]))
 
+(defn preview [{:keys [checksum]}]
+  (let [url (use-image checksum)]
+    [:div {:style {:background-image (str "url(" url ")")}}]))
+
 (defn canvas []
   (let [[result dispatch] (use-query query)
         {:keys [store]}   (uix/context storage)
+        show-images       (uix/state false)
+        file-upload       (uix/ref)
         {canvas :root/canvas
          scenes :root/scenes} result]
+    (println canvas)
     [:<>
      [:section
       [:header "Canvas Options"]]
-     [:section
+     [:section.form-canvas-profile
+      [:button
+       {:type "button"
+        :on-click #(swap! show-images not)
+        :disabled (not (seq scenes))}
+       (if (:canvas/scene canvas)
+         [preview {:checksum (-> canvas :canvas/scene :image/checksum)}]
+         [icon {:name :images :size 32}])]
+      [button {:on-click #(.click @file-upload)} "Choose File(s)"]
       [:input
        {:type "text"
         :placeholder "New Canvas"
@@ -58,35 +74,37 @@
           (let [value (.. event -target -value)]
             (dispatch :element/update [(:db/id canvas)] :element/name value)))}]]
      [:section
-      [:fieldset.thumbnails
-       (for [{:keys [db/id image/checksum]} scenes]
-         ^{:key checksum}
-         [thumbnail
-          {:checksum  checksum
-           :selected  (= id (:db/id (:canvas/scene canvas)))
-           :on-select (fn [] (dispatch :canvas/change-scene id))
-           :on-remove (fn []
-                        (.delete (.-images store) checksum)
-                        (dispatch :map/remove id))}])]
-      [:fieldset
-       [:input
-        {:type "file"
-         :accept "image/*"
-         :multiple true
-         :on-change
-         #(doseq [file (.. % -target -files)]
-            (-> (image/load file)
-                (.then
-                 (fn [{:keys [data filename element]}]
-                   (let [checks (image/checksum data)
-                         record #js {:checksum checks :data data :created-at (.now js/Date)}
-                         entity {:image/checksum checks
-                                 :image/name     filename
-                                 :image/width    (.-width element)
-                                 :image/height   (.-height element)}]
-                     (-> (.put (.-images store) record)
-                         (.then
-                          (fn [] (dispatch :scene/create entity)))))))))}]]]
+      (if (and (seq scenes) @show-images)
+        [:fieldset.thumbnails
+         (for [{:keys [db/id image/checksum]} scenes]
+           ^{:key checksum}
+           [thumbnail
+            {:checksum  checksum
+             :selected  (= id (:db/id (:canvas/scene canvas)))
+             :on-select (fn [] (dispatch :canvas/change-scene id))
+             :on-remove (fn []
+                          (.delete (.-images store) checksum)
+                          (dispatch :map/remove id))}])])
+      [:input
+       {:type "file"
+        :ref file-upload
+        :accept "image/*"
+        :multiple true
+        :style {:display "none"}
+        :on-change
+        #(doseq [file (.. % -target -files)]
+           (-> (image/load file)
+               (.then
+                (fn [{:keys [data filename element]}]
+                  (let [checks (image/checksum data)
+                        record #js {:checksum checks :data data :created-at (.now js/Date)}
+                        entity {:image/checksum checks
+                                :image/name     filename
+                                :image/width    (.-width element)
+                                :image/height   (.-height element)}]
+                    (-> (.put (.-images store) record)
+                        (.then
+                         (fn [] (dispatch :scene/create entity)))))))))}]]
      [:section
       [:legend "Options"]
       [:fieldset.setting

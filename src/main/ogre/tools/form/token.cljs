@@ -85,14 +85,14 @@
       (let [sample    (take 3 selected)
             samples   (count sample)
             size      ((linear 1 3 54 42) samples)
-            icon-size ((linear 1 3 38 30) samples)]
+            icon-size ((linear 1 3 32 30) samples)]
         [:div.stamp-profile
          {:on-click #(swap! display-tokens? not)}
          (for [token sample :let [checksum (-> token :token/stamp :image/checksum)]]
-           (let [attrs {:key (:db/id token) :style {:width size :height size}}]
+           (let [attrs {:key (:db/id token) :type "button" :style {:width size :height size}}]
              (if checksum
-               [:div attrs [stamp {:checksum checksum}]]
-               [:div.stamp-default attrs [icon {:name :person-circle :size icon-size}]])))])
+               [:button attrs [stamp {:checksum checksum}]]
+               [:button.stamp-default attrs [icon {:name :person-circle :size icon-size}]])))])
       (let [[match? value] (every-value? selected :element/name)]
         [:input
          {:type "text"

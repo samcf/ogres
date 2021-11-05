@@ -593,21 +593,23 @@ legend {
     position: relative;
 }
 
-.stamp-profile > div {
-    position: absolute;
-    top: inherit;
-    left: inherit;
-    right: inherit;
+.stamp-profile button {
     bottom: inherit;
+    cursor: pointer;
+    left: inherit;
+    padding: 0;
+    position: absolute;
+    right: inherit;
+    top: inherit;
 }
 
-.stamp-profile > div:nth-child(2) {
+.stamp-profile > button:nth-child(2) {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
 }
 
-.stamp-profile > div:last-child {
+.stamp-profile > button:last-child {
     right: 0;
     bottom: 0;
     top: inherit;
@@ -619,8 +621,6 @@ legend {
     display: grid;
     grid-gap: 2px;
     grid-template-columns: repeat(6, 1fr);
-    /* max-height: 94px; */
-    /* overflow: auto; */
 }
 
 .stamp-options > div {
@@ -657,22 +657,52 @@ legend {
     border-radius: 3px;
     border: 1px solid var(--theme-paper-accent);
     box-sizing: border-box;
-    box-sizing: border-box;
     height: 100%;
     width: 100%;
 }
 
 .stamp-default {
     align-items: center;
-    background-color: var(--theme-paper-light);
-    border-radius: 3px;
-    border: 1px solid var(--theme-paper-accent);
+    box-sizing: border-box;
     color: var(--theme-paper-accent);
     display: flex;
     justify-content: center;
 }
 
 /* Forms */
+.form-canvas-profile {
+    display: grid;
+    grid-gap: 4px;
+    grid-template-columns: 54px 1fr;
+    grid-template-areas:
+      "a b"
+      "a c";
+}
+
+.form-canvas-profile button:nth-child(1) {
+    align-items: center;
+    aspect-ratio: 1;
+    color: var(--theme-paper-accent);
+    display: flex;
+    grid-area: a;
+    justify-content: center;
+    padding: 0;
+}
+
+.form-canvas-profile button:nth-child(1) > div {
+    aspect-ratio: 1;
+    background-size: cover;
+    width: 100%;
+}
+
+.form-canvas-profile button:nth-child(1):not(:disabled) {
+    cursor: pointer;
+}
+
+.form-canvas-profile button:nth-child(2) {
+    grid-area: c;
+}
+
 .form-canvas-grid .ogre-checkbox + label {
     align-items: center;
     display: flex;
@@ -795,8 +825,7 @@ legend {
 .thumbnails {
     display: grid;
     grid-gap: 4px;
-    grid-template-columns: repeat(3, 1fr);
-    max-height: 188px;
+    grid-template-columns: repeat(4, 1fr);
     overflow: auto;
 }
 
@@ -804,7 +833,7 @@ legend {
     background-size: cover;
     border-radius: 3px;
     cursor: pointer;
-    height: 90px;
+    aspect-ratio: 1;
     position: relative;
 }
 
