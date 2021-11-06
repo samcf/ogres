@@ -34,6 +34,14 @@ p + p {
     margin-top: 8px;
 }
 
+ul {
+    margin-left: 1.5em;
+}
+
+ul li {
+    list-style: square;
+}
+
 input[type="text"],
 input[type="number"] {
     background-color: var(--theme-paper-light);

@@ -1,27 +1,24 @@
 (ns ogre.tools.form.help
   (:require [ogre.tools.form.render :refer [form]]
             [ogre.tools.render :refer [button checkbox]]
-            [ogre.tools.state :refer [use-query]]))
+            [ogre.tools.state :refer [use-query VERSION]]))
 
 (def attrs
   [[:root/shortcuts? :default false]
    [:root/tooltips? :default false]])
+
+(def links
+  [["https://reddit.com/r/ogretools/" "Project subreddit"]
+   ["https://github.com/samcf/ogre.tools" "Project source code"]
+   ["mailto:mail@samcf.me" "Personal email"]])
 
 (defn help []
   (let [[result dispatch] (use-query {:pull attrs})
         {:root/keys [shortcuts? tooltips?]} result]
     [:<>
      [:section
-      [:header "About"]
-      [:p "ogre.tools is a free and open-source virtual table top for your "
-       [:strong "Dungeons & Dragons 5th Edition"]
-       " games."]
-      [:p "Find a bug or want to explore the project code?"
-       [:br]
-       [:a {:href "https://github.com/samcf/ogre.tools" :target "_blank" :title "Repository home"}
-        "https://github.com/samcf/ogre.tools"]]]
+      [:header "Settings"]]
      [:section
-      [:legend "Options"]
       [:fieldset.setting
        [:label "Show Shortcuts"]
        (for [display? [true false] :let [checked? (= display? shortcuts?)]]
@@ -45,13 +42,24 @@
                (dispatch :interface/toggle-tooltips display?)))}
           (if display? "Yes" "No")])]]
      [:section
+      [:legend "More Information"]
+      [:p "ogre.tools is a free and open-source virtual tabletop that helps you
+           run your Dungeons & Dragons 5th Edition games. Please feel free to
+           use any of the resources below to ask for help or make a suggestion."]
+      [:ul
+       (for [[url title] links]
+         [:li {:key url} [:a {:href url :target "_blank" :title title} url]])]]
+     [:section
       [:legend "Local Data"]
       [:p "This application stores all uploaded images and work on your
            browser. You may restore the application to its factory defaults
            by clicking the button below."]
-      [:p [:strong "All uploaded images and work will be permanently deleted."]]
+      [:p "This will also move you to the latest version of this software so
+           you may notice some changes."
+       [:br]
+       "Current version: " [:strong VERSION]]
       [button {:on-click #(dispatch :storage/reset) :style {:margin-top 8}}
-       "Reset Data"]]]))
+       "Restore Factory Defaults"]]]))
 
 (defmethod form :help []
   help)
