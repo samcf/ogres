@@ -206,6 +206,7 @@
    [:db/add -1 :shape/kind kind]
    [:db/add -1 :shape/vecs vecs]
    [:db/add [:db/ident :canvas] :canvas/shapes -1]
+   [:db/add [:db/ident :canvas] :canvas/mode :select]
    [:db/add [:db/ident :canvas] :canvas/selected -1]
    [:db/add [:db/ident :canvas] :panel/curr :shape]])
 
