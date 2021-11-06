@@ -219,24 +219,21 @@
   [[:db/add [:db/ident :canvas] :grid/size size]])
 
 (defmethod transact :grid/draw
-  [data event ox oy size]
+  [data _ _ _ size]
   (let [ident  [:db/ident :canvas]
-        select [:db/id [:zoom/scale :default 1] [:pos/vec :default [0 0]] {:canvas/scene [:image/width]}]
+        select [:db/id [:zoom/scale :default 1] {:canvas/scene [:image/width]}]
         result (ds/pull data select ident)
         {scale :zoom/scale
-         [x y] :pos/vec
-         image :canvas/scene
+         scene :canvas/scene
          {width :image/width} :canvas/scene} result
-        size    (js/Math.round (/ size scale))
-        [sx sy] [(/ ox scale) (/ oy scale)]
-        origin  [(- sx x) (- sy y)]]
-    (if (nil? image)
+        size (js/Math.round (/ size scale))]
+    (if (nil? scene)
       [[:db/add ident :grid/size size]
-       [:db/add ident :grid/origin origin]]
-      (let [next (->> (range (- size 4) (+ size 4))
-                      (reduce (fn [_ n] (when (zero? (mod width n)) (reduced n)))))]
+       [:db/add ident :canvas/mode :select]]
+      (let [pattern (interleave (range size (+ size 4)) (reverse (range (- size 4) size)))
+            next    (reduce (fn [_ n] (when (zero? (mod width n)) (reduced n))) pattern)]
         [[:db/add ident :grid/size (or next size)]
-         [:db/add ident :grid/origin (if next (round origin next) origin)]]))))
+         [:db/add ident :canvas/mode :select]]))))
 
 (defmethod transact :grid/toggle
   [data event]
