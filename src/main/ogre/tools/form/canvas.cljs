@@ -50,7 +50,6 @@
         file-upload       (uix/ref)
         {canvas :root/canvas
          scenes :root/scenes} result]
-    (println canvas)
     [:<>
      [:section
       [:header "Canvas Options"]]
