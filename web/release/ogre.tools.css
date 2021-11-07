@@ -495,10 +495,6 @@ legend {
     cursor: pointer;
 }
 
-.canvas-token-shape:hover {
-
-}
-
 .canvas-token-shape + text {
     text-anchor: middle;
 }
@@ -562,8 +558,9 @@ legend {
 }
 
 .canvas-drawable-select path {
+    fill-opacity: 0.30;
     fill: var(--canvas-stroke);
-    fill-opacity: 0.10;
+    stroke: none;
 }
 
 .canvas-bounds rect {
