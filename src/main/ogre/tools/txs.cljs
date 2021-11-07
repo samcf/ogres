@@ -230,7 +230,7 @@
     (if (nil? scene)
       [[:db/add ident :grid/size size]
        [:db/add ident :canvas/mode :select]]
-      (let [pattern (interleave (range size (+ size 4)) (reverse (range (- size 4) size)))
+      (let [pattern [size (+ size 1) (- size 1) (+ size 2) (- size 2) (+ size 3) (- size 3) (+ size 4) (- size 4)]
             next    (reduce (fn [_ n] (when (zero? (mod width n)) (reduced n))) pattern)]
         [[:db/add ident :grid/size (or next size)]
          [:db/add ident :canvas/mode :select]]))))
