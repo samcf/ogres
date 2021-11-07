@@ -271,7 +271,8 @@
 
 (defn token [props]
   (let [[data dispatch] (use-query (token-query (:id props)))
-        flag-names  (mapv #(str "flag--" (name %)) (:element/flags data))
+        flags       (:element/flags data)
+        flag-names  (mapv #(str "flag--" (name %)) flags)
         class-name  (css "canvas-token" {:selected (:canvas/_selected data)} flag-names)
         size        (-> data :canvas/_tokens :grid/size)
         token-radiu (/ (ft->px (:size (:token/size data)) size) 2)
@@ -279,7 +280,10 @@
         aura-radius (:aura/radius data)
         aura-length (+ (ft->px aura-radius size) (/ size 2))
         checksum    (-> data :token/stamp :image/checksum)
-        pattern-url (if checksum (str "token-stamp-" checksum) "token-stamp-default")
+        pattern-url (cond
+                      (flags :deceased)  "token-stamp-deceased"
+                      (string? checksum) (str "token-stamp-" checksum)
+                      :else              "token-stamp-default")
         [cx cy]     [(* (.cos js/Math 0.75) aura-length)
                      (* (.sin js/Math 0.75) aura-length)]]
     [:g {:class class-name}
@@ -317,6 +321,15 @@
       [:rect {:x 0 :y 0 :width 16 :height 16 :fill "hsl(200, 20%, 12%)"}]
       [:path {:d "M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"}]
       [:path {:d "M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z" :fill-rule "evenodd"}]]
+     [:pattern (merge attrs {:id "token-stamp-deceased" :viewBox "0 0 16 16" :fill "#f2f2eb"})
+      [:rect {:x 0 :y 0 :width 16 :height 16 :fill "hsl(200, 20%, 12%)"}]
+      [:path {:d "M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"}]
+      [:path {:d "M9.146 5.146a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1
+                  .708.708l-.647.646.647.646a.5.5 0 0 1-.708.708l-.646-.647-.646.647a.5.5
+                  0 1 1-.708-.708l.647-.646-.647-.646a.5.5 0 0 1 0-.708zm-5 0a.5.5 0 0 1
+                  .708 0l.646.647.646-.647a.5.5 0 1 1 .708.708l-.647.646.647.646a.5.5
+                  0 1 1-.708.708L5.5 7.207l-.646.647a.5.5 0 1 1-.708-.708l.647-.646-.647-.646a.5.5
+                  0 0 1 0-.708zM10 11a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"}]]
      (for [checksum images]
        [:pattern (merge attrs {:key checksum :id (str "token-stamp-" checksum)})
         [stamp {:checksum checksum}]])]))

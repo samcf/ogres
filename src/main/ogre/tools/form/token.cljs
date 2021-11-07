@@ -136,10 +136,10 @@
      [:section
       [:legend "Status"]
       [:fieldset.table
-       (for [flag [:player :hidden :darkvision]]
+       (for [flag [:player :hidden :deceased]]
+         ^{:key flag}
          [checkbox
-          {:key flag
-           :name "token/flag"
+          {:name "token/flag"
            :value flag
            :checked (checked? #(contains? (:element/flags %) flag) selected)
            :on-change #(dispatch :element/flag idents flag %)}
