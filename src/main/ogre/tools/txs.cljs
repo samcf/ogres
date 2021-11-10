@@ -364,16 +364,6 @@
       :else
       [[:db/add id :initiative/roll parsed]])))
 
-(defmethod transact :initiative/roll-inc
-  [data event id]
-  (let [{:keys [initiative/roll]} (ds/entity data id)]
-    [[:db/add id :initiative/roll (inc roll)]]))
-
-(defmethod transact :initiative/roll-dec
-  [data event id]
-  (let [{:keys [initiative/roll]} (ds/entity data id)]
-    [[:db/add id :initiative/roll (if (nil? roll) 0 (dec roll))]]))
-
 (defmethod transact :initiative/roll-all
   [data event]
   (let [attrs  [:db/id :element/flags :initiative/roll]

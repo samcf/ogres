@@ -36,6 +36,23 @@
 (defn button [props children]
   [:button (merge {:class "ogre-button" :type "button"} props) children])
 
+(defn listen!
+  "Manages the registration and cleanup of a DOM event handler."
+  ([handler event dependencies]
+   (listen! handler js/window event dependencies))
+  ([handler element event dependencies]
+   (uix/effect!
+    (fn [] (if element (.addEventListener element event handler))
+      (fn [] (if element (.removeEventListener element event handler)))) dependencies)))
+
+(defn use-modal []
+  (let [ref (uix/ref) state (uix/state false)]
+    (listen!
+     (fn [event]
+       (if (and @ref (not (.contains @ref (.-target event))))
+         (swap! state not))) (if @state js/document false) "click" [@state])
+    [state ref]))
+
 (def cache (atom {}))
 
 (defn use-image [checksum]

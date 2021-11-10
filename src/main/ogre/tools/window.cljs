@@ -3,6 +3,7 @@
             [cognitect.transit :as t]
             [datascript.core :as ds]
             [uix.core.alpha :as uix :refer [defcontext]]
+            [ogre.tools.render :refer [listen!]]
             [ogre.tools.state :refer [state use-query]]))
 
 (defcontext context)
@@ -13,15 +14,6 @@
    (.-y bounds)
    (.-width bounds)
    (.-height bounds)])
-
-(defn listen!
-  "Manages the registration and cleanup of a DOM event handler."
-  ([handler event dependencies]
-   (listen! handler js/window event dependencies))
-  ([handler element event dependencies]
-   (uix/effect!
-    (fn [] (when element (.addEventListener element event handler))
-      (fn [] (when element (.removeEventListener element event handler)))) dependencies)))
 
 (defn debounce [f interval]
   (let [d (goog.async.Debouncer. f interval)]

@@ -1,7 +1,7 @@
 (ns ogre.tools.shortcut
   (:require [datascript.core :refer [pull]]
             [ogre.tools.state :refer [state]]
-            [ogre.tools.window :refer [listen!]]
+            [ogre.tools.render :refer [listen!]]
             [uix.core.alpha :as uix]))
 
 (def events

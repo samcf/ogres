@@ -1,124 +1,121 @@
 (ns ogre.tools.form.initiative
   (:require [clojure.string :refer [join capitalize blank?]]
             [ogre.tools.form.render :refer [form]]
-            [ogre.tools.render :refer [button]]
+            [ogre.tools.render :refer [button use-image use-modal]]
             [ogre.tools.render.icon :refer [icon]]
             [ogre.tools.state :refer [use-query]]
             [uix.core.alpha :as uix]))
 
-(defn label [{:keys [element/name initiative/suffix]}]
-  (cond-> ""
-    (string? name)   (str name)
-    (blank? name)    (str "Unknown")
-    (number? suffix) (str " (" (char (+ suffix 64)) ")")))
-
 (defn order [a b]
   (compare
-   [(:initiative/roll b) (contains? (:element/flags a) :player) (label a)]
-   [(:initiative/roll a) (contains? (:element/flags b) :player) (label b)]))
+   [(:initiative/roll b) (contains? (:element/flags a) :player) (:element/name a)]
+   [(:initiative/roll a) (contains? (:element/flags b) :player) (:element/name b)]))
 
-(def initial
-  {:editing/roll?   false
-   :editing/health? false
-   :input/roll      nil
-   :input/health    nil})
+(defn initiant-query [id]
+  {:query
+   '[:find (pull $ ?id pattern) . :in $ ?id pattern]
+   :pull
+   [:db/id
+    :element/name
+    :element/flags
+    :initiative/roll
+    :initiative/health
+    :initiative/suffix
+    :canvas/_selected
+    {:token/stamp
+     [:image/checksum]}]
+   :args [id]})
 
-(defn initiant [{:keys [element dispatch selected]}]
-  (let [ident (:db/id element) state (uix/state initial)]
-    (uix/effect!
-     (fn [] (swap! state assoc :editing/roll? false))
-     [(:initiative/roll element)])
-
-    (cond
-      (:editing/roll? @state)
-      [:div.initiant.initiant-layout-roll
-       {:css {:selected selected}}
-       [:div.initiant-roll
-        {:on-click
-         (fn []
-           (dispatch :initiative/change-roll ident (:input/roll @state))
-           (swap! state assoc :editing/roll? false))}
-        "✓"]
-       [:div.initiant-inc
-        {:on-click #(swap! state update :input/roll inc)} "+"]
-       [:div.initiant-dec
-        {:on-click #(swap! state update :input/roll dec)} "-"]
-       [:div.initiant-dice-input
+(defn roll-form [{:keys [value on-change]}]
+  (let [input (uix/ref) [editing? form] (use-modal)]
+    [:div.initiant-roll
+     [:div.initiant-roll-label
+      {:on-click
+       (fn []
+         (swap! editing? not)
+         (.requestAnimationFrame js/window (fn [] (.select @input))))}
+      (or value "?")]
+     (if @editing?
+       [:form.initiant-form
+        {:ref form
+         :on-submit
+         (fn [event]
+           (.preventDefault event)
+           (on-change (.-value @input))
+           (swap! editing? not))}
         [:input
-         {:type "number"
-          :autoFocus true
-          :placeholder "Initiative Roll"
-          :value (or (:input/roll @state) "")
-          :on-change #(swap! state assoc :input/roll (.. % -target -value))}]]
-       [:div.initiant-dice
-        {:on-click
-         (fn []
-           (swap! state assoc :input/roll (inc (rand-int 20))))}
-        [icon {:name :dice-5 :size 32}]]]
+         {:type "number" :ref input :autoFocus true
+          :placeholder "Roll" :default-value value}]
+        [:button {:type "submit"} "✓"]])]))
 
-      (:editing/health? @state)
-      [:div.initiant.initiant-layout-health
-       {:css {:selected selected}}
-       [:div.initiant-health-input
-        [:input
-         {:type "number"
-          :value (or (:input/health @state) "")
-          :autoFocus true
-          :placeholder "Hitpoints"
-          :on-change #(swap! state assoc :input/health (.. % -target -value))}]]
-       (for [[icon-name class updator]
-             [[:caret-down-fill "initiant-hp-take" -]
-              [:caret-up-fill "initiant-hp-give" +]]]
-         [:div
-          {:key class
-           :class class
-           :on-click
-           (fn []
-             (dispatch :initiative/change-health ident updator (:input/health @state))
-             (swap! state merge {:editing/health? false :input/health nil}))}
-          [icon {:name icon-name :size 26}]])
-       [:div.initiant-hp
-        {:on-click #(swap! state assoc :editing/health? false)} "×"]]
+(defn health-form [{:keys [value on-change]}]
+  (let [input (uix/ref) [editing? form] (use-modal)]
+    [:div.initiant-health {:css {:active (or (number? value) @editing?)}}
+     (if @editing?
+       [:form.initiant-form
+        {:ref form
+         :on-submit
+         (fn [event]
+           (.preventDefault event)
+           (on-change (fn [_ v] v) (.-value @input))
+           (swap! editing? not))}
+        [:input {:type "number" :ref input :autoFocus true :placeholder "HP"}]
+        (for [[index [k f]] (map-indexed vector [["-" -] ["+" +] ["=" (fn [_ v] v)]])]
+          [:button
+           {:key index :type "button"
+            :on-click
+            (fn []
+              (on-change f (.-value @input))
+              (swap! editing? not))} k])])
+     [:div.initiant-health-icon
+      {:on-click #(swap! editing? not)}
+      [icon {:name :suit-heart-fill :size 38}]
+      (if (number? value)
+        [:div.initiant-health-label value])]]))
 
-      :else
-      [:div.initiant.initiant-layout-default
-       {:css {:selected selected}}
-       [:div.initiant-roll
-        {:on-click
-         (fn []
-           (swap!
-            state merge
-            {:editing/roll? true
-             :input/roll (:initiative/roll element)}))}
-        (let [roll (:initiative/roll element)]
-          (if (blank? roll) "?" roll))]
-       [:div.initiant-inc
-        {:on-click #(dispatch :initiative/roll-inc ident)} "+"]
-       [:div.initiant-dec
-        {:on-click #(dispatch :initiative/roll-dec ident)} "-"]
-       [:div.initiant-name
-        {:on-click #(dispatch :element/select ident)}
-        [label element]]
-       [:div.initiant-cond
-        (let [flags (:element/flags element)]
-          (if (seq flags)
-            (join ", " (map #(capitalize (name %)) flags))
-            [:em "No Conditions"]))]
-       [:div.initiant-hp
-        {:on-click #(swap! state assoc :editing/health? true)}
-        (let [health (:initiative/health element)]
-          (if (blank? health) "HP" health))]])))
+(defn initiant [{:keys [id]}]
+  (let [[data dispatch] (use-query (initiant-query id))
+        {name :element/name
+         sffx :initiative/suffix
+         flags :element/flags
+         {checksum :image/checksum} :token/stamp} data
+        url (use-image checksum)]
+    [:li.initiant
+     (if checksum
+       [:div.initiant-image
+        {:style {:background-image (str "url(" url ")")}
+         :on-click #(dispatch :element/select id)}]
+       [:div.initiant-pattern
+        {:on-click #(dispatch :element/select id)}
+        [icon {:name :person-circle :size 36}]])
+     [roll-form
+      {:value (:initiative/roll data)
+       :on-change
+       (fn [value]
+         (dispatch :initiative/change-roll id value))}]
+     (if sffx
+       [:div.initiant-suffix (char (+ sffx 64))])
+     [:div.initiant-info
+      (if (not (blank? name))
+        [:div.initiant-label name])
+      [:div.initiant-flags
+       (if (seq flags)
+         [:em (join ", " (mapv (comp capitalize clojure.core/name) flags))]
+         [:em "No Conditions"])]]
+     [health-form
+      {:value (:initiative/health data)
+       :on-change
+       (fn [f v]
+         (dispatch :initiative/change-health id f v))}]]))
 
 (def query
   {:pull
    [{:root/canvas
      [{:canvas/initiative
        [:db/id
-        :canvas/_selected
         :element/name
         :element/flags
         :initiative/roll
-        :initiative/health
         :initiative/suffix]}]}]})
 
 (defn initiative []
@@ -132,14 +129,10 @@
          [button {:on-click #(dispatch :initiative/roll-all)} "Roll"]
          [button {:on-click #(dispatch :initiative/reset-rolls)} "Reset"]
          [button {:on-click #(dispatch :initiative/leave)} "Leave"]]]
-       (let [ordered (sort order initiating)]
-         [:section
-          (for [{:keys [db/id] :as entity} ordered]
-            ^{:key id}
-            [initiant
-             {:element  entity
-              :selected (contains? entity :canvas/_selected)
-              :dispatch dispatch}])])]
+       [:section
+        [:ol
+         (for [{:keys [db/id]} (sort order initiating)]
+           ^{:key id} [initiant {:id id}])]]]
       [:div.initiative
        [:section [:header "Initiative"]]
        [:section
@@ -149,5 +142,4 @@
          [:br] "one or more tokens and clicking"
          [:br] "'Start Initiative'"]]])))
 
-(defmethod form :initiative []
-  initiative)
+(defmethod form :initiative [] initiative)
