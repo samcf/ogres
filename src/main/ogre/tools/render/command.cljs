@@ -1,12 +1,12 @@
 (ns ogre.tools.render.command
-  (:require [ogre.tools.render.icon :refer [icon]]
+  (:require [ogre.tools.render :refer [icon]]
             [ogre.tools.state :refer [use-query]]))
 
 (def shape->icon
-  {:circle :circle
-   :rect :square
-   :cone :triangle
-   :line :slash-lg})
+  {:circle "circle"
+   :rect "square"
+   :cone "triangle"
+   :line "slash-lg"})
 
 (def shape->shortcut
   {:circle "1"
@@ -43,11 +43,11 @@
            :on-click #(dispatch :canvas/toggle-mode given)})]
     [:div.commands
      [:button (mode-attrs :select)
-      [icon {:name :cursor}]
+      [icon {:name "cursor"}]
       [shortcut "S"]
       [tooltip "Select"]]
      [:button (mode-attrs :ruler)
-      [icon {:name :rulers}]
+      [icon {:name "rulers"}]
       [shortcut "R"]
       [tooltip "Ruler"]]
      [commands
@@ -61,6 +61,6 @@
          [shortcut (shape->shortcut shape)]])]
      [:button
       {:css {:active (:share/open? data)} :on-click #(dispatch :share/initiate)}
-      [icon {:name :pip :size 22}]
+      [icon {:name "pip" :size 22}]
       [shortcut "W"]
       [tooltip "Toggle Player Window"]]]))

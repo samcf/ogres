@@ -2,9 +2,8 @@
   (:require [clojure.string :refer [capitalize]]
             [ogre.tools.form.render :refer [form]]
             [ogre.tools.image :as image]
-            [ogre.tools.render :refer [button checkbox use-image]]
+            [ogre.tools.render :refer [button checkbox icon use-image]]
             [ogre.tools.state :refer [use-query]]
-            [ogre.tools.render.icon :refer [icon]]
             [ogre.tools.storage :refer [storage]]
             [uix.core.alpha :as uix]))
 
@@ -60,7 +59,7 @@
         :disabled (not (seq scenes))}
        (if (:canvas/scene canvas)
          [preview {:checksum (-> canvas :canvas/scene :image/checksum)}]
-         [icon {:name :images :size 32}])]
+         [icon {:name "images" :size 32}])]
       [button {:on-click #(.click @file-upload)} "Choose File(s)"]
       [:input
        {:type "text"
@@ -161,7 +160,7 @@
            (if checked
              (dispatch :canvas/toggle-mode :grid)
              (dispatch :canvas/toggle-mode :select)))}
-        [icon {:name :crop :size 16}]]]
+        [icon {:name "crop" :size 16}]]]
       [:p {:style {:margin-top 4}}
        "Manually enter the grid size or click the button to draw a square
         that represents 5ft. on the map so the application knows how to

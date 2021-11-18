@@ -1,5 +1,5 @@
 (ns ogre.tools.render.controls
-  (:require [ogre.tools.render.icon :refer [icon]]
+  (:require [ogre.tools.render :refer [icon]]
             [ogre.tools.state :refer [use-query]]))
 
 (def query
@@ -14,7 +14,7 @@
       [:div.controls
        [:div.controls-control
         {:css {:disabled (not paused?)} :on-click #(if paused? (dispatch :share/switch))}
-        [icon {:name :play-fill :size 32}]]
+        [icon {:name "play-fill" :size 32}]]
        [:div.controls-control
         {:css {:disabled paused?} :on-click #(if (not paused?) (dispatch :share/switch))}
-        [icon {:name :pause-fill :size 32}]]])))
+        [icon {:name "pause-fill" :size 32}]]])))

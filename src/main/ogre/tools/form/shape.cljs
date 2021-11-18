@@ -2,8 +2,7 @@
   (:require [clojure.string :refer [capitalize]]
             [ogre.tools.form.render :refer [form]]
             [ogre.tools.form.util :refer [checked? every-value?]]
-            [ogre.tools.render :refer [button checkbox]]
-            [ogre.tools.render.icon :refer [icon]]
+            [ogre.tools.render :refer [button checkbox icon]]
             [ogre.tools.render.pattern :refer [pattern]]
             [ogre.tools.state :refer [use-query]]))
 
@@ -42,7 +41,7 @@
              (let [value (.. event -target -value)]
                (dispatch :element/update idents :element/name value)))}])
        [button {:style {:flex 0} :on-click #(dispatch :element/remove idents)}
-        [icon {:name :trash :size 16}]]]]
+        [icon {:name "trash" :size 16}]]]]
      [:section
       [:legend "Color"]
       [:fieldset.form-shape-colors
@@ -94,7 +93,7 @@
        [shape]
        [:section
         [:div.prompt
-         [icon {:name :triangle :size 48}]
+         [icon {:name "triangle" :size 48}]
          [:br] "Configure shapes by selecting"
          [:br] "one or more of them from the canvas"]])]))
 

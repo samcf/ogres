@@ -1,8 +1,7 @@
 (ns ogre.tools.form.initiative
   (:require [clojure.string :refer [join capitalize blank?]]
             [ogre.tools.form.render :refer [form]]
-            [ogre.tools.render :refer [button use-image use-modal]]
-            [ogre.tools.render.icon :refer [icon]]
+            [ogre.tools.render :refer [button icon use-image use-modal]]
             [ogre.tools.state :refer [use-query]]
             [uix.core.alpha :as uix]))
 
@@ -69,7 +68,7 @@
               (swap! editing? not))} k])])
      [:div.initiant-health-icon
       {:on-click #(swap! editing? not)}
-      [icon {:name :suit-heart-fill :size 38}]
+      [icon {:name "suit-heart-fill" :size 38}]
       (if (number? value)
         [:div.initiant-health-label value])]]))
 
@@ -87,7 +86,7 @@
          :on-click #(dispatch :element/select id)}]
        [:div.initiant-pattern
         {:on-click #(dispatch :element/select id)}
-        [icon {:name :person-circle :size 36}]])
+        [icon {:name "person-circle" :size 36}]])
      [roll-form
       {:value (:initiative/roll data)
        :on-change
@@ -137,7 +136,7 @@
        [:section [:header "Initiative"]]
        [:section
         [:div.prompt
-         [icon {:name :hourglass-split :size 48}]
+         [icon {:name "hourglass-split" :size 48}]
          [:br] "Begin initiative by selecting"
          [:br] "one or more tokens and clicking"
          [:br] "'Start Initiative'"]]])))

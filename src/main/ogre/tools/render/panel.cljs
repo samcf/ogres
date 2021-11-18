@@ -1,15 +1,14 @@
 (ns ogre.tools.render.panel
-  (:require [ogre.tools.render :refer [button checkbox]]
+  (:require [ogre.tools.render :refer [button checkbox icon]]
             [ogre.tools.form.render :refer [form]]
-            [ogre.tools.render.icon :refer [icon]]
             [ogre.tools.state :refer [use-query]]))
 
 (def panels
-  [[:canvas :images]
-   [:initiative :hourglass-split]
-   [:token :person-circle]
-   [:shape :triangle]
-   [:help :question-diamond]])
+  [[:canvas "images"]
+   [:initiative "hourglass-split"]
+   [:token "person-circle"]
+   [:shape "triangle"]
+   [:help "question-diamond"]])
 
 (def attrs
   [{:root/canvas
@@ -34,8 +33,8 @@
        [icon
         {:name
          (if collapsed?
-           :chevron-double-left
-           :chevron-double-right)}]]]
+           "chevron-double-left"
+           "chevron-double-right")}]]]
      (if (not collapsed?)
        [:div.panel-content {:css (->> curr name (str "panel-content-"))}
         (let [component (form {:form curr})]

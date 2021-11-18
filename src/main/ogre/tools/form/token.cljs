@@ -3,8 +3,7 @@
             [ogre.tools.form.render :refer [form]]
             [ogre.tools.form.util :refer [checked? every-value?]]
             [ogre.tools.storage :refer [storage]]
-            [ogre.tools.render :refer [button checkbox use-image]]
-            [ogre.tools.render.icon :refer [icon]]
+            [ogre.tools.render :refer [button checkbox icon use-image]]
             [ogre.tools.state :refer [use-query]]
             [ogre.tools.image :as image]
             [uix.core.alpha :as uix]))
@@ -92,7 +91,7 @@
            (let [attrs {:key (:db/id token) :type "button" :style {:width size :height size}}]
              (if checksum
                [:button attrs [stamp {:checksum checksum}]]
-               [:button.stamp-default attrs [icon {:name :person-circle :size icon-size}]])))])
+               [:button.stamp-default attrs [icon {:name "person-circle" :size icon-size}]])))])
       (let [[match? value] (every-value? selected :element/name)]
         [:input
          {:type "text"
@@ -121,9 +120,9 @@
         [:legend "Image"]
         [:div.stamp-options
          [:div.stamp-default {:on-click #(dispatch :token/remove-stamp idents)}
-          [icon {:name :person-circle :size 36}]]
+          [icon {:name "person-circle" :size 36}]]
          [:div.stamp-default {:on-click #(.click @file-upload)}
-          [icon {:name :plus-circle :size 36}]]
+          [icon {:name "plus-circle" :size 36}]]
          (for [{:keys [image/checksum]} (:root/stamps data)]
            [:div {:key checksum :on-click #(dispatch :token/change-stamp idents checksum)}
             [:div
@@ -213,7 +212,7 @@
        [token]
        [:section
         [:div.prompt
-         [icon {:name :person-circle :size 48}]
+         [icon {:name "person-circle" :size 48}]
          [:br] "Configure tokens by selecting"
          [:br] "one or more of them from the canvas"]])]))
 
