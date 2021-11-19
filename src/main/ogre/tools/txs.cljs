@@ -3,21 +3,15 @@
             [clojure.set :refer [union]]
             [ogre.tools.vec :refer [normalize within?]]))
 
-(def zoom-scales
-  [0.25 0.5 0.75 1 (/ 1 0.75) (/ 1 0.50) (/ 1 0.25)])
-
 (defn round [[x y] n]
   [(* (js/Math.round (/ x n)) n)
    (* (js/Math.round (/ y n)) n)])
 
-(defn find-index [coll val]
-  (reduce (fn [i _]
-            (if (= (coll i) val)
-              (reduced i)
-              (inc i))) 0 coll))
+(defn to-precision [n p]
+  (js/Number (.toFixed (js/Number.parseFloat n) p)))
 
-(defn constrain [number minimum maximum]
-  (max (min number maximum) minimum))
+(defn constrain [n min max]
+  (clojure.core/max (clojure.core/min n max) min))
 
 (defn suffix-txs
   "Returns a vector of tx tuples `[[:db/add id :initiative/suffix suffix] ...]`
@@ -248,30 +242,18 @@
   [data event color]
   [[:db/add [:db/ident :canvas] :canvas/color color]])
 
-(defmethod transact :zoom/step
-  [data event step mx my]
+(defmethod transact :zoom/change
+  [data event delta mx my]
   (let [select [[:zoom/scale :default 1] [:pos/vec :default [0 0]]]
         result (ds/pull data select [:db/ident :canvas])
         {scale   :zoom/scale
          [cx cy] :pos/vec} result
-
-        next
-        (-> (find-index zoom-scales scale)
-            (+ step)
-            (constrain 0 (- (count zoom-scales) 1))
-            (zoom-scales))
-
-        fx (/ next scale)
-        dx (/ (- (* mx fx) mx) next)
-        dy (/ (- (* my fx) my) next)]
+        nx (-> (js/Math.log scale) (+ delta) (js/Math.exp) (to-precision 2) (constrain 0.15 4))
+        fx (/ nx scale)
+        dx (/ (- (* mx fx) mx) nx)
+        dy (/ (- (* my fx) my) nx)]
     [[:db/add [:db/ident :canvas] :pos/vec (round [(- cx dx) (- cy dy)] 1)]
-     [:db/add [:db/ident :canvas] :zoom/scale next]]))
-
-(defmethod transact :zoom/in [data event x y]
-  (transact data :zoom/step 1 x y))
-
-(defmethod transact :zoom/out [data event x y]
-  (transact data :zoom/step -1 x y))
+     [:db/add [:db/ident :canvas] :zoom/scale nx]]))
 
 (defmethod transact :aura/change-label
   [data event idents label]

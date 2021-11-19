@@ -47,8 +47,8 @@
    (listen! handler js/window event dependencies))
   ([handler element event dependencies]
    (uix/effect!
-    (fn [] (if element (.addEventListener element event handler))
-      (fn [] (if element (.removeEventListener element event handler)))) dependencies)))
+    (fn [] (if element (.addEventListener element event handler #js {:passive false}))
+      (fn [] (if element (.removeEventListener element event handler #js {:passive false})))) dependencies)))
 
 (defn use-modal []
   (let [ref (uix/ref) state (uix/state false)]

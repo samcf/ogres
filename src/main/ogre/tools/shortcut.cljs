@@ -4,6 +4,9 @@
             [ogre.tools.render :refer [listen!]]
             [uix.core.alpha :as uix]))
 
+(defn linear [dx dy rx ry]
+  (fn [n] (+ (* (/ (- n dx) (- dy dx)) (- ry rx)) rx)))
+
 (def events
   {["keydown" "Shift"]
    (fn [[_ dispatch]]
@@ -75,13 +78,14 @@
    (fn [[conn dispatch] event]
      (if (.. event -target (closest "svg.canvas"))
        (let [{[ox oy _ _] :bounds/self} (pull @conn [:bounds/self] [:db/ident :root])
-             mx (.-clientX event)
-             my (.-clientY event)
-             x (- mx ox)
-             y (- my oy)]
-         (if (pos? (.-deltaY event))
-           (dispatch :zoom/out x y)
-           (dispatch :zoom/in x y)))))})
+             cx (- (.-clientX event) ox)
+             cy (- (.-clientY event) oy)
+             dy (.-deltaY event)
+             dt (linear -400 400 -0.50 0.50)]
+         (if (.-ctrlKey event)
+           (do (.preventDefault event)
+               (dispatch :zoom/change (dt (* 8 dy)) cx cy))
+           (dispatch :zoom/change (* -1 (dt (* 2 dy))) cx cy)))))})
 
 (defn event-key [type event]
   (case type
@@ -93,7 +97,7 @@
   (let [target (.-target event)]
     (not (or (.-repeat event)
              (.-metaKey event)
-             (.-ctrlKey event)
+             (and (not= (.-type event) "wheel") (.-ctrlKey event))
              (and (not= (.-key event) "Shift") (.-shiftKey event))
              (and (instance? js/HTMLInputElement target)
                   (or (= (.-type target) "text")
@@ -104,6 +108,6 @@
     (doseq [type ["keydown" "keyup" "wheel"]]
       (listen!
        (fn [event]
-         (when (allow-event? event)
-           (when-let [f (events (event-key type event))]
-             (f context event)))) type [context]))))
+         (if (allow-event? event)
+           (if-let [f (events (event-key type event))]
+             (f context event)))) type []))))
