@@ -84,8 +84,8 @@
              dt (linear -400 400 -0.50 0.50)]
          (if (.-ctrlKey event)
            (do (.preventDefault event)
-               (dispatch :zoom/change (dt (* 8 dy)) cx cy))
-           (dispatch :zoom/change (* -1 (dt (* 2 dy))) cx cy)))))})
+               (dispatch :zoom/delta (dt (* 8 dy)) cx cy))
+           (dispatch :zoom/delta (* -1 (dt (* 2 dy))) cx cy)))))})
 
 (defn event-key [type event]
   (case type

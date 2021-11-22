@@ -3,6 +3,9 @@
             [clojure.set :refer [union]]
             [ogre.tools.vec :refer [normalize within?]]))
 
+(def zoom-scales
+  [0.15 0.30 0.50 0.75 0.90 1 1.25 1.50 2 3 4])
+
 (defn round [[x y] n]
   [(* (js/Math.round (/ x n)) n)
    (* (js/Math.round (/ y n)) n)])
@@ -96,9 +99,7 @@
     (concat [[:db/add ident :canvas/mode mode]]
             (if (not= mode curr)
               [[:db/retract ident :canvas/selected]
-               [:db/add ident :panel/curr (or prev :canvas)]])
-            (if (contains? #{:circle :rect :cone :line} mode)
-              [[:db/add ident :canvas/last-shape mode]]))))
+               [:db/add ident :panel/curr (or prev :canvas)]]))))
 
 (defmethod transact :canvas/toggle-theme
   [data event]
@@ -243,17 +244,47 @@
   [[:db/add [:db/ident :canvas] :canvas/color color]])
 
 (defmethod transact :zoom/change
-  [data event delta mx my]
-  (let [select [[:zoom/scale :default 1] [:pos/vec :default [0 0]]]
-        result (ds/pull data select [:db/ident :canvas])
-        {scale   :zoom/scale
-         [cx cy] :pos/vec} result
-        nx (-> (js/Math.log scale) (+ delta) (js/Math.exp) (to-precision 2) (constrain 0.15 4))
-        fx (/ nx scale)
-        dx (/ (- (* mx fx) mx) nx)
-        dy (/ (- (* my fx) my) nx)]
-    [[:db/add [:db/ident :canvas] :pos/vec (round [(- cx dx) (- cy dy)] 1)]
-     [:db/add [:db/ident :canvas] :zoom/scale nx]]))
+  ([data event]
+   (transact data event 1))
+  ([data event next]
+   (let [result    (ds/pull data [:bounds/self] [:db/ident :root])
+         [_ _ w h] (:bounds/self result)]
+     (transact data event next (/ w 2) (/ h 2))))
+  ([data event next x y]
+   (let [select [[:zoom/scale :default 1] [:pos/vec :default [0 0]]]
+         result (ds/pull data select [:db/ident :canvas])
+         {prev :zoom/scale [cx cy] :pos/vec} result
+         fx (/ next prev)
+         dx (/ (- (* x fx) x) next)
+         dy (/ (- (* y fx) y) next)]
+     [[:db/add [:db/ident :canvas] :pos/vec (round [(- cx dx) (- cy dy)] 1)]
+      [:db/add [:db/ident :canvas] :zoom/scale next]])))
+
+(defmethod transact :zoom/delta
+  [data event delta x y]
+  (let [canvas (ds/pull data [[:zoom/scale :default 1]] [:db/ident :canvas])
+        next   (-> (:zoom/scale canvas)
+                   (js/Math.log)
+                   (+ delta)
+                   (js/Math.exp)
+                   (to-precision 2)
+                   (constrain 0.15 4))]
+    (transact data :zoom/change next x y)))
+
+(defmethod transact :zoom/in [data]
+  (let [info (ds/pull data [[:zoom/scale :default 1]] [:db/ident :canvas])
+        prev (:zoom/scale info)
+        next (reduce (fn [n s] (if (> s prev) (reduced s) n)) prev zoom-scales)]
+    (transact data :zoom/change next)))
+
+(defmethod transact :zoom/out [data]
+  (let [info (ds/pull data [[:zoom/scale :default 1]] [:db/ident :canvas])
+        prev (:zoom/scale info)
+        next (reduce (fn [n s] (if (< s prev) (reduced s) n)) prev (reverse zoom-scales))]
+    (transact data :zoom/change next)))
+
+(defmethod transact :zoom/reset [data]
+  (transact data :zoom/change 1))
 
 (defmethod transact :aura/change-label
   [data event idents label]
