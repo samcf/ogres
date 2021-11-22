@@ -56,6 +56,12 @@ input[type="number"] {
     width: 100%;
 }
 
+a,
+a:link,
+a:visited {
+    color: var(--theme-text-link);
+}
+
 .ogre-button {
     align-items: center;
     background-color: var(--theme-paper-light);
@@ -177,7 +183,7 @@ legend {
 }
 
 .layout-canvas,
-.layout-command,
+.layout-toolbar,
 .layout-tokens {
     grid-area: b;
 }
@@ -186,30 +192,22 @@ legend {
     grid-area: c;
 }
 
-.layout-command,
-.layout-tokens,
-.layout-controls {
+.layout-toolbar,
+.layout-tokens {
     pointer-events: none;
 }
 
-.layout-command {
+.layout-toolbar {
     display: flex;
     padding: 16px;
-    align-items: flex-start;
+    align-items: flex-end;
+    justify-content: center;
     z-index: 1;
 }
 
 .layout-tokens {
     padding: 16px;
     justify-self: end;
-}
-
-.layout-controls {
-    align-items: center;
-    display: flex;
-    flex-direction: column;
-    grid-area: b;
-    justify-content: flex-end;
 }
 
 /* Workspaces */
@@ -274,135 +272,83 @@ legend {
     width: 30px;
 }
 
-/* Commands */
-.commands {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+/* Toolbar */
+.toolbar {
     pointer-events: all;
-    background-color: var(--theme-background-d);
-    padding: 4px;
 }
 
-.commands button {
-    background-color: hsl(208deg 21% 20%);
+.toolbar-groups {
+    display: flex;
+    gap: 12px;
+}
+
+.toolbar button {
+    background: none;
     border: 1px solid transparent;
-    color: var(--theme-text);
-    cursor: pointer;
+    color: hsl(0, 0%, 70%);
+    font-family: var(--theme-font);
     height: 40px;
-    padding-top: 4px;
+    min-width: 40px;
     position: relative;
-    width: 40px;
+    transition: color 80ms ease-in-out;
 }
 
-.commands button:focus-visible {
-    outline: 1px dashed var(--color-primary-a);
+.toolbar button:disabled {
+    color: hsl(0, 0%, 40%);
 }
 
-.commands button:disabled {
-    cursor: auto;
+.toolbar button:not(:disabled) {
+    cursor: pointer;
 }
 
-.commands button:disabled svg {
-    fill: #777;
+.toolbar button.active,
+.toolbar button.selected {
+    color: var(--theme-text-link);
 }
 
-.commands button:not(:disabled, .selected, .active):hover {
-    background-color: var(--theme-background-d);
-    border-color: hsl(208deg 21% 20%);
+.toolbar button:not(:disabled, .selected, .active):hover {
+    color: hsl(0, 0%, 100%);
 }
 
-.commands button.active {
-    border: 1px dashed var(--color-primary-a);
+.toolbar button svg {
+    pointer-events: none;
 }
 
-.commands button.selected {
-    background-color: var(--color-primary-a);
+.toolbar-tooltip {
+    backdrop-filter: blur(3px);
+    background-color: rgba(23, 33, 37, 0.70);
+    border-radius: 3px;
+    color: hsl(0, 0%, 70%);
+    font-size: 13px;
+    padding: 4px 8px;
+    margin-bottom: 4px;
 }
 
-.commands button.selected svg {
-    fill: black;
+.toolbar-group {
+    border: 1px solid rgba(40, 53, 62, 0.50);
+    background-color: rgba(23, 33, 37, 1);
+    display: flex;
 }
 
-.commands-shortcut,
-.commands-tooltip {
+.toolbar-zoom {
+    width: 60px;
+}
+
+.toolbar-shortcut {
     background-color: var(--theme-background-d);
     border-radius: 4px;
     border: 1px solid var(--theme-background-d);
     font-size: 10px;
     height: 10px;
+    left: -4px;
     line-height: 1;
     position: absolute;
-}
-
-.commands-shortcut {
-    left: -4px;
     top: -4px;
     width: 10px;
 }
 
-.commands-tooltip {
-    display: none;
-    left: 0;
-    margin-left: 40px;
-    padding: 0 2px;
-    top: 0;
-    white-space: nowrap;
-    z-index: 1;
-}
-
-.commands button:hover .commands-tooltip {
-    display: inline-block;
-}
-
-.command-set {
-    display: flex;
-    position: relative;
-}
-
-.command-set-rest:hover,
-.command-set-first:hover + .command-set-rest {
-    opacity: 1;
-    pointer-events: all;
-}
-
-.command-set-mark {
-    border-right: 5px solid white;
-    border-top: 5px solid transparent;
-    bottom: 0;
-    height: 0px;
-    pointer-events: none;
-    position: absolute;
-    right: 0;
-    width: 0px;
-    z-index: 1;
-}
-
-.command-set-rest {
-    background-color: var(--theme-background-d);
-    border-radius: 0 4px 4px 0;
-    display: flex;
-    left: 40px;
-    opacity: 0%;
-    padding: 4px;
-    pointer-events: none;
-    position: absolute;
-    top: -4px;
-    transition: opacity 0.10s ease-in-out;
-    z-index: 1;
-}
-
-.command-set-rest button.selected {
-    background-color: inherit;
-    border: 1px dashed var(--color-primary-a);
-}
-
-.command-set-rest button.selected svg {
-    fill: white;
-}
-
-.command-set-rest button + button {
-    margin-left: 4px;
+.toolbar button:not(.toolbar-zoom) {
+    padding-top: 4px;
 }
 
 /* Token Templates */
@@ -421,36 +367,6 @@ legend {
     cursor: pointer;
     stroke-width: 2px;
     stroke: black;
-}
-
-/* Controls */
-.controls {
-    display: flex;
-    gap: 2px;
-    margin-bottom: 16px;
-    pointer-events: all;
-    border: 1px solid rgba(255, 255, 255, 0.60);
-    backdrop-filter: blur(4px);
-    border-radius: 3px;
-    box-sizing: border-box;
-}
-
-.controls-control {
-    align-items: center;
-    aspect-ratio: 1;
-    box-sizing: border-box;
-    display: flex;
-    justify-content: center;
-    width: 40px;
-    transition: color 84ms ease-in;
-}
-
-.controls-control:not(.disabled) {
-    cursor: pointer;
-}
-
-.controls-control.disabled {
-    color: rgba(255, 255, 255, 0.25);
 }
 
 /* Canvas */
@@ -1054,8 +970,8 @@ legend {
 
 /* Shared */
 .canvas,
-.commands,
-.commands button {
+.toolbar-group,
+.toolbar-group button {
     border-radius: 3px;
 }
 
@@ -1090,10 +1006,10 @@ legend {
     pointer-events: none;
 }
 
-.layout:not(.global--shortcuts) .commands-shortcut {
+.layout:not(.global--shortcuts) .toolbar-shortcut {
     display: none !important;
 }
 
-.layout:not(.global--tooltips) .commands-tooltip {
+.layout:not(.global--tooltips) .toolbar-tooltip {
     display: none !important;
 }
