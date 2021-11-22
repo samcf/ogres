@@ -2,7 +2,7 @@
   (:require ogre.tools.form.core
             [ogre.tools.render :refer [css]]
             [ogre.tools.render.canvas :refer [canvas]]
-            [ogre.tools.render.command :refer [command]]
+            [ogre.tools.render.toolbar :refer [toolbar]]
             [ogre.tools.render.panel :refer [container]]
             [ogre.tools.state :refer [use-query]]
             [ogre.tools.render.tokens :refer [tokens]]
@@ -27,7 +27,7 @@
         [:div.layout {:class (css classes)}
          [:div.layout-workspaces [workspaces]]
          [:div.layout-canvas [canvas]]
-         [:div.layout-command [command]]
+         [:div.layout-toolbar [toolbar]]
          [:div.layout-tokens [tokens]]
          [:div.layout-panel [container]]]
         [:div.layout {:class (css classes)}

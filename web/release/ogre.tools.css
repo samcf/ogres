@@ -183,7 +183,7 @@ legend {
 }
 
 .layout-canvas,
-.layout-command,
+.layout-toolbar,
 .layout-tokens {
     grid-area: b;
 }
@@ -192,12 +192,12 @@ legend {
     grid-area: c;
 }
 
-.layout-command,
+.layout-toolbar,
 .layout-tokens {
     pointer-events: none;
 }
 
-.layout-command {
+.layout-toolbar {
     display: flex;
     padding: 16px;
     align-items: flex-end;
@@ -272,17 +272,17 @@ legend {
     width: 30px;
 }
 
-/* Commands */
-.commands {
+/* Toolbar */
+.toolbar {
     pointer-events: all;
 }
 
-.commands-groups {
+.toolbar-groups {
     display: flex;
     gap: 12px;
 }
 
-.commands button {
+.toolbar button {
     background: none;
     border: 1px solid transparent;
     color: hsl(0, 0%, 70%);
@@ -293,28 +293,28 @@ legend {
     transition: color 80ms ease-in-out;
 }
 
-.commands button:disabled {
+.toolbar button:disabled {
     color: hsl(0, 0%, 40%);
 }
 
-.commands button:not(:disabled) {
+.toolbar button:not(:disabled) {
     cursor: pointer;
 }
 
-.commands button.active,
-.commands button.selected {
+.toolbar button.active,
+.toolbar button.selected {
     color: var(--theme-text-link);
 }
 
-.commands button:not(:disabled, .selected, .active):hover {
+.toolbar button:not(:disabled, .selected, .active):hover {
     color: hsl(0, 0%, 100%);
 }
 
-.commands button svg {
+.toolbar button svg {
     pointer-events: none;
 }
 
-.commands-tooltip {
+.toolbar-tooltip {
     backdrop-filter: blur(3px);
     background-color: rgba(23, 33, 37, 0.70);
     border-radius: 3px;
@@ -324,17 +324,17 @@ legend {
     margin-bottom: 4px;
 }
 
-.commands-group {
+.toolbar-group {
     border: 1px solid rgba(40, 53, 62, 0.50);
     background-color: rgba(23, 33, 37, 1);
     display: flex;
 }
 
-.command-zoom {
+.toolbar-zoom {
     width: 60px;
 }
 
-.commands-shortcut {
+.toolbar-shortcut {
     background-color: var(--theme-background-d);
     border-radius: 4px;
     border: 1px solid var(--theme-background-d);
@@ -347,7 +347,7 @@ legend {
     width: 10px;
 }
 
-.commands button:not(.command-zoom) {
+.toolbar button:not(.toolbar-zoom) {
     padding-top: 4px;
 }
 
@@ -970,8 +970,8 @@ legend {
 
 /* Shared */
 .canvas,
-.commands-group,
-.commands-group button {
+.toolbar-group,
+.toolbar-group button {
     border-radius: 3px;
 }
 
@@ -1006,10 +1006,10 @@ legend {
     pointer-events: none;
 }
 
-.layout:not(.global--shortcuts) .commands-shortcut {
+.layout:not(.global--shortcuts) .toolbar-shortcut {
     display: none !important;
 }
 
-.layout:not(.global--tooltips) .commands-tooltip {
+.layout:not(.global--tooltips) .toolbar-tooltip {
     display: none !important;
 }

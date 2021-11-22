@@ -1,10 +1,10 @@
-(ns ogre.tools.render.command
+(ns ogre.tools.render.toolbar
   (:require [ogre.tools.render :refer [icon listen!]]
             [ogre.tools.state :refer [use-query]]
             [uix.core.alpha :as uix]))
 
 (defn shortcut [key]
-  [:div.commands-shortcut key])
+  [:div.toolbar-shortcut key])
 
 (defmulti tooltip :key)
 
@@ -58,7 +58,7 @@
      [[:canvas/mode :default :select]
       [:zoom/scale :default 1]]}]})
 
-(defn command [props]
+(defn toolbar [props]
   (let [[data dispatch] (use-query query)
         container       (uix/ref)
         tooltip-key     (uix/state nil)
@@ -82,13 +82,13 @@
        (if (not (.contains @container (.-target event)))
          (reset! tooltip-key nil))) element "mouseover" [element])
 
-    [:div.commands {:ref container}
+    [:div.toolbar {:ref container}
      (if @tooltip-key
-       [:div.commands-tooltip
+       [:div.toolbar-tooltip
         [tooltip {:key @tooltip-key}]])
-     [:div.commands-groups
-      [:div.commands-group
-       [:button.command-zoom
+     [:div.toolbar-groups
+      [:div.toolbar-group
+       [:button.toolbar-zoom
         {:disabled (= (:zoom/scale canvas) 1)
          :on-click #(dispatch :zoom/reset)
          :on-mouse-enter #(reset! tooltip-key :zoom/reset)}
@@ -103,14 +103,14 @@
          :on-click #(dispatch :zoom/in)
          :on-mouse-enter #(reset! tooltip-key :zoom/in)}
         [icon {:name "zoom-in"}]]]
-      [:div.commands-group
+      [:div.toolbar-group
        [:button (mode-attrs :select) [icon {:name "cursor"}] [shortcut "S"]]
        [:button (mode-attrs :ruler) [icon {:name "rulers"}] [shortcut "R"]]
        [:button (mode-attrs :circle) [icon {:name "circle"}] [shortcut "1"]]
        [:button (mode-attrs :rect) [icon {:name "square"}] [shortcut "2"]]
        [:button (mode-attrs :cone) [icon {:name "triangle"}] [shortcut "3"]]
        [:button (mode-attrs :line) [icon {:name "slash-lg"}] [shortcut "4"]]]
-      [:div.commands-group
+      [:div.toolbar-group
        [:button
         {:css {:active (:share/open? data)}
          :on-click #(dispatch :share/initiate)
