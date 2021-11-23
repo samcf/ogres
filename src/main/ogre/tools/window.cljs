@@ -1,10 +1,10 @@
 (ns ogre.tools.window
-  (:require [goog.async.Debouncer]
-            [cognitect.transit :as t]
+  (:require [cognitect.transit :as t]
             [datascript.core :as ds]
-            [uix.core.alpha :as uix :refer [defcontext]]
             [ogre.tools.render :refer [listen!]]
-            [ogre.tools.state :refer [state use-query]]))
+            [ogre.tools.state :refer [state use-query]]
+            [ogre.tools.timing :refer [debounce]]
+            [uix.core.alpha :as uix :refer [defcontext]]))
 
 (defcontext context)
 
@@ -14,11 +14,6 @@
    (.-y bounds)
    (.-width bounds)
    (.-height bounds)])
-
-(defn debounce [f interval]
-  (let [d (goog.async.Debouncer. f interval)]
-    (fn [& args]
-      (.apply (.-fire d) d (to-array args)))))
 
 (defn initialize
   "Registers a DataScript listener in order to manage the guest window, the

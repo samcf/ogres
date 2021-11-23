@@ -3,6 +3,7 @@
             [datascript.transit :as dt]
             [dexie]
             [ogre.tools.state :as state]
+            [ogre.tools.timing :refer [debounce]]
             [uix.core.alpha :as uix :refer [defcontext]]))
 
 (defcontext storage)
@@ -68,19 +69,20 @@
      (fn []
        (ds/listen!
         conn :marshaller
-        (fn [report]
-          (if (and host? loaded?)
-            (-> (ds/filter
-                 (:db-after report)
-                 (fn [_ [_ attr _ _]]
-                   (not (contains? ignored-attrs attr))))
-                (ds/datoms :eavt)
-                (dt/write-transit-str)
-                (as-> marshalled
-                      (let [record #js {:release state/VERSION
-                                        :updated (* -1 (.now js/Date))
-                                        :data    marshalled}]
-                        (.put (.table store "app") record)))))))
+        (debounce
+         (fn [report]
+           (if (and host? loaded?)
+             (-> (ds/filter
+                  (:db-after report)
+                  (fn [_ [_ attr _ _]]
+                    (not (contains? ignored-attrs attr))))
+                 (ds/datoms :eavt)
+                 (dt/write-transit-str)
+                 (as-> marshalled
+                       (let [record #js {:release state/VERSION
+                                         :updated (* -1 (.now js/Date))
+                                         :data    marshalled}]
+                         (.put (.table store "app") record)))))) 200))
        (fn [] (ds/unlisten! conn :marshaller))) [loaded?]) nil))
 
 (defn handlers
