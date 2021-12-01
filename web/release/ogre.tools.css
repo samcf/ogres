@@ -320,8 +320,9 @@ legend {
     border-radius: 3px;
     color: hsl(0, 0%, 70%);
     font-size: 13px;
-    padding: 4px 8px;
     margin-bottom: 4px;
+    padding: 4px 8px;
+    text-align: center;
 }
 
 .toolbar-group {
