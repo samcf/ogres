@@ -378,7 +378,8 @@ legend {
     width: 100%;
 }
 
-.canvas text {
+.canvas text,
+.canvas-image {
     pointer-events: none;
 }
 
@@ -474,6 +475,10 @@ legend {
 .canvas-drawable-rect path,
 .canvas-drawable-select path {
     shape-rendering: crispEdges;
+}
+
+.canvas-drawable-select {
+    cursor: auto;
 }
 
 .canvas-drawable-select path {

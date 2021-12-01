@@ -121,11 +121,16 @@
     [:db/add id attr value]))
 
 (defmethod transact :element/select
-  [data event element]
-  (let [{:keys [element/type]} (ds/pull data [:element/type] element)]
-    [[:db/retract [:db/ident :canvas] :canvas/selected]
-     [:db/add [:db/ident :canvas] :canvas/selected element]
-     [:db/add [:db/ident :canvas] :panel/curr type]]))
+  ([data event element]
+   (transact data event element true))
+  ([data event element replace?]
+   (let [select [:element/type :canvas/_selected]
+         result (ds/pull data select element)
+         tx-fn  (if (:canvas/_selected result) :db/retract :db/add)]
+     [(if replace?
+        [:db/retract [:db/ident :canvas] :canvas/selected])
+      [tx-fn [:db/ident :canvas] :canvas/selected element]
+      [:db/add [:db/ident :canvas] :panel/curr (:element/type result)]])))
 
 (defmethod transact :element/remove
   [data event idents]

@@ -7,7 +7,8 @@
             [ogre.tools.render.pattern :refer [pattern]]
             [ogre.tools.vec :refer [chebyshev euclidean triangle]]
             [react-draggable :as draggable]
-            [uix.core.alpha :as uix]))
+            [uix.core.alpha :as uix]
+            [uix.dom.alpha :refer [create-portal]]))
 
 (def atmosphere
   {:none
@@ -361,9 +362,10 @@
         :on-stop
         (fn [event data]
           (.stopPropagation event)
-          (let [dist (euclidean x y (.-x data) (.-y data))]
+          (let [dist     (euclidean x y (.-x data) (.-y data))
+                replace? (= (.-shiftKey event) false)]
             (if (= dist 0)
-              (dispatch :element/select id)
+              (dispatch :element/select id replace?)
               (dispatch :token/translate id (.-x data) (.-y data)))))}
        [:g.canvas-token
         [token {:id id}]]])))
@@ -389,19 +391,22 @@
       [:> draggable
        {:position #js {:x 0 :y 0}
         :scale scale
-        :on-start (fn [event] (.stopPropagation event))
+        :on-start
+        (fn [event]
+          (.stopPropagation event))
         :on-stop
-        (fn [_ data]
+        (fn [event data]
           (let [ox (.-x data) oy (.-y data)]
-            (if (not= [ox oy] [0 0])
+            (if (and (= ox 0) (= oy 0))
+              (let [id (.. event -target (closest ".canvas-token[data-id]") -dataset -id)]
+                (dispatch :element/select (js/Number id) false))
               (dispatch :token/translate-all idents ox oy))))}
        [:g.canvas-selected {:key idents}
-        (for [entity selected
-              :let [{[x y] :pos/vec} entity]
-              :when (or host? (visible? (:element/flags entity)))]
-          [:g.canvas-token
-           {:key (:db/id entity) :transform (xf :translate [x y])}
-           [token {:id (:db/id entity)}]])]])))
+        (for [entity selected :when (or host? (visible? (:element/flags entity)))]
+          (let [id (:db/id entity)]
+            [:g.canvas-token
+             {:key id :data-id id :transform (xf :translate (:pos/vec entity))}
+             [token {:id id}]]))]])))
 
 (defn drawable [{:keys [on-release]} render-fn]
   (let [[{[x y] :bounds/self} dispatch] (use-query {:pull [:bounds/self]})
@@ -421,10 +426,10 @@
                 (fn [[ax ay bx by]]
                   [ax ay (+ ax (.-x data)) (+ ay (.-y data))])))
        :on-stop
-       (fn []
+       (fn [event]
          (let [p @points]
            (reset! points nil)
-           (on-release p)))}
+           (on-release p event)))}
       [:rect
        {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"
         :style {:will-change "transform"}}]]
@@ -437,7 +442,7 @@
      [[:zoom/scale :default 1]
       [:pos/vec :default [0 0]]]}]})
 
-(defn select []
+(defn select [{:keys [node]}]
   (let [[result dispatch] (use-query select-query)
         {{scale :zoom/scale [cx cy] :pos/vec} :root/canvas} result]
     [drawable
@@ -446,7 +451,9 @@
         (let [[ax ay bx by] (mapv #(/ % scale) points)]
           (dispatch :selection/from-rect [(- ax cx) (- ay cy) (- bx cx) (- by cy)])))}
      (fn [[ax ay bx by]]
-       [:path {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}])]))
+       (create-portal
+        [:path {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}]
+        @node))]))
 
 (def draw-query
   {:pull
@@ -583,7 +590,8 @@
         :image/height]}]}]})
 
 (defn canvas [props]
-  (let [[result dispatch] (use-query canvas-query)
+  (let [select-node (uix/ref)
+        [result dispatch] (use-query canvas-query)
         {privileged? :root/privileged?
          host?       :root/host?
          [_ _ hw hh] :bounds/host
@@ -608,22 +616,21 @@
              (dispatch :camera/translate (+ (/ ox scale) tx) (+ (/ oy scale) ty)))))}
       [:g {:style {:will-change "transform"}}
        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
+       (if (and (= mode :select) (= modif :shift))
+         [select {:node select-node}])
        [:g.canvas-board
         {:transform (xf :scale scale :translate [tx ty])}
-        ^{:key checksum} [board {:checksum checksum}]
+        [stamps]
+        [board {:checksum checksum}]
         [grid]
         [shapes]
-        [stamps]
         [tokens]
         [selection]
         [mask]]
-
-       (when (and (= mode :select) (= modif :shift))
-         [:g {:class "canvas-drawable canvas-drawable-select"}
-          [select]])
-
-       (when (not= mode :select)
+       (if (and (= mode :select) (= modif :shift))
+         [:g {:ref select-node :class "canvas-drawable canvas-drawable-select"}])
+       (if (not= mode :select)
          [:g {:class (str "canvas-drawable canvas-drawable-" (name mode))}
           [draw {:mode mode}]])]]
-     (when privileged?
+     (if privileged?
        [bounds])]))
