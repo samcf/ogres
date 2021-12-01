@@ -352,13 +352,14 @@
 
 (defmethod transact :initiative/toggle
   [data event idents adding?]
-  (let [select-t [:db/id :element/name :initiative/suffix]
+  (let [select-t [:db/id :element/name :initiative/suffix [:element/flags :default #{}]]
         select-r [{:root/canvas [:db/id {:canvas/initiative select-t}]}]
         result   (ds/pull data select-r [:db/ident :root])
         adding   (ds/pull-many data select-t idents)
         {{id :db/id exists :canvas/initiative} :root/canvas} result]
     (if adding?
-      (->> (union (set adding) (set exists))
+      (->> (union (set exists) (set adding))
+           (filter (fn [t] (nil? ((:element/flags t) :player))))
            (suffix-txs)
            (into [{:db/id id :canvas/initiative idents}]))
       (into (for [tk idents] [:db/retract id :canvas/initiative tk])
