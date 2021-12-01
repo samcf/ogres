@@ -365,7 +365,7 @@ legend {
 
 .layout-tokens > svg > circle {
     cursor: pointer;
-    stroke-width: 2px;
+    stroke-width: 1px;
     stroke: black;
 }
 

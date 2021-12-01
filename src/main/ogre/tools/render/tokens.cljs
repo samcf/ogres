@@ -13,7 +13,7 @@
         {[bx by _ _] :bounds/self
          {s :zoom/scale [tx ty] :pos/vec} :root/canvas} result]
     [:<>
-     [:svg [:circle {:cx 32 :cy 32 :r 31 :fill "url(#token-stamp-default)"}]]
+     [:svg [:circle {:cx 32 :cy 32 :r 33 :fill "url(#token-stamp-default)"}]]
      [:> draggable
       {:position #js {:x 0 :y 0}
        :onStop
@@ -26,4 +26,4 @@
                dx (-> nx (+ nw) (- bx) (/ s) (- tx))
                dy (-> ny (+ nh) (- by) (/ s) (- ty))]
            (dispatch :token/create [dx dy])))}
-      [:svg [:circle {:cx 32 :cy 32 :r 31 :fill "url(#token-stamp-default)"}]]]]))
+      [:svg [:circle {:cx 32 :cy 32 :r 33 :fill "url(#token-stamp-default)"}]]]]))
