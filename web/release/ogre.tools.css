@@ -395,6 +395,7 @@ legend {
 
 .canvas-text {
     fill: var(--canvas-text);
+    font-size: 12px;
     paint-order: stroke;
     stroke-width: 3px;
     stroke: var(--canvas-text-outline);
@@ -408,7 +409,7 @@ legend {
 
 .canvas-token-shape {
     stroke: black;
-    stroke-width: 2px;
+    stroke-width: 1px;
     cursor: pointer;
 }
 

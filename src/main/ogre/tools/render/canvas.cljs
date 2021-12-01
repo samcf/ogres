@@ -54,7 +54,7 @@
 (defn label [{:keys [element/name initiative/suffix]}]
   (cond-> ""
     (string? name) (str name)
-    (number? suffix) (str " (" (char (+ suffix 64)) ")")))
+    (number? suffix) (str " " (char (+ suffix 64)))))
 
 (def board-query
   {:pull
@@ -288,7 +288,7 @@
                      (* (.sin js/Math 0.75) aura-length)]]
     [:g {:class class-name}
      [:circle.canvas-token-shape
-      {:cx 0 :cy 0 :r (max (- token-radiu 4) 8) :fill (str "url(#" pattern-url ")")}]
+      {:cx 0 :cy 0 :r (max (- token-radiu 2) 8) :fill (str "url(#" pattern-url ")")}]
      (if (seq token-label)
        [text {:x 0 :y (+ token-radiu 8)} token-label])
      (if (> aura-radius 0)
