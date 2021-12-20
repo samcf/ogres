@@ -320,8 +320,9 @@ legend {
     border-radius: 3px;
     color: hsl(0, 0%, 70%);
     font-size: 13px;
-    padding: 4px 8px;
     margin-bottom: 4px;
+    padding: 4px 8px;
+    text-align: center;
 }
 
 .toolbar-group {
@@ -357,15 +358,15 @@ legend {
 }
 
 .layout-tokens > svg {
-    height: 64px;
+    height: 66px;
     pointer-events: all;
     position: absolute;
-    width: 64px;
+    width: 66px;
 }
 
 .layout-tokens > svg > circle {
     cursor: pointer;
-    stroke-width: 2px;
+    stroke-width: 1px;
     stroke: black;
 }
 
@@ -377,7 +378,9 @@ legend {
     width: 100%;
 }
 
-.canvas text {
+.canvas text,
+.canvas-grid,
+.canvas-image {
     pointer-events: none;
 }
 
@@ -395,6 +398,7 @@ legend {
 
 .canvas-text {
     fill: var(--canvas-text);
+    font-size: 12px;
     paint-order: stroke;
     stroke-width: 3px;
     stroke: var(--canvas-text-outline);
@@ -403,12 +407,12 @@ legend {
 /* Canvas Tokens */
 .canvas-token.flag--hidden circle,
 .canvas-token.flag--invisible circle {
-    fill-opacity: 0.30;
+    fill-opacity: 0.70;
 }
 
 .canvas-token-shape {
     stroke: black;
-    stroke-width: 2px;
+    stroke-width: 1px;
     cursor: pointer;
 }
 
@@ -472,6 +476,10 @@ legend {
 .canvas-drawable-rect path,
 .canvas-drawable-select path {
     shape-rendering: crispEdges;
+}
+
+.canvas-drawable-select {
+    cursor: auto;
 }
 
 .canvas-drawable-select path {
