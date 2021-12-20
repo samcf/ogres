@@ -358,10 +358,10 @@ legend {
 }
 
 .layout-tokens > svg {
-    height: 64px;
+    height: 66px;
     pointer-events: all;
     position: absolute;
-    width: 64px;
+    width: 66px;
 }
 
 .layout-tokens > svg > circle {
@@ -379,6 +379,7 @@ legend {
 }
 
 .canvas text,
+.canvas-grid,
 .canvas-image {
     pointer-events: none;
 }
