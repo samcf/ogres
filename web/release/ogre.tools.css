@@ -379,6 +379,7 @@ legend {
 }
 
 .canvas text,
+.canvas-grid,
 .canvas-image {
     pointer-events: none;
 }
