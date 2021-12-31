@@ -20,7 +20,8 @@
       [:canvas/color :default :none]
       [:canvas/mode :default :select]
       [:grid/show :default true]
-      [:grid/size :default 70]]}]})
+      [:grid/size :default 70]
+      [:grid/align :default false]]}]})
 
 (defn thumbnail [{:keys [checksum selected on-select on-remove]}]
   (let [url (use-image checksum)]
@@ -106,15 +107,6 @@
      [:section
       [:legend "Options"]
       [:fieldset.setting
-       [:label "Show Grid"]
-       (for [display? [true false] :let [checked? (= (:grid/show canvas) display?)]]
-         ^{:key display?}
-         [checkbox
-          {:checked checked?
-           :on-change
-           (fn [] (if (not checked?) (dispatch :grid/toggle)))}
-          (if display? "Yes" "No")])]
-      [:fieldset.setting
        [:label "Theme"]
        (for [theme [:light :dark] :let [checked? (= theme (:canvas/theme canvas))]]
          ^{:key theme}
@@ -145,6 +137,23 @@
           (capitalize (name color))])]]
      [:section.form-canvas-grid
       [:legend "Grid Configuration"]
+      [:fieldset.setting
+       [:label "Show Grid"]
+       (for [value [false true] :let [checked? (= (:grid/show canvas) value)]]
+         ^{:key value}
+         [checkbox
+          {:checked checked?
+           :on-change
+           (fn [] (if (not checked?) (dispatch :grid/toggle)))}
+          (if value "Yes" "No")])]
+      [:fieldset.setting
+       [:label "Align to Grid"]
+       (for [value [false true] :let [checked? (= (:grid/align canvas) value)]]
+         ^{:key value}
+         [checkbox
+          {:checked checked? :on-change (fn [] (if (not checked?) (dispatch :grid/align)))}
+          (if value "Yes" "No")])]
+      [:hr]
       [:fieldset.group
        [:input
         {:type "number"

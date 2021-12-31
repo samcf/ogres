@@ -633,7 +633,7 @@ legend {
     grid-area: c;
 }
 
-.form-canvas-grid .ogre-checkbox + label {
+.form-canvas-grid fieldset.group .ogre-checkbox + label {
     align-items: center;
     display: flex;
     height: 100%;
