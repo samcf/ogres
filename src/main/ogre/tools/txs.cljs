@@ -1,7 +1,8 @@
 (ns ogre.tools.txs
   (:require [datascript.core :as ds]
             [clojure.set :refer [union]]
-            [ogre.tools.vec :as vec :refer [normalize within?]]))
+            [ogre.tools.geom :refer [normalize within?]]
+            [ogre.tools.vec :as vec]))
 
 (def zoom-scales
   [0.15 0.30 0.50 0.75 0.90 1 1.25 1.50 2 3 4])

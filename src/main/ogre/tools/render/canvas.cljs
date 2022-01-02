@@ -1,10 +1,11 @@
 (ns ogre.tools.render.canvas
   (:require [clojure.string :as string :refer [join]]
             [datascript.core :refer [squuid]]
+            [ogre.tools.geom :refer [chebyshev euclidean triangle]]
             [ogre.tools.render :refer [css use-image]]
-            [ogre.tools.state :refer [use-query]]
             [ogre.tools.render.pattern :refer [pattern]]
-            [ogre.tools.vec :as vec :refer [chebyshev euclidean triangle]]
+            [ogre.tools.state :refer [use-query]]
+            [ogre.tools.vec :as vec]
             [react-draggable :as draggable]
             [uix.core.alpha :as uix]
             [uix.dom.alpha :refer [create-portal]]))
