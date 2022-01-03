@@ -3,27 +3,27 @@
 (defn euclidean
   "Returns the euclidean distance from [ax ay] to [bx by]."
   [ax ay bx by]
-  (.hypot js/Math (- bx ax) (- by ay)))
+  (js/Math.hypot (- bx ax) (- by ay)))
 
 (defn chebyshev
   "Returns the chebyshev distance from [ax ay] to [bx by]."
   [ax ay bx by]
-  (max (.abs js/Math (- ax bx))
-       (.abs js/Math (- ay by))))
+  (max (js/Math.abs (- ax bx))
+       (js/Math.abs (- ay by))))
 
 (defn triangle
   "Returns the vertices of an isosceles triangle whose altitude is equal to
    the length of the base."
   [ax ay bx by]
-  (let [alt (.hypot js/Math (- bx ax) (- by ay))
-        hyp (.hypot js/Math alt (/ alt 2))
-        rad (.atan2 js/Math (- by ay) (- bx ax))]
+  (let [alt (js/Math.hypot (- bx ax) (- by ay))
+        hyp (js/Math.hypot alt (/ alt 2))
+        rad (js/Math.atan2 (- by ay) (- bx ax))]
     [ax
      ay
-     (+ ax (* hyp (.cos js/Math (+ rad 0.46))))
-     (+ ay (* hyp (.sin js/Math (+ rad 0.46))))
-     (+ ax (* hyp (.cos js/Math (- rad 0.46))))
-     (+ ay (* hyp (.sin js/Math (- rad 0.46))))]))
+     (+ ax (* hyp (js/Math.cos (+ rad 0.46))))
+     (+ ay (* hyp (js/Math.sin (+ rad 0.46))))
+     (+ ax (* hyp (js/Math.cos (- rad 0.46))))
+     (+ ay (* hyp (js/Math.sin (- rad 0.46))))]))
 
 (defn normalize
   "Rearranges the two given vectors such that the first vector represents
