@@ -1,14 +1,14 @@
 (ns ogre.tools.render.canvas
-  (:require [clojure.set :refer [difference]]
-            [clojure.string :as string :refer [join]]
+  (:require [clojure.string :as string :refer [join]]
             [datascript.core :refer [squuid]]
+            [ogre.tools.geom :refer [chebyshev euclidean triangle]]
             [ogre.tools.render :refer [css use-image]]
-            [ogre.tools.state :refer [use-query]]
+            [ogre.tools.render.draw :refer [draw]]
             [ogre.tools.render.pattern :refer [pattern]]
-            [ogre.tools.vec :refer [chebyshev euclidean triangle]]
+            [ogre.tools.state :refer [use-query]]
+            [ogre.tools.vec :as vec]
             [react-draggable :as draggable]
-            [uix.core.alpha :as uix]
-            [uix.dom.alpha :refer [create-portal]]))
+            [uix.core.alpha :as uix]))
 
 (def atmosphere
   {:none
@@ -29,20 +29,17 @@
     0.1 0.1 0.1 0.0 0.0
     0.0 0.0 0.0 1.0 0.0]})
 
-(defn ft->px [ft size]
-  (-> (/ ft 5) (* size)))
-
-(defn px->ft [px size]
-  (js/Math.round (* (/ px size) 5)))
+(defn ft->px [ft size] (* (/ ft 5) size))
+(defn px->ft [px size] (js/Math.round (* (/ px size) 5)))
 
 (defn xf [& kvs]
-  (->> (partition 2 kvs)
-       (map (fn [[k v]]
-              (case k
-                :scale (str "scale(" v ")")
-                :translate (let [[x y] v]
-                             (str "translate(" x ", " y ")")))))
-       (string/join " ")))
+  (let [xform (comp
+               (partition-all 2)
+               (map (fn [[k v]]
+                      (case k
+                        :scale (str "scale(" v ")")
+                        :translate (let [[x y] v] (str "translate(" x ", " y ")"))))))]
+    (join " " (into [] xform kvs))))
 
 (defn text [attrs child]
   [:text.canvas-text attrs child])
@@ -65,21 +62,25 @@
       [:canvas/color :default :none]
       [:grid/size :default 70]
       [:zoom/scale :default 1]
+      {:canvas/scene [:image/checksum]}
       {:canvas/tokens
        [:db/id
         [:element/flags :default #{}]
         [:token/light :default [5 5]]
         [:pos/vec :default [0 0]]]}]}]})
 
-(defn board [{:keys [checksum]}]
-  (let [url      (use-image checksum)
-        [root]   (use-query board-query)
+(defn board []
+  (let [[result] (use-query board-query)
         {host? :root/host?
          {lighting :canvas/lighting
           color    :canvas/color
           tokens   :canvas/tokens
           size     :grid/size
-          scale    :zoom/scale} :root/canvas} root]
+          scale    :zoom/scale
+          {checksum :image/checksum}
+          :canvas/scene}
+         :root/canvas} result
+        url (use-image checksum)]
     (if (string? url)
       [:g.canvas-image
        [:defs {:key color}
@@ -175,11 +176,8 @@
     [:circle
      (merge
       attrs
-      {:cx ax
-       :cy ay
-       :r (chebyshev ax ay bx by)
-       :fill-opacity opacity
-       :stroke color})]))
+      {:cx 0 :cy 0 :r (chebyshev ax ay bx by)
+       :fill-opacity opacity :stroke color})]))
 
 (defmethod shape :rect [props]
   (let [{:keys [element attrs]} props
@@ -188,32 +186,32 @@
     [:path
      (merge
       attrs
-      {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])
+      {:d (string/join " " ["M" 0 0 "H" (- bx ax) "V" (- by ay) "H" 0 "Z"])
        :fill-opacity opacity :stroke color})]))
 
 (defmethod shape :line [props]
   (let [{:keys [element]} props
         {:keys [shape/vecs shape/color shape/opacity]} element
         [ax ay bx by] vecs]
-    [:line {:x1 ax :y1 ay :x2 bx :y2 by :stroke color :stroke-width 4 :stroke-linecap "round"}]))
+    [:line {:x1 0 :y1 0 :x2 (- bx ax) :y2 (- by ay) :stroke color :stroke-width 4 :stroke-linecap "round"}]))
 
 (defmethod shape :cone [props]
   (let [{:keys [element attrs]} props
-        {:keys [shape/vecs shape/color shape/opacity]} element]
+        {:keys [shape/vecs shape/color shape/opacity]} element
+        [ax ay bx by] vecs]
     [:polygon
      (merge
       attrs
-      {:points (string/join " " (apply triangle vecs))
-       :fill-opacity opacity
-       :stroke color})]))
+      {:points (string/join " " (triangle 0 0 (- bx ax) (- by ay)))
+       :fill-opacity opacity :stroke color})]))
 
 (def shapes-query
   {:pull
    '[{:root/canvas
       [[:zoom/scale :default 1]
+       [:grid/align :default false]
        {:canvas/shapes
         [:db/id
-         [:pos/vec :default [0 0]]
          :element/name
          :shape/kind
          :shape/vecs
@@ -223,31 +221,28 @@
          :canvas/_selected]}]}]})
 
 (defn shapes [props]
-  (let [[data dispatch] (use-query shapes-query)
-        entities        (-> data :root/canvas :canvas/shapes)]
-    (for [element entities :let [{id :db/id [x y] :pos/vec} element]]
-      [:> draggable
-       {:key      id
-        :scale    (-> data :root/canvas :zoom/scale)
-        :position #js {:x x :y y}
-        :on-start
-        (fn [event data]
-          (.stopPropagation event))
-        :on-stop
-        (fn [_ data]
-          (let [dist (euclidean x y (.-x data) (.-y data))]
-            (if (> dist 0)
-              (dispatch :shape/translate id (.-x data) (.-y data))
-              (dispatch :element/select id))))}
-       (let [{patt :shape/pattern color :shape/color kind :shape/kind} element
-             id (squuid)]
-         [:g
-          {:css
-           {:canvas-shape true
-            :selected (:canvas/_selected element)
-            (str "canvas-shape-" (name kind)) true}}
-          [:defs [pattern {:id id :name patt :color color}]]
-          [shape {:element element :attrs {:fill (str "url(#" id ")")}}]])])))
+  (let [[result dispatch] (use-query shapes-query)]
+    (for [element (-> result :root/canvas :canvas/shapes)]
+      (let [{id :db/id [ax ay] :shape/vecs} element]
+        [:> draggable
+         {:key      id
+          :scale    (-> result :root/canvas :zoom/scale)
+          :position #js {:x ax :y ay}
+          :on-start (fn [event] (.stopPropagation event))
+          :on-stop
+          (fn [event data]
+            (let [ox (.-x data) oy (.-y data)]
+              (if (> (euclidean ax ay ox oy) 0)
+                (dispatch :shape/translate id ox oy (not= (.-metaKey event) (-> result :root/canvas :grid/align)))
+                (dispatch :element/select id))))}
+         (let [id (squuid)]
+           [:g
+            {:css
+             {:canvas-shape true
+              :selected (:canvas/_selected element)
+              (str "canvas-shape-" (name (:shape/kind element))) true}}
+            [:defs [pattern {:id id :name (:shape/pattern element) :color (:shape/color element)}]]
+            [shape {:element element :attrs {:fill (str "url(#" id ")")}}]])]))))
 
 (defn marker []
   [:path {:d "M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"}])
@@ -340,6 +335,7 @@
    [:root/host?
     {:root/canvas
      [[:zoom/scale :default 1]
+      [:grid/align :default false]
       {:canvas/tokens
        [:db/id
         [:pos/vec :default [0 0]]
@@ -347,26 +343,25 @@
         :canvas/_selected]}]}]})
 
 (defn tokens [props]
-  (let [[data dispatch] (use-query tokens-query)
-        entities        (-> data :root/canvas :canvas/tokens)]
-    (for [entity entities
-          :let [{id :db/id [x y] :pos/vec} entity]
+  (let [[result dispatch] (use-query tokens-query)]
+    (for [entity (-> result :root/canvas :canvas/tokens)
+          :let [{id :db/id [ax ay] :pos/vec} entity]
           :when (and (not (:canvas/_selected entity))
-                     (or (:root/host? data)
+                     (or (:root/host? result)
                          (visible? (:element/flags entity))))]
       [:> draggable
        {:key      id
-        :position #js {:x x :y y}
-        :scale    (-> data :root/canvas :zoom/scale)
+        :position #js {:x ax :y ay}
+        :scale    (-> result :root/canvas :zoom/scale)
         :on-start (fn [event] (.stopPropagation event))
         :on-stop
         (fn [event data]
           (.stopPropagation event)
-          (let [dist     (euclidean x y (.-x data) (.-y data))
-                replace? (= (.-shiftKey event) false)]
-            (if (= dist 0)
-              (dispatch :element/select id replace?)
-              (dispatch :token/translate id (.-x data) (.-y data)))))}
+          (let [bx (.-x data) by (.-y data)]
+            (if (= (euclidean ax ay bx by) 0)
+              (dispatch :element/select id (not (.-shiftKey event)))
+              (let [align? (not= (.-metaKey event) (-> result :root/canvas :grid/align))]
+                (dispatch :token/translate id [bx by] align?)))))}
        [:g.canvas-token
         [token {:id id}]]])))
 
@@ -375,6 +370,7 @@
    [:root/host?
     {:root/canvas
      [[:grid/size :default 70]
+      [:grid/align :default false]
       [:zoom/scale :default 1]
       {:canvas/selected
        [:db/id
@@ -400,169 +396,13 @@
             (if (and (= ox 0) (= oy 0))
               (let [id (.. event -target (closest ".canvas-token[data-id]") -dataset -id)]
                 (dispatch :element/select (js/Number id) false))
-              (dispatch :token/translate-all idents ox oy))))}
+              (dispatch :token/translate-all idents [ox oy] (not= (.-metaKey event) (:grid/align canvas))))))}
        [:g.canvas-selected {:key idents}
         (for [entity selected :when (or host? (visible? (:element/flags entity)))]
           (let [id (:db/id entity)]
             [:g.canvas-token
              {:key id :data-id id :transform (xf :translate (:pos/vec entity))}
              [token {:id id}]]))]])))
-
-(defn drawable [{:keys [on-release]} render-fn]
-  (let [[{[x y] :bounds/self} dispatch] (use-query {:pull [:bounds/self]})
-        points (uix/state nil)]
-    [:<>
-     [:> draggable
-      {:position #js {:x 0 :y 0}
-       :on-start
-       (fn [event _]
-         (.stopPropagation event)
-         (let [x (- (.-clientX event) x)
-               y (- (.-clientY event) y)]
-           (reset! points [x y x y])))
-       :on-drag
-       (fn [_ data]
-         (swap! points
-                (fn [[ax ay bx by]]
-                  [ax ay (+ ax (.-x data)) (+ ay (.-y data))])))
-       :on-stop
-       (fn [event]
-         (let [p @points]
-           (reset! points nil)
-           (on-release p event)))}
-      [:rect
-       {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"
-        :style {:will-change "transform"}}]]
-     (when (seq @points)
-       (render-fn @points))]))
-
-(def select-query
-  {:pull
-   [{:root/canvas
-     [[:zoom/scale :default 1]
-      [:pos/vec :default [0 0]]]}]})
-
-(defn select [{:keys [node]}]
-  (let [[result dispatch] (use-query select-query)
-        {{scale :zoom/scale [cx cy] :pos/vec} :root/canvas} result]
-    [drawable
-     {:on-release
-      (fn [points]
-        (let [[ax ay bx by] (mapv #(/ % scale) points)]
-          (dispatch :selection/from-rect [(- ax cx) (- ay cy) (- bx cx) (- by cy)])))}
-     (fn [[ax ay bx by]]
-       (create-portal
-        [:path {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}]
-        @node))]))
-
-(def draw-query
-  {:pull
-   [{:root/canvas
-     [[:grid/size :default 70]
-      [:zoom/scale :default 1]
-      [:pos/vec :default [0 0]]]}]})
-
-(defmulti draw :mode)
-
-(defmethod draw :grid [props]
-  (let [[{:keys [root/canvas]} dispatch] (use-query draw-query)
-        {:keys [grid/size zoom/scale]} canvas]
-    [drawable
-     {:on-release
-      (fn [[ax ay bx by]]
-        (let [size (js/Math.abs (min (- bx ax) (- by ay)))]
-          (when (> size 0)
-            (dispatch :grid/draw ax ay size))))}
-     (fn [[ax ay bx by]]
-       (let [m (min (- bx ax) (- by ay))]
-         [:g
-          [:path {:d (string/join " " ["M" ax ay "h" m "v" m "H" ax "Z"])}]
-          [text {:x bx :y ay :fill "white"}
-           (-> (/ m scale)
-               (js/Math.abs)
-               (js/Math.round)
-               (str "px"))]]))]))
-
-(defmethod draw :ruler [props]
-  (let [[{:keys [root/canvas]} dispatch] (use-query draw-query)
-        {:keys [grid/size zoom/scale]} canvas]
-    [drawable
-     {:on-release identity}
-     (fn [[ax ay bx by]]
-       [:g
-        [:line {:x1 ax :y1 ay :x2 bx :y2 by}]
-        [text {:x (- bx 48) :y (- by 8) :fill "white"}
-         (-> (chebyshev ax ay bx by)
-             (px->ft (* size scale))
-             (str "ft."))]])]))
-
-(defmethod draw :circle [props]
-  (let [[{:keys [root/canvas]} dispatch] (use-query draw-query)
-        {:keys [grid/size zoom/scale]} canvas]
-    [drawable
-     {:on-release
-      (fn [points]
-        (let [[ax ay bx by] (mapv #(/ % scale) points)
-              [cx cy] (:pos/vec canvas)]
-          (dispatch :shape/create :circle [(- ax cx) (- ay cy) (- bx cx) (- by cy)])))}
-     (fn [[ax ay bx by]]
-       (let [radius (chebyshev ax ay bx by)]
-         [:g
-          [:circle {:cx ax :cy ay :r radius}]
-          [text {:x ax :y ay :fill "white"}
-           (-> radius (px->ft (* size scale)) (str "ft. radius"))]]))]))
-
-(defmethod draw :rect [props]
-  (let [[{:keys [root/canvas]} dispatch] (use-query draw-query)
-        {:keys [grid/size zoom/scale]} canvas]
-    [drawable
-     {:on-release
-      (fn [points]
-        (let [[ax ay bx by] (mapv #(/ % scale) points)
-              [cx cy] (:pos/vec canvas)]
-          (dispatch :shape/create :rect [(- ax cx) (- ay cy) (- bx cx) (- by cy)])))}
-     (fn [[ax ay bx by]]
-       [:g
-        [:path {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}]
-        [text {:x (+ ax 8) :y (- ay 8) :fill "white"}
-         (let [[w h] [(px->ft (js/Math.abs (- bx ax)) (* size scale))
-                      (px->ft (js/Math.abs (- by ay)) (* size scale))]]
-           (str w "ft. x " h "ft."))]])]))
-
-(defmethod draw :line [props]
-  (let [[{:keys [root/canvas]} dispatch] (use-query draw-query)
-        {:keys [grid/size zoom/scale]} canvas]
-    [drawable
-     {:on-release
-      (fn [points]
-        (let [[ax ay bx by] (mapv #(/ % scale) points)
-              [cx cy] (:pos/vec canvas)]
-          (dispatch :shape/create :line [(- ax cx) (- ay cy) (- bx cx) (- by cy)])))}
-     (fn [[ax ay bx by]]
-       [:g [:line {:x1 ax :y1 ay :x2 bx :y2 by}]
-        [text {:x (+ ax 8) :y (- ay 8) :fill "white"}
-         (-> (chebyshev ax ay bx by)
-             (px->ft (* size scale))
-             (str "ft."))]])]))
-
-(defmethod draw :cone [props]
-  (let [[{:keys [root/canvas]} dispatch] (use-query draw-query)
-        {:keys [grid/size zoom/scale]} canvas]
-    [drawable
-     {:on-release
-      (fn [points]
-        (let [[ax ay bx by] (mapv #(/ % scale) points)
-              [cx cy] (:pos/vec canvas)]
-          (dispatch :shape/create :cone [(- ax cx) (- ay cy) (- bx cx) (- by cy)])))}
-     (fn [[ax ay bx by]]
-       [:g
-        [:polygon {:points (string/join " " (triangle ax ay bx by))}]
-        [text {:x (+ bx 16) :y (+ by 16) :fill "white"}
-         (-> (euclidean ax ay bx by)
-             (px->ft (* size scale))
-             (str "ft."))]])]))
-
-(defmethod draw :default [] nil)
 
 (defn bounds []
   (let [[result] (use-query {:pull [:bounds/host :bounds/guest]})
@@ -583,28 +423,25 @@
       [:canvas/mode :default :select]
       [:canvas/theme :default :light]
       :canvas/modifier
-      [:zoom/scale :default 1]
-      {:canvas/scene
-       [:image/checksum
-        :image/width
-        :image/height]}]}]})
+      [:zoom/scale :default 1]]}]})
 
 (defn canvas [props]
-  (let [select-node (uix/ref)
+  (let [select-node       (uix/ref)
         [result dispatch] (use-query canvas-query)
-        {privileged? :root/privileged?
-         host?       :root/host?
+        {priv? :root/privileged?
+         host? :root/host?
          [_ _ hw hh] :bounds/host
          [_ _ gw gh] :bounds/guest
-         {scale   :zoom/scale
-          mode    :canvas/mode
-          theme   :canvas/theme
-          modif   :canvas/modifier
-          [tx ty] :pos/vec
-          {:image/keys [checksum width height]} :canvas/scene} :root/canvas} result
-        [tx ty] (if host? [tx ty]
-                    [(- tx (/ (max 0 (- hw gw)) 2 scale))
-                     (- ty (/ (max 0 (- hh gh)) 2 scale))])]
+         {scale :zoom/scale
+          mode  :canvas/mode
+          theme :canvas/theme
+          modif :canvas/modifier
+          coord :pos/vec} :root/canvas} result
+        coord (if host? coord
+                  (->> [(- hw gw) (- hh gh)]
+                       (mapv (partial max 0))
+                       (vec/s (/ -1 2 scale))
+                       (vec/+ coord)))]
     [:svg.canvas {:class (str "theme--" (name theme))}
      [:> draggable
       {:position #js {:x 0 :y 0}
@@ -613,15 +450,15 @@
          (let [ox (.-x data) oy (.-y data)]
            (if (and (= ox 0) (= oy 0))
              (dispatch :selection/clear)
-             (dispatch :camera/translate (+ (/ ox scale) tx) (+ (/ oy scale) ty)))))}
+             (dispatch :camera/translate (vec/+ coord (vec/s (/ scale) [ox oy]))))))}
       [:g {:style {:will-change "transform"}}
        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
        (if (and (= mode :select) (= modif :shift))
-         [select {:node select-node}])
+         [draw {:mode :select :node select-node}])
        [:g.canvas-board
-        {:transform (xf :scale scale :translate [tx ty])}
+        {:transform (xf :scale scale :translate coord)}
         [stamps]
-        [board {:checksum checksum}]
+        [board]
         [grid]
         [shapes]
         [tokens]
@@ -632,5 +469,5 @@
        (if (not= mode :select)
          [:g {:class (str "canvas-drawable canvas-drawable-" (name mode))}
           [draw {:mode mode}]])]]
-     (if privileged?
+     (if priv?
        [bounds])]))
