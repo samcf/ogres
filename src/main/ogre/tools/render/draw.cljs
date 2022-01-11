@@ -92,7 +92,8 @@
           [src dst]))
       :on-release
       (fn [_ src dst]
-        (let [[ax ay]   src
+        (let [[src dst] (->screen trans scale src dst)
+              [ax ay]   src
               size      (js/Math.abs (apply min (vec/- dst src)))]
           (if (> size 0)
             (dispatch :grid/draw ax ay size))))}
