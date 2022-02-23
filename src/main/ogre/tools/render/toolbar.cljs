@@ -6,48 +6,21 @@
 (defn shortcut [key]
   [:div.toolbar-shortcut key])
 
-(defmulti tooltip :key)
-
-(defmethod tooltip :zoom/reset []
-  "Reset to 100% zoom.")
-
-(defmethod tooltip :zoom/out []
-  [:span "Use the " [:code "Mousewheel"] " or pinch the trackpad to zoom in and out."])
-
-(defmethod tooltip :zoom/in []
-  [:span "Use the " [:code "Mousewheel"] " or pinch the trackpad to zoom in and out."])
-
-(defmethod tooltip :mode/select []
-  [:span "Hold " [:code "Shift"] " and drag to select multiple tokens."])
-
-(defmethod tooltip :mode/ruler []
-  "Measure the distance between two points.")
-
-(defmethod tooltip :mode/circle []
-  "Draw a circle, starting from its center.")
-
-(defmethod tooltip :mode/rect []
-  "Draw a rectangle from one corner to the other.")
-
-(defmethod tooltip :mode/cone []
-  "Draw a cone whose length is equal to its width.")
-
-(defmethod tooltip :mode/line []
-  "Draw a line from one point to another.")
-
-(defmethod tooltip :share/open []
-  [:span "Open or close the player window. "
-   [:a {:href "https://github.com/samcf/ogre.tools/wiki#player-window"
-        :target "_blank"}
-    "Learn more"] "."])
-
-(defmethod tooltip :share/play []
-  "Resumes updates to the player window.")
-
-(defmethod tooltip :share/pause []
-  "Pauses updates to the player window. Good time to setup an ambush!")
-
-(defmethod tooltip :default [] nil)
+(defn tooltip [key]
+  (case key
+    :zoom/reset  "Reset to 100% zoom."
+    :zoom/out    [:span "Use the " [:code "Mousewheel"] " or pinch the trackpad to zoom in and out."]
+    :zoom/in     [:span "Use the " [:code "Mousewheel"] " or pinch the trackpad to zoom in and out."]
+    :mode/select [:span "Hold " [:code "Shift"] " and drag to select multiple tokens."]
+    :mode/ruler  "Measure the distance between two points."
+    :mode/circle "Draw a circle, starting from its center."
+    :mode/rect   "Draw a rectangle from one corner to the other."
+    :mode/cone   "Draw a cone whose length is equal to its width."
+    :mode/line   "Draw a line from one point to another."
+    :share/open  [:span "Open or close the player window. "
+                  [:a {:href "https://github.com/samcf/ogre.tools/wiki#player-window" :target "_blank"} "Learn more"] "."]
+    :share/play  "Resumes updates to the player window."
+    :share/pause "Pauses updates to the player window. Good time to setup an ambush!" ""))
 
 (def query
   {:pull
@@ -85,7 +58,7 @@
     [:div.toolbar {:ref container}
      (if @tooltip-key
        [:div.toolbar-tooltip
-        [tooltip {:key @tooltip-key}]])
+        [tooltip @tooltip-key]])
      [:div.toolbar-groups
       [:div.toolbar-group
        [:button.toolbar-zoom
