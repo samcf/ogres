@@ -72,7 +72,7 @@
 
 (defn create-dispatch [conn]
   (fn [event & args]
-    (let [tx (apply txs/transact @conn event args)]
+    (let [tx (apply txs/transact {:data @conn :event event} args)]
       (ds/transact! conn tx [event args tx]) nil)))
 
 (defn provider
