@@ -205,6 +205,17 @@
       {:points (string/join " " (triangle 0 0 (- bx ax) (- by ay)))
        :fill-opacity opacity :stroke color})]))
 
+(defn poly-xf [x y]
+  (comp (partition-all 2)
+        (mapcat (fn [[ax ay]] [(- ax x) (- ay y)]))))
+
+(defmethod shape :poly [props]
+  (let [{:keys [element attrs]} props
+        {:keys [shape/vecs shape/color shape/opacity]} element
+        [ax ay] (into [] (take 2) vecs)
+        pairs   (into [] (poly-xf ax ay) vecs)]
+    [:polygon (assoc attrs :points (join " " pairs) :fill-opacity opacity :stroke color)]))
+
 (def shapes-query
   {:pull
    '[{:root/canvas
@@ -468,6 +479,6 @@
          [:g {:ref select-node :class "canvas-drawable canvas-drawable-select"}])
        (if (not= mode :select)
          [:g {:class (str "canvas-drawable canvas-drawable-" (name mode))}
-          [draw {:mode mode}]])]]
+          ^{:key mode} [draw {:mode mode}]])]]
      (if priv?
        [bounds])]))

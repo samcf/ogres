@@ -213,14 +213,15 @@
    [:db/add [:db/ident :canvas] :canvas/selected -1]
    [:db/add [:db/ident :canvas] :panel/curr :shape]])
 
+(defn trans-xf [x y]
+  (comp (partition-all 2) (drop 1) (map (fn [[ax ay]] [(+ ax x) (+ ay y)])) cat))
+
 (defmethod transact :shape/translate
   [data event id x y align?]
-  (let [{[ax ay bx by] :shape/vecs} (ds/pull data [:shape/vecs] id)
-        {size :grid/size} (ds/pull data [[:grid/size :default 70]] [:db/ident :canvas])]
-    (if align?
-      (let [[rx ry] (vec/r (/ size 2) [x y])]
-        [[:db/add id :shape/vecs [rx ry (+ bx (- rx ax)) (+ by (- ry ay))]]])
-      [[:db/add id :shape/vecs [x y (+ bx (- x ax)) (+ by (- y ay))]]])))
+  (let [{[ax ay] :shape/vecs vecs :shape/vecs} (ds/pull data [:shape/vecs] id)
+        {size :grid/size} (ds/pull data [[:grid/size :default 70]] [:db/ident :canvas])
+        [x y] (if align? (vec/r (/ size 2) [x y]) [x y])]
+    [[:db/add id :shape/vecs (into [x y] (trans-xf (- x ax) (- y ay)) vecs)]]))
 
 (defmethod transact :grid/change-size
   [data event size]

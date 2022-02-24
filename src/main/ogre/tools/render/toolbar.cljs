@@ -17,6 +17,7 @@
     :mode/rect   "Draw a rectangle from one corner to the other."
     :mode/cone   "Draw a cone whose length is equal to its width."
     :mode/line   "Draw a line from one point to another."
+    :mode/poly   "Draw a polygon by clicking each point, close by clicking the start."
     :share/open  [:span "Open or close the player window. "
                   [:a {:href "https://github.com/samcf/ogre.tools/wiki#player-window" :target "_blank"} "Learn more"] "."]
     :share/play  "Resumes updates to the player window."
@@ -82,7 +83,8 @@
        [:button (mode-attrs :circle) [icon {:name "circle"}] [shortcut "1"]]
        [:button (mode-attrs :rect) [icon {:name "square"}] [shortcut "2"]]
        [:button (mode-attrs :cone) [icon {:name "triangle"}] [shortcut "3"]]
-       [:button (mode-attrs :line) [icon {:name "slash-lg"}] [shortcut "4"]]]
+       [:button (mode-attrs :poly) [icon {:name "pentagon"}] [shortcut "4"]]
+       [:button (mode-attrs :line) [icon {:name "slash-lg"}] [shortcut "5"]]]
       [:div.toolbar-group
        [:button
         {:css {:active (:share/open? data)}

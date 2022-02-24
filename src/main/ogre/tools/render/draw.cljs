@@ -7,6 +7,18 @@
             [uix.core.alpha :as uix]
             [uix.dom.alpha :refer [create-portal]]))
 
+(defn round [x n]
+  (* (js/Math.round (/ x n)) n))
+
+(defn +-xf [x y]
+  (map (fn [[ax ay]] [(+ ax x) (+ ay y)])))
+
+(defn *-xf [n]
+  (map (fn [[x y]] [(* x n) (* y n)])))
+
+(defn r-xf [n]
+  (map (fn [[x y]] [(round x n) (round y n)])))
+
 (defn ft->px [ft size] (* (/ ft 5) size))
 (defn px->ft [px size] (js/Math.round (* (/ px size) 5)))
 (defn ->canvas [t s & vs] (mapv (fn [v] (vec/- (vec/s (/ s) v) t)) vs))
@@ -254,3 +266,47 @@
            (-> (euclidean ax ay bx by)
                (px->ft (* size scale))
                (str "ft."))]]))]))
+
+(defmethod draw :poly []
+  (let [[result dispatch] (use-query draw-query)
+        {[ox oy] :bounds/self
+         {[tx ty] :pos/vec
+          scale :zoom/scale
+          align :grid/align
+          size  :grid/size} :root/canvas} result
+        pairs   (uix/state [])
+        mouse   (uix/state [])
+        [ax ay] @pairs
+        [mx my] @mouse
+        closed? (< (euclidean ax ay mx my) 32)]
+    [:<>
+     [:rect
+      {:x 0 :y 0 :fill "transparent"
+       :width "100%" :height "100%"
+       :on-mouse-move
+       (fn [event]
+         (let [dst [(- (.-clientX event) ox) (- (.-clientY event) oy)]]
+           (if align
+             (let [xf (comp (partition-all 2) (*-xf (/ scale)) (+-xf (- tx) (- ty))
+                            (r-xf size) (+-xf tx ty) (*-xf scale) cat)]
+               (reset! mouse (into [] xf dst)))
+             (reset! mouse dst))))
+       :on-click
+       (fn []
+         (if closed?
+           (let [xf (comp (partition-all 2) (*-xf (/ scale)) (+-xf (- tx) (- ty)) cat)
+                 xs (into [] xf @pairs)]
+             (dispatch :shape/create :poly xs))
+           (swap! pairs conj mx my)))}]
+     [:circle {:cx mx :cy my :r 3 :style {:pointer-events "none" :fill "white"}}]
+     (if (seq @pairs)
+       [:circle {:cx ax :cy ay :r 6
+                 :style {:pointer-events "none"
+                         :stroke "white"
+                         :stroke-width 1
+                         :stroke-dasharray "none"}}] nil)
+     (for [[x y] (partition 2 @pairs)]
+       [:circle {:key [x y] :cx x :cy y :r 3 :style {:pointer-events "none" :fill "white"}}])
+     [:polygon
+      {:points (string/join " " (if closed? @pairs (into @pairs @mouse)))
+       :style {:pointer-events "none"}}]]))

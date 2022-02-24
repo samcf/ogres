@@ -54,6 +54,10 @@
 
    ["keydown" \4]
    (fn [[_ dispatch]]
+     (dispatch :canvas/toggle-mode :poly))
+
+   ["keydown" \5]
+   (fn [[_ dispatch]]
      (dispatch :canvas/toggle-mode :line))
 
    ["keydown" \v]
@@ -65,7 +69,7 @@
      (let [{:keys [share/open?]} (pull @conn [:share/open?] [:db/ident :root])]
        (if open?
          (dispatch :share/switch))))
-   
+
    ["keydown" \w]
    (fn [[_ dispatch]]
      (dispatch :share/initiate))
