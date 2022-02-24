@@ -45,7 +45,7 @@
 (defn use-query
   "React hook to run queries against the underlying DataScript database."
   ([] (let [[_ dispatch] (uix/context state)] [dispatch]))
-  ([{:keys [query pull args key] :or {query root-query args []}}]
+  ([{:keys [query pull args] :or {query root-query args []}}]
    (let [[conn dispatch] (uix/context state)
          listen-key      (deref (uix/state (ds/squuid)))
          get-result      (uix/callback

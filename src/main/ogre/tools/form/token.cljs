@@ -71,13 +71,12 @@
                   (.put (.-images store) record)
                   (fn [] (dispatch :stamp/create entity)))))))))}]))
 
-(defn token [props]
+(defn token []
   (let [[data dispatch] (use-query query)
         display-tokens? (uix/state false)
         file-upload     (uix/ref)
         initiative      (-> data :root/canvas :canvas/initiative)
         selected        (-> data :root/canvas :canvas/selected)
-        stamps          (-> data :root/stamps)
         idents          (map :db/id selected)]
     [:<>
      [:section.form-token-profile

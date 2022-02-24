@@ -1,5 +1,5 @@
 (ns ogre.tools.render.panel
-  (:require [ogre.tools.render :refer [button checkbox icon]]
+  (:require [ogre.tools.render :refer [icon]]
             [ogre.tools.form.render :refer [form]]
             [ogre.tools.state :refer [use-query]]))
 

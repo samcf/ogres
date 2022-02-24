@@ -1,7 +1,7 @@
 (ns ogre.tools.render.tokens
   (:require [ogre.tools.state :refer [use-query]]
             [ogre.tools.vec :as vec]
-            [react-draggable :as draggable]))
+            [react-draggable]))
 
 (def attrs
   {:pull
@@ -12,7 +12,7 @@
       [:grid/size :default 70]
       [:pos/vec :default [0 0]]]}]})
 
-(defn tokens [props]
+(defn tokens []
   (let [[result dispatch] (use-query attrs)
         {offset :bounds/self
          {trans :pos/vec
@@ -21,7 +21,7 @@
           size :grid/size} :root/canvas} result]
     [:<>
      [:svg [:circle {:cx 32 :cy 32 :r 33 :fill "url(#token-stamp-default)"}]]
-     [:> draggable
+     [:> react-draggable
       {:position #js {:x 0 :y 0}
        :onStop
        (fn [event data]

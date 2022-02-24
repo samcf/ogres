@@ -96,8 +96,8 @@
         conn :reset
         (fn [{[event _ _] :tx-meta}]
           (when (= event :storage/reset)
-            (do (.delete store)
-                (.reload (.-location js/window))))))) [])
+            (.delete store)
+            (.reload (.-location js/window)))))) [])
     [:<>
      [unmarshaller]
      [marshaller]]))

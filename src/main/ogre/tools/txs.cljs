@@ -42,8 +42,7 @@
     :initiative/health
     :initiative/suffix})
 
-(defmulti transact
-  (fn [data event & args] event))
+(defmulti transact (fn [_ event] event))
 
 (defmethod transact :workspace/create
   [data event]
@@ -91,15 +90,14 @@
         select [:db/id :canvas/mode :canvas/selected :panel/prev]
         result (ds/pull data select ident)
         {curr :canvas/mode
-         prev :panel/prev
-         selected :canvas/selected} result]
+         prev :panel/prev} result]
     (concat [[:db/add ident :canvas/mode mode]]
             (if (not= mode curr)
               [[:db/retract ident :canvas/selected]
                [:db/add ident :panel/curr (or prev :canvas)]]))))
 
 (defmethod transact :canvas/toggle-theme
-  [data event]
+  [data]
   (let [ident  [:db/ident :canvas]
         canvas (ds/pull data [:canvas/theme] ident)]
     [[:db/add ident :canvas/theme (if (= (:canvas/theme canvas) :dark) :light :dark)]]))

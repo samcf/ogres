@@ -3,7 +3,7 @@
             [ogre.tools.geom :refer [chebyshev euclidean triangle]]
             [ogre.tools.state :refer [use-query]]
             [ogre.tools.vec :as vec]
-            [react-draggable :as draggable]
+            [react-draggable]
             [uix.core.alpha :as uix]
             [uix.dom.alpha :refer [create-portal]]))
 
@@ -19,7 +19,6 @@
 (defn r-xf [n]
   (map (fn [[x y]] [(round x n) (round y n)])))
 
-(defn ft->px [ft size] (* (/ ft 5) size))
 (defn px->ft [px size] (js/Math.round (* (/ px size) 5)))
 (defn ->canvas [t s & vs] (mapv (fn [v] (vec/- (vec/s (/ s) v) t)) vs))
 (defn ->screen [t s & vs] (mapv (fn [v] (vec/s s (vec/+ v t))) vs))
@@ -31,10 +30,10 @@
   (let [init  [nil nil nil]
         state (uix/state init)]
     [:<>
-     [:> draggable
+     [:> react-draggable
       {:position #js {:x 0 :y 0}
        :on-start
-       (fn [event data]
+       (fn [event]
          (.stopPropagation event)
          (let [src [(.-clientX event) (.-clientY event)]]
            (reset! state [event src src])))
@@ -72,11 +71,10 @@
   (let [[result dispatch] (use-query draw-query)
         {offset :bounds/self
          {trans :pos/vec
-          scale :zoom/scale
-          size  :grid/size} :root/canvas} result]
+          scale :zoom/scale} :root/canvas} result]
     [drawable
      {:transform
-      (fn [event src dst]
+      (fn [_ src dst]
         (let [[src dst] (mapv (fn [v] (vec/- v offset)) [src dst])
               [src dst] (->canvas trans scale src dst)]
           [src dst]))
@@ -94,11 +92,10 @@
   (let [[result dispatch] (use-query draw-query)
         {offset :bounds/self
          {trans :pos/vec
-          scale :zoom/scale
-          size  :grid/size} :root/canvas} result]
+          scale :zoom/scale} :root/canvas} result]
     [drawable
      {:transform
-      (fn [event src dst]
+      (fn [_ src dst]
         (let [[src dst] (mapv (fn [v] (vec/- v offset)) [src dst])
               [src dst] (->canvas trans scale src dst)]
           [src dst]))
@@ -112,7 +109,7 @@
      (fn [_ src dst]
        (let [[src dst] (->screen trans scale src dst)
              [ax ay]   src
-             [bx by]   dst
+             [bx _]    dst
              size      (apply min (vec/- dst src))]
          [:g
           [:path {:d (string/join " " ["M" ax ay "h" size "v" size "H" ax "Z"])}]
@@ -123,7 +120,7 @@
                (str "px"))]]))]))
 
 (defmethod draw :ruler []
-  (let [[result dispatch] (use-query draw-query)
+  (let [[result] (use-query draw-query)
         {offset :bounds/self
          {trans :pos/vec
           scale :zoom/scale

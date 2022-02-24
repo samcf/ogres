@@ -7,7 +7,7 @@
             [ogre.tools.render.pattern :refer [pattern]]
             [ogre.tools.state :refer [use-query]]
             [ogre.tools.vec :as vec]
-            [react-draggable :as draggable]
+            [react-draggable]
             [uix.core.alpha :as uix]))
 
 (def atmosphere
@@ -30,7 +30,6 @@
     0.0 0.0 0.0 1.0 0.0]})
 
 (defn ft->px [ft size] (* (/ ft 5) size))
-(defn px->ft [px size] (js/Math.round (* (/ px size) 5)))
 
 (defn xf [& kvs]
   (let [xform (comp
@@ -76,7 +75,6 @@
           color    :canvas/color
           tokens   :canvas/tokens
           size     :grid/size
-          scale    :zoom/scale
           {checksum :image/checksum}
           :canvas/scene}
          :root/canvas} result
@@ -118,8 +116,8 @@
        [:image/width
         :image/height]}]}]})
 
-(defn mask []
-  (let [[data dispatch] (use-query mask-query)
+(defn view-mask []
+  (let [[data] (use-query mask-query)
         {host? :root/host?
          {lighting :canvas/lighting
           {width  :image/width
@@ -144,7 +142,7 @@
       [:zoom/scale :default 1]]}]})
 
 (defn grid []
-  (let [[data dispatch] (use-query grid-query)
+  (let [[data] (use-query grid-query)
         {[_ _ w h] :bounds/self
          {mode    :canvas/mode
           size    :grid/size
@@ -171,7 +169,7 @@
 
 (defmethod shape :circle [props]
   (let [{:keys [element attrs]} props
-        {:keys [shape/vecs shape/color shape/opacity shape/pattern]} element
+        {:keys [shape/vecs shape/color shape/opacity]} element
         [ax ay bx by] vecs]
     [:circle
      (merge
@@ -191,7 +189,7 @@
 
 (defmethod shape :line [props]
   (let [{:keys [element]} props
-        {:keys [shape/vecs shape/color shape/opacity]} element
+        {:keys [shape/vecs shape/color]} element
         [ax ay bx by] vecs]
     [:line {:x1 0 :y1 0 :x2 (- bx ax) :y2 (- by ay) :stroke color :stroke-width 4 :stroke-linecap "round"}]))
 
@@ -231,11 +229,11 @@
          [:shape/pattern :default :solid]
          :canvas/_selected]}]}]})
 
-(defn shapes [props]
+(defn shapes []
   (let [[result dispatch] (use-query shapes-query)]
     (for [element (-> result :root/canvas :canvas/shapes)]
       (let [{id :db/id [ax ay] :shape/vecs} element]
-        [:> draggable
+        [:> react-draggable
          {:key      id
           :scale    (-> result :root/canvas :zoom/scale)
           :position #js {:x ax :y ay}
@@ -277,7 +275,7 @@
    [id]})
 
 (defn token [props]
-  (let [[data dispatch] (use-query (token-query (:id props)))
+  (let [[data] (use-query (token-query (:id props)))
         flags       (:element/flags data)
         flag-names  (mapv #(str "flag--" (name %)) flags)
         class-name  (css "canvas-token" {:selected (:canvas/_selected data)} flag-names)
@@ -318,7 +316,7 @@
      [{:canvas/tokens
        [{:token/stamp [:image/checksum]}]}]}]})
 
-(defn stamps [props]
+(defn stamps []
   (let [[data] (use-query stamps-query)
         lookup (fn [t] (-> t :token/stamp :image/checksum))
         images (->> data :root/canvas :canvas/tokens (map lookup) set)
@@ -353,14 +351,14 @@
         [:element/flags :default #{}]
         :canvas/_selected]}]}]})
 
-(defn tokens [props]
+(defn tokens []
   (let [[result dispatch] (use-query tokens-query)]
     (for [entity (-> result :root/canvas :canvas/tokens)
           :let [{id :db/id [ax ay] :pos/vec} entity]
           :when (and (not (:canvas/_selected entity))
                      (or (:root/host? result)
                          (visible? (:element/flags entity))))]
-      [:> draggable
+      [:> react-draggable
        {:key      id
         :position #js {:x ax :y ay}
         :scale    (-> result :root/canvas :zoom/scale)
@@ -395,7 +393,7 @@
         {:keys [canvas/selected zoom/scale]} canvas
         idents (map :db/id selected)]
     (if (= (:element/type (first selected)) :token)
-      [:> draggable
+      [:> react-draggable
        {:position #js {:x 0 :y 0}
         :scale scale
         :on-start
@@ -436,7 +434,7 @@
       :canvas/modifier
       [:zoom/scale :default 1]]}]})
 
-(defn canvas [props]
+(defn canvas []
   (let [select-node       (uix/ref)
         [result dispatch] (use-query canvas-query)
         {priv? :root/privileged?
@@ -454,10 +452,10 @@
                        (vec/s (/ -1 2 scale))
                        (vec/+ coord)))]
     [:svg.canvas {:class (str "theme--" (name theme))}
-     [:> draggable
+     [:> react-draggable
       {:position #js {:x 0 :y 0}
        :on-stop
-       (fn [event data]
+       (fn [_ data]
          (let [ox (.-x data) oy (.-y data)]
            (if (and (= ox 0) (= oy 0))
              (dispatch :selection/clear)
@@ -474,7 +472,7 @@
         [shapes]
         [tokens]
         [selection]
-        [mask]]
+        [view-mask]]
        (if (and (= mode :select) (= modif :shift))
          [:g {:ref select-node :class "canvas-drawable canvas-drawable-select"}])
        (if (not= mode :select)

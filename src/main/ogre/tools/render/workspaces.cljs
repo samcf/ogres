@@ -8,7 +8,7 @@
     {:root/canvases
      [:db/id :element/name]}]})
 
-(defn workspaces [props]
+(defn workspaces []
   (let [[data dispatch] (use-query query)
         {current :root/canvas
          workspaces :root/canvases} data]

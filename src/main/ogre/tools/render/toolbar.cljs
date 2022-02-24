@@ -32,7 +32,7 @@
      [[:canvas/mode :default :select]
       [:zoom/scale :default 1]]}]})
 
-(defn toolbar [props]
+(defn toolbar []
   (let [[data dispatch] (use-query query)
         container       (uix/ref)
         tooltip-key     (uix/state nil)

@@ -1,6 +1,5 @@
 (ns ogre.tools.form.shape
-  (:require [clojure.string :refer [capitalize]]
-            [ogre.tools.form.render :refer [form]]
+  (:require [ogre.tools.form.render :refer [form]]
             [ogre.tools.form.util :refer [checked? every-value?]]
             [ogre.tools.render :refer [button checkbox icon]]
             [ogre.tools.render.pattern :refer [pattern]]
@@ -22,7 +21,7 @@
         [:shape/pattern :default :solid]
         [:shape/opacity :default 0.25]]}]}]})
 
-(defn shape [props]
+(defn shape []
   (let [[result dispatch] (use-query query)
         selected          (-> result :root/canvas :canvas/selected)
         idents            (map :db/id selected)]
@@ -65,7 +64,7 @@
              [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill (str "url(#" id ")")}]])])]]
      [:section
       [:legend "Opacity"]
-      (let [[match? value] (every-value? selected :shape/opacity)]
+      (let [[_ value] (every-value? selected :shape/opacity)]
         [:input
          {:type "range"
           :style {:width "100%"}

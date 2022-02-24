@@ -5,7 +5,7 @@
 (def boundary
   (uix/create-error-boundary
    {:error->state (fn [error] {:error error})
-    :handle-catch (fn [error info])}
+    :handle-catch (fn [])}
    (fn [state [child]]
      (let [{:keys [error]} @state
            store (initialize)]

@@ -101,9 +101,8 @@
     (uix/effect!
      (fn []
        (when-let [element @canvas]
-         (do
-           (.observe @observer element)
-           (fn [] (.unobserve @observer element))))) [@canvas]) nil))
+         (.observe @observer element)
+         (fn [] (.unobserve @observer element)))) [@canvas]) nil))
 
 (defn closers
   "Registers event handlers to listen for the host or guest windows being
