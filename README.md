@@ -8,7 +8,8 @@ Find more information on the [project wiki](https://github.com/samcf/ogre.tools/
 ![Initiative Demo](web/extra/share-initiative.png)
 ![Player View Demo](web/extra/share-player-view.png)
 
-### Attributions
-- [Valkyrie](https://mbtype.com/fonts/valkyrie/) by [Matthew Butterick](https://mbtype.com/bio.html)
-- Icons by [Bootstrap](https://icons.getbootstrap.com/)
-- Project banner by [Stoneshore](https://twitter.com/stoneshoretrpg)
+| Attribution | URL |
+| ----------- | --- |
+| Valkyrie | https://mbtype.com/bio.html |
+| Icons | https://icons.getbootstrap.com/ |
+| Project Banner | https://twitter.com/stoneshoretrpg |
