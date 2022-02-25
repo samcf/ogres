@@ -289,6 +289,8 @@
         [cx cy]     [(* (.cos js/Math 0.75) aura-length)
                      (* (.sin js/Math 0.75) aura-length)]]
     [:g {:class class-name}
+     (if (> aura-radius 0)
+       [:circle.canvas-token-aura {:cx 0 :cy 0 :r aura-length}])
      (if (:canvas/_selected data)
        [:circle.canvas-token-ring
         {:cx 0 :cy 0 :style {:r (max (- token-radiu 2) 8) :fill "transparent"}}])
@@ -296,8 +298,6 @@
       {:cx 0 :cy 0 :r (max (- token-radiu 2) 8) :fill (str "url(#" pattern-url ")")}]
      (if (seq token-label)
        [text {:x 0 :y (+ token-radiu 8)} token-label])
-     (if (> aura-radius 0)
-       [:circle.canvas-token-aura {:cx 0 :cy 0 :r aura-length}])
      (if (and (> aura-radius 0) (seq (:aura/label data)))
        [text {:x (+ cx 8) :y (+ cy 8)} (:aura/label data)])]))
 

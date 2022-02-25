@@ -437,12 +437,17 @@ legend {
     stroke: var(--canvas-stroke);
 }
 
+@keyframes aura-pulse {
+    0% { fill-opacity: 0.25; }
+    100% { fill-opacity: 0.10; }
+}
+
 .canvas-token-aura {
-    fill: none;
+    animation: aura-pulse 1.50s alternate infinite;
+    fill: var(--canvas-stroke);
     stroke: var(--canvas-stroke);
     stroke-width: 1px;
-    stroke-dasharray: 12px;
-    stroke-linecap: round;
+    stroke-opacity: 0.45;
     pointer-events: none;
 }
 
