@@ -253,9 +253,6 @@
             [:defs [pattern {:id id :name (:shape/pattern element) :color (:shape/color element)}]]
             [shape {:element element :attrs {:fill (str "url(#" id ")")}}]])]))))
 
-(defn marker []
-  [:path {:d "M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"}])
-
 (defn token-query [id]
   {:query
    '[:find (pull $ ?id pattern) . :in $ ?id pattern]
@@ -292,6 +289,9 @@
         [cx cy]     [(* (.cos js/Math 0.75) aura-length)
                      (* (.sin js/Math 0.75) aura-length)]]
     [:g {:class class-name}
+     (if (:canvas/_selected data)
+       [:circle.canvas-token-ring
+        {:cx 0 :cy 0 :style {:r (max (- token-radiu 2) 8) :fill "transparent"}}])
      [:circle.canvas-token-shape
       {:cx 0 :cy 0 :r (max (- token-radiu 2) 8) :fill (str "url(#" pattern-url ")")}]
      (if (seq token-label)
@@ -299,12 +299,7 @@
      (if (> aura-radius 0)
        [:circle.canvas-token-aura {:cx 0 :cy 0 :r aura-length}])
      (if (and (> aura-radius 0) (seq (:aura/label data)))
-       [text {:x (+ cx 8) :y (+ cy 8)} (:aura/label data)])
-     (if (:canvas/_selected data)
-       [:g.canvas-token-marker
-        {:transform (xf :translate [-17 (* -1 (+ token-radiu 20))] :scale 2.20)}
-        [:g.canvas-token-marker-bounce
-         [marker]]])]))
+       [text {:x (+ cx 8) :y (+ cy 8)} (:aura/label data)])]))
 
 (defn stamp [{:keys [checksum]}]
   (let [url (use-image checksum)]

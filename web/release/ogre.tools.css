@@ -416,24 +416,25 @@ legend {
     cursor: pointer;
 }
 
+.canvas-token.selected .canvas-token-shape,
+.canvas-token-shape:hover {
+    stroke: var(--canvas-stroke);
+}
+
 .canvas-token-shape + text {
     text-anchor: middle;
 }
 
-@keyframes marker-bounce {
-    0%   { transform: translate(0px, 0px); }
-    100% { transform: translate(0px, 3px); }
+@keyframes ring-pulse {
+    0%   { transform: scale(1); }
+    100% { transform: scale(1.3); }
 }
 
-.canvas-token-marker path {
-    fill: var(--theme-background-d);
-    stroke-linejoin: round;
-    stroke-width: 0.5px;
-    stroke: white;
-}
-
-.canvas-token.selected .canvas-token-marker-bounce {
-    animation: marker-bounce 0.25s alternate infinite;
+.canvas-token-ring {
+    animation: ring-pulse 0.50s alternate infinite;
+    pointer-events: none;
+    stroke-width: 1px;
+    stroke: var(--canvas-stroke);
 }
 
 .canvas-token-aura {
@@ -998,10 +999,6 @@ legend {
 .global--host .canvas-shape.selected > polygon {
     stroke-dasharray: 4px;
     animation: stroke-animation 1s linear infinite;
-}
-
-.global--guest .canvas-token-marker {
-    display: none;
 }
 
 .global--guest {
