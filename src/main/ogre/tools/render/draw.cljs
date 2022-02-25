@@ -2,10 +2,11 @@
   (:require [clojure.string :as string]
             [ogre.tools.geom :refer [chebyshev euclidean triangle]]
             [ogre.tools.state :refer [use-query]]
-            [ogre.tools.vec :as vec]
             [react-draggable]
             [uix.core.alpha :as uix]
             [uix.dom.alpha :refer [create-portal]]))
+
+(defn px->ft [px size] (js/Math.round (* (/ px size) 5)))
 
 (defn round [x n]
   (* (js/Math.round (/ x n)) n))
@@ -19,16 +20,14 @@
 (defn r-xf [n]
   (map (fn [[x y]] [(round x n) (round y n)])))
 
-(defn px->ft [px size] (js/Math.round (* (/ px size) 5)))
-(defn ->canvas [t s & vs] (mapv (fn [v] (vec/- (vec/s (/ s) v) t)) vs))
-(defn ->screen [t s & vs] (mapv (fn [v] (vec/s s (vec/+ v t))) vs))
+(defn xs-xfs [xs & xfs]
+  (into [] (apply comp (partition-all 2) xfs) xs))
 
 (defn text [attrs child]
   [:text.canvas-text attrs child])
 
 (defn drawable [{:keys [transform on-release]} render-fn]
-  (let [init  [nil nil nil]
-        state (uix/state init)]
+  (let [state (uix/state [])]
     [:<>
      [:> react-draggable
       {:position #js {:x 0 :y 0}
@@ -36,24 +35,23 @@
        (fn [event]
          (.stopPropagation event)
          (let [src [(.-clientX event) (.-clientY event)]]
-           (reset! state [event src src])))
+           (reset! state [event (into src src)])))
        :on-drag
        (fn [event data]
          (swap! state
-                (fn [[_ src _]]
-                  (let [[ax ay] src]
-                    [event src [(+ ax (.-x data)) (+ ay (.-y data))]]))))
+                (fn [[_ [ax ay]]]
+                  [event (into [ax ay] [(+ ax (.-x data)) (+ ay (.-y data))])])))
        :on-stop
        (fn [event]
-         (let [[_ src dst] (deref state)]
-           (reset! state init)
-           (apply on-release event (transform event src dst))))}
+         (let [[_ xs] (deref state)]
+           (reset! state [])
+           (on-release event (transform event xs))))}
       [:rect
        {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"
         :style {:will-change "transform"}}]]
-     (let [[event src dst] (deref state)]
-       (if (seq src)
-         (apply render-fn event (transform event src dst))))]))
+     (let [[event xs] (deref state)]
+       (if (seq xs)
+         (render-fn event (transform event xs))))]))
 
 (def draw-query
   {:pull
@@ -69,48 +67,39 @@
 
 (defmethod draw :select [{:keys [node]}]
   (let [[result dispatch] (use-query draw-query)
-        {offset :bounds/self
-         {trans :pos/vec
+        {[ox oy] :bounds/self
+         {[tx ty] :pos/vec
           scale :zoom/scale} :root/canvas} result]
     [drawable
      {:transform
-      (fn [_ src dst]
-        (let [[src dst] (mapv (fn [v] (vec/- v offset)) [src dst])
-              [src dst] (->canvas trans scale src dst)]
-          [src dst]))
+      (fn [_ xs]
+        (xs-xfs xs (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)) cat))
       :on-release
-      (fn [_ src dst]
-        (dispatch :selection/from-rect (into src dst)))}
-     (fn [_ src dst]
-       (let [[src dst] (->screen trans scale src dst)
-             [ax ay]   src
-             [bx by]   dst]
+      (fn [_ xs]
+        (dispatch :selection/from-rect xs))}
+     (fn [_ xs]
+       (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)]
          (create-portal
           [:path {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}] @node)))]))
 
 (defmethod draw :grid []
   (let [[result dispatch] (use-query draw-query)
-        {offset :bounds/self
-         {trans :pos/vec
+        {[ox oy] :bounds/self
+         {[tx ty] :pos/vec
           scale :zoom/scale} :root/canvas} result]
     [drawable
      {:transform
-      (fn [_ src dst]
-        (let [[src dst] (mapv (fn [v] (vec/- v offset)) [src dst])
-              [src dst] (->canvas trans scale src dst)]
-          [src dst]))
+      (fn [_ xs]
+        (xs-xfs xs (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)) cat))
       :on-release
-      (fn [_ src dst]
-        (let [[src dst] (->screen trans scale src dst)
-              [ax ay]   src
-              size      (js/Math.abs (apply min (vec/- dst src)))]
+      (fn [_ xs]
+        (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)
+              size (js/Math.abs (min (- bx ax) (- by ay)))]
           (if (> size 0)
             (dispatch :grid/draw ax ay size))))}
-     (fn [_ src dst]
-       (let [[src dst] (->screen trans scale src dst)
-             [ax ay]   src
-             [bx _]    dst
-             size      (apply min (vec/- dst src))]
+     (fn [_ xs]
+       (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)
+             size (min (- bx ax) (- by ay))]
          [:g
           [:path {:d (string/join " " ["M" ax ay "h" size "v" size "H" ax "Z"])}]
           [text {:x bx :y ay :fill "white"}
@@ -121,23 +110,23 @@
 
 (defmethod draw :ruler []
   (let [[result] (use-query draw-query)
-        {offset :bounds/self
-         {trans :pos/vec
+        {[ox oy] :bounds/self
+         {[tx ty] :pos/vec
           scale :zoom/scale
           align :grid/align
           size  :grid/size} :root/canvas} result]
     [drawable
      {:on-release identity
       :transform
-      (fn [event src dst]
-        (let [[src dst] (mapv (fn [v] (vec/- v offset)) [src dst])]
-          (if (not= align (.-metaKey event))
-            (let [[src dst] (->canvas trans scale src dst)
-                  [src dst] (mapv (fn [v] (vec/r (/ size 2) v)) [src dst])
-                  [src dst] (->screen trans scale src dst)]
-              [src dst])
-            [src dst])))}
-     (fn [_ [ax ay] [bx by]]
+      (fn [event xs]
+        (if (not= align (.-metaKey event))
+          (xs-xfs
+           xs
+           (+-xf (- ox) (- oy)) (*-xf (/ scale))
+           (+-xf (- tx) (- ty)) (r-xf (/ size 2))
+           (+-xf tx ty) (*-xf scale) cat)
+          (xs-xfs xs (+-xf (- ox) (- oy)) cat)))}
+     (fn [_ [ax ay bx by]]
        [:g
         [:line {:x1 ax :y1 ay :x2 bx :y2 by}]
         [text {:x (- bx 48) :y (- by 8) :fill "white"}
@@ -147,29 +136,26 @@
 
 (defmethod draw :circle []
   (let [[result dispatch] (use-query draw-query)
-        {offset :bounds/self
-         {trans :pos/vec
+        {[ox oy] :bounds/self
+         {[tx ty] :pos/vec
           scale :zoom/scale
           align :grid/align
           size  :grid/size} :root/canvas} result]
     [drawable
      {:transform
-      (fn [event src dst]
-        (let [[src dst] (mapv (fn [v] (vec/- v offset)) [src dst])
-              [src dst] (->canvas trans scale src dst)]
+      (fn [event xs]
+        (let [[ax ay bx by] (xs-xfs xs (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)) cat)]
           (if (not= align (.-metaKey event))
-            (let [src (vec/r (/ size 2) src)
-                  snp (vec/- src dst)
-                  dst (vec/- dst (vec/- (vec/r size snp) snp))]
-              [src dst])
-            [src dst])))
+            (let [[ax ay] (xs-xfs [ax ay] (r-xf (/ size 2)) cat)
+                  [bx by] (xs-xfs [bx by] (r-xf size) cat)]
+              [ax ay bx by])
+            [ax ay bx by])))
       :on-release
-      (fn [_ src dst]
-        (dispatch :shape/create :circle (into src dst)))}
-     (fn [_ src dst]
-       (let [[src dst] (->screen trans scale src dst)
-             radius    (apply chebyshev (into src dst))
-             [ax ay]   src]
+      (fn [_ xs]
+        (dispatch :shape/create :circle xs))}
+     (fn [_ xs]
+       (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)
+             radius (chebyshev ax ay bx by)]
          [:g
           [:circle {:cx ax :cy ay :r radius}]
           [text {:x ax :y ay :fill "white"}
@@ -177,27 +163,23 @@
 
 (defmethod draw :rect []
   (let [[result dispatch] (use-query draw-query)
-        {offset :bounds/self
-         {trans :pos/vec
+        {[ox oy] :bounds/self
+         {[tx ty] :pos/vec
           scale :zoom/scale
           align :grid/align
           size  :grid/size} :root/canvas} result]
     [drawable
      {:transform
-      (fn [event src dst]
-        (let [[src dst] (mapv (fn [v] (vec/- v offset)) [src dst])
-              [src dst] (->canvas trans scale src dst)]
+      (fn [event xs]
+        (let [xf (comp (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)))]
           (if (not= align (.-metaKey event))
-            (let [[src dst] (mapv (fn [v] (vec/r (/ size 2) v)) [src dst])]
-              [src dst])
-            [src dst])))
+            (xs-xfs xs xf (r-xf (/ size 2)) cat)
+            (xs-xfs xs xf cat))))
       :on-release
-      (fn [_ src dst]
-        (dispatch :shape/create :rect (into src dst)))}
-     (fn [_ src dst]
-       (let [[src dst] (->screen trans scale src dst)
-             [ax ay] src
-             [bx by] dst]
+      (fn [_ xs]
+        (dispatch :shape/create :rect xs))}
+     (fn [_ xs]
+       (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)]
          [:g
           [:path {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}]
           [text {:x (+ ax 8) :y (- ay 8) :fill "white"}
@@ -207,27 +189,23 @@
 
 (defmethod draw :line []
   (let [[result dispatch] (use-query draw-query)
-        {offset :bounds/self
-         {trans :pos/vec
+        {[ox oy] :bounds/self
+         {[tx ty] :pos/vec
           scale :zoom/scale
           align :grid/align
           size  :grid/size} :root/canvas} result]
     [drawable
      {:transform
-      (fn [event src dst]
-        (let [[src dst] (mapv (fn [v] (vec/- v offset)) [src dst])
-              [src dst] (->canvas trans scale src dst)]
+      (fn [event xs]
+        (let [xf (comp (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)))]
           (if (not= align (.-metaKey event))
-            (let [[src dst] (mapv (fn [v] (vec/r (/ size 2) v)) [src dst])]
-              [src dst])
-            [src dst])))
+            (xs-xfs xs xf (r-xf (/ size 2)) cat)
+            (xs-xfs xs xf cat))))
       :on-release
-      (fn [_ src dst]
-        (dispatch :shape/create :line (into src dst)))}
-     (fn [_ src dst]
-       (let [[src dst] (->screen trans scale src dst)
-             [ax ay]   src
-             [bx by]   dst]
+      (fn [_ xs]
+        (dispatch :shape/create :line xs))}
+     (fn [_ xs]
+       (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)]
          [:g [:line {:x1 ax :y1 ay :x2 bx :y2 by}]
           [text {:x (+ ax 8) :y (- ay 8) :fill "white"}
            (-> (chebyshev ax ay bx by)
@@ -236,27 +214,20 @@
 
 (defmethod draw :cone []
   (let [[result dispatch] (use-query draw-query)
-        {offset :bounds/self
-         {trans :pos/vec
+        {[ox oy] :bounds/self
+         {[tx ty] :pos/vec
           scale :zoom/scale
-          align :grid/align
           size  :grid/size} :root/canvas} result]
     [drawable
      {:transform
-      (fn [event src dst]
-        (let [[src dst] (mapv (fn [v] (vec/- v offset)) [src dst])
-              [src dst] (->canvas trans scale src dst)]
-          (if (not= align (.-metaKey event))
-            (let [src (vec/r size src)]
-              [src dst])
-            [src dst])))
+      (fn [_ xs]
+        (let [xf (comp (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)))]
+          (xs-xfs xs xf cat)))
       :on-release
-      (fn [_ src dst]
-        (dispatch :shape/create :cone (into src dst)))}
-     (fn [_ src dst]
-       (let [[src dst] (->screen trans scale src dst)
-             [ax ay]   src
-             [bx by]   dst]
+      (fn [_ xs]
+        (dispatch :shape/create :cone xs))}
+     (fn [_ xs]
+       (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)]
          [:g
           [:polygon {:points (string/join " " (triangle ax ay bx by))}]
           [text {:x (+ bx 16) :y (+ by 16) :fill "white"}
@@ -282,17 +253,15 @@
        :width "100%" :height "100%"
        :on-mouse-move
        (fn [event]
-         (let [dst [(- (.-clientX event) ox) (- (.-clientY event) oy)]]
+         (let [dst [(.-clientX event) (.-clientY event)]]
            (if align
-             (let [xf (comp (partition-all 2) (*-xf (/ scale)) (+-xf (- tx) (- ty))
-                            (r-xf size) (+-xf tx ty) (*-xf scale) cat)]
-               (reset! mouse (into [] xf dst)))
-             (reset! mouse dst))))
+             (reset! mouse (xs-xfs dst (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)) (r-xf size) (+-xf tx ty) (*-xf scale) cat))
+             (reset! mouse (xs-xfs dst (+-xf (- ox) (- oy)) cat)))))
        :on-click
        (fn []
          (if closed?
-           (let [xf (comp (partition-all 2) (*-xf (/ scale)) (+-xf (- tx) (- ty)) cat)
-                 xs (into [] xf @pairs)]
+           (let [xf (comp (*-xf (/ scale)) (+-xf (- tx) (- ty)))
+                 xs (xs-xfs @pairs xf cat)]
              (dispatch :shape/create :poly xs))
            (swap! pairs conj mx my)))}]
      [:circle {:cx mx :cy my :r 3 :style {:pointer-events "none" :fill "white"}}]
