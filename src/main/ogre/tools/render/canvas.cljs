@@ -273,33 +273,33 @@
 
 (defn token [props]
   (let [[data] (use-query (token-query (:id props)))
-        flags       (:element/flags data)
-        flag-names  (mapv #(str "flag--" (name %)) flags)
-        class-name  (css "canvas-token" {:selected (:canvas/_selected data)} flag-names)
-        size        (-> data :canvas/_tokens :grid/size)
-        token-radiu (/ (ft->px (:size (:token/size data)) size) 2)
-        token-label (label data)
-        aura-radius (:aura/radius data)
-        aura-length (+ (ft->px aura-radius size) (/ size 2))
-        checksum    (-> data :token/stamp :image/checksum)
-        pattern-url (cond
-                      (flags :deceased)  "token-stamp-deceased"
-                      (string? checksum) (str "token-stamp-" checksum)
-                      :else              "token-stamp-default")
-        [cx cy]     [(* (.cos js/Math 0.75) aura-length)
-                     (* (.sin js/Math 0.75) aura-length)]]
-    [:g {:class class-name}
-     (if (> aura-radius 0)
-       [:circle.canvas-token-aura {:cx 0 :cy 0 :r aura-length}])
+        flags  (:element/flags data)
+        class  (->> flags
+                    (mapv #(str "flag--" (name %)))
+                    (css "canvas-token" {:selected (:canvas/_selected data)}))
+        size   (-> data :canvas/_tokens :grid/size)
+        radius (-> data :token/size :size (ft->px size) (/ 2) (- 2) (max 16))]
+    [:g {:class class}
+     (if (> (:aura/radius data) 0)
+       (let [radius (+ (ft->px (:aura/radius data) size) (/ size 2))]
+         [:<>
+          [:circle.canvas-token-aura {:cx 0 :cy 0 :r radius}]
+          (if (seq (:aura/label data))
+            (let [cx (+ (* (.cos js/Math 0.75) radius) 8)
+                  cy (+ (* (.sin js/Math 0.75) radius) 8)]
+              [text {:x cx :y cy} (:aura/label data)]))]))
      (if (:canvas/_selected data)
        [:circle.canvas-token-ring
-        {:cx 0 :cy 0 :style {:r (max (- token-radiu 2) 8) :fill "transparent"}}])
-     [:circle.canvas-token-shape
-      {:cx 0 :cy 0 :r (max (- token-radiu 2) 8) :fill (str "url(#" pattern-url ")")}]
-     (if (seq token-label)
-       [text {:x 0 :y (+ token-radiu 8)} token-label])
-     (if (and (> aura-radius 0) (seq (:aura/label data)))
-       [text {:x (+ cx 8) :y (+ cy 8)} (:aura/label data)])]))
+        {:cx 0 :cy 0 :style {:r radius :fill "transparent"}}])
+     (let [checksum (-> data :token/stamp :image/checksum)
+           pattern  (cond
+                      (flags :deceased)  "token-stamp-deceased"
+                      (string? checksum) (str "token-stamp-" checksum)
+                      :else              "token-stamp-default")]
+       [:circle.canvas-token-shape
+        {:cx 0 :cy 0 :r radius :fill (str "url(#" pattern ")")}])
+     (if (seq (label data))
+       [text {:x 0 :y (+ radius 10)} (label data)])]))
 
 (defn stamp [{:keys [checksum]}]
   (let [url (use-image checksum)]
