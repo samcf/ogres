@@ -4,8 +4,8 @@
             [ogre.tools.state :refer [use-query VERSION]]))
 
 (def attrs
-  [[:root/shortcuts? :default false]
-   [:root/tooltips? :default false]])
+  [[:root/shortcuts? :default true]
+   [:root/tooltips? :default true]])
 
 (def links
   [["https://reddit.com/r/ogretools/" "Project subreddit"]

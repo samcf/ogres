@@ -25,7 +25,7 @@
 
 (def query
   {:pull
-   [[:root/tooltips? :default false]
+   [[:root/tooltips? :default true]
     [:share/open? :default false]
     [:share/paused? :default false]
     {:root/canvas

@@ -11,8 +11,8 @@
 (def attrs
   [:root/loaded?
    :root/host?
-   [:root/shortcuts? :default false]
-   [:root/tooltips? :default false]])
+   [:root/shortcuts? :default true]
+   [:root/tooltips? :default true]])
 
 (defn layout []
   (let [[result] (use-query {:pull attrs})
