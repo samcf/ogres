@@ -516,12 +516,6 @@ legend {
     opacity: 0.60;
 }
 
-.global--guest .canvas-board,
-.global--guest .canvas-token,
-.global--guest .canvas-shape {
-    transition: transform 0.25s ease-in-out;
-}
-
 /* Stamps */
 .stamp-profile {
     cursor: pointer;
