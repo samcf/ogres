@@ -45,9 +45,12 @@
 (defn cross [ax ay bx by]
   (- (* ax by) (* ay bx)))
 
-;; https://stackoverflow.com/a/565282
-;; p + t r = q + u s
-(defn intersection [px py rx ry qx qy sx sy]
+(defn intersection
+  "Returns a description of the relationship between the given segments as a
+   tuple whose first element is either :collinear, :parallel, :intersecting,
+   or :non-intersecting.
+   https://stackoverflow.com/a/565282"
+  [px py rx ry qx qy sx sy]
   (let [ofx (- qx px)
         ofy (- qy py)
         rdx (- rx px)
@@ -56,24 +59,24 @@
         sdy (- sy qy)
         rcs (cross rdx rdy sdx sdy)
         ocr (cross ofx ofy rdx rdy)]
+    (if (near-zero? rcs)
+      (if (near-zero? ocr)
+        ;; collinear
+        ;; r × s = 0 and (q − p) × r = 0
+        [:collinear]
 
-    ;; collinear
-    ;; r × s = 0 and (q − p) × r = 0
-    (if (and (near-zero? rcs) (near-zero? ocr))
-      [:collinear]
+        ;; parallel
+        ;; r × s = 0 and (q − p) × r ≠ 0
+        [:parallel])
 
-      ;; parallel
-      ;; r × s = 0 and (q − p) × r ≠ 0
-      (if (and (near-zero? rcs) (not (near-zero? ocr)))
-        [:parallel]
-        (let [t (/ (cross ofx ofy sdx sdy) rcs)
-              u (/ ocr rcs)]
+      ;; intersecting
+      ;; r × s ≠ 0 and 0 ≤ t ≤ 1 and 0 ≤ u ≤ 1
+      (if (<= 0 (/ ocr rcs) 1)
+        (let [t (/ (cross ofx ofy sdx sdy) rcs)]
+          (if (<= 0 t 1)
 
-          ;; intersecting at p + t r
-          ;; r × s ≠ 0 and 0 ≤ t ≤ 1 and 0 ≤ u ≤ 1
-          (if (and (not (near-zero? rcs)) (<= 0 t 1) (<= 0 u 1))
-            [:intersecting
-             [(+ px (* t rdx)) (+ py (* t rdy))]]
-
-            ;; not parallel and not intersecting
-            [:non-intersecting]))))))
+            ;; intersects at
+            ;; p + t r
+            [:intersecting (+ px (* t rdx)) (+ py (* t rdy))]
+            [:non-intersecting]))
+        [:non-intersecting]))))
