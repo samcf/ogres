@@ -1,5 +1,10 @@
 (ns ogre.tools.geom)
 
+(def epsilon (/ 1 1000000))
+
+(defn near-zero? [n]
+  (< (js/Math.abs n) epsilon))
+
 (defn euclidean
   "Returns the euclidean distance from [ax ay] to [bx by]."
   [ax ay bx by]
@@ -36,3 +41,39 @@
    otherwise."
   [x y [ax ay bx by]]
   (and (> x ax) (> y ay) (< x bx) (< y by)))
+
+(defn cross [ax ay bx by]
+  (- (* ax by) (* ay bx)))
+
+;; https://stackoverflow.com/a/565282
+;; p + t r = q + u s
+(defn intersection [px py rx ry qx qy sx sy]
+  (let [ofx (- qx px)
+        ofy (- qy py)
+        rdx (- rx px)
+        rdy (- ry py)
+        sdx (- sx qx)
+        sdy (- sy qy)
+        rcs (cross rdx rdy sdx sdy)
+        ocr (cross ofx ofy rdx rdy)]
+
+    ;; collinear
+    ;; r × s = 0 and (q − p) × r = 0
+    (if (and (near-zero? rcs) (near-zero? ocr))
+      [:collinear]
+
+      ;; parallel
+      ;; r × s = 0 and (q − p) × r ≠ 0
+      (if (and (near-zero? rcs) (not (near-zero? ocr)))
+        [:parallel]
+        (let [t (/ (cross ofx ofy sdx sdy) rcs)
+              u (/ ocr rcs)]
+
+          ;; intersecting at p + t r
+          ;; r × s ≠ 0 and 0 ≤ t ≤ 1 and 0 ≤ u ≤ 1
+          (if (and (not (near-zero? rcs)) (<= 0 t 1) (<= 0 u 1))
+            [:intersecting
+             [(+ px (* t rdx)) (+ py (* t rdy))]]
+
+            ;; not parallel and not intersecting
+            [:non-intersecting]))))))
