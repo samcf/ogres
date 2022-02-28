@@ -42,7 +42,9 @@
   [x y [ax ay bx by]]
   (and (> x ax) (> y ay) (< x bx) (< y by)))
 
-(defn cross [ax ay bx by]
+(defn cross
+  "Returns the cross product of the vectors [ax ay] and [bx by]."
+  [ax ay bx by]
   (- (* ax by) (* ay bx)))
 
 (defn intersection
