@@ -82,3 +82,8 @@
             [:intersecting (+ px (* t rdx)) (+ py (* t rdy))]
             [:non-intersecting]))
         [:non-intersecting]))))
+
+(defn contains-point?
+  "Returns true if the point [x y] is contained by the polygon described by
+   the pairs of points in `xs`, false otherwise."
+  [x y & xs] false)
