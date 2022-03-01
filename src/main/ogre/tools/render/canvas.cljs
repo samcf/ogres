@@ -79,33 +79,21 @@
           :canvas/scene}
          :root/canvas} result
         url (use-image checksum)]
-    (if (string? url)
-      [:g.canvas-image
-       [:defs {:key color}
-        [:filter {:id "atmosphere"}
-         [:feColorMatrix
-          {:type "matrix"
-           :values (join " " (atmosphere color))}]]]
-       (if (not (= lighting :bright))
-         [:defs
-          [:clipPath {:id "clip-light-bright"}
-           (for [token tokens
-                 :let [{[x y] :pos/vec [r _] :token/light} token]
-                 :when (and (> r 0)
-                            (or host? (visible? (:element/flags token))))]
-             [:circle {:key (:db/id token) :cx x :cy y :r (+ (ft->px r size) (/ size 2))}])]
-          (if (= lighting :dark)
-            [:clipPath {:id "clip-light-dim"}
-             (for [token tokens
-                   :let [{[x y] :pos/vec [br dr] :token/light} token]
-                   :when (and (or (> br 0) (> dr 0))
-                              (or host? (visible? (:element/flags token))))]
-               [:circle {:key (:db/id token) :cx x :cy y :r (+ (ft->px br size) (ft->px dr size) (/ size 2))}])])])
-       (if (and (= lighting :dark) host?)
-         [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere) brightness(20%)"}}])
-       (if (not (= lighting :bright))
-         [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere) brightness(50%)"} :clip-path (if (= lighting :dark) "url(#clip-light-dim)")}])
-       [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere)"} :clip-path (if (not= lighting :bright) "url(#clip-light-bright)")}]])))
+    [:g.canvas-image
+     [:defs {:key color}
+      [:filter {:id "atmosphere"}
+       [:feColorMatrix {:type "matrix" :values (join " " (atmosphere color))}]]
+      [:clipPath {:id "clip-light-bright"}
+       (for [{id :db/id flags :element/flags [x y] :pos/vec [r _] :token/light} tokens
+             :when (and (> r 0) (or host? (visible? flags)))]
+         [:circle {:key id :cx x :cy y :r (+ (ft->px r size) (/ size 2))}])]
+      [:clipPath {:id "clip-light-dim"}
+       (for [{id :db/id flags :element/flags [x y] :pos/vec [br dr] :token/light} tokens
+             :when (and (or (> br 0) (> dr 0)) (or host? (visible? flags)))]
+         [:circle {:key id :cx x :cy y :r (+ (ft->px br size) (ft->px dr size) (/ size 2))}])]]
+     [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere) brightness(20%)"}}]
+     [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere) brightness(50%)"} :clip-path (if (= lighting :dark) "url(#clip-light-dim)")}]
+     [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere)"} :clip-path (if (not= lighting :bright) "url(#clip-light-bright)")}]]))
 
 (def mask-query
   {:pull
