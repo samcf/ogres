@@ -71,7 +71,7 @@
        [:feColorMatrix {:type "matrix" :values (join " " (atmosphere color))}]]]
      [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere)"}}]]))
 
-(def lighting-mask-query
+(def visibility-query
   {:pull
    [:root/host?
     {:root/canvas
@@ -87,8 +87,8 @@
         :image/width
         :image/height]}]}]})
 
-(defn lighting-mask []
-  (let [[result] (use-query lighting-mask-query)
+(defn visibility-mask []
+  (let [[result] (use-query visibility-query)
         {host? :root/host?
          {visibility :canvas/visibility
           tokens     :canvas/tokens
@@ -455,7 +455,7 @@
         [shapes]
         [tokens]
         [selection]
-        [lighting-mask]]
+        [visibility-mask]]
        (if (and (= mode :select) (= modif :shift))
          [:g {:ref select-node :class "canvas-drawable canvas-drawable-select"}])
        (if (not= mode :select)

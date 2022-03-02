@@ -123,7 +123,7 @@
          ^{:key option}
          [checkbox
           {:checked checked
-           :on-change #(dispatch :canvas/change-lighting option)}
+           :on-change #(dispatch :canvas/change-visibility option)}
           (capitalize (name option))])]
       [:fieldset.setting
        [:label "Filter"]

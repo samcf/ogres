@@ -250,7 +250,7 @@
   (let [{align? :grid/align} (ds/pull data [[:grid/align :default false]] [:db/ident :canvas])]
     [[:db/add [:db/ident :canvas] :grid/align (not align?)]]))
 
-(defmethod transact :canvas/change-lighting
+(defmethod transact :canvas/change-visibility
   [_ type]
   [[:db/add [:db/ident :canvas] :canvas/visibility type]])
 
