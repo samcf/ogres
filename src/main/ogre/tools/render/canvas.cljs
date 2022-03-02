@@ -90,26 +90,31 @@
 (defn lighting-mask []
   (let [[result] (use-query lighting-mask-query)
         {host? :root/host?
-         {lighting :canvas/visibility
-          tokens   :canvas/tokens
-          size     :grid/size
+         {visibility :canvas/visibility
+          tokens     :canvas/tokens
+          size       :grid/size
           {checksum :image/checksum
            width    :image/width
            height   :image/height} :canvas/scene} :root/canvas} result]
-    (if (and checksum (not= lighting :revealed))
+    (if (and checksum (not= visibility :revealed))
       [:g.canvas-mask
        [:defs
-        [:radialGradient {:id "token-light-gradient"}
+        [pattern {:id "hidden-visibility" :name :lines}]
+        [:radialGradient {:id "light-gradient"}
          [:stop {:offset "0%" :stop-color "black" :stop-opacity "100%"}]
+         [:stop {:offset "80%" :stop-color "black" :stop-opacity "90%"}]
          [:stop {:offset "100%" :stop-color "black" :stop-opacity "0%"}]]
-        [:mask {:id "token-light-mask"}
-         (if (and (not host?) (= lighting :hidden))
+        [:mask {:id "light-mask"}
+         (if (and (not host?) (= visibility :hidden))
            [:rect {:x 0 :y 0 :width width :height height :fill "white" :fill-opacity "100%"}]
            [:rect {:x 0 :y 0 :width width :height height :fill "white" :fill-opacity "70%"}])
          (for [{id :db/id flags :element/flags [x y] :pos/vec radius :token/light} tokens
                :when (and (> radius 0) (or host? (visible? flags)))]
-           ^{:key id} [:circle {:cx x :cy y :r (+ (ft->px radius size) (/ size 2)) :fill "url(#token-light-gradient)"}])]]
-       [:rect {:x 0 :y 0 :width width :height height :mask "url(#token-light-mask)"}]])))
+           ^{:key id} [:circle {:cx x :cy y :r (+ (ft->px radius size) (/ size 2)) :fill "url(#light-gradient)"}])]]
+       [:rect {:x 0 :y 0 :width width :height height :mask "url(#light-mask)"}]
+       (if (and host? (= visibility :hidden))
+         [:rect {:x 0 :y 0 :width width :height height :mask "url(#light-mask)"
+                 :style {:fill "url(#hidden-visibility)"}}])])))
 
 (def grid-query
   {:pull
