@@ -12,7 +12,7 @@
   (fn [n] (+ (* (/ (- n dx) (- dy dx)) (- ry rx)) rx)))
 
 (def light-radii
-  [[0 :none] [15 "15 ft."] [20 "20 ft."] [30 "30 ft."] [40 "40 ft."] [50 "50 ft."]])
+  [[0 "None"] [15 "15 ft."] [20 "20 ft."] [30 "30 ft."] [40 "40 ft."] [50 "50 ft."]])
 
 (def conditions
   [:blinded :charmed :defeaned
