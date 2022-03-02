@@ -180,9 +180,9 @@
         [:db/add id :pos/vec (->> src (vec/+ dst) (vec/r 1))]))))
 
 (defmethod transact :token/change-light
-  [_ idents bright dim]
+  [_ idents radius]
   (for [id idents]
-    [:db/add id :token/light [bright dim]]))
+    [:db/add id :token/light radius]))
 
 (defmethod transact :token/change-size
   [_ idents name size]
@@ -251,8 +251,8 @@
     [[:db/add [:db/ident :canvas] :grid/align (not align?)]]))
 
 (defmethod transact :canvas/change-lighting
-  [_ level]
-  [[:db/add [:db/ident :canvas] :canvas/lighting level]])
+  [_ type]
+  [[:db/add [:db/ident :canvas] :canvas/visibility type]])
 
 (defmethod transact :canvas/change-color
   [_ color]

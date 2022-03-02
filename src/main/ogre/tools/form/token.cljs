@@ -11,8 +11,8 @@
 (defn linear [dx dy rx ry]
   (fn [n] (+ (* (/ (- n dx) (- dy dx)) (- ry rx)) rx)))
 
-(def light-sources
-  [["None" 0 0] ["Candle" 5 5] ["Torch" 20 20] ["Lamp" 15 30] ["Lantern" 30 30]])
+(def light-radii
+  [[0 :none] [15 "15 ft."] [20 "20 ft."] [30 "30 ft."] [40 "40 ft."] [50 "50 ft."]])
 
 (def conditions
   [:blinded :charmed :defeaned
@@ -36,7 +36,7 @@
         :element/flags
         {:token/stamp [:image/checksum]}
         [:token/size :default {:name :medium :size 5}]
-        [:token/light :default [5 5]]
+        [:token/light :default 15]
         :aura/label
         [:aura/radius :default 0]]}]}]})
 
@@ -154,16 +154,16 @@
            :on-change #(dispatch :token/change-size idents name size)}
           [label name]])]]
      [:section
-      [:legend "Light"]
+      [:legend "Light Radius"]
       [:fieldset.table
-       (for [[name bright dim] light-sources]
+       (for [[radius name] light-radii]
          [checkbox
           {:key name
            :name "token/light"
            :value name
-           :checked (checked? #(= [bright dim] (:token/light %)) selected)
-           :on-change #(dispatch :token/change-light idents bright dim)}
-          name])]]
+           :checked (checked? (fn [token] (= (:token/light token) radius)) selected)
+           :on-change #(dispatch :token/change-light idents radius)}
+          [label name]])]]
      [:section
       [:legend "Conditions"]
       [:fieldset.table
