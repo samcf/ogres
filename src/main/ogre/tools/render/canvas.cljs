@@ -95,24 +95,27 @@
           size       :grid/size
           {checksum :image/checksum
            width    :image/width
-           height   :image/height} :canvas/scene} :root/canvas} result]
+           height   :image/height} :canvas/scene} :root/canvas} result
+        vantaged? (and (= visibility :hidden) host?)]
     (if (and checksum (not= visibility :revealed))
       [:g.canvas-mask
        [:defs
         [pattern {:id "hidden-visibility" :name :lines}]
         [:radialGradient {:id "light-gradient"}
          [:stop {:offset "0%" :stop-color "black" :stop-opacity "100%"}]
-         [:stop {:offset "80%" :stop-color "black" :stop-opacity "90%"}]
+         [:stop {:offset "30%" :stop-color "black" :stop-opacity "100%"}]
+         (if vantaged?
+           [:stop {:offset "80%" :stop-color "black" :stop-opacity "100%"}])
          [:stop {:offset "100%" :stop-color "black" :stop-opacity "0%"}]]
         [:mask {:id "light-mask"}
-         (if (and (not host?) (= visibility :hidden))
-           [:rect {:x 0 :y 0 :width width :height height :fill "white" :fill-opacity "100%"}]
-           [:rect {:x 0 :y 0 :width width :height height :fill "white" :fill-opacity "70%"}])
+         (if vantaged?
+           [:rect {:x 0 :y 0 :width width :height height :fill "white" :fill-opacity "70%"}]
+           [:rect {:x 0 :y 0 :width width :height height :fill "white" :fill-opacity "100%"}])
          (for [{id :db/id flags :element/flags [x y] :pos/vec radius :token/light} tokens
                :when (and (> radius 0) (or host? (visible? flags)))]
            ^{:key id} [:circle {:cx x :cy y :r (+ (ft->px radius size) (/ size 2)) :fill "url(#light-gradient)"}])]]
        [:rect {:x 0 :y 0 :width width :height height :mask "url(#light-mask)"}]
-       (if (and host? (= visibility :hidden))
+       (if vantaged?
          [:rect {:x 0 :y 0 :width width :height height :mask "url(#light-mask)"
                  :style {:fill "url(#hidden-visibility)"}}])])))
 
