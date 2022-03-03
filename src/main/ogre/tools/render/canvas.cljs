@@ -53,71 +53,70 @@
     (string? name) (str name)
     (number? suffix) (str " " (char (+ suffix 64)))))
 
-(def board-query
+(def scene-image-query
   {:pull
-   [:root/host?
-    {:root/canvas
-     [[:canvas/lighting :default :bright]
-      [:canvas/color :default :none]
-      [:grid/size :default 70]
-      [:zoom/scale :default 1]
-      {:canvas/scene [:image/checksum]}
-      {:canvas/tokens
-       [:db/id
-        [:element/flags :default #{}]
-        [:token/light :default [5 5]]
-        [:pos/vec :default [0 0]]]}]}]})
+   [{:root/canvas
+     [[:canvas/color :default :none]
+      {:canvas/scene
+       [:image/checksum]}]}]})
 
-(defn board []
-  (let [[result] (use-query board-query)
-        {host? :root/host?
-         {lighting :canvas/lighting
-          color    :canvas/color
-          tokens   :canvas/tokens
-          size     :grid/size
-          {checksum :image/checksum}
-          :canvas/scene}
-         :root/canvas} result
+(defn scene-image []
+  (let [[result] (use-query scene-image-query)
+        {{color :canvas/color
+          {checksum :image/checksum} :canvas/scene} :root/canvas} result
         url (use-image checksum)]
     [:g.canvas-image
      [:defs {:key color}
       [:filter {:id "atmosphere"}
-       [:feColorMatrix {:type "matrix" :values (join " " (atmosphere color))}]]
-      [:clipPath {:id "clip-light-bright"}
-       (for [{id :db/id flags :element/flags [x y] :pos/vec [r _] :token/light} tokens
-             :when (and (> r 0) (or host? (visible? flags)))]
-         [:circle {:key id :cx x :cy y :r (+ (ft->px r size) (/ size 2))}])]
-      [:clipPath {:id "clip-light-dim"}
-       (for [{id :db/id flags :element/flags [x y] :pos/vec [br dr] :token/light} tokens
-             :when (and (or (> br 0) (> dr 0)) (or host? (visible? flags)))]
-         [:circle {:key id :cx x :cy y :r (+ (ft->px br size) (ft->px dr size) (/ size 2))}])]]
-     [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere) brightness(20%)"}}]
-     [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere) brightness(50%)"} :clip-path (if (= lighting :dark) "url(#clip-light-dim)")}]
-     [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere)"} :clip-path (if (not= lighting :bright) "url(#clip-light-bright)")}]]))
+       [:feColorMatrix {:type "matrix" :values (join " " (atmosphere color))}]]]
+     [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere)"}}]]))
 
-(def mask-query
+(def visibility-query
   {:pull
    [:root/host?
     {:root/canvas
-     [:canvas/lighting
+     [[:canvas/visibility :default :revealed]
+      [:grid/size :default 70]
+      {:canvas/tokens
+       [:db/id
+        [:element/flags :default #{}]
+        [:token/light :default 15]
+        [:pos/vec :default [0 0]]]}
       {:canvas/scene
-       [:image/width
+       [:image/checksum
+        :image/width
         :image/height]}]}]})
 
-(defn view-mask []
-  (let [[data] (use-query mask-query)
+(defn visibility-mask []
+  (let [[result] (use-query visibility-query)
         {host? :root/host?
-         {lighting :canvas/lighting
-          {width  :image/width
-           height :image/height} :canvas/scene} :root/canvas} data]
-    (when (and (not host?) (= lighting :dark))
+         {visibility :canvas/visibility
+          tokens     :canvas/tokens
+          size       :grid/size
+          {checksum :image/checksum
+           width    :image/width
+           height   :image/height} :canvas/scene} :root/canvas} result]
+    (if (and checksum (not= visibility :revealed))
       [:g.canvas-mask
        [:defs
-        [:mask {:id "mask-light-all"}
-         [:rect {:x 0 :y 0 :width width :height height :fill "white"}]
-         [:rect {:x 0 :y 0 :width width :height height :clip-path "url(#clip-light-dim)" :fill "black"}]
-         [:rect {:x 0 :y 0 :width width :height height :clip-path "url(#clip-light-bright)" :fill "black"}]]]
-       [:rect {:x 0 :y 0 :width width :height height :mask "url(#mask-light-all)"}]])))
+        [pattern {:id "hidden-visibility" :name :lines}]
+        [:radialGradient {:id "light-gradient"}
+         [:stop {:offset "0%" :stop-color "black" :stop-opacity "100%"}]
+         [:stop {:offset "30%" :stop-color "black" :stop-opacity "100%"}]
+         (if (and (= visibility :hidden) host?)
+           [:stop {:offset "80%" :stop-color "black" :stop-opacity "100%"}])
+         [:stop {:offset "100%" :stop-color "black" :stop-opacity "0%"}]]
+        [:mask {:id "light-mask"}
+         (if (and (not host?) (= visibility :hidden))
+           [:rect {:x 0 :y 0 :width width :height height :fill "white" :fill-opacity "100%"}]
+           [:rect {:x 0 :y 0 :width width :height height :fill "white" :fill-opacity "70%"}])
+         (for [{id :db/id flags :element/flags [x y] :pos/vec radius :token/light} tokens
+               :when (and (> radius 0) (or host? (visible? flags)))]
+           ^{:key id} [:circle {:cx x :cy y :r (+ (ft->px radius size) (/ size 2)) :fill "url(#light-gradient)"}])]]
+       [:rect {:x 0 :y 0 :width width :height height :mask "url(#light-mask)"}]
+       (if (and (= visibility :hidden) host?)
+         [:rect {:x 0 :y 0 :width width :height height :mask "url(#light-mask)"
+                 :style {:fill "url(#hidden-visibility)"}}])])))
 
 (def grid-query
   {:pull
@@ -450,12 +449,12 @@
        [:g.canvas-board
         {:transform (xf :scale scale :translate coord)}
         [stamps]
-        [board]
+        [scene-image]
         [grid]
         [shapes]
         [tokens]
         [selection]
-        [view-mask]]
+        [visibility-mask]]
        (if (and (= mode :select) (= modif :shift))
          [:g {:ref select-node :class "canvas-drawable canvas-drawable-select"}])
        (if (not= mode :select)

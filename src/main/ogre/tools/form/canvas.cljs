@@ -16,7 +16,7 @@
       {:canvas/scene
        [:image/checksum]}
       [:canvas/theme :default :light]
-      [:canvas/lighting :default :bright]
+      [:canvas/visibility :default :revealed]
       [:canvas/color :default :none]
       [:canvas/mode :default :select]
       [:grid/show :default true]
@@ -118,12 +118,12 @@
                (dispatch :canvas/toggle-theme)))}
           (capitalize (name theme))])]
       [:fieldset.setting
-       [:label "Lighting"]
-       (for [option [:bright :dim :dark] :let [checked (= option (:canvas/lighting canvas))]]
+       [:label "Visibility"]
+       (for [option [:revealed :dimmed :hidden] :let [checked (= option (:canvas/visibility canvas))]]
          ^{:key option}
          [checkbox
           {:checked checked
-           :on-change #(dispatch :canvas/change-lighting option)}
+           :on-change #(dispatch :canvas/change-visibility option)}
           (capitalize (name option))])]
       [:fieldset.setting
        [:label "Filter"]
