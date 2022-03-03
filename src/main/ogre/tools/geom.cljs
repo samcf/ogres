@@ -1,10 +1,5 @@
 (ns ogre.tools.geom)
 
-(def epsilon (/ 1 1000000))
-
-(defn near-zero? [n]
-  (< (js/Math.abs n) epsilon))
-
 (defn euclidean
   "Returns the euclidean distance from [ax ay] to [bx by]."
   [ax ay bx by]
@@ -41,49 +36,3 @@
    otherwise."
   [x y [ax ay bx by]]
   (and (> x ax) (> y ay) (< x bx) (< y by)))
-
-(defn cross
-  "Returns the cross product of the vectors [ax ay] and [bx by]."
-  [ax ay bx by]
-  (- (* ax by) (* ay bx)))
-
-(defn intersection
-  "Returns a description of the relationship between the given segments as a
-   tuple whose first element is either :collinear, :parallel, :intersecting,
-   or :non-intersecting.
-   https://stackoverflow.com/a/565282"
-  [px py rx ry qx qy sx sy]
-  (let [ofx (- qx px)
-        ofy (- qy py)
-        rdx (- rx px)
-        rdy (- ry py)
-        sdx (- sx qx)
-        sdy (- sy qy)
-        rcs (cross rdx rdy sdx sdy)
-        ocr (cross ofx ofy rdx rdy)]
-    (if (near-zero? rcs)
-      (if (near-zero? ocr)
-        ;; collinear
-        ;; r × s = 0 and (q − p) × r = 0
-        [:collinear]
-
-        ;; parallel
-        ;; r × s = 0 and (q − p) × r ≠ 0
-        [:parallel])
-
-      ;; intersecting
-      ;; r × s ≠ 0 and 0 ≤ t ≤ 1 and 0 ≤ u ≤ 1
-      (if (<= 0 (/ ocr rcs) 1)
-        (let [t (/ (cross ofx ofy sdx sdy) rcs)]
-          (if (<= 0 t 1)
-
-            ;; intersects at
-            ;; p + t r
-            [:intersecting (+ px (* t rdx)) (+ py (* t rdy))]
-            [:non-intersecting]))
-        [:non-intersecting]))))
-
-(defn contains-point?
-  "Returns true if the point [x y] is contained by the polygon described by
-   the pairs of points in `xs`, false otherwise."
-  [x y & xs] false)
