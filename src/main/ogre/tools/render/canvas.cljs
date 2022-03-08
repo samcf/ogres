@@ -53,15 +53,15 @@
     (string? name) (str name)
     (number? suffix) (str " " (char (+ suffix 64)))))
 
-(def scene-image-query
+(def scene-query
   {:pull
    [{:root/canvas
      [[:canvas/color :default :none]
       {:canvas/scene
        [:image/checksum]}]}]})
 
-(defn scene-image []
-  (let [[result] (use-query scene-image-query)
+(defn scene []
+  (let [[result] (use-query scene-query)
         {{color :canvas/color
           {checksum :image/checksum} :canvas/scene} :root/canvas} result
         url (use-image checksum)]
@@ -71,7 +71,7 @@
        [:feColorMatrix {:type "matrix" :values (join " " (atmosphere color))}]]]
      [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere)"}}]]))
 
-(def visibility-query
+(def light-mask-query
   {:pull
    [:root/host?
     {:root/canvas
@@ -87,8 +87,8 @@
         :image/width
         :image/height]}]}]})
 
-(defn visibility-mask []
-  (let [[result] (use-query visibility-query)
+(defn light-mask []
+  (let [[result] (use-query light-mask-query)
         {host? :root/host?
          {visibility :canvas/visibility
           tokens     :canvas/tokens
@@ -97,26 +97,47 @@
            width    :image/width
            height   :image/height} :canvas/scene} :root/canvas} result]
     (if (and checksum (not= visibility :revealed))
-      [:g.canvas-mask
+      [:g.canvas-mask {:css {:is-dimmed (= visibility :dimmed)}}
        [:defs
-        [pattern {:id "hidden-visibility" :name :lines}]
-        [:radialGradient {:id "light-gradient"}
+        [pattern {:id "mask-pattern" :name :lines}]
+        [:radialGradient {:id "mask-gradient"}
          [:stop {:offset "0%" :stop-color "black" :stop-opacity "100%"}]
-         [:stop {:offset "30%" :stop-color "black" :stop-opacity "100%"}]
-         (if (and (= visibility :hidden) host?)
-           [:stop {:offset "80%" :stop-color "black" :stop-opacity "100%"}])
+         [:stop {:offset "70%" :stop-color "black" :stop-opacity "100%"}]
          [:stop {:offset "100%" :stop-color "black" :stop-opacity "0%"}]]
         [:mask {:id "light-mask"}
-         (if (and (not host?) (= visibility :hidden))
-           [:rect {:x 0 :y 0 :width width :height height :fill "white" :fill-opacity "100%"}]
-           [:rect {:x 0 :y 0 :width width :height height :fill "white" :fill-opacity "70%"}])
+         [:rect {:x 0 :y 0 :width width :height height :fill "white" :fill-opacity "100%"}]
          (for [{id :db/id flags :element/flags [x y] :pos/vec radius :token/light} tokens
                :when (and (> radius 0) (or host? (visible? flags)))]
-           ^{:key id} [:circle {:cx x :cy y :r (+ (ft->px radius size) (/ size 2)) :fill "url(#light-gradient)"}])]]
-       [:rect {:x 0 :y 0 :width width :height height :mask "url(#light-mask)"}]
-       (if (and (= visibility :hidden) host?)
-         [:rect {:x 0 :y 0 :width width :height height :mask "url(#light-mask)"
-                 :style {:fill "url(#hidden-visibility)"}}])])))
+           ^{:key id} [:circle {:cx x :cy y :r (+ (ft->px radius size) (/ size 2)) :fill "url(#mask-gradient)"}])]]
+       [:rect.canvas-mask-background
+        {:x 0 :y 0 :width width :height height :mask "url(#light-mask)"}]
+       (if (= visibility :hidden)
+         [:rect.canvas-mask-pattern
+          {:x 0 :y 0 :width width :height height
+           :fill "url(#mask-pattern)" :mask "url(#light-mask)"}])])))
+
+(def canvas-mask-query
+  {:pull
+   [{:root/canvas
+     [{:canvas/scene [:image/width :image/height]}
+      {:canvas/masks [:db/id :mask/vecs :mask/enabled?]}]}]})
+
+(defn canvas-mask []
+  (let [[result] (use-query canvas-mask-query)
+        {{{width :image/width
+           height :image/height} :canvas/scene
+          masks :canvas/masks} :root/canvas} result]
+    [:g.canvas-mask
+     [:defs
+      [pattern {:id "mask-pattern" :name :lines}]
+      [:mask {:id "canvas-mask"}
+       (for [{id :db/id enabled? :mask/enabled? xs :mask/vecs} masks]
+         ^{:key id} [:polygon {:points (string/join " " xs) :fill (if enabled? "white" "black")}])]]
+     [:rect.canvas-mask-background
+      {:x 0 :y 0 :width width :height height :mask "url(#canvas-mask)"}]
+     [:rect.canvas-mask-pattern
+      {:x 0 :y 0 :width width :height height
+       :fill "url(#mask-pattern)" :mask "url(#canvas-mask)"}]]))
 
 (def grid-query
   {:pull
@@ -433,7 +454,7 @@
                        (mapv (partial max 0))
                        (vec/s (/ -1 2 scale))
                        (vec/+ coord)))]
-    [:svg.canvas {:class (str "theme--" (name theme))}
+    [:svg.canvas {:css {(str "theme--" (name theme)) true :is-host host? :is-priv priv?}}
      [:> react-draggable
       {:position #js {:x 0 :y 0}
        :on-stop
@@ -449,12 +470,13 @@
        [:g.canvas-board
         {:transform (xf :scale scale :translate coord)}
         [stamps]
-        [scene-image]
+        [scene]
         [grid]
         [shapes]
         [tokens]
         [selection]
-        [visibility-mask]]
+        [light-mask]
+        [canvas-mask]]
        (if (and (= mode :select) (= modif :shift))
          [:g {:ref select-node :class "canvas-drawable canvas-drawable-select"}])
        (if (not= mode :select)

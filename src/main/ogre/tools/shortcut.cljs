@@ -60,6 +60,10 @@
    (fn [[_ dispatch]]
      (dispatch :canvas/toggle-mode :line))
 
+   ["keydown" \f]
+   (fn [[_ dispatch]]
+     (dispatch :canvas/toggle-mode :mask))
+
    ["keydown" \v]
    (fn [[_ dispatch]]
      (dispatch :share/initiate))

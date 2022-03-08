@@ -459,3 +459,24 @@
 
 (defmethod transact :stamp/remove [_ checksum]
   [[:db/retractEntity [:image/checksum checksum]]])
+
+(defmethod transact :mask/fill
+  [{:keys [data]}]
+  (let [select [{:canvas/scene [:image/checksum :image/width :image/height]}]
+        result (ds/pull data select [:db/ident :canvas])
+        {:image/keys [checksum width height]} (:canvas/scene result)]
+    (if (not (nil? checksum))
+      [[:db/retract [:db/ident :canvas] :canvas/masks]
+       [:db/add -1 :mask/vecs [0 0 width 0 width height 0 height]]
+       [:db/add -1 :mask/enabled? true]
+       [:db/add [:db/ident :canvas] :canvas/masks -1]]
+      [])))
+
+(defmethod transact :mask/clear []
+  [[:db/retract [:db/ident :canvas] :canvas/masks]])
+
+(defmethod transact :mask/create
+  [_ enabled? vecs]
+  [[:db/add -1 :mask/enabled? enabled?]
+   [:db/add -1 :mask/vecs vecs]
+   [:db/add [:db/ident :canvas] :canvas/masks -1]])

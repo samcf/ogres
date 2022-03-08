@@ -46,7 +46,7 @@
      {:style {:background-image (str "url(" url ")")}}]))
 
 (defn upload [{:keys [ref]}]
-  (let [[dispatch]      (use-query)
+  (let [dispatch (use-query)
         {:keys [store]} (uix/context storage)]
     [:input
      {:type "file"

@@ -62,7 +62,49 @@
       [:zoom/scale :default 1]
       [:pos/vec :default [0 0]]]}]})
 
+(defn polygon [{:keys [on-create]}]
+  (let [[result] (use-query draw-query)
+        {[ox oy] :bounds/self
+         {[tx ty] :pos/vec
+          scale :zoom/scale
+          align :grid/align
+          size  :grid/size} :root/canvas} result
+        pairs   (uix/state [])
+        mouse   (uix/state [])
+        [ax ay] @pairs
+        [mx my] @mouse
+        closed? (< (euclidean ax ay mx my) 32)]
+    [:<>
+     [:rect
+      {:x 0 :y 0 :fill "transparent"
+       :width "100%" :height "100%"
+       :on-mouse-move
+       (fn [event]
+         (let [dst [(.-clientX event) (.-clientY event)]]
+           (if (not= align (.-metaKey event))
+             (reset! mouse (xs-xfs dst (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)) (r-xf size) (+-xf tx ty) (*-xf scale) cat))
+             (reset! mouse (xs-xfs dst (+-xf (- ox) (- oy)) cat)))))
+       :on-click
+       (fn [event]
+         (if closed?
+           (let [xf (comp (*-xf (/ scale)) (+-xf (- tx) (- ty)))
+                 xs (xs-xfs @pairs xf cat)]
+             (reset! pairs [])
+             (on-create event xs))
+           (swap! pairs conj mx my)))}]
+     [:circle {:cx mx :cy my :r 3 :style {:pointer-events "none" :fill "white"}}]
+     (if (seq @pairs)
+       [:circle
+        {:cx ax :cy ay :r 6
+         :style {:pointer-events "none" :stroke "white"
+                 :stroke-width 1 :stroke-dasharray "none"}}])
+     (for [[x y] (partition 2 @pairs)]
+       [:circle {:key [x y] :cx x :cy y :r 3 :style {:pointer-events "none" :fill "white"}}])
+     [:polygon
+      {:points (string/join " " (if closed? @pairs (into @pairs @mouse))) :style {:pointer-events "none"}}]]))
+
 (defmulti draw :mode)
+
 (defmethod draw :default [] nil)
 
 (defmethod draw :select [{:keys [node]}]
@@ -236,43 +278,15 @@
                (str "ft."))]]))]))
 
 (defmethod draw :poly []
-  (let [[result dispatch] (use-query draw-query)
-        {[ox oy] :bounds/self
-         {[tx ty] :pos/vec
-          scale :zoom/scale
-          align :grid/align
-          size  :grid/size} :root/canvas} result
-        pairs   (uix/state [])
-        mouse   (uix/state [])
-        [ax ay] @pairs
-        [mx my] @mouse
-        closed? (< (euclidean ax ay mx my) 32)]
-    [:<>
-     [:rect
-      {:x 0 :y 0 :fill "transparent"
-       :width "100%" :height "100%"
-       :on-mouse-move
-       (fn [event]
-         (let [dst [(.-clientX event) (.-clientY event)]]
-           (if align
-             (reset! mouse (xs-xfs dst (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)) (r-xf size) (+-xf tx ty) (*-xf scale) cat))
-             (reset! mouse (xs-xfs dst (+-xf (- ox) (- oy)) cat)))))
-       :on-click
-       (fn []
-         (if closed?
-           (let [xf (comp (*-xf (/ scale)) (+-xf (- tx) (- ty)))
-                 xs (xs-xfs @pairs xf cat)]
-             (dispatch :shape/create :poly xs))
-           (swap! pairs conj mx my)))}]
-     [:circle {:cx mx :cy my :r 3 :style {:pointer-events "none" :fill "white"}}]
-     (if (seq @pairs)
-       [:circle {:cx ax :cy ay :r 6
-                 :style {:pointer-events "none"
-                         :stroke "white"
-                         :stroke-width 1
-                         :stroke-dasharray "none"}}] nil)
-     (for [[x y] (partition 2 @pairs)]
-       [:circle {:key [x y] :cx x :cy y :r 3 :style {:pointer-events "none" :fill "white"}}])
-     [:polygon
-      {:points (string/join " " (if closed? @pairs (into @pairs @mouse)))
-       :style {:pointer-events "none"}}]]))
+  (let [dispatch (use-query)]
+    [polygon
+     {:on-create
+      (fn [_ xs]
+        (dispatch :shape/create :poly xs))}]))
+
+(defmethod draw :mask []
+  (let [dispatch (use-query)]
+    [polygon
+     {:on-create
+      (fn [event xs]
+        (dispatch :mask/create (not (.-shiftKey event)) xs))}]))

@@ -503,17 +503,37 @@ legend {
     stroke: var(--canvas-stroke);
 }
 
-.canvas-mask > rect {
-    fill: var(--theme-background-d);
-    pointer-events: none;
-}
-
 .canvas-grid pattern > path {
     fill: none;
     stroke-dasharray: 2px;
     stroke-width: 1px;
     stroke: var(--canvas-stroke);
     opacity: 0.60;
+}
+
+/* Masks */
+.canvas-mask {
+    pointer-events: none;
+}
+
+.canvas-mask-background {
+    fill: var(--theme-background-d);
+}
+
+.canvas-mask-pattern {
+    fill-opacity: 0;
+}
+
+.canvas-mask.is-dimmed .canvas-mask-background {
+    fill-opacity: 0.75;
+}
+
+.canvas.is-host .canvas-mask-background {
+    fill-opacity: 0.60;
+}
+
+.canvas.is-host .canvas-mask-pattern {
+    fill-opacity: 0.50;
 }
 
 /* Stamps */

@@ -17,14 +17,16 @@
     :mode/rect   "Draw a rectangle from one corner to the other."
     :mode/cone   "Draw a cone whose length is equal to its width."
     :mode/line   "Draw a line from one point to another."
-    :mode/poly   "Draw a polygon by clicking each point, close by clicking the start."
-    :mode/fog    "Reveal or hide parts of the canvas."
+    :mode/poly   "Draw any shape by clicking each point and closing it at the first point."
+    :mode/mask   [:span "Draw fog of war on the scene, or hold " [:code "Shift"] " to remove it."]
     :share/open  [:span "Open or close the player window. "
                   [:a {:href "https://github.com/samcf/ogre.tools/wiki#player-window" :target "_blank"} "Learn more"] "."]
     :share/play  "Resumes updates to the player window."
     :share/pause "Pauses updates to the player window. Good time to setup an ambush!"
-    :fog/hide    "Hide the entire canvas."
-    :fog/show    "Reveal the entire canvas."
+    :mask/hide   "Fill the entire scene with fog of war."
+    :mask/show   "Clear all fog of war from the scene."
+    :mask/toggle "Toggle a mask on or off."
+    :mask/remove "Remove a mask."
     ""))
 
 (def query
@@ -95,13 +97,15 @@
        [:button (mode-attrs :poly) [icon {:name "star"}] [shortcut "4"]]
        [:button (mode-attrs :line) [icon {:name "slash-lg"}] [shortcut "5"]]]
       [:div.toolbar-group
-       [:button {:on-mouse-enter (tooltip-fn :fog/hide)}
-        [icon {:name "mask"}]]
-       [:button {:on-mouse-enter (tooltip-fn :fog/show)}
-        [icon {:name "eraser"}]]
-       [:button (mode-attrs :fog)
-        [icon {:name "star-half"}]
-        [shortcut "F"]]]
+       [:button (mode-attrs :mask) [icon {:name "star-half"}] [shortcut "F"]]
+       [:button
+        {:on-click #(dispatch :mask/fill)
+         :on-mouse-enter (tooltip-fn :mask/hide)}
+        [icon {:name "eye-slash-fill"}]]
+       [:button
+        {:on-click #(dispatch :mask/clear)
+         :on-mouse-enter (tooltip-fn :mask/show)}
+        [icon {:name "eye-fill"}]]]
       [:div.toolbar-group
        [:button
         {:css {:active (:share/open? data)}
