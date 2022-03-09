@@ -64,6 +64,14 @@
    (fn [[_ dispatch]]
      (dispatch :canvas/toggle-mode :mask))
 
+   ["keydown" \t]
+   (fn [[_ dispatch]]
+     (dispatch :canvas/toggle-mode :mask-toggle))
+
+   ["keydown" \x]
+   (fn [[_ dispatch]]
+     (dispatch :canvas/toggle-mode :mask-remove))
+
    ["keydown" \v]
    (fn [[_ dispatch]]
      (dispatch :share/initiate))

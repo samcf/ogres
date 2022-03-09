@@ -529,11 +529,23 @@ legend {
 }
 
 .canvas.is-host .canvas-mask-background {
-    fill-opacity: 0.60;
+    fill-opacity: 0.40;
 }
 
 .canvas.is-host .canvas-mask-pattern {
-    fill-opacity: 0.50;
+    fill-opacity: 0.30;
+}
+
+.canvas-mask-polygon {
+    fill: transparent;
+    pointer-events: fill;
+    stroke: var(--canvas-stroke);
+    stroke-width: 2px;
+}
+
+.canvas-mask-polygon:hover {
+    cursor: pointer;
+    stroke: orange;
 }
 
 /* Stamps */

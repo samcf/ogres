@@ -10,24 +10,13 @@
             [react-draggable]
             [uix.core.alpha :as uix]))
 
+(def draw-modes
+  #{:ruler :circle :rect :cone :line :poly :mask})
+
 (def atmosphere
-  {:none
-   [1 0 0 0 0
-    0 1 0 0 0
-    0 0 1 0 0
-    0 0 0 1 0]
-
-   :dusk
-   [0.3 0.3 0.0 0.0 0.0
-    0.0 0.3 0.3 0.0 0.0
-    0.0 0.0 0.8 0.0 0.0
-    0.0 0.0 0.0 1.0 0.0]
-
-   :midnight
-   [0.0 0.0 0.0 0.0 0.0
-    0.0 0.1 0.0 0.0 0.0
-    0.1 0.1 0.1 0.0 0.0
-    0.0 0.0 0.0 1.0 0.0]})
+  {:none     [1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0]
+   :dusk     [0.3 0.3 0.0 0.0 0.0 0.0 0.3 0.3 0.0 0.0 0.0 0.0 0.8 0.0 0.0 0.0 0.0 0.0 1.0 0.0]
+   :midnight [0.0 0.0 0.0 0.0 0.0 0.0 0.1 0.0 0.0 0.0 0.1 0.1 0.1 0.0 0.0 0.0 0.0 0.0 1.0 0.0]})
 
 (defn ft->px [ft size] (* (/ ft 5) size))
 
@@ -118,26 +107,39 @@
 
 (def canvas-mask-query
   {:pull
-   [{:root/canvas
-     [{:canvas/scene [:image/width :image/height]}
+   [:root/host?
+    {:root/canvas
+     [[:canvas/mode :default :select]
+      {:canvas/scene [:image/width :image/height]}
       {:canvas/masks [:db/id :mask/vecs :mask/enabled?]}]}]})
 
 (defn canvas-mask []
-  (let [[result] (use-query canvas-mask-query)
-        {{{width :image/width
-           height :image/height} :canvas/scene
-          masks :canvas/masks} :root/canvas} result]
+  (let [[result dispatch] (use-query canvas-mask-query)
+        {host? :root/host?
+         {masks :canvas/masks
+          mode  :canvas/mode
+          {width :image/width
+           height :image/height} :canvas/scene} :root/canvas} result
+        modes #{:mask :mask-toggle :mask-remove}]
     [:g.canvas-mask
      [:defs
       [pattern {:id "mask-pattern" :name :lines}]
       [:mask {:id "canvas-mask"}
        (for [{id :db/id enabled? :mask/enabled? xs :mask/vecs} masks]
-         ^{:key id} [:polygon {:points (string/join " " xs) :fill (if enabled? "white" "black")}])]]
-     [:rect.canvas-mask-background
-      {:x 0 :y 0 :width width :height height :mask "url(#canvas-mask)"}]
-     [:rect.canvas-mask-pattern
-      {:x 0 :y 0 :width width :height height
-       :fill "url(#mask-pattern)" :mask "url(#canvas-mask)"}]]))
+         ^{:key id} [:polygon {:points (join " " xs) :fill (if enabled? "white" "black")}])]]
+     [:rect.canvas-mask-background {:x 0 :y 0 :width width :height height :mask "url(#canvas-mask)"}]
+     [:rect.canvas-mask-pattern {:x 0 :y 0 :width width :height height :fill "url(#mask-pattern)" :mask "url(#canvas-mask)"}]
+     (if (and host? (contains? modes mode))
+       (for [{id :db/id xs :mask/vecs enabled? :mask/enabled?} masks]
+         ^{:key id}
+         [:polygon.canvas-mask-polygon
+          {:data-enabled enabled?
+           :points (join " " xs)
+           :on-click
+           (fn []
+             (case mode
+               :mask-toggle (dispatch :mask/toggle id (not enabled?))
+               :mask-remove (dispatch :mask/remove id)))}]))]))
 
 (def grid-query
   {:pull
@@ -479,8 +481,8 @@
         [canvas-mask]]
        (if (and (= mode :select) (= modif :shift))
          [:g {:ref select-node :class "canvas-drawable canvas-drawable-select"}])
-       (if (not= mode :select)
+       (if (contains? draw-modes mode)
          [:g {:class (str "canvas-drawable canvas-drawable-" (name mode))}
-          ^{:key mode} [draw {:mode mode}]])]]
+          ^{:key mode} [draw {:mode mode :node nil}]])]]
      (if priv?
        [bounds])]))

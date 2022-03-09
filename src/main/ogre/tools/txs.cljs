@@ -476,7 +476,15 @@
   [[:db/retract [:db/ident :canvas] :canvas/masks]])
 
 (defmethod transact :mask/create
-  [_ enabled? vecs]
-  [[:db/add -1 :mask/enabled? enabled?]
+  [_ state vecs]
+  [[:db/add -1 :mask/enabled? state]
    [:db/add -1 :mask/vecs vecs]
    [:db/add [:db/ident :canvas] :canvas/masks -1]])
+
+(defmethod transact :mask/toggle
+  [_ id state]
+  [[:db/add id :mask/enabled? state]])
+
+(defmethod transact :mask/remove
+  [_ id]
+  [[:db/retract [:db/ident :canvas] :canvas/masks id]])
