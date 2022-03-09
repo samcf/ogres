@@ -93,7 +93,8 @@
     (concat [[:db/add ident :canvas/mode mode]]
             (if (not= mode curr)
               [[:db/retract ident :canvas/selected]
-               [:db/add ident :panel/curr (or prev :canvas)]]))))
+               [:db/add ident :panel/curr (or prev :canvas)]]
+              [[:db/add ident :canvas/mode :select]]))))
 
 (defmethod transact :canvas/toggle-theme
   [{:keys [data]}]
