@@ -1,5 +1,5 @@
 (ns ogre.tools.render.canvas
-  (:require [clojure.string :as string :refer [join]]
+  (:require [clojure.string :refer [join]]
             [datascript.core :refer [squuid]]
             [ogre.tools.geom :refer [chebyshev euclidean triangle]]
             [ogre.tools.render :refer [css use-image]]
@@ -176,8 +176,8 @@
          [:defs
           [:pattern {:id "grid" :width size :height size :patternUnits "userSpaceOnUse"}
            [:path
-            {:d (string/join " " ["M" 0 0 "H" size "V" size])}]]]
-         [:path {:d (string/join " " ["M" sx sy "H" ax "V" ay "H" bx "Z"]) :fill "url(#grid)"}]]))))
+            {:d (join " " ["M" 0 0 "H" size "V" size])}]]]
+         [:path {:d (join " " ["M" sx sy "H" ax "V" ay "H" bx "Z"]) :fill "url(#grid)"}]]))))
 
 (defmulti shape (fn [props] (:shape/kind (:element props))))
 
@@ -198,7 +198,7 @@
     [:path
      (merge
       attrs
-      {:d (string/join " " ["M" 0 0 "H" (- bx ax) "V" (- by ay) "H" 0 "Z"])
+      {:d (join " " ["M" 0 0 "H" (- bx ax) "V" (- by ay) "H" 0 "Z"])
        :fill-opacity opacity :stroke color})]))
 
 (defmethod shape :line [props]
@@ -214,7 +214,7 @@
     [:polygon
      (merge
       attrs
-      {:points (string/join " " (triangle 0 0 (- bx ax) (- by ay)))
+      {:points (join " " (triangle 0 0 (- bx ax) (- by ay)))
        :fill-opacity opacity :stroke color})]))
 
 (defn poly-xf [x y]

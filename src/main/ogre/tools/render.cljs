@@ -1,5 +1,5 @@
 (ns ogre.tools.render
-  (:require [clojure.string :as string]
+  (:require [clojure.string :refer [join trim]]
             [datascript.core :refer [squuid]]
             [ogre.tools.storage :refer [storage]]
             [ogre.tools.state :refer [PATH]]
@@ -8,7 +8,7 @@
 (defn css [& class-names]
   (->> (reduce (fn [names value]
                  (cond
-                   (string?  value) (conj names (string/trim value))
+                   (string?  value) (conj names (trim value))
                    (keyword? value) (conj names value)
                    (number?  value) (conj names (str value))
                    (vector?  value) (vec (concat names value))
@@ -19,7 +19,7 @@
                                          vec)
                    :else            names)) [] class-names)
        (mapv name)
-       (string/join " ")))
+       (join " ")))
 
 (defn checkbox [{:keys [checked on-change]} child]
   (let [key   (uix/state (squuid))

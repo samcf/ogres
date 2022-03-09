@@ -1,5 +1,5 @@
 (ns ogre.tools.render.draw
-  (:require [clojure.string :as string]
+  (:require [clojure.string :refer [join]]
             [ogre.tools.geom :refer [chebyshev euclidean triangle]]
             [ogre.tools.state :refer [use-query]]
             [react-draggable]
@@ -101,7 +101,7 @@
      (for [[x y] (partition 2 @pairs)]
        [:circle {:key [x y] :cx x :cy y :r 3 :style {:pointer-events "none" :fill "white"}}])
      [:polygon
-      {:points (string/join " " (if closed? @pairs (into @pairs @mouse))) :style {:pointer-events "none"}}]]))
+      {:points (join " " (if closed? @pairs (into @pairs @mouse))) :style {:pointer-events "none"}}]]))
 
 (defmulti draw :mode)
 
@@ -122,7 +122,7 @@
      (fn [_ xs]
        (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)]
          (create-portal
-          [:path {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}] @node)))]))
+          [:path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}] @node)))]))
 
 (defmethod draw :grid []
   (let [[result dispatch] (use-query draw-query)
@@ -143,7 +143,7 @@
        (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)
              size (min (- bx ax) (- by ay))]
          [:g
-          [:path {:d (string/join " " ["M" ax ay "h" size "v" size "H" ax "Z"])}]
+          [:path {:d (join " " ["M" ax ay "h" size "v" size "H" ax "Z"])}]
           [text {:x bx :y ay :fill "white"}
            (-> (/ size scale)
                (js/Math.abs)
@@ -223,7 +223,7 @@
      (fn [_ xs]
        (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)]
          [:g
-          [:path {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}]
+          [:path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}]
           [text {:x (+ ax 8) :y (- ay 8) :fill "white"}
            (let [w (px->ft (js/Math.abs (- bx ax)) (* size scale))
                  h (px->ft (js/Math.abs (- by ay)) (* size scale))]
@@ -271,7 +271,7 @@
      (fn [_ xs]
        (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)]
          [:g
-          [:polygon {:points (string/join " " (triangle ax ay bx by))}]
+          [:polygon {:points (join " " (triangle ax ay bx by))}]
           [text {:x (+ bx 16) :y (+ by 16) :fill "white"}
            (-> (euclidean ax ay bx by)
                (px->ft (* size scale))
