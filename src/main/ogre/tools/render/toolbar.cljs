@@ -18,15 +18,15 @@
     :mode/cone   "Draw a cone whose length is equal to its width."
     :mode/line   "Draw a line from one point to another."
     :mode/poly   "Draw any shape by clicking each point and closing it at the first point."
-    :mode/mask   [:span "Draw fog of war on the scene, or hold " [:code "Shift"] " to remove it."]
+    :mode/mask   [:span "Create a new mask by drawing a polygon; hold " [:code "Shift"] " to reveal a masked area."]
     :mode/mask-toggle "Toggle a mask on or off."
     :mode/mask-remove "Remove a mask."
     :share/open  [:span "Open or close the player window. "
                   [:a {:href "https://github.com/samcf/ogre.tools/wiki#player-window" :target "_blank"} "Learn more"] "."]
     :share/play  "Resumes updates to the player window."
     :share/pause "Pauses updates to the player window. Good time to setup an ambush!"
-    :mask/hide   "Fill the entire scene with fog of war."
-    :mask/show   "Clear all fog of war from the scene."))
+    :mask/hide   "Remove all masks and then mask the entire scene."
+    :mask/show   "Remove all masks and reveal the entire scene."))
 
 (def query
   {:pull
