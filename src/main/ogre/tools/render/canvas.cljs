@@ -110,21 +110,25 @@
    [:root/host?
     {:root/canvas
      [[:canvas/mode :default :select]
+      [:mask/filled? :default false]
       {:canvas/scene [:image/width :image/height]}
       {:canvas/masks [:db/id :mask/vecs :mask/enabled?]}]}]})
 
 (defn canvas-mask []
   (let [[result dispatch] (use-query canvas-mask-query)
-        {host? :root/host?
-         {masks :canvas/masks
-          mode  :canvas/mode
-          {width :image/width
+        {host?    :root/host?
+         {filled? :mask/filled?
+          masks   :canvas/masks
+          mode    :canvas/mode
+          {width  :image/width
            height :image/height} :canvas/scene} :root/canvas} result
         modes #{:mask :mask-toggle :mask-remove}]
     [:g.canvas-mask
      [:defs
       [pattern {:id "mask-pattern" :name :lines}]
       [:mask {:id "canvas-mask"}
+       (if filled?
+         [:rect {:x 0 :y 0 :width width :height height :fill "white"}])
        (for [{id :db/id enabled? :mask/enabled? xs :mask/vecs} masks]
          ^{:key id} [:polygon {:points (join " " xs) :fill (if enabled? "white" "black")}])]]
      [:rect.canvas-mask-background {:x 0 :y 0 :width width :height height :mask "url(#canvas-mask)"}]
