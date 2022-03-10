@@ -139,6 +139,9 @@
          [:polygon.canvas-mask-polygon
           {:data-enabled enabled?
            :points (join " " xs)
+           :on-mouse-down
+           (fn [event]
+             (.stopPropagation event))
            :on-click
            (fn []
              (case mode

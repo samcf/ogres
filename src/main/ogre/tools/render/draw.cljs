@@ -78,6 +78,9 @@
      [:rect
       {:x 0 :y 0 :fill "transparent"
        :width "100%" :height "100%"
+       :on-mouse-down
+       (fn [event]
+         (.stopPropagation event))
        :on-mouse-move
        (fn [event]
          (let [dst [(.-clientX event) (.-clientY event)]]
