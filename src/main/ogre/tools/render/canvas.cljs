@@ -17,6 +17,9 @@
    :dusk     [0.3 0.3 0.0 0.0 0.0 0.0 0.3 0.3 0.0 0.0 0.0 0.0 0.8 0.0 0.0 0.0 0.0 0.0 1.0 0.0]
    :midnight [0.0 0.0 0.0 0.0 0.0 0.0 0.1 0.0 0.0 0.0 0.1 0.1 0.1 0.0 0.0 0.0 0.0 0.0 1.0 0.0]})
 
+(defn stop-propagation [event]
+  (.stopPropagation event))
+
 (defn ft->px [ft size] (* (/ ft 5) size))
 
 (defn text [attrs child]
@@ -129,9 +132,7 @@
          [:polygon.canvas-mask-polygon
           {:data-enabled enabled?
            :points (join " " xs)
-           :on-mouse-down
-           (fn [event]
-             (.stopPropagation event))
+           :on-mouse-down stop-propagation
            :on-click
            (fn []
              (case mode
@@ -244,7 +245,7 @@
          {:key      id
           :scale    (-> result :root/canvas :zoom/scale)
           :position #js {:x ax :y ay}
-          :on-start (fn [event] (.stopPropagation event))
+          :on-start stop-propagation
           :on-stop
           (fn [event data]
             (let [ox (.-x data) oy (.-y data)]
@@ -363,7 +364,7 @@
        {:key      id
         :position #js {:x ax :y ay}
         :scale    (-> result :root/canvas :zoom/scale)
-        :on-start (fn [event] (.stopPropagation event))
+        :on-start stop-propagation
         :on-stop
         (fn [event data]
           (.stopPropagation event)
@@ -397,9 +398,7 @@
       [:> react-draggable
        {:position #js {:x 0 :y 0}
         :scale scale
-        :on-start
-        (fn [event]
-          (.stopPropagation event))
+        :on-start stop-propagation
         :on-stop
         (fn [event data]
           (let [ox (.-x data) oy (.-y data)]
