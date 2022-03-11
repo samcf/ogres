@@ -11,7 +11,7 @@
             [uix.core.alpha :as uix]))
 
 (def draw-modes
-  #{:ruler :circle :rect :cone :line :poly :mask})
+  #{:grid :ruler :circle :rect :cone :line :poly :mask})
 
 (def atmosphere
   {:none     [1.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0]
