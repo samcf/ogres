@@ -93,7 +93,8 @@
     (concat [[:db/add ident :canvas/mode mode]]
             (if (not= mode curr)
               [[:db/retract ident :canvas/selected]
-               [:db/add ident :panel/curr (or prev :canvas)]]))))
+               [:db/add ident :panel/curr (or prev :canvas)]]
+              [[:db/add ident :canvas/mode :select]]))))
 
 (defmethod transact :canvas/toggle-theme
   [{:keys [data]}]
@@ -459,3 +460,25 @@
 
 (defmethod transact :stamp/remove [_ checksum]
   [[:db/retractEntity [:image/checksum checksum]]])
+
+(defmethod transact :mask/fill []
+  [[:db/add [:db/ident :canvas] :mask/filled? true]
+   [:db/retract [:db/ident :canvas] :canvas/masks]])
+
+(defmethod transact :mask/clear []
+  [[:db/add [:db/ident :canvas] :mask/filled? false]
+   [:db/retract [:db/ident :canvas] :canvas/masks]])
+
+(defmethod transact :mask/create
+  [_ state vecs]
+  [[:db/add -1 :mask/enabled? state]
+   [:db/add -1 :mask/vecs vecs]
+   [:db/add [:db/ident :canvas] :canvas/masks -1]])
+
+(defmethod transact :mask/toggle
+  [_ id state]
+  [[:db/add id :mask/enabled? state]])
+
+(defmethod transact :mask/remove
+  [_ id]
+  [[:db/retract [:db/ident :canvas] :canvas/masks id]])

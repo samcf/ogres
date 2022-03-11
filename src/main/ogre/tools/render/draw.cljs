@@ -1,5 +1,5 @@
 (ns ogre.tools.render.draw
-  (:require [clojure.string :as string]
+  (:require [clojure.string :refer [join]]
             [ogre.tools.geom :refer [chebyshev euclidean triangle]]
             [ogre.tools.state :refer [use-query]]
             [react-draggable]
@@ -62,7 +62,52 @@
       [:zoom/scale :default 1]
       [:pos/vec :default [0 0]]]}]})
 
+(defn polygon [{:keys [on-create]}]
+  (let [[result] (use-query draw-query)
+        {[ox oy] :bounds/self
+         {[tx ty] :pos/vec
+          scale :zoom/scale
+          align :grid/align
+          size  :grid/size} :root/canvas} result
+        pairs   (uix/state [])
+        mouse   (uix/state [])
+        [ax ay] @pairs
+        [mx my] @mouse
+        closed? (< (euclidean ax ay mx my) 32)]
+    [:<>
+     [:rect
+      {:x 0 :y 0 :fill "transparent"
+       :width "100%" :height "100%"
+       :on-mouse-down
+       (fn [event]
+         (.stopPropagation event))
+       :on-mouse-move
+       (fn [event]
+         (let [dst [(.-clientX event) (.-clientY event)]]
+           (if (not= align (.-metaKey event))
+             (reset! mouse (xs-xfs dst (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)) (r-xf size) (+-xf tx ty) (*-xf scale) cat))
+             (reset! mouse (xs-xfs dst (+-xf (- ox) (- oy)) cat)))))
+       :on-click
+       (fn [event]
+         (if closed?
+           (let [xf (comp (*-xf (/ scale)) (+-xf (- tx) (- ty)))
+                 xs (xs-xfs @pairs xf cat)]
+             (reset! pairs [])
+             (on-create event xs))
+           (swap! pairs conj mx my)))}]
+     [:circle {:cx mx :cy my :r 3 :style {:pointer-events "none" :fill "white"}}]
+     (if (seq @pairs)
+       [:circle
+        {:cx ax :cy ay :r 6
+         :style {:pointer-events "none" :stroke "white"
+                 :stroke-width 1 :stroke-dasharray "none"}}])
+     (for [[x y] (partition 2 @pairs)]
+       [:circle {:key [x y] :cx x :cy y :r 3 :style {:pointer-events "none" :fill "white"}}])
+     [:polygon
+      {:points (join " " (if closed? @pairs (into @pairs @mouse))) :style {:pointer-events "none"}}]]))
+
 (defmulti draw :mode)
+
 (defmethod draw :default [] nil)
 
 (defmethod draw :select [{:keys [node]}]
@@ -80,7 +125,7 @@
      (fn [_ xs]
        (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)]
          (create-portal
-          [:path {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}] @node)))]))
+          [:path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}] @node)))]))
 
 (defmethod draw :grid []
   (let [[result dispatch] (use-query draw-query)
@@ -101,7 +146,7 @@
        (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)
              size (min (- bx ax) (- by ay))]
          [:g
-          [:path {:d (string/join " " ["M" ax ay "h" size "v" size "H" ax "Z"])}]
+          [:path {:d (join " " ["M" ax ay "h" size "v" size "H" ax "Z"])}]
           [text {:x bx :y ay :fill "white"}
            (-> (/ size scale)
                (js/Math.abs)
@@ -181,7 +226,7 @@
      (fn [_ xs]
        (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)]
          [:g
-          [:path {:d (string/join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}]
+          [:path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}]
           [text {:x (+ ax 8) :y (- ay 8) :fill "white"}
            (let [w (px->ft (js/Math.abs (- bx ax)) (* size scale))
                  h (px->ft (js/Math.abs (- by ay)) (* size scale))]
@@ -229,50 +274,22 @@
      (fn [_ xs]
        (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)]
          [:g
-          [:polygon {:points (string/join " " (triangle ax ay bx by))}]
+          [:polygon {:points (join " " (triangle ax ay bx by))}]
           [text {:x (+ bx 16) :y (+ by 16) :fill "white"}
            (-> (euclidean ax ay bx by)
                (px->ft (* size scale))
                (str "ft."))]]))]))
 
 (defmethod draw :poly []
-  (let [[result dispatch] (use-query draw-query)
-        {[ox oy] :bounds/self
-         {[tx ty] :pos/vec
-          scale :zoom/scale
-          align :grid/align
-          size  :grid/size} :root/canvas} result
-        pairs   (uix/state [])
-        mouse   (uix/state [])
-        [ax ay] @pairs
-        [mx my] @mouse
-        closed? (< (euclidean ax ay mx my) 32)]
-    [:<>
-     [:rect
-      {:x 0 :y 0 :fill "transparent"
-       :width "100%" :height "100%"
-       :on-mouse-move
-       (fn [event]
-         (let [dst [(.-clientX event) (.-clientY event)]]
-           (if align
-             (reset! mouse (xs-xfs dst (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)) (r-xf size) (+-xf tx ty) (*-xf scale) cat))
-             (reset! mouse (xs-xfs dst (+-xf (- ox) (- oy)) cat)))))
-       :on-click
-       (fn []
-         (if closed?
-           (let [xf (comp (*-xf (/ scale)) (+-xf (- tx) (- ty)))
-                 xs (xs-xfs @pairs xf cat)]
-             (dispatch :shape/create :poly xs))
-           (swap! pairs conj mx my)))}]
-     [:circle {:cx mx :cy my :r 3 :style {:pointer-events "none" :fill "white"}}]
-     (if (seq @pairs)
-       [:circle {:cx ax :cy ay :r 6
-                 :style {:pointer-events "none"
-                         :stroke "white"
-                         :stroke-width 1
-                         :stroke-dasharray "none"}}] nil)
-     (for [[x y] (partition 2 @pairs)]
-       [:circle {:key [x y] :cx x :cy y :r 3 :style {:pointer-events "none" :fill "white"}}])
-     [:polygon
-      {:points (string/join " " (if closed? @pairs (into @pairs @mouse)))
-       :style {:pointer-events "none"}}]]))
+  (let [dispatch (use-query)]
+    [polygon
+     {:on-create
+      (fn [_ xs]
+        (dispatch :shape/create :poly xs))}]))
+
+(defmethod draw :mask []
+  (let [dispatch (use-query)]
+    [polygon
+     {:on-create
+      (fn [event xs]
+        (dispatch :mask/create (not (.-shiftKey event)) xs))}]))

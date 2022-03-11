@@ -15,6 +15,7 @@
    :canvas/scene      {:db/valueType :db.type/ref}
    :canvas/tokens     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :canvas/shapes     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :canvas/masks      {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :canvas/selected   {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :canvas/initiative {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :token/stamp       {:db/valueType :db.type/ref}
@@ -44,7 +45,7 @@
 
 (defn use-query
   "React hook to run queries against the underlying DataScript database."
-  ([] (let [[_ dispatch] (uix/context state)] [dispatch]))
+  ([] (let [[_ dispatch] (uix/context state)] dispatch))
   ([{:keys [query pull args] :or {query root-query args []}}]
    (let [[conn dispatch] (uix/context state)
          listen-key      (deref (uix/state (ds/squuid)))
