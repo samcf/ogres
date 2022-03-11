@@ -1,8 +1,10 @@
 (ns ogre.tools.txs
   (:require [datascript.core :as ds]
             [clojure.set :refer [union]]
-            [ogre.tools.geom :refer [normalize within?]]
-            [ogre.tools.vec :as vec]))
+            [ogre.tools.geom :refer [normalize within?]]))
+
+(defn round [x n]
+  (* (js/Math.round (/ x n)) n))
 
 (def zoom-scales
   [0.15 0.30 0.50 0.75 0.90 1 1.25 1.50 2 3 4])
@@ -138,9 +140,8 @@
     (for [{:keys [db/id element/flags] :or {flags #{}}} tokens]
       [:db/add id :element/flags ((if add? conj disj) flags flag)])))
 
-(defmethod transact :camera/translate
-  [_ dst]
-  [[:db/add [:db/ident :canvas] :pos/vec (vec/r 1 dst)]])
+(defmethod transact :camera/translate [_ x y]
+  [[:db/add [:db/ident :canvas] :pos/vec [(round x 1) (round y 1)]]])
 
 (defmethod transact :scene/create
   [{:keys [data]} map-data]
@@ -157,28 +158,26 @@
   [[:db/retractEntity map]])
 
 (defmethod transact :token/create
-  [_ vector]
+  [_ x y]
   [[:db/add [:db/ident :canvas] :canvas/tokens -1]
    [:db/add [:db/ident :canvas] :canvas/selected -1]
    [:db/add [:db/ident :canvas] :canvas/mode :select]
    [:db/add [:db/ident :canvas] :panel/curr :token]
-   {:db/id -1 :element/type :token :pos/vec vector}])
+   {:db/id -1 :element/type :token :pos/vec [x y]}])
 
 (defmethod transact :token/translate
-  [{:keys [data]} id dst align?]
-  (let [{size :grid/size} (ds/pull data [[:grid/size :default 70]] [:db/ident :canvas])]
-    (if align?
-      [[:db/add id :pos/vec (vec/r (/ size 2) dst)]]
-      [[:db/add id :pos/vec (vec/r 1 dst)]])))
+  [{:keys [data]} id x y align?]
+  (let [{size :grid/size} (ds/pull data [[:grid/size :default 70]] [:db/ident :canvas])
+        r (if align? (/ size 2) 1)]
+    [[:db/add id :pos/vec [(round x r) (round y r)]]]))
 
 (defmethod transact :token/translate-all
-  [{:keys [data]} idents dst align?]
+  [{:keys [data]} idents x y align?]
   (let [{size :grid/size} (ds/pull data [[:grid/size :default 70]] [:db/ident :canvas])
-        tokens            (ds/pull-many data [:db/id :pos/vec] idents)]
-    (for [{id :db/id src :pos/vec} tokens]
-      (if align?
-        [:db/add id :pos/vec (->> src (vec/+ dst) (vec/r (/ size 2)))]
-        [:db/add id :pos/vec (->> src (vec/+ dst) (vec/r 1))]))))
+        tokens            (ds/pull-many data [:db/id :pos/vec] idents)
+        r                 (if align? (/ size 2) 1)]
+    (for [{id :db/id [tx ty] :pos/vec} tokens]
+      [:db/add id :pos/vec [(round (+ x tx) r) (round (+ y ty) r)]])))
 
 (defmethod transact :token/change-light
   [_ idents radius]
@@ -217,7 +216,9 @@
   [{:keys [data]} id x y align?]
   (let [{[ax ay] :shape/vecs vecs :shape/vecs} (ds/pull data [:shape/vecs] id)
         {size :grid/size} (ds/pull data [[:grid/size :default 70]] [:db/ident :canvas])
-        [x y] (if align? (vec/r (/ size 2) [x y]) [x y])]
+        r (if align? (/ size 2) 1)
+        x (round x r)
+        y (round y r)]
     [[:db/add id :shape/vecs (into [x y] (trans-xf (- x ax) (- y ay)) vecs)]]))
 
 (defmethod transact :grid/change-size
@@ -273,7 +274,7 @@
          fx (/ next prev)
          dx (/ (- (* x fx) x) next)
          dy (/ (- (* y fx) y) next)]
-     [[:db/add [:db/ident :canvas] :pos/vec (vec/r 1 [(- cx dx) (- cy dy)])]
+     [[:db/add [:db/ident :canvas] :pos/vec [(round (- cx dx) 1) (round (- cy dy) 1)]]
       [:db/add [:db/ident :canvas] :zoom/scale next]])))
 
 (defmethod transact :zoom/delta

@@ -1,7 +1,9 @@
 (ns ogre.tools.render.tokens
   (:require [ogre.tools.state :refer [use-query]]
-            [ogre.tools.vec :as vec]
             [react-draggable]))
+
+(defn round [x n]
+  (* (js/Math.round (/ x n)) n))
 
 (def attrs
   {:pull
@@ -14,8 +16,8 @@
 
 (defn tokens []
   (let [[result dispatch] (use-query attrs)
-        {offset :bounds/self
-         {trans :pos/vec
+        {[ox oy] :bounds/self
+         {[tx ty] :pos/vec
           scale :zoom/scale
           align :grid/align
           size :grid/size} :root/canvas} result]
@@ -25,14 +27,12 @@
       {:position #js {:x 0 :y 0}
        :onStop
        (fn [event data]
-         (let [el (.getBoundingClientRect (.-node data))
-               dim (vec/s (/ 2) [(.-width el) (.-height el)])
-               dst [(.-x el) (.-y el)]
-               dst (vec/+ dst dim)
-               dst (vec/- dst offset)
-               dst (vec/s (/ scale) dst)
-               dst (vec/- dst trans)
-               dst (if (not= align (.-metaKey event))
-                     (vec/r (/ size 2) dst) dst)]
-           (dispatch :token/create dst)))}
+         (let [r (.getBoundingClientRect (.-node data))
+               w (.-width r)
+               h (.-height r)
+               x (-> (.-x r) (+ (* (/ 2) w)) (- ox) (* (/ scale)) (- tx))
+               y (-> (.-y r) (+ (* (/ 2) h)) (- oy) (* (/ scale)) (- ty))
+               x (if (not= align (.-metaKey event)) (round x (/ size 2)) x)
+               y (if (not= align (.-metaKey event)) (round y (/ size 2)) y)]
+           (dispatch :token/create x y)))}
       [:svg [:circle {:cx 32 :cy 32 :r 33 :fill "url(#token-stamp-default)"}]]]]))

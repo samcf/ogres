@@ -6,7 +6,6 @@
             [ogre.tools.render.draw :refer [draw]]
             [ogre.tools.render.pattern :refer [pattern]]
             [ogre.tools.state :refer [use-query]]
-            [ogre.tools.vec :as vec]
             [react-draggable]
             [uix.core.alpha :as uix]))
 
@@ -372,7 +371,7 @@
             (if (= (euclidean ax ay bx by) 0)
               (dispatch :element/select id (not (.-shiftKey event)))
               (let [align? (not= (.-metaKey event) (-> result :root/canvas :grid/align))]
-                (dispatch :token/translate id [bx by] align?)))))}
+                (dispatch :token/translate id bx by align?)))))}
        [:g.canvas-token
         [token {:id id}]]])))
 
@@ -407,7 +406,7 @@
             (if (and (= ox 0) (= oy 0))
               (let [id (.. event -target (closest ".canvas-token[data-id]") -dataset -id)]
                 (dispatch :element/select (js/Number id) false))
-              (dispatch :token/translate-all idents [ox oy] (not= (.-metaKey event) (:grid/align canvas))))))}
+              (dispatch :token/translate-all idents ox oy (not= (.-metaKey event) (:grid/align canvas))))))}
        [:g.canvas-selected {:key idents}
         (for [entity selected :when (or host? (visible? (:element/flags entity)))
               :let [id (:db/id entity) [tx ty] (:pos/vec entity)]]
@@ -447,12 +446,9 @@
           mode  :canvas/mode
           theme :canvas/theme
           modif :canvas/modifier
-          coord :pos/vec} :root/canvas} result
-        [cx cy] (if host? coord
-                    (->> [(- hw gw) (- hh gh)]
-                         (mapv (partial max 0))
-                         (vec/s (/ -1 2 scale))
-                         (vec/+ coord)))]
+          [cx cy] :pos/vec} :root/canvas} result
+        cx (if host? cx (->> (- hw gw) (max 0) (* (/ -1 2 scale)) (+ cx)))
+        cy (if host? cy (->> (- hh gh) (max 0) (* (/ -1 2 scale)) (+ cy)))]
     [:svg.canvas {:css {(str "theme--" (name theme)) true :is-host host? :is-priv priv?}}
      [:> react-draggable
       {:position #js {:x 0 :y 0}
@@ -464,7 +460,7 @@
              (dispatch :selection/clear)
              (let [tx (+ cx (* ox (/ scale)))
                    ty (+ cy (* oy (/ scale)))]
-               (dispatch :camera/translate [tx ty])))))}
+               (dispatch :camera/translate tx ty)))))}
       [:g {:style {:will-change "transform"}}
        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
        (if (and (= mode :select) (= modif :shift))
