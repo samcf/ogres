@@ -1,6 +1,5 @@
 (ns ogre.tools.render.layout
   (:require ogre.tools.form.core
-            [ogre.tools.render :refer [css]]
             [ogre.tools.render.canvas :refer [canvas]]
             [ogre.tools.render.toolbar :refer [toolbar]]
             [ogre.tools.render.panel :refer [container]]
@@ -24,11 +23,11 @@
          :global--tooltips   tooltips?}]
     (if loaded?
       (if host?
-        [:div.layout {:class (css classes)}
+        [:div.layout {:css classes}
          [:div.layout-workspaces [workspaces]]
          [:div.layout-canvas [canvas]]
          [:div.layout-toolbar [toolbar]]
          [:div.layout-tokens [tokens]]
          [:div.layout-panel [container]]]
-        [:div.layout {:class (css classes)}
+        [:div.layout {:css classes}
          [:div.layout-canvas [canvas]]]))))

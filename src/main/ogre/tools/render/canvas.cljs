@@ -2,7 +2,7 @@
   (:require [clojure.string :refer [join]]
             [datascript.core :refer [squuid]]
             [ogre.tools.geom :refer [chebyshev euclidean triangle]]
-            [ogre.tools.render :refer [css use-image]]
+            [ogre.tools.render :refer [use-image]]
             [ogre.tools.render.draw :refer [draw]]
             [ogre.tools.render.pattern :refer [pattern]]
             [ogre.tools.state :refer [use-query]]
@@ -19,15 +19,6 @@
    :midnight [0.0 0.0 0.0 0.0 0.0 0.0 0.1 0.0 0.0 0.0 0.1 0.1 0.1 0.0 0.0 0.0 0.0 0.0 1.0 0.0]})
 
 (defn ft->px [ft size] (* (/ ft 5) size))
-
-(defn xf [& kvs]
-  (let [xform (comp
-               (partition-all 2)
-               (map (fn [[k v]]
-                      (case k
-                        :scale (str "scale(" v ")")
-                        :translate (let [[x y] v] (str "translate(" x ", " y ")"))))))]
-    (join " " (into [] xform kvs))))
 
 (defn text [attrs child]
   [:text.canvas-text attrs child])
@@ -288,15 +279,16 @@
    :args
    [id]})
 
+(def flag-class-xf
+  (comp (map name) (map (fn [s] (str "flag--" s))) (map (fn [s] [s true]))))
+
 (defn token [props]
   (let [[data] (use-query (token-query (:id props)))
         flags  (:element/flags data)
-        class  (->> flags
-                    (mapv #(str "flag--" (name %)))
-                    (css "canvas-token" {:selected (:canvas/_selected data)}))
         size   (-> data :canvas/_tokens :grid/size)
         radius (-> data :token/size :size (ft->px size) (/ 2) (- 2) (max 16))]
-    [:g {:class class}
+    [:g {:css (merge {:canvas-token true :selected (:canvas/_selected data)}
+                     (into {} flag-class-xf flags))}
      (if (> (:aura/radius data) 0)
        (let [radius (+ (ft->px (:aura/radius data) size) (/ size 2))]
          [:<>
@@ -308,7 +300,7 @@
      (if (:canvas/_selected data)
        [:circle.canvas-token-ring
         {:cx 0 :cy 0 :style {:r radius :fill "transparent"}}])
-     (let [checksum (-> data :token/stamp :image/checksum)
+     (let [checksum (:image/checksum (:token/stamp data))
            pattern  (cond
                       (flags :deceased)  "token-stamp-deceased"
                       (string? checksum) (str "token-stamp-" checksum)
@@ -323,15 +315,13 @@
     [:image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"}]))
 
 (def stamps-query
-  {:pull
-   [{:root/canvas
-     [{:canvas/tokens
-       [{:token/stamp [:image/checksum]}]}]}]})
+  {:query '[:find [?cs ...] :where
+            [[:db/ident :canvas] :canvas/tokens ?tk]
+            [?tk :token/stamp ?st]
+            [?st :image/checksum ?cs]]})
 
 (defn stamps []
-  (let [[data] (use-query stamps-query)
-        lookup (fn [t] (-> t :token/stamp :image/checksum))
-        images (->> data :root/canvas :canvas/tokens (map lookup) set)
+  (let [[checksums] (use-query stamps-query)
         attrs  {:width "100%" :height "100%" :patternContentUnits "objectBoundingBox"}]
     [:defs
      [:pattern (merge attrs {:id "token-stamp-default" :viewBox "0 0 16 16" :fill "#f2f2eb"})
@@ -347,7 +337,7 @@
                   .708 0l.646.647.646-.647a.5.5 0 1 1 .708.708l-.647.646.647.646a.5.5
                   0 1 1-.708.708L5.5 7.207l-.646.647a.5.5 0 1 1-.708-.708l.647-.646-.647-.646a.5.5
                   0 0 1 0-.708zM10 11a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"}]]
-     (for [checksum images]
+     (for [checksum checksums]
        [:pattern (merge attrs {:key checksum :id (str "token-stamp-" checksum)})
         [stamp {:checksum checksum}]])]))
 
@@ -419,18 +409,18 @@
                 (dispatch :element/select (js/Number id) false))
               (dispatch :token/translate-all idents [ox oy] (not= (.-metaKey event) (:grid/align canvas))))))}
        [:g.canvas-selected {:key idents}
-        (for [entity selected :when (or host? (visible? (:element/flags entity)))]
-          (let [id (:db/id entity)]
-            [:g.canvas-token
-             {:key id :data-id id :transform (xf :translate (:pos/vec entity))}
-             [token {:id id}]]))]])))
+        (for [entity selected :when (or host? (visible? (:element/flags entity)))
+              :let [id (:db/id entity) [tx ty] (:pos/vec entity)]]
+          [:g.canvas-token
+           {:key id :data-id id :transform (str "translate(" tx " , " ty ")")}
+           [token {:id id}]])]])))
 
 (defn bounds []
   (let [[result] (use-query {:pull [:bounds/host :bounds/guest]})
         {[_ _ hw hh] :bounds/host
          [_ _ gw gh] :bounds/guest} result
         [ox oy] [(/ (- hw gw) 2) (/ (- hh gh) 2)]]
-    [:g.canvas-bounds {:transform (xf :translate [ox oy])}
+    [:g.canvas-bounds {:transform (str "translate(" ox " , " oy ")")}
      [:rect {:x 0 :y 0 :width gw :height gh :rx 8}]]))
 
 (def canvas-query
@@ -458,26 +448,29 @@
           theme :canvas/theme
           modif :canvas/modifier
           coord :pos/vec} :root/canvas} result
-        coord (if host? coord
-                  (->> [(- hw gw) (- hh gh)]
-                       (mapv (partial max 0))
-                       (vec/s (/ -1 2 scale))
-                       (vec/+ coord)))]
+        [cx cy] (if host? coord
+                    (->> [(- hw gw) (- hh gh)]
+                         (mapv (partial max 0))
+                         (vec/s (/ -1 2 scale))
+                         (vec/+ coord)))]
     [:svg.canvas {:css {(str "theme--" (name theme)) true :is-host host? :is-priv priv?}}
      [:> react-draggable
       {:position #js {:x 0 :y 0}
        :on-stop
        (fn [_ data]
-         (let [ox (.-x data) oy (.-y data)]
+         (let [ox (.-x data)
+               oy (.-y data)]
            (if (and (= ox 0) (= oy 0))
              (dispatch :selection/clear)
-             (dispatch :camera/translate (vec/+ coord (vec/s (/ scale) [ox oy]))))))}
+             (let [tx (+ cx (* ox (/ scale)))
+                   ty (+ cy (* oy (/ scale)))]
+               (dispatch :camera/translate [tx ty])))))}
       [:g {:style {:will-change "transform"}}
        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
        (if (and (= mode :select) (= modif :shift))
          [draw {:mode :select :node select-node}])
        [:g.canvas-board
-        {:transform (xf :scale scale :translate coord)}
+        {:transform (str "scale(" scale ") translate(" cx ", " cy ")")}
         [stamps]
         [scene]
         [grid]
