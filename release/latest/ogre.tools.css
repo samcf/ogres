@@ -503,17 +503,49 @@ legend {
     stroke: var(--canvas-stroke);
 }
 
-.canvas-mask > rect {
-    fill: var(--theme-background-d);
-    pointer-events: none;
-}
-
 .canvas-grid pattern > path {
     fill: none;
     stroke-dasharray: 2px;
     stroke-width: 1px;
     stroke: var(--canvas-stroke);
     opacity: 0.60;
+}
+
+/* Masks */
+.canvas-mask {
+    pointer-events: none;
+}
+
+.canvas-mask-background {
+    fill: var(--theme-background-d);
+}
+
+.canvas-mask-pattern {
+    fill-opacity: 0;
+}
+
+.canvas-mask.is-dimmed .canvas-mask-background {
+    fill-opacity: 0.75;
+}
+
+.canvas.is-host .canvas-mask-background {
+    fill-opacity: 0.40;
+}
+
+.canvas.is-host .canvas-mask-pattern {
+    fill-opacity: 0.30;
+}
+
+.canvas-mask-polygon {
+    fill: transparent;
+    pointer-events: fill;
+    stroke: var(--canvas-stroke);
+    stroke-width: 2px;
+}
+
+.canvas-mask-polygon:hover {
+    cursor: pointer;
+    stroke: orange;
 }
 
 /* Stamps */
