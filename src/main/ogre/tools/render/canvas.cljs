@@ -9,6 +9,21 @@
             [react-draggable]
             [uix.core.alpha :as uix]))
 
+;; https://github.com/clj-commons/useful
+(defn decorate
+  "Return a function f such that (f x) => [x (f1 x) (f2 x) ...]."
+  [& fs]
+  (apply juxt identity fs))
+
+;; https://github.com/clj-commons/useful
+(defn separate
+  "Split coll into two sequences, one that matches pred and one that doesn't. Unlike the
+  version in clojure.contrib.seq-utils, pred is only called once per item."
+  [pred coll]
+  (let [pcoll (map (decorate pred) coll)]
+    (vec (for [f [filter remove]]
+           (map first (f second pcoll))))))
+
 (def draw-modes
   #{:grid :ruler :circle :rect :cone :line :poly :mask})
 
@@ -261,34 +276,10 @@
             [:defs [pattern {:id id :name (:shape/pattern element) :color (:shape/color element)}]]
             [shape {:element element :attrs {:fill (str "url(#" id ")")}}]])]))))
 
-(defn token-query [id]
-  {:query
-   '[:find (pull $ ?id pattern) . :in $ ?id pattern]
-
-   :pull
-   [:element/name
-    [:element/flags :default #{}]
-    [:token/size :default {:name :medium :size 5}]
-    {:token/stamp [:image/checksum]}
-    :aura/label
-    [:aura/radius :default 0]
-    :initiative/suffix
-    :canvas/_selected
-    {:canvas/_tokens [[:grid/size :default 70]]}]
-
-   :args
-   [id]})
-
-(def flag-class-xf
-  (comp (map name) (map (fn [s] (str "flag--" s))) (map (fn [s] [s true]))))
-
-(defn token [props]
-  (let [[data] (use-query (token-query (:id props)))
-        flags  (:element/flags data)
-        size   (-> data :canvas/_tokens :grid/size)
+(defn token [{data :data size :size}]
+  (let [flags  (:element/flags data)
         radius (-> data :token/size :size (ft->px size) (/ 2) (- 2) (max 16))]
-    [:g {:css (merge {:canvas-token true :selected (:canvas/_selected data)}
-                     (into {} flag-class-xf flags))}
+    [:<>
      (if (> (:aura/radius data) 0)
        (let [radius (+ (ft->px (:aura/radius data) size) (/ size 2))]
          [:<>
@@ -297,9 +288,8 @@
             (let [cx (+ (* (.cos js/Math 0.75) radius) 8)
                   cy (+ (* (.sin js/Math 0.75) radius) 8)]
               [text {:x cx :y cy} (:aura/label data)]))]))
-     (if (:canvas/_selected data)
-       [:circle.canvas-token-ring
-        {:cx 0 :cy 0 :style {:r radius :fill "transparent"}}])
+     [:circle.canvas-token-ring
+      {:cx 0 :cy 0 :style {:r radius :fill "transparent"}}]
      (let [checksum (:image/checksum (:token/stamp data))
            pattern  (cond
                       (flags :deceased)  "token-stamp-deceased"
@@ -343,75 +333,81 @@
 
 (def tokens-query
   {:pull
-   [:root/host?
-    {:root/canvas
-     [[:zoom/scale :default 1]
-      [:grid/align :default false]
-      {:canvas/tokens
-       [:db/id
-        [:pos/vec :default [0 0]]
-        [:element/flags :default #{}]
-        :canvas/_selected]}]}]})
-
-(defn tokens []
-  (let [[result dispatch] (use-query tokens-query)]
-    (for [entity (-> result :root/canvas :canvas/tokens)
-          :let [{id :db/id [ax ay] :pos/vec} entity]
-          :when (and (not (:canvas/_selected entity))
-                     (or (:root/host? result)
-                         (visible? (:element/flags entity))))]
-      [:> react-draggable
-       {:key      id
-        :position #js {:x ax :y ay}
-        :scale    (-> result :root/canvas :zoom/scale)
-        :on-start stop-propagation
-        :on-stop
-        (fn [event data]
-          (.stopPropagation event)
-          (let [bx (.-x data) by (.-y data)]
-            (if (= (euclidean ax ay bx by) 0)
-              (dispatch :element/select id (not (.-shiftKey event)))
-              (let [align? (not= (.-metaKey event) (-> result :root/canvas :grid/align))]
-                (dispatch :token/translate id bx by align?)))))}
-       [:g.canvas-token
-        [token {:id id}]]])))
-
-(def selection-query
-  {:pull
-   [:root/host?
+   [[:root/host? :default true]
     {:root/canvas
      [[:grid/size :default 70]
       [:grid/align :default false]
       [:zoom/scale :default 1]
-      {:canvas/selected
+      {:canvas/tokens
        [:db/id
-        :element/type
-        :element/flags
-        [:pos/vec :default [0 0]]]}]}]})
+        [:initiative/suffix :default nil]
+        [:pos/vec :default [0 0]]
+        [:element/flags :default #{}]
+        [:element/name :default ""]
+        [:token/size :default {:name :medium :size 5}]
+        [:aura/label :default ""]
+        [:aura/radius :default 0]
+        {:token/stamp [:image/checksum]}
+        {:canvas/_selected [:db/id]}]}]}]})
 
-(defn selection []
-  (let [[result dispatch] (use-query selection-query)
-        {:keys [root/host? root/canvas]} result
-        {:keys [canvas/selected zoom/scale]} canvas
-        idents (map :db/id selected)]
-    (if (= (:element/type (first selected)) :token)
-      [:> react-draggable
-       {:position #js {:x 0 :y 0}
-        :scale scale
-        :on-start stop-propagation
-        :on-stop
-        (fn [event data]
-          (let [ox (.-x data) oy (.-y data)]
-            (if (and (= ox 0) (= oy 0))
-              (let [id (.. event -target (closest ".canvas-token[data-id]") -dataset -id)]
-                (dispatch :element/select (js/Number id) false))
-              (dispatch :token/translate-all idents ox oy (not= (.-metaKey event) (:grid/align canvas))))))}
-       [:g.canvas-selected {:key idents}
-        (for [entity selected :when (or host? (visible? (:element/flags entity)))
-              :let [id (:db/id entity) [tx ty] (:pos/vec entity)]]
-          [:g.canvas-token
-           {:key id :data-id id :transform (str "translate(" tx " , " ty ")")}
-           [token {:id id}]])]])))
+(defn tokens []
+  (let [[result dispatch] (use-query tokens-query)
+        {host?   :root/host?
+         {size   :grid/size
+          align? :grid/align
+          scale  :zoom/scale} :root/canvas} result
+
+        flags-xf
+        (comp (map name)
+              (map (fn [s] (str "flag--" s)))
+              (map (fn [s] [s true])))
+
+        class-names
+        (fn [token]
+          (into {:selected (:canvas/_selected token)}
+                flags-xf (:element/flags token)))
+
+        [selected tokens]
+        (->> (:canvas/tokens (:root/canvas result))
+             (filter (fn [token] (or host? (visible? (:element/flags token)))))
+             (separate (fn [token] (contains? token :canvas/_selected))))]
+    [:<>
+     (for [data tokens :let [{id :db/id [ax ay] :pos/vec} data]]
+       [:> react-draggable
+        {:key      id
+         :position #js {:x ax :y ay}
+         :scale    scale
+         :on-start stop-propagation
+         :on-stop
+         (fn [event data]
+           (.stopPropagation event)
+           (let [bx (.-x data) by (.-y data)]
+             (if (= (euclidean ax ay bx by) 0)
+               (dispatch :element/select id (not (.-shiftKey event)))
+               (let [align? (not= (.-metaKey event) align?)]
+                 (dispatch :token/translate id bx by align?)))))}
+        [:g.canvas-token
+         {:css (class-names data)}
+         [token {:data data :size size}]]])
+     (if (seq selected)
+       (let [idents (map :db/id selected)]
+         [:> react-draggable
+          {:position #js {:x 0 :y 0}
+           :scale    scale
+           :on-start stop-propagation
+           :on-stop
+           (fn [event data]
+             (let [ox (.-x data) oy (.-y data)]
+               (if (and (= ox 0) (= oy 0))
+                 (let [id (.. event -target (closest ".canvas-token[data-id]") -dataset -id)]
+                   (dispatch :element/select (js/Number id) false))
+                 (dispatch :token/translate-all idents ox oy (not= (.-metaKey event) align?)))))}
+          [:g.canvas-selected
+           {:key idents}
+           (for [data selected :let [{id :db/id [x y] :pos/vec} data]]
+             [:g.canvas-token
+              {:key id :css (class-names data) :data-id id :transform (str "translate(" x "," y ")")}
+              [token {:data data :size size}]])]]))]))
 
 (defn bounds []
   (let [[result] (use-query {:pull [:bounds/host :bounds/guest]})
@@ -471,7 +467,6 @@
         [grid]
         [shapes]
         [tokens]
-        [selection]
         [light-mask]
         [canvas-mask]]
        (if (and (= mode :select) (= modif :shift))

@@ -432,9 +432,14 @@ legend {
 
 .canvas-token-ring {
     animation: ring-pulse 0.50s alternate infinite;
+    display: none;
     pointer-events: none;
     stroke-width: 1px;
     stroke: var(--canvas-stroke);
+}
+
+.canvas-token.selected .canvas-token-ring {
+    display: block;
 }
 
 @keyframes aura-pulse {
