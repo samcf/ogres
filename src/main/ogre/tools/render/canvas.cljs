@@ -105,7 +105,7 @@
          [:rect {:x 0 :y 0 :width width :height height :fill "white" :fill-opacity "100%"}]
          (for [{id :db/id flags :element/flags [x y] :pos/vec radius :token/light} tokens
                :when (and (> radius 0) (or host? (visible? flags)))]
-           ^{:key id} [:circle {:cx x :cy y :r (+ (ft->px radius size) (/ size 2)) :fill "url(#mask-gradient)"}])]]
+           [:circle {:key id :cx x :cy y :r (+ (ft->px radius size) (/ size 2)) :fill "url(#mask-gradient)"}])]]
        [:rect.canvas-mask-background
         {:x 0 :y 0 :width width :height height :mask "url(#light-mask)"}]
        (if (= visibility :hidden)
@@ -138,14 +138,14 @@
        (if filled?
          [:rect {:x 0 :y 0 :width width :height height :fill "white"}])
        (for [{id :db/id enabled? :mask/enabled? xs :mask/vecs} masks]
-         ^{:key id} [:polygon {:points (join " " xs) :fill (if enabled? "white" "black")}])]]
+         [:polygon {:key id :points (join " " xs) :fill (if enabled? "white" "black")}])]]
      [:rect.canvas-mask-background {:x 0 :y 0 :width width :height height :mask "url(#canvas-mask)"}]
      [:rect.canvas-mask-pattern {:x 0 :y 0 :width width :height height :fill "url(#mask-pattern)" :mask "url(#canvas-mask)"}]
      (if (and host? (contains? modes mode))
        (for [{id :db/id xs :mask/vecs enabled? :mask/enabled?} masks]
-         ^{:key id}
          [:polygon.canvas-mask-polygon
-          {:data-enabled enabled?
+          {:key id
+           :data-enabled enabled?
            :points (join " " xs)
            :on-mouse-down stop-propagation
            :on-click
