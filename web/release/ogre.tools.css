@@ -416,7 +416,7 @@ legend {
     cursor: pointer;
 }
 
-.canvas-token.selected .canvas-token-shape,
+.canvas-selected .canvas-token .canvas-token-shape,
 .canvas-token-shape:hover {
     stroke: var(--canvas-stroke);
 }
@@ -438,7 +438,7 @@ legend {
     stroke: var(--canvas-stroke);
 }
 
-.canvas-token.selected .canvas-token-ring {
+.canvas-selected .canvas-token .canvas-token-ring {
     display: block;
 }
 
@@ -514,6 +514,89 @@ legend {
     stroke-width: 1px;
     stroke: var(--canvas-stroke);
     opacity: 0.60;
+}
+
+/* Context Menu */
+.context-menu {
+    background-color: rgba(23, 33, 37, 1);
+    border-radius: 7px;
+    border: 1px solid rgba(40, 53, 62, 0.50);
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.45);
+    box-sizing: border-box;
+    margin: 0 auto;
+    max-width: 264px;
+    pointer-events: all;
+}
+
+.context-toolbar {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px;
+}
+
+.context-toolbar > button {
+    align-items: center;
+    aspect-ratio: 1 / 1;
+    background: none;
+    border: none;
+    color: hsl(0, 0%, 70%);
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    width: 32px;
+}
+
+.context-toolbar > button:hover {
+    color: white;
+}
+
+.context-form {
+    font-size: 12px;
+    padding:  8px;
+    background-color: hsl(208deg 21% 20%);
+}
+
+.context-form input[type="text"] {
+    background: none;
+    border: none;
+    color: var(--theme-text);
+    background-color: var(--theme-background-d);
+}
+
+.context-form-images {
+    display: grid;
+    gap: 3px;
+    grid-template-columns: repeat(5, 1fr);
+}
+
+.context-form-images button {
+    aspect-ratio: 1 / 1;
+    background-color: var(--theme-background-d);
+    border-radius: 4px;
+    border-width: 0;
+    cursor: pointer;
+}
+
+.context-form-images button:not(.thumbnail) {
+    align-items: center;
+    color: var(--theme-text);
+    display: flex;
+    justify-content: center;
+}
+
+.context-form-images button:not(.thumbnail):hover {
+    color: rgb(255, 255, 255);
+}
+
+.context-form-images button.thumbnail {
+    background-size: cover;
+    filter: grayscale(0.60);
+    opacity: 0.65;
+}
+
+.context-form-images button.thumbnail:hover {
+    filter: none;
+    opacity: 1;
 }
 
 /* Masks */

@@ -1,28 +1,13 @@
 (ns ogre.tools.render.canvas
   (:require [clojure.string :refer [join]]
             [datascript.core :refer [squuid]]
-            [ogre.tools.geom :refer [chebyshev euclidean triangle]]
-            [ogre.tools.render :refer [use-image]]
+            [ogre.tools.geom :refer [bounding-box chebyshev euclidean triangle]]
+            [ogre.tools.render :refer [icon use-image]]
             [ogre.tools.render.draw :refer [draw]]
             [ogre.tools.render.pattern :refer [pattern]]
             [ogre.tools.state :refer [use-query]]
             [react-draggable]
             [uix.core.alpha :as uix]))
-
-;; https://github.com/clj-commons/useful
-(defn decorate
-  "Return a function f such that (f x) => [x (f1 x) (f2 x) ...]."
-  [& fs]
-  (apply juxt identity fs))
-
-;; https://github.com/clj-commons/useful
-(defn separate
-  "Split coll into two sequences, one that matches pred and one that doesn't. Unlike the
-  version in clojure.contrib.seq-utils, pred is only called once per item."
-  [pred coll]
-  (let [pcoll (map (decorate pred) coll)]
-    (vec (for [f [filter remove]]
-           (map first (f second pcoll))))))
 
 (def draw-modes
   #{:grid :ruler :circle :rect :cone :line :poly :mask})
@@ -31,6 +16,13 @@
   {:none     [1.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0]
    :dusk     [0.3 0.3 0.0 0.0 0.0 0.0 0.3 0.3 0.0 0.0 0.0 0.0 0.8 0.0 0.0 0.0 0.0 0.0 1.0 0.0]
    :midnight [0.0 0.0 0.0 0.0 0.0 0.0 0.1 0.0 0.0 0.0 0.1 0.1 0.1 0.0 0.0 0.0 0.0 0.0 1.0 0.0]})
+
+(defn separate
+  "Split coll into two sequences, one that matches pred and one that doesn't."
+  [pred coll]
+  (let [pcoll (map (juxt identity pred) coll)]
+    (vec (for [f [filter remove]]
+           (map first (f second pcoll))))))
 
 (defn stop-propagation [event]
   (.stopPropagation event))
@@ -307,6 +299,86 @@
        [:pattern (merge attrs {:key checksum :id (str "token-stamp-" checksum)})
         [stamp {:checksum checksum}]])]))
 
+(defn thumbnail [checksum render-fn]
+  (render-fn (use-image checksum)))
+
+(defmulti form :name)
+
+(defmethod form :default [] nil)
+
+(defmethod form :label [props]
+  (let [input (uix/ref)
+        label (uix/state
+               (fn []
+                 (let [vs ((:values props) :element/name)]
+                   (if (= (count vs) 1) (first vs) ""))))]
+    (uix/effect! #(.select @input) [])
+    [:form
+     {:on-submit
+      (fn [event]
+        (.preventDefault event)
+        ((:on-change props) :token/change-label @label)
+        ((:on-close props)))}
+     [:input
+      {:type "text"
+       :ref input
+       :value @label
+       :auto-focus true
+       :placeholder "Press 'Enter' to submit..."
+       :on-change #(reset! label (.. %1 -target -value))}]]))
+
+(defmethod form :images [props]
+  (let [[result]   (use-query {:pull [{[:root/stamps :limit 8] [:image/checksum]}]})
+        thumbnails (into [] (comp (map :image/checksum)) (:root/stamps result))]
+    (concat
+     [[:button {:type "button" :title "View All"}
+       [icon {:name "person-circle" :size 32}]]
+      [:button {:type "button" :title "Upload image"}
+       [icon {:name "cloud-upload-fill" :size 32}]]]
+     (for [checksum thumbnails]
+       ^{:key checksum}
+       [thumbnail checksum
+        (fn [url]
+          [:button.thumbnail
+           {:type "button"
+            :style {:background-image (str "url(" url ")")}
+            :on-click #((:on-change props) :token/change-stamp checksum)}])]))))
+
+(defmethod form :details []
+  [:div "Change more token details"])
+
+(defn context-menu [{tokens :tokens}]
+  (let [dispatch   (use-query)
+        idents     (map :db/id tokens)
+        selected   (uix/state nil)
+        on-select  (fn [next]
+                     (fn []
+                       (swap! selected (fn [prev] (if (not= prev next) next nil)))))]
+    [:div.context-menu
+     {:on-mouse-down stop-propagation}
+     [:div.context-toolbar
+      [:button {:type "button" :title "Change label" :on-click (on-select :label)}
+       [icon {:name "fonts" :size 22}]]
+      [:button {:type "button" :title "Select image" :on-click (on-select :images)}
+       [icon {:name "person-circle" :size 22}]]
+      [:button {:type "button" :title "Toggle visibility"}
+       [icon {:name "eye-slash-fill" :size 22}]]
+      [:button {:type "button" :title "Toggle initiative"}
+       [icon {:name "hourglass-split" :size 22}]]
+      [:button {:type "button" :title "More details" :on-click (on-select :details)}
+       [icon {:name "wrench-adjustable-circle" :size 22}]]
+      [:button {:type "button" :title "Remove" :on-click #(dispatch :element/remove idents)}
+       [icon {:name "trash" :size 22}]]]
+     (if-let [form-name (deref selected)]
+       [:div.context-form
+        {:css (str "context-form-" (name form-name))}
+        ^{:key form-name}
+        [form
+         {:name      form-name
+          :on-close  #(reset! selected nil)
+          :on-change #(apply dispatch %1 idents %&)
+          :values    #(into #{} (map %1) tokens)}]])]))
+
 (defn token [{data :data size :size}]
   (let [flags  (:element/flags data)
         radius (-> data :token/size :size (ft->px size) (/ 2) (- 2) (max 16))]
@@ -348,6 +420,7 @@
         [:aura/label :default ""]
         [:aura/radius :default 0]
         {:token/stamp [:image/checksum]}
+        {:canvas/_initiative [:db/id]}
         {:canvas/_selected [:db/id]}]}]}]})
 
 (defn tokens []
@@ -362,10 +435,9 @@
               (map (fn [s] (str "flag--" s)))
               (map (fn [s] [s true])))
 
-        class-names
+        css
         (fn [token]
-          (into {:selected (:canvas/_selected token)}
-                flags-xf (:element/flags token)))
+          (into {} flags-xf (:element/flags token)))
 
         [selected tokens]
         (->> (:canvas/tokens (:root/canvas result))
@@ -386,11 +458,11 @@
                (dispatch :element/select id (not (.-shiftKey event)))
                (let [align? (not= (.-metaKey event) align?)]
                  (dispatch :token/translate id bx by align?)))))}
-        [:g.canvas-token
-         {:css (class-names data)}
+        [:g.canvas-token {:css (css data)}
          [token {:data data :size size}]]])
      (if (seq selected)
-       (let [idents (map :db/id selected)]
+       (let [idents (map :db/id selected)
+             [ax _ bx by] (apply bounding-box (map :pos/vec selected))]
          [:> react-draggable
           {:position #js {:x 0 :y 0}
            :scale    scale
@@ -402,12 +474,19 @@
                  (let [id (.. event -target (closest ".canvas-token[data-id]") -dataset -id)]
                    (dispatch :element/select (js/Number id) false))
                  (dispatch :token/translate-all idents ox oy (not= (.-metaKey event) align?)))))}
-          [:g.canvas-selected
-           {:key idents}
+          [:g.canvas-selected {:key idents}
            (for [data selected :let [{id :db/id [x y] :pos/vec} data]]
              [:g.canvas-token
-              {:key id :css (class-names data) :data-id id :transform (str "translate(" x "," y ")")}
-              [token {:data data :size size}]])]]))]))
+              {:key id :css (css data) :data-id id :transform (str "translate(" x "," y ")")}
+              [token {:data data :size size}]])
+           (if host?
+             [:foreignObject
+              {:x (- (+ (* ax scale) (/ (* (- bx ax) scale) 2)) (/ 400 2))
+               :y (+ (* by scale) (* scale 54))
+               :width 400 :height 400
+               :transform (str "scale(" (/ scale) ")")
+               :style {:pointer-events "none"}}
+              [context-menu {:tokens selected}]])]]))]))
 
 (defn bounds []
   (let [[result] (use-query {:pull [:bounds/host :bounds/guest]})

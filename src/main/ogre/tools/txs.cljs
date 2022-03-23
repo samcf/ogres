@@ -1,6 +1,7 @@
 (ns ogre.tools.txs
   (:require [datascript.core :as ds]
             [clojure.set :refer [union]]
+            [clojure.string :refer [trim]]
             [ogre.tools.geom :refer [normalize within?]]))
 
 (defn round [x n]
@@ -178,6 +179,11 @@
         r                 (if align? (/ size 2) 1)]
     (for [{id :db/id [tx ty] :pos/vec} tokens]
       [:db/add id :pos/vec [(round (+ x tx) r) (round (+ y ty) r)]])))
+
+(defmethod transact :token/change-label
+  [_ idents value]
+  (for [ident idents]
+    [:db/add ident :element/name (trim value)]))
 
 (defmethod transact :token/change-light
   [_ idents radius]
