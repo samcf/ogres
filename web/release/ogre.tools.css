@@ -546,7 +546,11 @@ legend {
     width: 32px;
 }
 
-.context-toolbar > button:hover {
+.context-toolbar > button.selected {
+    color: var(--theme-text-link);
+}
+
+.context-toolbar > button:not(.selected):hover {
     color: white;
 }
 

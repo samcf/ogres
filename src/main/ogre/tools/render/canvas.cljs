@@ -361,10 +361,16 @@
        [icon {:name "fonts" :size 22}]]
       [:button {:type "button" :title "Select image" :on-click (on-select :images)}
        [icon {:name "person-circle" :size 22}]]
-      [:button {:type "button" :title "Toggle visibility"}
-       [icon {:name "eye-slash-fill" :size 22}]]
-      [:button {:type "button" :title "Toggle initiative"}
-       [icon {:name "hourglass-split" :size 22}]]
+      (let [on (every? (comp boolean :hidden :element/flags) tokens)]
+        [:button
+         {:type "button" :title "Toggle visibility" :css {:selected on}
+          :on-click #(dispatch :element/flag idents :hidden (not on))}
+         [icon {:name (if on "eye-slash-fill" "eye-fill") :size 22}]])
+      (let [on (every? (comp vector? :canvas/_initiative) tokens)]
+        [:button
+         {:type "button" :title "Toggle initiative" :css {:selected on}
+          :on-click #(dispatch :initiative/toggle idents (not on))}
+       [icon {:name "hourglass-split" :size 22}]])
       [:button {:type "button" :title "More details" :on-click (on-select :details)}
        [icon {:name "wrench-adjustable-circle" :size 22}]]
       [:button {:type "button" :title "Remove" :on-click #(dispatch :element/remove idents)}
