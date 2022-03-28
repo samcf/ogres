@@ -460,10 +460,9 @@
   [{:keys [data]} stamp-data]
   (let [checksum (:image/checksum stamp-data)
         exists?  (ds/entity data [:image/checksum checksum])]
-    (if-not exists?
+    (if (not exists?)
       [(assoc stamp-data :db/id -1)
-       [:db/add [:db/ident :root] :root/stamps -1]]
-      [])))
+       [:db/add [:db/ident :root] :root/stamps -1]] [])))
 
 (defmethod transact :stamp/remove [_ checksum]
   [[:db/retractEntity [:image/checksum checksum]]])

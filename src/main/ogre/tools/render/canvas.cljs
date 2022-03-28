@@ -1,11 +1,13 @@
 (ns ogre.tools.render.canvas
   (:require [clojure.string :refer [join]]
             [datascript.core :refer [squuid]]
+            [ogre.tools.image :refer [load checksum]]
             [ogre.tools.geom :refer [bounding-box chebyshev euclidean triangle]]
             [ogre.tools.render :refer [icon use-image]]
             [ogre.tools.render.draw :refer [draw]]
             [ogre.tools.render.pattern :refer [pattern]]
             [ogre.tools.state :refer [use-query]]
+            [ogre.tools.storage :refer [storage]]
             [react-draggable]
             [uix.core.alpha :as uix]))
 
@@ -299,6 +301,15 @@
        [:pattern (merge attrs {:key checksum :id (str "token-stamp-" checksum)})
         [stamp {:checksum checksum}]])]))
 
+(defn file-uploader [props]
+  [:input
+   {:type "file" :ref (:ref props) :accept "image/*" :multiple true
+    :style {:display "none"}
+    :on-change
+    (fn [event]
+      (doseq [file (.. event -target -files)]
+        (.then (load file) (:on-upload props))))}])
+
 (defn thumbnail [checksum render-fn]
   (render-fn (use-image checksum)))
 
@@ -328,13 +339,30 @@
        :on-change #(reset! label (.. %1 -target -value))}]]))
 
 (defmethod form :images [props]
-  (let [[result]   (use-query {:pull [{[:root/stamps :limit 8] [:image/checksum]}]})
-        thumbnails (into [] (comp (map :image/checksum)) (:root/stamps result))]
-    (concat
-     [[:button {:type "button" :title "View All"}
-       [icon {:name "person-circle" :size 32}]]
-      [:button {:type "button" :title "Upload image"}
-       [icon {:name "cloud-upload-fill" :size 32}]]]
+  (let [[result dispatch] (use-query {:pull [{[:root/stamps :limit 8] [:image/checksum]}]})
+        {:keys [store]}   (uix/context storage)
+        thumbnails        (into [] (comp (map :image/checksum)) (:root/stamps result))
+        upload-ref        (uix/ref nil)]
+    [:<>
+     [file-uploader
+      {:ref upload-ref
+       :on-upload
+       (fn [[file data-url image]]
+         (let [checksum (checksum data-url)
+               record   #js {:checksum checksum :data data-url :created-at (.now js/Date)}
+               entity   {:image/checksum checksum
+                         :image/name     (.-name file)
+                         :image/width    (.-width image)
+                         :image/height   (.-height image)}]
+           (.then
+            (.put (.-images store) record)
+            (fn [] (dispatch :stamp/create entity)))))}]
+     [:button {:key "view-all" :type "button" :title "View all images"}
+      [icon {:name "person-circle" :size 32}]]
+     [:button
+      {:key "upload" :type "button" :title "Upload image"
+       :on-click #(.click @upload-ref)}
+      [icon {:name "cloud-upload-fill" :size 32}]]
      (for [checksum thumbnails]
        ^{:key checksum}
        [thumbnail checksum
@@ -342,7 +370,7 @@
           [:button.thumbnail
            {:type "button"
             :style {:background-image (str "url(" url ")")}
-            :on-click #((:on-change props) :token/change-stamp checksum)}])]))))
+            :on-click #((:on-change props) :token/change-stamp checksum)}])])]))
 
 (defmethod form :details []
   [:div "Change more token details"])
