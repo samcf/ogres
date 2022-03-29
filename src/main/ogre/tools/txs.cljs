@@ -185,15 +185,20 @@
   (for [ident idents]
     [:db/add ident :element/name (trim value)]))
 
+(defmethod transact :token/change-size
+  [_ idents radius]
+  (for [id idents]
+    [:db/add id :token/size radius]))
+
 (defmethod transact :token/change-light
   [_ idents radius]
   (for [id idents]
     [:db/add id :token/light radius]))
 
-(defmethod transact :token/change-size
-  [_ idents name size]
+(defmethod transact :token/change-aura
+  [_ idents radius]
   (for [id idents]
-    [:db/add id :token/size {:name name :size size}]))
+    [:db/add id :aura/radius radius]))
 
 (defmethod transact :token/change-stamp
   [_ idents checksum]
@@ -309,15 +314,6 @@
 (defmethod transact :zoom/reset [{:keys [data]}]
   (transact {:data data :event :zoom/change} 1))
 
-(defmethod transact :aura/change-label
-  [_ idents label]
-  (for [id idents]
-    [:db/add id :aura/label label]))
-
-(defmethod transact :aura/change-radius
-  [_ idents radius]
-  (for [id idents]
-    [:db/add id :aura/radius radius]))
 
 (defmethod transact :share/initiate []
   [])

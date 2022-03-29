@@ -35,9 +35,8 @@
         :element/name
         :element/flags
         {:token/stamp [:image/checksum]}
-        [:token/size :default {:name :medium :size 5}]
+        [:token/size :default 5]
         [:token/light :default 15]
-        :aura/label
         [:aura/radius :default 0]]}]}]})
 
 (defn stamp [{:keys [checksum]}]
@@ -143,17 +142,6 @@
            :on-change #(dispatch :element/flag idents flag %)}
           [label flag]])]]
      [:section
-      [:legend "Size"]
-      [:fieldset.table
-       (for [[name size] [[:tiny 2.5] [:small 5] [:medium 5] [:large 10] [:huge 15] [:gargantuan 20]]]
-         [checkbox
-          {:key name
-           :name "token/size"
-           :value name
-           :checked (checked? #(= (:name (:token/size %)) name) selected)
-           :on-change #(dispatch :token/change-size idents name size)}
-          [label name]])]]
-     [:section
       [:legend "Light Radius"]
       [:fieldset.table
        (for [[radius name] light-radii]
@@ -174,27 +162,7 @@
            :value flag
            :checked (checked? #(contains? (:element/flags %) flag) selected)
            :on-change #(dispatch :element/flag idents flag %)}
-          [label flag]])]]
-     [:section
-      [:legend "Aura"]
-      (let [[match? value] (every-value? selected :aura/label)]
-        [:fieldset
-         [:input
-          {:type "text"
-           :placeholder (if match? "Label" "Multiple selected...")
-           :value (or value "")
-           :maxLength 24
-           :spellCheck "false"
-           :on-change #(dispatch :aura/change-label idents (.. % -target -value))}]])
-      [:fieldset.table
-       (for [radius [0 10 15 20 30 60]]
-         [checkbox
-          {:key radius
-           :name "token/aura-radius"
-           :checked (checked? #(= (:aura/radius %) radius) selected)
-           :value radius
-           :on-change #(dispatch :aura/change-radius idents radius)}
-          (if (= radius 0) "None" (str radius " ft."))])]]]))
+          [label flag]])]]]))
 
 (def selected-query
   {:pull

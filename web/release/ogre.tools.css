@@ -603,6 +603,49 @@ legend {
     opacity: 1;
 }
 
+.context-form-details button {
+    aspect-ratio: 1 / 1;
+    background-color: var(--theme-background-d);
+    border-radius: 3px;
+    border: none;
+    color: white;
+    cursor: pointer;
+    line-height: 0;
+    text-align: center;
+    width: 26px;
+}
+
+.context-form-details > div {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.context-form-details > div > legend {
+    background-color: var(--theme-background-d);
+    border-radius: 4px;
+    font-weight: normal;
+    padding: 4px 8px;
+    text-align: right;
+    width: 40px;
+}
+
+.context-form-details > div > span {
+    align-items: center;
+    border-radius: 4px;
+    border: 1px solid var(--theme-background-d);
+    box-sizing: border-box;
+    display: flex;
+    flex: 1;
+    font-size: 10px;
+    height: 26px;
+    padding-left: 4px;
+}
+
+.context-form-details > div + div {
+    margin-top: 4px;
+}
+
 /* Masks */
 .canvas-mask {
     pointer-events: none;

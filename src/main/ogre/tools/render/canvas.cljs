@@ -372,8 +372,32 @@
             :style {:background-image (str "url(" url ")")}
             :on-click #((:on-change props) :token/change-stamp checksum)}])])]))
 
-(defmethod form :details []
-  [:div "Change more token details"])
+(defmethod form :details [props]
+  (for [[label tx-name attr min def]
+        [["Size" :token/change-size :token/size 5 5]
+         ["Light" :token/change-light :token/light 0 15]
+         ["Aura" :token/change-aura :aura/radius 0 0]]]
+    (let [values ((:values props) attr)]
+      [:div {:key label}
+       [:legend label]
+       [:button
+        {:type "button"
+         :on-click
+         (fn []
+           (let [next (if (> (count values) 1) min (max (- (first values) 5) min))]
+             ((:on-change props) tx-name next)))} "-"]
+       [:span
+        (cond
+          (> (count values) 1) "Multiple..."
+          (= (count values) 0) (str def "ft.")
+          (= (first values) 0) "None"
+          (= (count values) 1) (str (first values) "ft."))]
+       [:button
+        {:type "button"
+         :on-click
+         (fn []
+           (let [next (if (> (count values) 1) 5 (+ (first values) 5))]
+             ((:on-change props) tx-name next)))} "+"]])))
 
 (defn context-menu [{tokens :tokens}]
   (let [dispatch   (use-query)
@@ -399,7 +423,7 @@
          {:type "button" :title "Toggle initiative" :css {:selected on}
           :on-click #(dispatch :initiative/toggle idents (not on))}
        [icon {:name "hourglass-split" :size 22}]])
-      [:button {:type "button" :title "More details" :on-click (on-select :details)}
+      [:button {:type "button" :title "More options" :on-click (on-select :details)}
        [icon {:name "wrench-adjustable-circle" :size 22}]]
       [:button {:type "button" :title "Remove" :on-click #(dispatch :element/remove idents)}
        [icon {:name "trash" :size 22}]]]
@@ -415,16 +439,11 @@
 
 (defn token [{data :data size :size}]
   (let [flags  (:element/flags data)
-        radius (-> data :token/size :size (ft->px size) (/ 2) (- 2) (max 16))]
+        radius (-> data :token/size (ft->px size) (/ 2) (- 2) (max 16))]
     [:<>
      (if (> (:aura/radius data) 0)
-       (let [radius (+ (ft->px (:aura/radius data) size) (/ size 2))]
-         [:<>
-          [:circle.canvas-token-aura {:cx 0 :cy 0 :r radius}]
-          (if (seq (:aura/label data))
-            (let [cx (+ (* (.cos js/Math 0.75) radius) 8)
-                  cy (+ (* (.sin js/Math 0.75) radius) 8)]
-              [text {:x cx :y cy} (:aura/label data)]))]))
+       [:circle.canvas-token-aura
+        {:cx 0 :cy 0 :r (+ (ft->px (:aura/radius data) size) (/ size 2))}])
      [:circle.canvas-token-ring
       {:cx 0 :cy 0 :style {:r radius :fill "transparent"}}]
      (let [checksum (:image/checksum (:token/stamp data))
@@ -450,8 +469,8 @@
         [:pos/vec :default [0 0]]
         [:element/flags :default #{}]
         [:element/name :default ""]
-        [:token/size :default {:name :medium :size 5}]
-        [:aura/label :default ""]
+        [:token/size :default 5]
+        [:token/light :default 15]
         [:aura/radius :default 0]
         {:token/stamp [:image/checksum]}
         {:canvas/_initiative [:db/id]}
