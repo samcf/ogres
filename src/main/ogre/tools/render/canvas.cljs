@@ -1,5 +1,5 @@
 (ns ogre.tools.render.canvas
-  (:require [clojure.string :refer [join]]
+  (:require [clojure.string :refer [capitalize join]]
             [datascript.core :refer [squuid]]
             [ogre.tools.image :refer [load checksum]]
             [ogre.tools.geom :refer [bounding-box chebyshev euclidean triangle]]
@@ -18,6 +18,18 @@
   {:none     [1.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0]
    :dusk     [0.3 0.3 0.0 0.0 0.0 0.0 0.3 0.3 0.0 0.0 0.0 0.0 0.8 0.0 0.0 0.0 0.0 0.0 1.0 0.0]
    :midnight [0.0 0.0 0.0 0.0 0.0 0.0 0.1 0.0 0.0 0.0 0.1 0.1 0.1 0.0 0.0 0.0 0.0 0.0 1.0 0.0]})
+
+(def conditions
+  [[:player "people-fill"]
+   [:blinded "eye-slash-fill"]
+   [:charmed "arrow-through-heart-fill"]
+   [:exhausted "moon-stars-fill"]
+   [:invisible "incognito"]
+   [:grappled "fist"]
+   [:prone "falling"]
+   [:frightened "black-cat"]
+   [:incapacitated "dizzy"]
+   [:unconscious "skull"]])
 
 (defn separate
   "Split coll into two sequences, one that matches pred and one that doesn't."
@@ -43,6 +55,19 @@
   (cond-> ""
     (string? name) (str name)
     (number? suffix) (str " " (char (+ suffix 64)))))
+
+(defn checkbox [{:keys [checked on-change]} render-fn]
+  (let [input (uix/ref)
+        indtr (= checked :indeterminate)
+        key   (deref (uix/state (squuid)))]
+    (uix/effect!
+     (fn [] (set! (.-indeterminate @input) indtr)) [indtr])
+    (render-fn
+     [:input
+      {:id key :type "checkbox" :ref input :checked (if indtr false checked)
+       :on-change
+       (fn [event]
+         (on-change (.. event -target -checked)))}] key)))
 
 (def scene-query
   {:pull
@@ -288,15 +313,9 @@
       [:rect {:x 0 :y 0 :width 16 :height 16 :fill "hsl(200, 20%, 12%)"}]
       [:path {:d "M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"}]
       [:path {:d "M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z" :fill-rule "evenodd"}]]
-     [:pattern (merge attrs {:id "token-stamp-deceased" :viewBox "0 0 16 16" :fill "#f2f2eb"})
-      [:rect {:x 0 :y 0 :width 16 :height 16 :fill "hsl(200, 20%, 12%)"}]
-      [:path {:d "M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"}]
-      [:path {:d "M9.146 5.146a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1
-                  .708.708l-.647.646.647.646a.5.5 0 0 1-.708.708l-.646-.647-.646.647a.5.5
-                  0 1 1-.708-.708l.647-.646-.647-.646a.5.5 0 0 1 0-.708zm-5 0a.5.5 0 0 1
-                  .708 0l.646.647.646-.647a.5.5 0 1 1 .708.708l-.647.646.647.646a.5.5
-                  0 1 1-.708.708L5.5 7.207l-.646.647a.5.5 0 1 1-.708-.708l.647-.646-.647-.646a.5.5
-                  0 0 1 0-.708zM10 11a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"}]]
+     [:pattern (merge attrs {:id "token-stamp-deceased" :viewBox "-2 -2 16 16" :fill "#f2f2eb"})
+      [:rect {:x -2 :y -2 :width 16 :height 16 :fill "hsl(200, 20%, 12%)"}]
+      [icon {:name "skull" :size 12}]]
      (for [checksum checksums]
        [:pattern (merge attrs {:key checksum :id (str "token-stamp-" checksum)})
         [stamp {:checksum checksum}]])]))
@@ -399,43 +418,60 @@
            (let [next (if (> (count values) 1) 5 (+ (first values) 5))]
              ((:on-change props) tx-name next)))} "+"]])))
 
+(defmethod form :conditions [props]
+  (let [fqs (frequencies (reduce into [] ((:values props) :element/flags [])))
+        ids ((:values props) :db/id)]
+    (for [[flag icon-name] conditions]
+      ^{:key flag}
+      [checkbox
+       {:checked
+        (cond (= (get fqs flag 0) 0) false
+              (= (get fqs flag 0) (count ids)) true
+              :else :indeterminate)
+        :on-change #((:on-change props) :element/flag flag %1)}
+       (fn [input key]
+         [:div input
+          [:label {:for key :data-tooltip (capitalize (name flag))}
+           [icon {:name icon-name :size 22}]]])])))
+
 (defn context-menu [{tokens :tokens}]
   (let [dispatch   (use-query)
         idents     (map :db/id tokens)
-        selected   (uix/state nil)
+        selected   (uix/state [])
         on-select  (fn [next]
                      (fn []
                        (swap! selected (fn [prev] (if (not= prev next) next nil)))))]
     [:div.context-menu
      {:on-mouse-down stop-propagation}
      [:div.context-toolbar
-      [:button {:type "button" :title "Change label" :on-click (on-select :label)}
+      [:button {:type "button" :title "Label and image" :on-click (on-select [:label])}
        [icon {:name "fonts" :size 22}]]
-      [:button {:type "button" :title "Select image" :on-click (on-select :images)}
-       [icon {:name "person-circle" :size 22}]]
+      [:button {:type "button" :title "Options" :on-click (on-select [:details])}
+       [icon {:name "sliders" :size 22}]]
+      [:button {:type "button" :title "Flags" :on-click (on-select [:conditions])}
+       [icon {:name "flag-fill" :size 20}]]
       (let [on (every? (comp boolean :hidden :element/flags) tokens)]
         [:button
-         {:type "button" :title "Toggle visibility" :css {:selected on}
+         {:type "button" :title "Visibility" :css {:selected on}
           :on-click #(dispatch :element/flag idents :hidden (not on))}
          [icon {:name (if on "eye-slash-fill" "eye-fill") :size 22}]])
       (let [on (every? (comp vector? :canvas/_initiative) tokens)]
         [:button
-         {:type "button" :title "Toggle initiative" :css {:selected on}
+         {:type "button" :title "Initiative" :css {:selected on}
           :on-click #(dispatch :initiative/toggle idents (not on))}
        [icon {:name "hourglass-split" :size 22}]])
-      [:button {:type "button" :title "More options" :on-click (on-select :details)}
-       [icon {:name "wrench-adjustable-circle" :size 22}]]
       [:button {:type "button" :title "Remove" :on-click #(dispatch :element/remove idents)}
        [icon {:name "trash" :size 22}]]]
-     (if-let [form-name (deref selected)]
+     (for [form-name @selected]
        [:div.context-form
-        {:css (str "context-form-" (name form-name))}
-        ^{:key form-name}
+        {:key form-name :css (str "context-form-" (name form-name))}
         [form
          {:name      form-name
           :on-close  #(reset! selected nil)
           :on-change #(apply dispatch %1 idents %&)
-          :values    #(into #{} (map %1) tokens)}]])]))
+          :values    (fn vs
+                       ([f] (vs f #{}))
+                       ([f init] (into init (map f) tokens)))}]])]))
 
 (defn token [{data :data size :size}]
   (let [flags  (:element/flags data)
@@ -448,9 +484,9 @@
       {:cx 0 :cy 0 :style {:r radius :fill "transparent"}}]
      (let [checksum (:image/checksum (:token/stamp data))
            pattern  (cond
-                      (flags :deceased)  "token-stamp-deceased"
-                      (string? checksum) (str "token-stamp-" checksum)
-                      :else              "token-stamp-default")]
+                      (flags :unconscious) "token-stamp-deceased"
+                      (string? checksum)   (str "token-stamp-" checksum)
+                      :else                "token-stamp-default")]
        [:circle.canvas-token-shape
         {:cx 0 :cy 0 :r radius :fill (str "url(#" pattern ")")}])
      (if (seq (label data))

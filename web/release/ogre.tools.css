@@ -646,6 +646,56 @@ legend {
     margin-top: 4px;
 }
 
+.context-form-conditions {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-gap: 4px;
+}
+
+.context-form-conditions input {
+    display: none;
+}
+
+.context-form-conditions input:checked + label {
+    background-color: var(--theme-background-d);
+    color: var(--theme-text-link);
+}
+
+.context-form-conditions input:indeterminate + label {
+    background-color: var(--theme-background-d);
+}
+
+.context-form-conditions label {
+    align-items: center;
+    aspect-ratio: 1 / 1;
+    border-radius: 3px;
+    border: 1px solid var(--theme-background-d);
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    transition:
+      background-color 150ms ease-in-out,
+      color 70ms ease-in-out;
+    position: relative;
+}
+
+.context-form-conditions label[data-tooltip]:hover:after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: -24px;
+    background-color: var(--theme-background-d);
+    color: white;
+    font-size: 11px;
+    border: 1px solid hsl(208deg 21% 20%);
+    padding: 2px 4px;
+    pointer-events: none;
+    border-radius: 3px;
+}
+
+.context-form-conditions label:hover {
+    background-color: var(--theme-background-d);
+}
+
 /* Masks */
 .canvas-mask {
     pointer-events: none;
