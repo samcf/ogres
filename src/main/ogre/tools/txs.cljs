@@ -121,13 +121,12 @@
   ([context element]
    (transact context element true))
   ([{:keys [data]} element replace?]
-   (let [select [:element/type :canvas/_selected]
+   (let [select [:canvas/_selected]
          result (ds/pull data select element)
          tx-fn  (if (:canvas/_selected result) :db/retract :db/add)]
      [(if replace?
         [:db/retract [:db/ident :canvas] :canvas/selected])
-      [tx-fn [:db/ident :canvas] :canvas/selected element]
-      [:db/add [:db/ident :canvas] :panel/curr (:element/type result)]])))
+      [tx-fn [:db/ident :canvas] :canvas/selected element]])))
 
 (defmethod transact :element/remove
   [{:keys [data]} idents]
@@ -163,8 +162,7 @@
   [[:db/add [:db/ident :canvas] :canvas/tokens -1]
    [:db/add [:db/ident :canvas] :canvas/selected -1]
    [:db/add [:db/ident :canvas] :canvas/mode :select]
-   [:db/add [:db/ident :canvas] :panel/curr :token]
-   {:db/id -1 :element/type :token :pos/vec [x y]}])
+   {:db/id -1 :pos/vec [x y]}])
 
 (defmethod transact :token/translate
   [{:keys [data]} id x y align?]
@@ -349,8 +347,6 @@
                     (fn [{[x y] :pos/vec}]
                       (within? x y normalized)) (:canvas/tokens canvas))]
     (concat [[:db/add (:db/id canvas) :canvas/mode :select]]
-            (if (seq selected)
-              [[:db/add (:db/id canvas) :panel/curr :token]])
             (for [entity selected]
               [:db/add (:db/id canvas) :canvas/selected (:db/id entity)]))))
 

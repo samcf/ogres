@@ -6,7 +6,6 @@
 (def panels
   [[:canvas "images"]
    [:initiative "hourglass-split"]
-   [:token "person-circle"]
    [:shape "triangle"]
    [:help "question-diamond"]])
 
