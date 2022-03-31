@@ -437,32 +437,36 @@
 (defn context-menu [{tokens :tokens}]
   (let [dispatch   (use-query)
         idents     (map :db/id tokens)
-        selected   (uix/state [])
-        on-select  (fn [next]
-                     (fn []
-                       (swap! selected (fn [prev] (if (not= prev next) next nil)))))]
+        selected   (uix/state nil)]
     [:div.context-menu
      {:on-mouse-down stop-propagation}
      [:div.context-toolbar
-      [:button {:type "button" :title "Label and image" :on-click (on-select [:label])}
-       [icon {:name "fonts" :size 22}]]
-      [:button {:type "button" :title "Options" :on-click (on-select [:details])}
-       [icon {:name "sliders" :size 22}]]
-      [:button {:type "button" :title "Flags" :on-click (on-select [:conditions])}
-       [icon {:name "flag-fill" :size 20}]]
+      (for [[form icon-name tooltip]
+            [[:label "fonts" "Label"]
+             [:details "sliders" "Options"]
+             [:conditions "flag-fill" "Conditions"]]]
+        [:button
+         {:key form :type "button" :data-tooltip tooltip
+          :css {:selected (= @selected form)}
+          :on-click
+          (fn []
+            (swap! selected (fn [prev] (if (not (= prev form)) form nil))))}
+         [icon {:name icon-name :size 22}]])
       (let [on (every? (comp boolean :hidden :element/flags) tokens)]
         [:button
-         {:type "button" :title "Visibility" :css {:selected on}
+         {:type "button" :css {:selected on} :data-tooltip (if on "Reveal" "Hide")
           :on-click #(dispatch :element/flag idents :hidden (not on))}
          [icon {:name (if on "eye-slash-fill" "eye-fill") :size 22}]])
       (let [on (every? (comp vector? :canvas/_initiative) tokens)]
         [:button
-         {:type "button" :title "Initiative" :css {:selected on}
+         {:type "button" :css {:selected on} :data-tooltip "Initiative"
           :on-click #(dispatch :initiative/toggle idents (not on))}
-       [icon {:name "hourglass-split" :size 22}]])
-      [:button {:type "button" :title "Remove" :on-click #(dispatch :element/remove idents)}
+         [icon {:name "hourglass-split" :size 22}]])
+      [:button
+       {:type "button" :data-tooltip "Remove"
+        :on-click #(dispatch :element/remove idents)}
        [icon {:name "trash" :size 22}]]]
-     (for [form-name @selected]
+     (if-let [form-name @selected]
        [:div.context-form
         {:key form-name :css (str "context-form-" (name form-name))}
         [form
@@ -571,7 +575,7 @@
            (if host?
              [:foreignObject
               {:x (- (+ (* ax scale) (/ (* (- bx ax) scale) 2)) (/ 400 2))
-               :y (+ (* by scale) (* scale 54))
+               :y (+ (* by scale) (* scale 24))
                :width 400 :height 400
                :transform (str "scale(" (/ scale) ")")
                :style {:pointer-events "none"}}

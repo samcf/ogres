@@ -523,9 +523,23 @@ legend {
     border: 1px solid rgba(40, 53, 62, 0.50);
     box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.45);
     box-sizing: border-box;
-    margin: 0 auto;
+    margin: 24px auto;
     max-width: 264px;
     pointer-events: all;
+    position: relative;
+}
+
+.context-menu [data-tooltip]:hover:after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: -24px;
+    background-color: var(--theme-background-d);
+    color: white;
+    font-size: 11px;
+    border: 1px solid hsl(208deg 21% 20%);
+    padding: 2px 4px;
+    pointer-events: none;
+    border-radius: 3px;
 }
 
 .context-toolbar {
@@ -677,19 +691,6 @@ legend {
       background-color 150ms ease-in-out,
       color 70ms ease-in-out;
     position: relative;
-}
-
-.context-form-conditions label[data-tooltip]:hover:after {
-    content: attr(data-tooltip);
-    position: absolute;
-    top: -24px;
-    background-color: var(--theme-background-d);
-    color: white;
-    font-size: 11px;
-    border: 1px solid hsl(208deg 21% 20%);
-    padding: 2px 4px;
-    pointer-events: none;
-    border-radius: 3px;
 }
 
 .context-form-conditions label:hover {
