@@ -575,7 +575,7 @@
            (if host?
              [:foreignObject
               {:x (- (+ (* ax scale) (/ (* (- bx ax) scale) 2)) (/ 400 2))
-               :y (+ (* by scale) (* scale 24))
+               :y (- (+ (* by scale) (* scale 56)) 24)
                :width 400 :height 400
                :transform (str "scale(" (/ scale) ")")
                :style {:pointer-events "none"}}
