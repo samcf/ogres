@@ -441,7 +441,6 @@ legend {
 }
 
 .canvas-token-label {
-    pointer-events: none;
     display: flex;
     justify-content: center;
     align-items: center;
