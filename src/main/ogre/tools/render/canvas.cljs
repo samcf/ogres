@@ -5,6 +5,7 @@
             [ogre.tools.geom :refer [bounding-box chebyshev euclidean triangle]]
             [ogre.tools.render :refer [icon use-image]]
             [ogre.tools.render.draw :refer [draw]]
+            [ogre.tools.render.modal :refer [modal]]
             [ogre.tools.render.pattern :refer [pattern]]
             [ogre.tools.state :refer [use-query]]
             [ogre.tools.storage :refer [storage]]
@@ -332,36 +333,12 @@
 (defn thumbnail [checksum render-fn]
   (render-fn (use-image checksum)))
 
-(defmulti form :name)
-
-(defmethod form :default [] nil)
-
-(defmethod form :label [props]
-  (let [input (uix/ref)
-        label (uix/state
-               (fn []
-                 (let [vs ((:values props) :element/name)]
-                   (if (= (count vs) 1) (first vs) ""))))]
-    (uix/effect! #(.select @input) [])
-    [:form
-     {:on-submit
-      (fn [event]
-        (.preventDefault event)
-        ((:on-change props) :token/change-label @label)
-        ((:on-close props)))}
-     [:input
-      {:type "text"
-       :ref input
-       :value @label
-       :auto-focus true
-       :placeholder "Press 'Enter' to submit..."
-       :on-change #(reset! label (.. %1 -target -value))}]]))
-
-(defmethod form :images [props]
-  (let [[result dispatch] (use-query {:pull [{[:root/stamps :limit 8] [:image/checksum]}]})
+(defn images-form [{:keys [on-change]}]
+  (let [[result dispatch] (use-query {:pull [{:root/stamps [:image/checksum]}]})
         {:keys [store]}   (uix/context storage)
-        thumbnails        (into [] (comp (map :image/checksum)) (:root/stamps result))
-        upload-ref        (uix/ref nil)]
+        thumbnails        (into [] (comp (map :image/checksum) (partition-all 15)) (reverse (:root/stamps result)))
+        page-index        (uix/state 0)
+        upload-ref        (uix/ref)]
     [:<>
      [file-uploader
       {:ref upload-ref
@@ -375,21 +352,75 @@
                          :image/height   (.-height image)}]
            (.then
             (.put (.-images store) record)
-            (fn [] (dispatch :stamp/create entity)))))}]
-     [:button {:key "view-all" :type "button" :title "View all images"}
-      [icon {:name "person-circle" :size 32}]]
+            (fn [] (dispatch :stamp/create entity))
+            (reset! page-index 0))))}]
+     [:div.images-form
+      (concat
+       [[:button
+         {:key "prev" :type "button" :disabled (= @page-index 0)
+          :on-click #(swap! page-index dec)}
+         [icon {:name "chevron-double-left"}]]
+        [:button
+         {:key "upload" :type "button" :on-click #(.click @upload-ref)}
+         [icon {:name "arrow-up-circle-fill"}]
+         [:span "Upload new images"]]
+        [:button
+         {:key "next" :type "button"
+          :disabled (= @page-index (- (count thumbnails) 1))
+          :on-click #(swap! page-index inc)}
+         [icon {:name "chevron-double-right"}]]]
+       (for [checksum (nth thumbnails @page-index [])]
+         ^{:key checksum}
+         [thumbnail checksum
+          (fn [url]
+            [:figure
+             {:style {:background-image (str "url(" url ")")} :on-click #(on-change checksum)}
+             [:div
+              {:title "Remove"
+               :on-click
+               (fn [event]
+                 (.stopPropagation event)
+                 (dispatch :stamp/remove checksum)
+                 (.delete (.-images store) checksum))}
+              (js/String.fromCharCode 215)]])]))]]))
+
+(defmulti form :name)
+
+(defmethod form :default [] nil)
+
+(defmethod form :label [props]
+  (let [input-ref   (uix/ref)
+        input-val   (uix/state
+                     (fn []
+                       (let [vs ((:values props) :element/name)]
+                         (if (= (count vs) 1) (first vs) ""))))
+        modal-open? (uix/state false)]
+    (uix/effect! #(.select @input-ref) [])
+    [:form
+     {:on-submit
+      (fn [event]
+        (.preventDefault event)
+        ((:on-change props) :token/change-label @input-val)
+        ((:on-close props)))}
      [:button
-      {:key "upload" :type "button" :title "Upload image"
-       :on-click #(.click @upload-ref)}
-      [icon {:name "cloud-upload-fill" :size 32}]]
-     (for [checksum thumbnails]
-       ^{:key checksum}
-       [thumbnail checksum
-        (fn [url]
-          [:button.thumbnail
-           {:type "button"
-            :style {:background-image (str "url(" url ")")}
-            :on-click #((:on-change props) :token/change-stamp checksum)}])])]))
+      {:type         "button"
+       :data-tooltip "Select or upload an image"
+       :on-click     #(swap! modal-open? not)}
+      [icon {:name "person-circle" :size 22}]]
+     [:input
+      {:type "text"
+       :ref input-ref
+       :value @input-val
+       :auto-focus true
+       :placeholder "Press 'Enter' to submit..."
+       :on-change #(reset! input-val (.. %1 -target -value))}]
+     (if @modal-open?
+       [modal
+        [:div.context-form-modal
+         [images-form
+          {:on-change
+           (fn [checksum]
+             ((:on-change props) :token/change-stamp checksum))}]]])]))
 
 (defmethod form :details [props]
   (for [[label tx-name attr min def]
