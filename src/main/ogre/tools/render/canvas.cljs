@@ -627,7 +627,8 @@
     :bounds/host
     :bounds/guest
     {:root/canvas
-     [[:pos/vec :default [0 0]]
+     [:db/id
+      [:pos/vec :default [0 0]]
       [:canvas/mode :default :select]
       [:canvas/theme :default :light]
       :canvas/modifier
@@ -640,14 +641,15 @@
          host? :root/host?
          [_ _ hw hh] :bounds/host
          [_ _ gw gh] :bounds/guest
-         {scale :zoom/scale
+         {id    :db/id
+          scale :zoom/scale
           mode  :canvas/mode
           theme :canvas/theme
           modif :canvas/modifier
           [cx cy] :pos/vec} :root/canvas} result
         cx (if host? cx (->> (- hw gw) (max 0) (* (/ -1 2 scale)) (+ cx)))
         cy (if host? cy (->> (- hh gh) (max 0) (* (/ -1 2 scale)) (+ cy)))]
-    [:svg.canvas {:css {(str "theme--" (name theme)) true :is-host host? :is-priv priv?}}
+    [:svg.canvas {:key id :css {(str "theme--" (name theme)) true :is-host host? :is-priv priv?}}
      [:> react-draggable
       {:position #js {:x 0 :y 0}
        :on-stop
