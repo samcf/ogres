@@ -527,6 +527,10 @@
         [:div.canvas-token-label
          [:span (label data)]]])]))
 
+(defn token-comparator [a b]
+  (compare [(:token/size b) (second (:pos/vec b))]
+           [(:token/size a) (second (:pos/vec a))]))
+
 (def tokens-query
   {:pull
    [[:root/host? :default true]
@@ -566,6 +570,7 @@
         [selected tokens]
         (->> (:canvas/tokens (:root/canvas result))
              (filter (fn [token] (or host? (visible? (:element/flags token)))))
+             (sort token-comparator)
              (separate (fn [token] (contains? token :canvas/_selected))))]
     [:<>
      (for [data tokens :let [{id :db/id [ax ay] :pos/vec} data]]
