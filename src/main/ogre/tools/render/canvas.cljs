@@ -356,15 +356,15 @@
             (reset! page-index 0))))}]
      [:div.images-form
       (concat
-       [[:button
+       [[:button.button
          {:key "prev" :type "button" :disabled (= @page-index 0)
           :on-click #(swap! page-index dec)}
          [icon {:name "chevron-double-left"}]]
-        [:button
+        [:button.button
          {:key "upload" :type "button" :on-click #(.click @upload-ref)}
          [icon {:name "arrow-up-circle-fill"}]
          [:span "Upload new images"]]
-        [:button
+        [:button.button
          {:key "next" :type "button"
           :disabled (>= @page-index (- (count thumbnails) 1))
           :on-click #(swap! page-index inc)}
@@ -402,7 +402,7 @@
         (.preventDefault event)
         ((:on-change props) :token/change-label @input-val)
         ((:on-close props)))}
-     [:button
+     [:button.button
       {:type         "button"
        :data-tooltip "Select or upload an image"
        :on-click     #(swap! modal-open? not)}
@@ -430,19 +430,19 @@
     (let [values ((:values props) attr)]
       [:div {:key label}
        [:legend label]
-       [:button
-        {:type "button"
-         :on-click
-         (fn []
-           (let [next (if (> (count values) 1) min (max (- (first values) 5) min))]
-             ((:on-change props) tx-name next)))} "-"]
        [:span
         (cond
           (> (count values) 1) "Multiple..."
           (= (count values) 0) (str def "ft.")
           (= (first values) 0) "None"
           (= (count values) 1) (str (first values) "ft."))]
-       [:button
+       [:button.button
+        {:type "button"
+         :on-click
+         (fn []
+           (let [next (if (> (count values) 1) min (max (- (first values) 5) min))]
+             ((:on-change props) tx-name next)))} "-"]
+       [:button.button
         {:type "button"
          :on-click
          (fn []
