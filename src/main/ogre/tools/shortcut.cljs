@@ -82,10 +82,6 @@
        (if open?
          (dispatch :share/switch))))
 
-   ["keydown" \w]
-   (fn [[_ dispatch]]
-     (dispatch :share/initiate))
-
    ["keydown" \ ]
    (fn [[_ dispatch]]
      (dispatch :interface/toggle-panel))

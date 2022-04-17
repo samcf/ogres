@@ -112,7 +112,7 @@
         {:css {:active (:share/open? data)}
          :on-click #(dispatch :share/initiate)
          :on-mouse-enter (tooltip-fn :share/open)}
-        [icon {:name "pip" :size 22}] [shortcut "W"]]
+        [icon {:name "pip" :size 22}]]
        [:button
         {:disabled (or (not (:share/open? data)) (not (:share/paused? data)))
          :on-click #(dispatch :share/switch)
