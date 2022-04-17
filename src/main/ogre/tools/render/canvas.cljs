@@ -366,7 +366,7 @@
          [:span "Upload new images"]]
         [:button
          {:key "next" :type "button"
-          :disabled (= @page-index (- (count thumbnails) 1))
+          :disabled (>= @page-index (- (count thumbnails) 1))
           :on-click #(swap! page-index inc)}
          [icon {:name "chevron-double-right"}]]]
        (for [checksum (nth thumbnails @page-index [])]
