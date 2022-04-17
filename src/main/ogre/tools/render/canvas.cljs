@@ -1,11 +1,14 @@
 (ns ogre.tools.render.canvas
-  (:require [clojure.string :refer [join]]
+  (:require [clojure.string :refer [capitalize join]]
             [datascript.core :refer [squuid]]
-            [ogre.tools.geom :refer [chebyshev euclidean triangle]]
-            [ogre.tools.render :refer [use-image]]
+            [ogre.tools.image :refer [load checksum]]
+            [ogre.tools.geom :refer [bounding-box chebyshev euclidean triangle]]
+            [ogre.tools.render :refer [icon use-image]]
             [ogre.tools.render.draw :refer [draw]]
+            [ogre.tools.render.modal :refer [modal]]
             [ogre.tools.render.pattern :refer [pattern]]
             [ogre.tools.state :refer [use-query]]
+            [ogre.tools.storage :refer [storage]]
             [react-draggable]
             [uix.core.alpha :as uix]))
 
@@ -16,6 +19,25 @@
   {:none     [1.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0]
    :dusk     [0.3 0.3 0.0 0.0 0.0 0.0 0.3 0.3 0.0 0.0 0.0 0.0 0.8 0.0 0.0 0.0 0.0 0.0 1.0 0.0]
    :midnight [0.0 0.0 0.0 0.0 0.0 0.0 0.1 0.0 0.0 0.0 0.1 0.1 0.1 0.0 0.0 0.0 0.0 0.0 1.0 0.0]})
+
+(def conditions
+  [[:player "people-fill"]
+   [:blinded "eye-slash-fill"]
+   [:charmed "arrow-through-heart-fill"]
+   [:exhausted "moon-stars-fill"]
+   [:invisible "incognito"]
+   [:grappled "fist"]
+   [:prone "falling"]
+   [:frightened "black-cat"]
+   [:incapacitated "dizzy"]
+   [:unconscious "skull"]])
+
+(defn separate
+  "Split coll into two sequences, one that matches pred and one that doesn't."
+  [pred coll]
+  (let [pcoll (map (juxt identity pred) coll)]
+    (vec (for [f [filter remove]]
+           (map first (f second pcoll))))))
 
 (defn stop-propagation [event]
   (.stopPropagation event))
@@ -34,6 +56,19 @@
   (cond-> ""
     (string? name) (str name)
     (number? suffix) (str " " (char (+ suffix 64)))))
+
+(defn checkbox [{:keys [checked on-change]} render-fn]
+  (let [input (uix/ref)
+        indtr (= checked :indeterminate)
+        key   (deref (uix/state (squuid)))]
+    (uix/effect!
+     (fn [] (set! (.-indeterminate @input) indtr)) [indtr])
+    (render-fn
+     [:input
+      {:id key :type "checkbox" :ref input :checked (if indtr false checked)
+       :on-change
+       (fn [event]
+         (on-change (.. event -target -checked)))}] key)))
 
 (def scene-query
   {:pull
@@ -90,7 +125,7 @@
          [:rect {:x 0 :y 0 :width width :height height :fill "white" :fill-opacity "100%"}]
          (for [{id :db/id flags :element/flags [x y] :pos/vec radius :token/light} tokens
                :when (and (> radius 0) (or host? (visible? flags)))]
-           ^{:key id} [:circle {:cx x :cy y :r (+ (ft->px radius size) (/ size 2)) :fill "url(#mask-gradient)"}])]]
+           [:circle {:key id :cx x :cy y :r (+ (ft->px radius size) (/ size 2)) :fill "url(#mask-gradient)"}])]]
        [:rect.canvas-mask-background
         {:x 0 :y 0 :width width :height height :mask "url(#light-mask)"}]
        (if (= visibility :hidden)
@@ -123,14 +158,14 @@
        (if filled?
          [:rect {:x 0 :y 0 :width width :height height :fill "white"}])
        (for [{id :db/id enabled? :mask/enabled? xs :mask/vecs} masks]
-         ^{:key id} [:polygon {:points (join " " xs) :fill (if enabled? "white" "black")}])]]
+         [:polygon {:key id :points (join " " xs) :fill (if enabled? "white" "black")}])]]
      [:rect.canvas-mask-background {:x 0 :y 0 :width width :height height :mask "url(#canvas-mask)"}]
      [:rect.canvas-mask-pattern {:x 0 :y 0 :width width :height height :fill "url(#mask-pattern)" :mask "url(#canvas-mask)"}]
      (if (and host? (contains? modes mode))
        (for [{id :db/id xs :mask/vecs enabled? :mask/enabled?} masks]
-         ^{:key id}
          [:polygon.canvas-mask-polygon
-          {:data-enabled enabled?
+          {:key id
+           :data-enabled enabled?
            :points (join " " xs)
            :on-mouse-down stop-propagation
            :on-click
@@ -261,55 +296,6 @@
             [:defs [pattern {:id id :name (:shape/pattern element) :color (:shape/color element)}]]
             [shape {:element element :attrs {:fill (str "url(#" id ")")}}]])]))))
 
-(defn token-query [id]
-  {:query
-   '[:find (pull $ ?id pattern) . :in $ ?id pattern]
-
-   :pull
-   [:element/name
-    [:element/flags :default #{}]
-    [:token/size :default {:name :medium :size 5}]
-    {:token/stamp [:image/checksum]}
-    :aura/label
-    [:aura/radius :default 0]
-    :initiative/suffix
-    :canvas/_selected
-    {:canvas/_tokens [[:grid/size :default 70]]}]
-
-   :args
-   [id]})
-
-(def flag-class-xf
-  (comp (map name) (map (fn [s] (str "flag--" s))) (map (fn [s] [s true]))))
-
-(defn token [props]
-  (let [[data] (use-query (token-query (:id props)))
-        flags  (:element/flags data)
-        size   (-> data :canvas/_tokens :grid/size)
-        radius (-> data :token/size :size (ft->px size) (/ 2) (- 2) (max 16))]
-    [:g {:css (merge {:canvas-token true :selected (:canvas/_selected data)}
-                     (into {} flag-class-xf flags))}
-     (if (> (:aura/radius data) 0)
-       (let [radius (+ (ft->px (:aura/radius data) size) (/ size 2))]
-         [:<>
-          [:circle.canvas-token-aura {:cx 0 :cy 0 :r radius}]
-          (if (seq (:aura/label data))
-            (let [cx (+ (* (.cos js/Math 0.75) radius) 8)
-                  cy (+ (* (.sin js/Math 0.75) radius) 8)]
-              [text {:x cx :y cy} (:aura/label data)]))]))
-     (if (:canvas/_selected data)
-       [:circle.canvas-token-ring
-        {:cx 0 :cy 0 :style {:r radius :fill "transparent"}}])
-     (let [checksum (:image/checksum (:token/stamp data))
-           pattern  (cond
-                      (flags :deceased)  "token-stamp-deceased"
-                      (string? checksum) (str "token-stamp-" checksum)
-                      :else              "token-stamp-default")]
-       [:circle.canvas-token-shape
-        {:cx 0 :cy 0 :r radius :fill (str "url(#" pattern ")")}])
-     (if (seq (label data))
-       [text {:x 0 :y (+ radius 10)} (label data)])]))
-
 (defn stamp [{:keys [checksum]}]
   (let [url (use-image checksum)]
     [:image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"}]))
@@ -328,90 +314,303 @@
       [:rect {:x 0 :y 0 :width 16 :height 16 :fill "hsl(200, 20%, 12%)"}]
       [:path {:d "M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"}]
       [:path {:d "M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z" :fill-rule "evenodd"}]]
-     [:pattern (merge attrs {:id "token-stamp-deceased" :viewBox "0 0 16 16" :fill "#f2f2eb"})
-      [:rect {:x 0 :y 0 :width 16 :height 16 :fill "hsl(200, 20%, 12%)"}]
-      [:path {:d "M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"}]
-      [:path {:d "M9.146 5.146a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1
-                  .708.708l-.647.646.647.646a.5.5 0 0 1-.708.708l-.646-.647-.646.647a.5.5
-                  0 1 1-.708-.708l.647-.646-.647-.646a.5.5 0 0 1 0-.708zm-5 0a.5.5 0 0 1
-                  .708 0l.646.647.646-.647a.5.5 0 1 1 .708.708l-.647.646.647.646a.5.5
-                  0 1 1-.708.708L5.5 7.207l-.646.647a.5.5 0 1 1-.708-.708l.647-.646-.647-.646a.5.5
-                  0 0 1 0-.708zM10 11a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"}]]
+     [:pattern (merge attrs {:id "token-stamp-deceased" :viewBox "-2 -2 16 16" :fill "#f2f2eb"})
+      [:rect {:x -2 :y -2 :width 16 :height 16 :fill "hsl(200, 20%, 12%)"}]
+      [icon {:name "skull" :size 12}]]
      (for [checksum checksums]
        [:pattern (merge attrs {:key checksum :id (str "token-stamp-" checksum)})
         [stamp {:checksum checksum}]])]))
 
+(defn file-uploader [props]
+  [:input
+   {:type "file" :ref (:ref props) :accept "image/*" :multiple true
+    :style {:display "none"}
+    :on-change
+    (fn [event]
+      (doseq [file (.. event -target -files)]
+        (.then (load file) (:on-upload props))))}])
+
+(defn thumbnail [checksum render-fn]
+  (render-fn (use-image checksum)))
+
+(defn images-form [{:keys [on-change]}]
+  (let [[result dispatch] (use-query {:pull [{:root/stamps [:image/checksum]}]})
+        {:keys [store]}   (uix/context storage)
+        thumbnails        (into [] (comp (map :image/checksum) (partition-all 15)) (reverse (:root/stamps result)))
+        page-index        (uix/state 0)
+        upload-ref        (uix/ref)]
+    [:<>
+     [file-uploader
+      {:ref upload-ref
+       :on-upload
+       (fn [[file data-url image]]
+         (let [checksum (checksum data-url)
+               record   #js {:checksum checksum :data data-url :created-at (.now js/Date)}
+               entity   {:image/checksum checksum
+                         :image/name     (.-name file)
+                         :image/width    (.-width image)
+                         :image/height   (.-height image)}]
+           (.then
+            (.put (.-images store) record)
+            (fn [] (dispatch :stamp/create entity))
+            (reset! page-index 0))))}]
+     [:div.images-form
+      (concat
+       [[:button.button
+         {:key "prev" :type "button" :disabled (= @page-index 0)
+          :on-click #(swap! page-index dec)}
+         [icon {:name "chevron-double-left"}]]
+        [:button.button
+         {:key "upload" :type "button" :on-click #(.click @upload-ref)}
+         [icon {:name "arrow-up-circle-fill"}]
+         [:span "Upload new images"]]
+        [:button.button
+         {:key "next" :type "button"
+          :disabled (>= @page-index (- (count thumbnails) 1))
+          :on-click #(swap! page-index inc)}
+         [icon {:name "chevron-double-right"}]]]
+       (for [checksum (nth thumbnails @page-index [])]
+         ^{:key checksum}
+         [thumbnail checksum
+          (fn [url]
+            [:figure
+             {:style {:background-image (str "url(" url ")")} :on-click #(on-change checksum)}
+             [:div
+              {:title "Remove"
+               :on-click
+               (fn [event]
+                 (.stopPropagation event)
+                 (dispatch :stamp/remove checksum)
+                 (.delete (.-images store) checksum))}
+              (js/String.fromCharCode 215)]])]))]]))
+
+(defmulti form :name)
+
+(defmethod form :default [] nil)
+
+(defmethod form :label [props]
+  (let [input-ref   (uix/ref)
+        input-val   (uix/state
+                     (fn []
+                       (let [vs ((:values props) :element/name)]
+                         (if (= (count vs) 1) (first vs) ""))))
+        modal-open? (uix/state false)]
+    (uix/effect! #(.select @input-ref) [])
+    [:form
+     {:on-submit
+      (fn [event]
+        (.preventDefault event)
+        ((:on-change props) :token/change-label @input-val)
+        ((:on-close props)))}
+     [:button.button
+      {:type         "button"
+       :data-tooltip "Select or upload an image"
+       :on-click     #(swap! modal-open? not)}
+      [icon {:name "person-circle" :size 22}]]
+     [:input
+      {:type "text"
+       :ref input-ref
+       :value @input-val
+       :auto-focus true
+       :placeholder "Press 'Enter' to submit..."
+       :on-change #(reset! input-val (.. %1 -target -value))}]
+     (if @modal-open?
+       [modal
+        [:div.context-form-modal
+         [images-form
+          {:on-change
+           (fn [checksum]
+             ((:on-change props) :token/change-stamp checksum))}]]])]))
+
+(defmethod form :details [props]
+  (for [[label tx-name attr min def]
+        [["Size" :token/change-size :token/size 5 5]
+         ["Light" :token/change-light :token/light 0 15]
+         ["Aura" :token/change-aura :aura/radius 0 0]]]
+    (let [values ((:values props) attr)]
+      [:div {:key label}
+       [:legend label]
+       [:span
+        (cond
+          (> (count values) 1) "Multiple..."
+          (= (count values) 0) (str def "ft.")
+          (= (first values) 0) "None"
+          (= (count values) 1) (str (first values) "ft."))]
+       [:button.button
+        {:type "button"
+         :on-click
+         (fn []
+           (let [next (if (> (count values) 1) min (max (- (first values) 5) min))]
+             ((:on-change props) tx-name next)))} "-"]
+       [:button.button
+        {:type "button"
+         :on-click
+         (fn []
+           (let [next (if (> (count values) 1) 5 (+ (first values) 5))]
+             ((:on-change props) tx-name next)))} "+"]])))
+
+(defmethod form :conditions [props]
+  (let [fqs (frequencies (reduce into [] ((:values props) :element/flags [])))
+        ids ((:values props) :db/id)]
+    (for [[flag icon-name] conditions]
+      ^{:key flag}
+      [checkbox
+       {:checked
+        (cond (= (get fqs flag 0) 0) false
+              (= (get fqs flag 0) (count ids)) true
+              :else :indeterminate)
+        :on-change #((:on-change props) :element/flag flag %1)}
+       (fn [input key]
+         [:div input
+          [:label {:for key :data-tooltip (capitalize (name flag))}
+           [icon {:name icon-name :size 22}]]])])))
+
+(defn context-menu [{tokens :tokens}]
+  (let [dispatch   (use-query)
+        idents     (map :db/id tokens)
+        selected   (uix/state nil)]
+    [:div.context-menu
+     {:on-mouse-down stop-propagation}
+     [:div.context-toolbar
+      (for [[form icon-name tooltip]
+            [[:label "fonts" "Label"]
+             [:details "sliders" "Options"]
+             [:conditions "flag-fill" "Conditions"]]]
+        [:button
+         {:key form :type "button" :data-tooltip tooltip
+          :css {:selected (= @selected form)}
+          :on-click
+          (fn []
+            (swap! selected (fn [prev] (if (not (= prev form)) form nil))))}
+         [icon {:name icon-name :size 22}]])
+      (let [on (every? (comp boolean :hidden :element/flags) tokens)]
+        [:button
+         {:type "button" :css {:selected on} :data-tooltip (if on "Reveal" "Hide")
+          :on-click #(dispatch :element/flag idents :hidden (not on))}
+         [icon {:name (if on "eye-slash-fill" "eye-fill") :size 22}]])
+      (let [on (every? (comp vector? :canvas/_initiative) tokens)]
+        [:button
+         {:type "button" :css {:selected on} :data-tooltip "Initiative"
+          :on-click #(dispatch :initiative/toggle idents (not on))}
+         [icon {:name "hourglass-split" :size 22}]])
+      [:button
+       {:type "button" :data-tooltip "Remove"
+        :on-click #(dispatch :element/remove idents)}
+       [icon {:name "trash" :size 22}]]]
+     (if-let [form-name @selected]
+       [:div.context-form
+        {:key form-name :css (str "context-form-" (name form-name))}
+        [form
+         {:name      form-name
+          :on-close  #(reset! selected nil)
+          :on-change #(apply dispatch %1 idents %&)
+          :values    (fn vs
+                       ([f] (vs f #{}))
+                       ([f init] (into init (map f) tokens)))}]])]))
+
+(defn token [{data :data size :size}]
+  (let [flags  (:element/flags data)
+        radius (-> data :token/size (ft->px size) (/ 2) (- 2) (max 16))]
+    [:<>
+     (if (> (:aura/radius data) 0)
+       [:circle.canvas-token-aura
+        {:cx 0 :cy 0 :r (+ (ft->px (:aura/radius data) size) (/ size 2))}])
+     [:circle.canvas-token-ring
+      {:cx 0 :cy 0 :style {:r radius :fill "transparent"}}]
+     (let [checksum (:image/checksum (:token/stamp data))
+           pattern  (cond
+                      (flags :unconscious) "token-stamp-deceased"
+                      (string? checksum)   (str "token-stamp-" checksum)
+                      :else                "token-stamp-default")]
+       [:circle.canvas-token-shape
+        {:cx 0 :cy 0 :r radius :fill (str "url(#" pattern ")")}])
+     (if (seq (label data))
+       [text {:x 0 :y (+ radius 10)} (label data)])]))
+
 (def tokens-query
   {:pull
-   [:root/host?
-    {:root/canvas
-     [[:zoom/scale :default 1]
-      [:grid/align :default false]
-      {:canvas/tokens
-       [:db/id
-        [:pos/vec :default [0 0]]
-        [:element/flags :default #{}]
-        :canvas/_selected]}]}]})
-
-(defn tokens []
-  (let [[result dispatch] (use-query tokens-query)]
-    (for [entity (-> result :root/canvas :canvas/tokens)
-          :let [{id :db/id [ax ay] :pos/vec} entity]
-          :when (and (not (:canvas/_selected entity))
-                     (or (:root/host? result)
-                         (visible? (:element/flags entity))))]
-      [:> react-draggable
-       {:key      id
-        :position #js {:x ax :y ay}
-        :scale    (-> result :root/canvas :zoom/scale)
-        :on-start stop-propagation
-        :on-stop
-        (fn [event data]
-          (.stopPropagation event)
-          (let [bx (.-x data) by (.-y data)]
-            (if (= (euclidean ax ay bx by) 0)
-              (dispatch :element/select id (not (.-shiftKey event)))
-              (let [align? (not= (.-metaKey event) (-> result :root/canvas :grid/align))]
-                (dispatch :token/translate id bx by align?)))))}
-       [:g.canvas-token
-        [token {:id id}]]])))
-
-(def selection-query
-  {:pull
-   [:root/host?
+   [[:root/host? :default true]
     {:root/canvas
      [[:grid/size :default 70]
       [:grid/align :default false]
       [:zoom/scale :default 1]
-      {:canvas/selected
+      {:canvas/tokens
        [:db/id
-        :element/type
-        :element/flags
-        [:pos/vec :default [0 0]]]}]}]})
+        [:initiative/suffix :default nil]
+        [:pos/vec :default [0 0]]
+        [:element/flags :default #{}]
+        [:element/name :default ""]
+        [:token/size :default 5]
+        [:token/light :default 15]
+        [:aura/radius :default 0]
+        {:token/stamp [:image/checksum]}
+        {:canvas/_initiative [:db/id]}
+        {:canvas/_selected [:db/id]}]}]}]})
 
-(defn selection []
-  (let [[result dispatch] (use-query selection-query)
-        {:keys [root/host? root/canvas]} result
-        {:keys [canvas/selected zoom/scale]} canvas
-        idents (map :db/id selected)]
-    (if (= (:element/type (first selected)) :token)
-      [:> react-draggable
-       {:position #js {:x 0 :y 0}
-        :scale scale
-        :on-start stop-propagation
-        :on-stop
-        (fn [event data]
-          (let [ox (.-x data) oy (.-y data)]
-            (if (and (= ox 0) (= oy 0))
-              (let [id (.. event -target (closest ".canvas-token[data-id]") -dataset -id)]
-                (dispatch :element/select (js/Number id) false))
-              (dispatch :token/translate-all idents ox oy (not= (.-metaKey event) (:grid/align canvas))))))}
-       [:g.canvas-selected {:key idents}
-        (for [entity selected :when (or host? (visible? (:element/flags entity)))
-              :let [id (:db/id entity) [tx ty] (:pos/vec entity)]]
-          [:g.canvas-token
-           {:key id :data-id id :transform (str "translate(" tx " , " ty ")")}
-           [token {:id id}]])]])))
+(defn tokens []
+  (let [[result dispatch] (use-query tokens-query)
+        {host?   :root/host?
+         {size   :grid/size
+          align? :grid/align
+          scale  :zoom/scale} :root/canvas} result
+
+        flags-xf
+        (comp (map name)
+              (map (fn [s] (str "flag--" s)))
+              (map (fn [s] [s true])))
+
+        css
+        (fn [token]
+          (into {} flags-xf (:element/flags token)))
+
+        [selected tokens]
+        (->> (:canvas/tokens (:root/canvas result))
+             (filter (fn [token] (or host? (visible? (:element/flags token)))))
+             (separate (fn [token] (contains? token :canvas/_selected))))]
+    [:<>
+     (for [data tokens :let [{id :db/id [ax ay] :pos/vec} data]]
+       [:> react-draggable
+        {:key      id
+         :position #js {:x ax :y ay}
+         :scale    scale
+         :on-start stop-propagation
+         :on-stop
+         (fn [event data]
+           (.stopPropagation event)
+           (let [bx (.-x data) by (.-y data)]
+             (if (= (euclidean ax ay bx by) 0)
+               (dispatch :element/select id (not (.-shiftKey event)))
+               (let [align? (not= (.-metaKey event) align?)]
+                 (dispatch :token/translate id bx by align?)))))}
+        [:g.canvas-token {:css (css data)}
+         [token {:data data :size size}]]])
+     (if (seq selected)
+       (let [idents (map :db/id selected)
+             [ax _ bx by] (apply bounding-box (map :pos/vec selected))]
+         [:> react-draggable
+          {:position #js {:x 0 :y 0}
+           :scale    scale
+           :on-start stop-propagation
+           :on-stop
+           (fn [event data]
+             (let [ox (.-x data) oy (.-y data)]
+               (if (and (= ox 0) (= oy 0))
+                 (let [id (.. event -target (closest ".canvas-token[data-id]") -dataset -id)]
+                   (dispatch :element/select (js/Number id) false))
+                 (dispatch :token/translate-all idents ox oy (not= (.-metaKey event) align?)))))}
+          [:g.canvas-selected {:key idents}
+           (for [data selected :let [{id :db/id [x y] :pos/vec} data]]
+             [:g.canvas-token
+              {:key id :css (css data) :data-id id :transform (str "translate(" x "," y ")")}
+              [token {:data data :size size}]])
+           (if host?
+             [:foreignObject
+              {:x (- (+ (* ax scale) (/ (* (- bx ax) scale) 2)) (/ 400 2))
+               :y (- (+ (* by scale) (* scale 56)) 24)
+               :width 400 :height 400
+               :transform (str "scale(" (/ scale) ")")
+               :style {:pointer-events "none"}}
+              [context-menu {:tokens selected}]])]]))]))
 
 (defn bounds []
   (let [[result] (use-query {:pull [:bounds/host :bounds/guest]})
@@ -471,7 +670,6 @@
         [grid]
         [shapes]
         [tokens]
-        [selection]
         [light-mask]
         [canvas-mask]]
        (if (and (= mode :select) (= modif :shift))

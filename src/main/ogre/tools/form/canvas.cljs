@@ -94,11 +94,11 @@
         #(doseq [file (.. % -target -files)]
            (-> (image/load file)
                (.then
-                (fn [{:keys [data filename element]}]
-                  (let [checks (image/checksum data)
-                        record #js {:checksum checks :data data :created-at (.now js/Date)}
+                (fn [[file data-url element]]
+                  (let [checks (image/checksum data-url)
+                        record #js {:checksum checks :data data-url :created-at (.now js/Date)}
                         entity {:image/checksum checks
-                                :image/name     filename
+                                :image/name     (.-name file)
                                 :image/width    (.-width element)
                                 :image/height   (.-height element)}]
                     (-> (.put (.-images store) record)

@@ -1,9 +1,9 @@
 (ns ogre.tools.image
   (:import goog.crypt.Md5))
 
-(defn checksum [data]
+(defn checksum [bytes]
   (let [hash (Md5.)]
-    (.update hash data)
+    (.update hash bytes)
     (reduce
      (fn [s b]
        (str s (.slice (str "0" (.toString b 16)) -2))) "" (.digest hash))))
@@ -18,9 +18,6 @@
        (fn [event]
          (js/Promise.
           (fn [resolve]
-            (let [data (.. event -target -result) image (js/Image.)]
-              (.addEventListener image "load" (fn [] (this-as element (resolve [data element]))))
-              (set! (.-src image) data))))))
-      (.then
-       (fn [[data element]]
-         (.resolve js/Promise {:data data :filename (.-name file) :element element})))))
+            (let [url (.. event -target -result) image (js/Image.)]
+              (.addEventListener image "load" (fn [] (this-as element (resolve [file url element]))))
+              (set! (.-src image) url))))))))

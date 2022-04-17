@@ -1,20 +1,55 @@
 (ns ogre.tools.core
   (:require [ogre.tools.errors :as errors]
             [ogre.tools.render :refer [css]]
-            [ogre.tools.render.layout :refer [layout]]
+            [ogre.tools.render.canvas :refer [canvas]]
+            [ogre.tools.render.modal :as modal]
+            [ogre.tools.render.panel :refer [container]]
+            [ogre.tools.render.tokens :refer [tokens]]
+            [ogre.tools.render.toolbar :refer [toolbar]]
+            [ogre.tools.render.workspaces :refer [workspaces]]
             [ogre.tools.shortcut :as shortcut]
-            [ogre.tools.state :as state]
+            [ogre.tools.state :as state :refer [use-query]]
             [ogre.tools.storage :as storage]
             [ogre.tools.window :as window]
             [react-helmet :refer [Helmet]]
             [uix.core.alpha :as uix]
-            [uix.dom.alpha :as uix.dom]))
+            [uix.dom.alpha :as uix.dom]
+            ogre.tools.form.core))
 
 (uix/add-transform-fn
  (fn [attrs]
    (if (:css attrs)
      (assoc (dissoc attrs :css) :class (css (:class attrs) (:css attrs)))
      attrs)))
+
+(def layout-query
+  {:pull
+   [:root/loaded?
+    :root/host?
+    [:root/shortcuts? :default true]
+    [:root/tooltips? :default true]]})
+
+(defn layout []
+  (let [[result] (use-query layout-query)
+        element  (uix/ref)
+        {:root/keys [loaded? host? shortcuts? tooltips?]} result
+        classes
+        {:global--host       host?
+         :global--guest      (not host?)
+         :global--shortcuts  shortcuts?
+         :global--tooltips   tooltips?}]
+    (if loaded?
+      (if host?
+        [modal/provider {:ref element}
+         [:div.layout {:css classes}
+          [:div.layout-workspaces [workspaces]]
+          [:div.layout-canvas [canvas]]
+          [:div.layout-modal {:ref element}]
+          [:div.layout-toolbar [toolbar]]
+          [:div.layout-tokens [tokens]]
+          [:div.layout-panel [container]]]]
+        [:div.layout {:css classes}
+         [:div.layout-canvas [canvas]]]))))
 
 (defn root [{:keys [path]}]
   [:<>

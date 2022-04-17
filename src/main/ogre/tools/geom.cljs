@@ -36,3 +36,10 @@
    otherwise."
   [x y [ax ay bx by]]
   (and (> x ax) (> y ay) (< x bx) (< y by)))
+
+(defn bounding-box
+  "Returns the bounding box of the given points as the top-left and bottom-right
+   points in the form of [ax ay bx by]."
+  [& vs]
+  (let [[xs ys] (partition (count vs) (apply interleave vs))]
+    [(apply min xs) (apply min ys) (apply max xs) (apply max ys)]))
