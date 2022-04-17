@@ -447,12 +447,11 @@ legend {
 }
 
 .canvas-token-label > span {
-    padding: 0 8px;
-    text-align: center;
     background-color: var(--theme-background-d);
-    color: var(--theme-text);
     border-radius: 8px;
+    color: var(--theme-text);
     font-size: 12px;
+    padding: 0 8px;
 }
 
 .canvas-token-shape {
