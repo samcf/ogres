@@ -44,9 +44,6 @@
 
 (defn ft->px [ft size] (* (/ ft 5) size))
 
-(defn text [attrs child]
-  [:text.canvas-text attrs child])
-
 (defn visible? [flags]
   (or (nil? flags)
       (flags :player)
@@ -509,8 +506,7 @@
                        ([f init] (into init (map f) tokens)))}]])]))
 
 (defn token [{data :data size :size}]
-  (let [flags  (:element/flags data)
-        radius (-> data :token/size (ft->px size) (/ 2) (- 2) (max 16))]
+  (let [radius (-> data :token/size (ft->px size) (/ 2) (- 2) (max 16))]
     [:<>
      (if (> (:aura/radius data) 0)
        [:circle.canvas-token-aura
@@ -519,13 +515,17 @@
       {:cx 0 :cy 0 :style {:r radius :fill "transparent"}}]
      (let [checksum (:image/checksum (:token/stamp data))
            pattern  (cond
-                      (flags :unconscious) "token-stamp-deceased"
+                      ((:element/flags data) :unconscious) "token-stamp-deceased"
                       (string? checksum)   (str "token-stamp-" checksum)
                       :else                "token-stamp-default")]
        [:circle.canvas-token-shape
         {:cx 0 :cy 0 :r radius :fill (str "url(#" pattern ")")}])
      (if (seq (label data))
-       [text {:x 0 :y (+ radius 10)} (label data)])]))
+       [:foreignObject
+        {:x -200 :y (- radius 8) :width 400 :height 32
+         :style {:pointer-events "none"}}
+        [:div.canvas-token-label
+         [:span (label data)]]])]))
 
 (def tokens-query
   {:pull

@@ -440,6 +440,22 @@ legend {
     fill-opacity: 0.70;
 }
 
+.canvas-token-label {
+    pointer-events: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.canvas-token-label > span {
+    padding: 0 8px;
+    text-align: center;
+    background-color: var(--theme-background-d);
+    color: var(--theme-text);
+    border-radius: 8px;
+    font-size: 12px;
+}
+
 .canvas-token-shape {
     stroke: black;
     stroke-width: 1px;
