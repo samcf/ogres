@@ -469,6 +469,15 @@ legend {
     text-anchor: middle;
 }
 
+.canvas-token-flags {
+    pointer-events: none;
+    color: var(--theme-text);
+}
+
+.canvas-token-flags circle {
+    fill: var(--theme-background-d);
+}
+
 @keyframes ring-pulse {
     0%   { transform: scale(1); }
     100% { transform: scale(1.3); }
