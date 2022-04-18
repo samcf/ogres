@@ -1,5 +1,6 @@
 (ns ogre.tools.render.canvas
-  (:require [clojure.string :refer [capitalize join]]
+  (:require [clojure.set :refer [difference]]
+            [clojure.string :refer [capitalize join]]
             [datascript.core :refer [squuid]]
             [ogre.tools.image :refer [load checksum]]
             [ogre.tools.geom :refer [bounding-box chebyshev euclidean triangle]]
@@ -505,7 +506,7 @@
                        ([f] (vs f #{}))
                        ([f init] (into init (map f) tokens)))}]])]))
 
-(defn token [{data :data size :size}]
+(defn token [{:keys [data size]}]
   (let [radius (-> data :token/size (ft->px size) (/ 2) (- 2) (max 16))]
     [:<>
      (if (> (:aura/radius data) 0)
@@ -520,16 +521,31 @@
                       :else                "token-stamp-default")]
        [:circle.canvas-token-shape
         {:cx 0 :cy 0 :r radius :fill (str "url(#" pattern ")")}])
-     (if (seq (label data))
-       [:foreignObject
-        {:x -200 :y (- radius 8) :width 400 :height 32
-         :style {:pointer-events "none"}}
-        [:div.canvas-token-label
-         [:span (label data)]]])]))
+     (let [icons (into {} conditions)
+           degrs [125 95 65 -125 -95 -65]
+           exclu #{:player :hidden :unconscious}]
+       (for [[index flag]
+             (into [] (comp (take 6) (map-indexed vector))
+                   (difference (:element/flags data) exclu))]
+         (let [rn (* (/ js/Math.PI 180) (nth degrs index 0))
+               cx (* (js/Math.sin rn) radius)
+               cy (* (js/Math.cos rn) radius)]
+           [:g.canvas-token-flags {:key flag :transform (str "translate(" cx ", " cy ")")}
+            [:circle {:cx 0 :cy 0 :r 8}]
+            [:g {:transform (str "translate(" -6 ", " -6 ")")}
+             [icon {:name (icons flag) :size 12}]]])))
+     (let [token-label (label data)]
+       (if (seq token-label)
+         [:foreignObject
+          {:x -200 :y (- radius 8) :width 400 :height 32 :style {:pointer-events "none"}}
+          [:div.canvas-token-label
+           [:span token-label]]]))]))
 
 (defn token-comparator [a b]
-  (compare [(:token/size b) (second (:pos/vec b))]
-           [(:token/size a) (second (:pos/vec a))]))
+  (let [[ax ay] (:pos/vec a)
+        [bx by] (:pos/vec b)]
+    (compare [(:token/size b) by bx]
+             [(:token/size a) ay ax])))
 
 (def tokens-query
   {:pull
