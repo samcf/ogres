@@ -72,16 +72,6 @@
    (fn [[_ dispatch]]
      (dispatch :canvas/toggle-mode :mask-remove))
 
-   ["keydown" \v]
-   (fn [[_ dispatch]]
-     (dispatch :share/initiate))
-
-   ["keydown" \p]
-   (fn [[conn dispatch]]
-     (let [{:keys [share/open?]} (pull @conn [:share/open?] [:db/ident :root])]
-       (if open?
-         (dispatch :share/switch))))
-
    ["keydown" \ ]
    (fn [[_ dispatch]]
      (dispatch :interface/toggle-panel))
