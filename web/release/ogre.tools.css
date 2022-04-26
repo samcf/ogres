@@ -622,9 +622,10 @@ legend {
 }
 
 .context-form {
+    background-color: hsl(208deg 21% 20%);
+    border-radius: 0 0 7px 7px;
     font-size: 12px;
     padding:  8px;
-    background-color: hsl(208deg 21% 20%);
 }
 
 .context-form-label form {
@@ -745,6 +746,45 @@ legend {
 
 .context-form-conditions label:hover {
     background-color: var(--theme-background-d);
+}
+
+.context-form-color input[type="range"] {
+    width: 100%;
+}
+
+.context-form-colors {
+    display: grid;
+    gap: 4px;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+}
+
+.context-form-colors > div {
+    aspect-ratio: 1 / 1;
+    border-radius: 3px;
+}
+
+.context-form-pattern {
+    display: grid;
+    gap: 4px;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+}
+
+.context-form-pattern svg {
+    aspect-ratio: 1 / 1;
+    background-color: var(--theme-background-d);
+    border-radius: 50%;
+    border: 1px solid var(--theme-text);
+    box-sizing: border-box;
+    color: var(--theme-text);
+    cursor: pointer;
+}
+
+.context-form-pattern svg:hover {
+    background-color: var(--theme-paper-light);
+    border-color: #fff;
+    color: var(--theme-background-d);
 }
 
 /* Token Images Form */

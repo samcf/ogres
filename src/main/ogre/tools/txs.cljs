@@ -210,13 +210,11 @@
 
 (defmethod transact :shape/create
   [_ kind vecs]
-  [[:db/add -1 :element/type :shape]
-   [:db/add -1 :shape/kind kind]
+  [[:db/add -1 :shape/kind kind]
    [:db/add -1 :shape/vecs vecs]
    [:db/add [:db/ident :canvas] :canvas/shapes -1]
    [:db/add [:db/ident :canvas] :canvas/mode :select]
-   [:db/add [:db/ident :canvas] :canvas/selected -1]
-   [:db/add [:db/ident :canvas] :panel/curr :shape]])
+   [:db/add [:db/ident :canvas] :canvas/selected -1]])
 
 (defn trans-xf [x y]
   (comp (partition-all 2) (drop 1) (map (fn [[ax ay]] [(+ ax x) (+ ay y)])) cat))

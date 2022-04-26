@@ -255,6 +255,54 @@
         pairs   (into [] (poly-xf ax ay) vecs)]
     [:polygon (assoc attrs :points (join " " pairs) :fill-opacity opacity :stroke color)]))
 
+(defmulti shape-form :name)
+
+(defmethod shape-form :default [] [])
+
+(defmethod shape-form :color [{:keys [on-change values]}]
+  [:div.context-form-color
+   [:input
+    {:type "range" :min 0 :max 1 :step 0.10
+     :value (first (values :shape/opacity))
+     :on-change #(on-change :element/update :shape/opacity (.. %1 -target -value))}]
+   [:div.context-form-colors
+    (for [color ["#ffeb3b" "#ff9800" "#f44336" "#673ab7" "#2196f3" "#009688" "#8bc34a" "#fff" "#9e9e9e" "#000"]]
+      [:div
+       {:key color :style {:background-color color}
+        :on-click #(on-change :element/update :shape/color color)}])]])
+
+(defmethod shape-form :pattern [{:keys [on-change]}]
+  [:div.context-form-pattern
+   (for [pattern-name [:solid :lines :circles :crosses :caps :waves]]
+     (let [id (str "template-pattern-" (name pattern-name))]
+       [:svg {:key pattern-name :width "100%" :on-click #(on-change :element/update :shape/pattern pattern-name)}
+        [:defs [pattern {:id id :name pattern-name}]]
+        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill (str "url(#" id ")")}]]))])
+
+(defn shapes-context-menu [{:keys [shape]}]
+  (let [dispatch    (use-query)
+        selected    (uix/state nil)
+        on-select   (fn [form-name]
+                      (fn []
+                        (reset! selected (if (not= form-name @selected) form-name nil))))]
+    [:div.context-menu {:on-mouse-down stop-propagation}
+     [:div.context-toolbar
+      [:button {:type "button" :data-tooltip "Color" :on-click (on-select :color)}
+       [icon {:name "palette-fill"}]]
+      [:button {:type "button" :data-tooltip "Pattern" :on-click (on-select :pattern)}
+       [icon {:name "paint-bucket"}]]]
+     (if-let [form-name @selected]
+       [:div.context-form
+        [shape-form
+         {:name form-name
+          :values
+          (fn vs
+            ([f] (vs f #{}))
+            ([f init] (into init (map f) [shape])))
+          :on-change
+          (fn [tx-name & args]
+            (apply dispatch tx-name [(:db/id shape)] args))}]])]))
+
 (def shapes-query
   {:pull
    '[{:root/canvas
@@ -287,12 +335,17 @@
                 (dispatch :element/select id))))}
          (let [id (squuid)]
            [:g
-            {:css
-             {:canvas-shape true
-              :selected (:canvas/_selected element)
-              (str "canvas-shape-" (name (:shape/kind element))) true}}
+            {:css {:canvas-shape true :selected (:canvas/_selected element) (str "canvas-shape-" (name (:shape/kind element))) true}}
             [:defs [pattern {:id id :name (:shape/pattern element) :color (:shape/color element)}]]
-            [shape {:element element :attrs {:fill (str "url(#" id ")")}}]])]))))
+            [shape {:element element :attrs {:fill (str "url(#" id ")")}}]
+            (if (:canvas/_selected element)
+              [:foreignObject
+               {:x -200 :y 0
+                :width 400 :height 400
+                :transform (str "")
+                :style {:pointer-events "none"}}
+               [shapes-context-menu
+                {:shape element}]])])]))))
 
 (defn stamp [{:keys [checksum]}]
   (let [url (use-image checksum)]
