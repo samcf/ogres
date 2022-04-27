@@ -114,7 +114,7 @@
     (if (and checksum (not= visibility :revealed))
       [:g.canvas-mask {:css {:is-dimmed (= visibility :dimmed)}}
        [:defs
-        [pattern {:id "mask-pattern" :name :lines}]
+        [pattern {:id "mask-pattern" :name :lines :color "black"}]
         [:radialGradient {:id "mask-gradient"}
          [:stop {:offset "0%" :stop-color "black" :stop-opacity "100%"}]
          [:stop {:offset "70%" :stop-color "black" :stop-opacity "100%"}]
