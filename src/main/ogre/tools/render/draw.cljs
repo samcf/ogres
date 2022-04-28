@@ -1,10 +1,10 @@
 (ns ogre.tools.render.draw
   (:require [clojure.string :refer [join]]
+            [ogre.tools.render.portal :as portal]
             [ogre.tools.geom :refer [chebyshev euclidean triangle]]
             [ogre.tools.state :refer [use-query]]
             [react-draggable]
-            [uix.core.alpha :as uix]
-            [uix.dom.alpha :refer [create-portal]]))
+            [uix.core.alpha :as uix]))
 
 (defn px->ft [px size] (js/Math.round (* (/ px size) 5)))
 
@@ -110,7 +110,7 @@
 
 (defmethod draw :default [] nil)
 
-(defmethod draw :select [{:keys [node]}]
+(defmethod draw :select []
   (let [[result dispatch] (use-query draw-query)
         {[ox oy] :bounds/self
          {[tx ty] :pos/vec
@@ -124,8 +124,8 @@
         (dispatch :selection/from-rect xs))}
      (fn [_ xs]
        (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)]
-         (create-portal
-          [:path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}] @node)))]))
+         [portal/use {:label :multiselect}
+          [:path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}]]))]))
 
 (defmethod draw :grid []
   (let [[result dispatch] (use-query draw-query)

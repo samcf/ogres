@@ -8,6 +8,7 @@
             [ogre.tools.render.draw :refer [draw]]
             [ogre.tools.render.modal :refer [modal]]
             [ogre.tools.render.pattern :refer [pattern]]
+            [ogre.tools.render.portal :as portal]
             [ogre.tools.state :refer [use-query]]
             [ogre.tools.storage :refer [storage]]
             [react-draggable]
@@ -305,7 +306,8 @@
 
 (def shapes-query
   {:pull
-   '[{:root/canvas
+   '[:root/host?
+     {:root/canvas
       [[:zoom/scale :default 1]
        [:grid/align :default false]
        {:canvas/shapes
@@ -320,32 +322,29 @@
 
 (defn shapes []
   (let [[result dispatch] (use-query shapes-query)]
-    (for [element (-> result :root/canvas :canvas/shapes)]
-      (let [{id :db/id [ax ay] :shape/vecs} element]
-        [:> react-draggable
-         {:key      id
-          :scale    (-> result :root/canvas :zoom/scale)
-          :position #js {:x ax :y ay}
-          :on-start stop-propagation
-          :on-stop
-          (fn [event data]
-            (let [ox (.-x data) oy (.-y data)]
-              (if (> (euclidean ax ay ox oy) 0)
-                (dispatch :shape/translate id ox oy (not= (.-metaKey event) (-> result :root/canvas :grid/align)))
-                (dispatch :element/select id))))}
-         (let [id (squuid)]
-           [:g
-            {:css {:canvas-shape true :selected (:canvas/_selected element) (str "canvas-shape-" (name (:shape/kind element))) true}}
-            [:defs [pattern {:id id :name (:shape/pattern element) :color (:shape/color element)}]]
-            [shape {:element element :attrs {:fill (str "url(#" id ")")}}]
-            (if (:canvas/_selected element)
-              [:foreignObject
-               {:x -200 :y 0
-                :width 400 :height 400
-                :transform (str "")
-                :style {:pointer-events "none"}}
-               [shapes-context-menu
-                {:shape element}]])])]))))
+    (for [element (-> result :root/canvas :canvas/shapes) :let [{id :db/id [ax ay] :shape/vecs} element]]
+      ^{:key id}
+      [portal/use {:label (if (and (:canvas/_selected element) (:root/host? result)) :selected)}
+       [:> react-draggable
+        {:scale    (-> result :root/canvas :zoom/scale)
+         :position #js {:x ax :y ay}
+         :on-start stop-propagation
+         :on-stop
+         (fn [event data]
+           (let [ox (.-x data) oy (.-y data)]
+             (if (> (euclidean ax ay ox oy) 0)
+               (dispatch :shape/translate id ox oy (not= (.-metaKey event) (-> result :root/canvas :grid/align)))
+               (dispatch :element/select id))))}
+        (let [id (squuid)]
+          [:g
+           {:css {:canvas-shape true :selected (:canvas/_selected element) (str "canvas-shape-" (name (:shape/kind element))) true}}
+           [:defs [pattern {:id id :name (:shape/pattern element) :color (:shape/color element)}]]
+           [shape {:element element :attrs {:fill (str "url(#" id ")")}}]
+           (if (:canvas/_selected element)
+             [:foreignObject
+              {:x -200 :y 0 :width 400 :height 400 :transform (str "") :style {:pointer-events "none"}}
+              [shapes-context-menu
+               {:shape element}]])])]])))
 
 (defn stamp [{:keys [checksum]}]
   (let [url (use-image checksum)]
@@ -661,30 +660,31 @@
      (if (seq selected)
        (let [idents (map :db/id selected)
              [ax _ bx by] (apply bounding-box (map :pos/vec selected))]
-         [:> react-draggable
-          {:position #js {:x 0 :y 0}
-           :scale    scale
-           :on-start stop-propagation
-           :on-stop
-           (fn [event data]
-             (let [ox (.-x data) oy (.-y data)]
-               (if (and (= ox 0) (= oy 0))
-                 (let [id (.. event -target (closest ".canvas-token[data-id]") -dataset -id)]
-                   (dispatch :element/select (js/Number id) false))
-                 (dispatch :token/translate-all idents ox oy (not= (.-metaKey event) align?)))))}
-          [:g.canvas-selected {:key idents}
-           (for [data selected :let [{id :db/id [x y] :pos/vec} data]]
-             [:g.canvas-token
-              {:key id :css (css data) :data-id id :transform (str "translate(" x "," y ")")}
-              [token {:data data :size size}]])
-           (if host?
-             [:foreignObject
-              {:x (- (+ (* ax scale) (/ (* (- bx ax) scale) 2)) (/ 400 2))
-               :y (- (+ (* by scale) (* scale 56)) 24)
-               :width 400 :height 400
-               :transform (str "scale(" (/ scale) ")")
-               :style {:pointer-events "none"}}
-              [context-menu {:tokens selected}]])]]))]))
+         [portal/use {:label (if host? :selected)}
+          [:> react-draggable
+           {:position #js {:x 0 :y 0}
+            :scale    scale
+            :on-start stop-propagation
+            :on-stop
+            (fn [event data]
+              (let [ox (.-x data) oy (.-y data)]
+                (if (and (= ox 0) (= oy 0))
+                  (let [id (.. event -target (closest ".canvas-token[data-id]") -dataset -id)]
+                    (dispatch :element/select (js/Number id) false))
+                  (dispatch :token/translate-all idents ox oy (not= (.-metaKey event) align?)))))}
+           [:g.canvas-selected {:key idents}
+            (for [data selected :let [{id :db/id [x y] :pos/vec} data]]
+              [:g.canvas-token
+               {:key id :css (css data) :data-id id :transform (str "translate(" x "," y ")")}
+               [token {:data data :size size}]])
+            (if host?
+              [:foreignObject
+               {:x (- (+ (* ax scale) (/ (* (- bx ax) scale) 2)) (/ 400 2))
+                :y (- (+ (* by scale) (* scale 56)) 24)
+                :width 400 :height 400
+                :transform (str "scale(" (/ scale) ")")
+                :style {:pointer-events "none"}}
+               [context-menu {:tokens selected}]])]]]))]))
 
 (defn bounds []
   (let [[result] (use-query {:pull [:bounds/host :bounds/guest]})
@@ -709,8 +709,7 @@
       [:zoom/scale :default 1]]}]})
 
 (defn canvas []
-  (let [select-node       (uix/ref)
-        [result dispatch] (use-query canvas-query)
+  (let [[result dispatch] (use-query canvas-query)
         {priv? :root/privileged?
          host? :root/host?
          [_ _ hw hh] :bounds/host
@@ -723,35 +722,36 @@
           [cx cy] :pos/vec} :root/canvas} result
         cx (if host? cx (->> (- hw gw) (max 0) (* (/ -1 2 scale)) (+ cx)))
         cy (if host? cy (->> (- hh gh) (max 0) (* (/ -1 2 scale)) (+ cy)))]
-    [:svg.canvas {:key id :css {(str "theme--" (name theme)) true :is-host host? :is-priv priv?}}
-     [:> react-draggable
-      {:position #js {:x 0 :y 0}
-       :on-stop
-       (fn [_ data]
-         (let [ox (.-x data)
-               oy (.-y data)]
-           (if (and (= ox 0) (= oy 0))
-             (dispatch :selection/clear)
-             (let [tx (+ cx (* ox (/ scale)))
-                   ty (+ cy (* oy (/ scale)))]
-               (dispatch :camera/translate tx ty)))))}
-      [:g {:style {:will-change "transform"}}
-       [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
-       (if (and (= mode :select) (= modif :shift))
-         [draw {:mode :select :node select-node}])
-       [:g.canvas-board
-        {:transform (str "scale(" scale ") translate(" cx ", " cy ")")}
-        [stamps]
-        [scene]
-        [grid]
-        [shapes]
-        [tokens]
-        [light-mask]
-        [canvas-mask]]
-       (if (and (= mode :select) (= modif :shift))
-         [:g {:ref select-node :class "canvas-drawable canvas-drawable-select"}])
-       (if (contains? draw-modes mode)
-         [:g {:class (str "canvas-drawable canvas-drawable-" (name mode))}
-          ^{:key mode} [draw {:mode mode :node nil}]])]]
-     (if priv?
-       [bounds])]))
+    [portal/provider
+     [:svg.canvas {:key id :css {(str "theme--" (name theme)) true :is-host host? :is-priv priv?}}
+      [:> react-draggable
+       {:position #js {:x 0 :y 0}
+        :on-stop
+        (fn [_ data]
+          (let [ox (.-x data)
+                oy (.-y data)]
+            (if (and (= ox 0) (= oy 0))
+              (dispatch :selection/clear)
+              (let [tx (+ cx (* ox (/ scale)))
+                    ty (+ cy (* oy (/ scale)))]
+                (dispatch :camera/translate tx ty)))))}
+       [:g {:style {:will-change "transform"}}
+        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
+        (if (and (= mode :select) (= modif :shift))
+          [draw {:mode :select}])
+        [:g.canvas-board
+         {:transform (str "scale(" scale ") translate(" cx ", " cy ")")}
+         [stamps]
+         [scene]
+         [grid]
+         [shapes]
+         [tokens]
+         [light-mask]
+         [canvas-mask]
+         [portal/create (fn [ref] [:g {:ref ref}]) :selected]]]]
+      [portal/create (fn [ref] [:g {:ref ref :class "canvas-drawable canvas-drawable-select"}]) :multiselect]
+      (if (contains? draw-modes mode)
+        [:g {:class (str "canvas-drawable canvas-drawable-" (name mode))}
+         ^{:key mode} [draw {:mode mode :node nil}]])
+      (if priv?
+        [bounds])]]))
