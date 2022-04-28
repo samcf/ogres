@@ -290,18 +290,23 @@
       [:button {:type "button" :data-tooltip "Color" :on-click (on-select :color)}
        [icon {:name "palette-fill"}]]
       [:button {:type "button" :data-tooltip "Pattern" :on-click (on-select :pattern)}
-       [icon {:name "paint-bucket"}]]]
-     (if-let [form-name @selected]
-       [:div.context-form
-        [shape-form
-         {:name form-name
-          :values
-          (fn vs
-            ([f] (vs f #{}))
-            ([f init] (into init (map f) [shape])))
-          :on-change
-          (fn [tx-name & args]
-            (apply dispatch tx-name [(:db/id shape)] args))}]])]))
+       [icon {:name "paint-bucket"}]]
+      [:button
+       {:type "button" :data-tooltip "Remove" :style {:margin-left "auto"}
+        :on-click #(dispatch :element/remove [(:db/id shape)])}
+       [icon {:name "trash"}]]]
+     (let [selected @selected]
+       (if (not (nil? selected))
+         [:div.context-form
+          [shape-form
+           {:name selected
+            :values
+            (fn vs
+              ([f] (vs f #{}))
+              ([f init] (into init (map f) [shape])))
+            :on-change
+            (fn [tx-name & args]
+              (apply dispatch tx-name [(:db/id shape)] args))}]]))]))
 
 (def shapes-query
   {:pull
