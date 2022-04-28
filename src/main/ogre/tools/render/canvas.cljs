@@ -344,7 +344,7 @@
            {:css {:canvas-shape true :selected (:canvas/_selected element) (str "canvas-shape-" (name (:shape/kind element))) true}}
            [:defs [pattern {:id id :name (:shape/pattern element) :color (:shape/color element)}]]
            [shape {:element element :attrs {:fill (str "url(#" id ")")}}]
-           (if (:canvas/_selected element)
+           (if (and (:root/host? result) (:canvas/_selected element))
              [:foreignObject
               {:x -200 :y 0 :width 400 :height 400 :transform (str "") :style {:pointer-events "none"}}
               [shapes-context-menu
