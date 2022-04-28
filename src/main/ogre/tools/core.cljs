@@ -2,8 +2,8 @@
   (:require [ogre.tools.errors :as errors]
             [ogre.tools.render :refer [css]]
             [ogre.tools.render.canvas :refer [canvas]]
-            [ogre.tools.render.modal :as modal]
             [ogre.tools.render.panel :refer [container]]
+            [ogre.tools.render.portal :as portal]
             [ogre.tools.render.tokens :refer [tokens]]
             [ogre.tools.render.toolbar :refer [toolbar]]
             [ogre.tools.render.workspaces :refer [workspaces]]
@@ -31,7 +31,6 @@
 
 (defn layout []
   (let [[result] (use-query layout-query)
-        element  (uix/ref)
         {:root/keys [loaded? host? shortcuts? tooltips?]} result
         classes
         {:global--host       host?
@@ -40,14 +39,15 @@
          :global--tooltips   tooltips?}]
     (if loaded?
       (if host?
-        [modal/provider {:ref element}
-         [:div.layout {:css classes}
-          [:div.layout-workspaces [workspaces]]
-          [:div.layout-canvas [canvas]]
-          [:div.layout-modal {:ref element}]
-          [:div.layout-toolbar [toolbar]]
-          [:div.layout-tokens [tokens]]
-          [:div.layout-panel [container]]]]
+        [:div.layout {:css classes}
+         [:div.layout-workspaces [workspaces]]
+         [:div.layout-canvas [canvas]]
+         [portal/create
+          (fn [ref]
+            [:div.layout-modal {:ref ref}]) :modal]
+         [:div.layout-toolbar [toolbar]]
+         [:div.layout-tokens [tokens]]
+         [:div.layout-panel [container]]]
         [:div.layout {:css classes}
          [:div.layout-canvas [canvas]]]))))
 
@@ -64,7 +64,8 @@
        [storage/handlers]
        [window/provider]
        [shortcut/handlers]
-       [layout]]]]]])
+       [portal/provider
+        [layout]]]]]]])
 
 (defn main []
   (let [element (.querySelector js/document "#root")]

@@ -6,7 +6,6 @@
             [ogre.tools.geom :refer [bounding-box chebyshev euclidean triangle]]
             [ogre.tools.render :refer [icon use-image]]
             [ogre.tools.render.draw :refer [draw]]
-            [ogre.tools.render.modal :refer [modal]]
             [ogre.tools.render.pattern :refer [pattern]]
             [ogre.tools.render.portal :as portal]
             [ogre.tools.state :refer [use-query]]
@@ -465,7 +464,7 @@
        :placeholder "Press 'Enter' to submit..."
        :on-change #(reset! input-val (.. %1 -target -value))}]
      (if @modal-open?
-       [modal
+       [portal/use {:label :modal}
         [:div.context-form-modal
          [images-form
           {:on-change
@@ -722,36 +721,35 @@
           [cx cy] :pos/vec} :root/canvas} result
         cx (if host? cx (->> (- hw gw) (max 0) (* (/ -1 2 scale)) (+ cx)))
         cy (if host? cy (->> (- hh gh) (max 0) (* (/ -1 2 scale)) (+ cy)))]
-    [portal/provider
-     [:svg.canvas {:key id :css {(str "theme--" (name theme)) true :is-host host? :is-priv priv?}}
-      [:> react-draggable
-       {:position #js {:x 0 :y 0}
-        :on-stop
-        (fn [_ data]
-          (let [ox (.-x data)
-                oy (.-y data)]
-            (if (and (= ox 0) (= oy 0))
-              (dispatch :selection/clear)
-              (let [tx (+ cx (* ox (/ scale)))
-                    ty (+ cy (* oy (/ scale)))]
-                (dispatch :camera/translate tx ty)))))}
-       [:g {:style {:will-change "transform"}}
-        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
-        (if (and (= mode :select) (= modif :shift))
-          [draw {:mode :select}])
-        [:g.canvas-board
-         {:transform (str "scale(" scale ") translate(" cx ", " cy ")")}
-         [stamps]
-         [scene]
-         [grid]
-         [shapes]
-         [tokens]
-         [light-mask]
-         [canvas-mask]
-         [portal/create (fn [ref] [:g {:ref ref}]) :selected]]]]
-      [portal/create (fn [ref] [:g {:ref ref :class "canvas-drawable canvas-drawable-select"}]) :multiselect]
-      (if (contains? draw-modes mode)
-        [:g {:class (str "canvas-drawable canvas-drawable-" (name mode))}
-         ^{:key mode} [draw {:mode mode :node nil}]])
-      (if priv?
-        [bounds])]]))
+    [:svg.canvas {:key id :css {(str "theme--" (name theme)) true :is-host host? :is-priv priv?}}
+     [:> react-draggable
+      {:position #js {:x 0 :y 0}
+       :on-stop
+       (fn [_ data]
+         (let [ox (.-x data)
+               oy (.-y data)]
+           (if (and (= ox 0) (= oy 0))
+             (dispatch :selection/clear)
+             (let [tx (+ cx (* ox (/ scale)))
+                   ty (+ cy (* oy (/ scale)))]
+               (dispatch :camera/translate tx ty)))))}
+      [:g {:style {:will-change "transform"}}
+       [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
+       (if (and (= mode :select) (= modif :shift))
+         [draw {:mode :select}])
+       [:g.canvas-board
+        {:transform (str "scale(" scale ") translate(" cx ", " cy ")")}
+        [stamps]
+        [scene]
+        [grid]
+        [shapes]
+        [tokens]
+        [light-mask]
+        [canvas-mask]
+        [portal/create (fn [ref] [:g {:ref ref}]) :selected]]]]
+     [portal/create (fn [ref] [:g {:ref ref :class "canvas-drawable canvas-drawable-select"}]) :multiselect]
+     (if (contains? draw-modes mode)
+       [:g {:class (str "canvas-drawable canvas-drawable-" (name mode))}
+        ^{:key mode} [draw {:mode mode :node nil}]])
+     (if priv?
+       [bounds])]))
