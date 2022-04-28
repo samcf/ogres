@@ -9,7 +9,7 @@
   "Context provider that allows the user to define portal targets and associate
    them with a label; other components within the provider can then render
    into these targets by label."
-  [& children]
+  [children]
   (let [portals  (uix/state {})
         register (uix/callback
                   (fn [label ref]
