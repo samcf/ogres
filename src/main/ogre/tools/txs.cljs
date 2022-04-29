@@ -89,14 +89,12 @@
 (defmethod transact :canvas/toggle-mode
   [{:keys [data]} mode]
   (let [ident  [:db/ident :canvas]
-        select [:db/id :canvas/mode :canvas/selected :panel/prev]
+        select [:db/id :canvas/mode :canvas/selected]
         result (ds/pull data select ident)
-        {curr :canvas/mode
-         prev :panel/prev} result]
+        {curr :canvas/mode} result]
     (concat [[:db/add ident :canvas/mode mode]]
             (if (not= mode curr)
-              [[:db/retract ident :canvas/selected]
-               [:db/add ident :panel/curr (or prev :canvas)]]
+              [[:db/retract ident :canvas/selected]]
               [[:db/add ident :canvas/mode :select]]))))
 
 (defmethod transact :canvas/toggle-theme
@@ -129,10 +127,9 @@
       [tx-fn [:db/ident :canvas] :canvas/selected element]])))
 
 (defmethod transact :element/remove
-  [{:keys [data]} idents]
-  (let [{:keys [panel/prev]} (ds/pull data [[:panel/prev :default :canvas]] [:db/ident :canvas])]
-    (into [[:db/add [:db/ident :canvas] :panel/curr prev]]
-          (for [id idents] [:db/retractEntity id]))))
+  [_ idents]
+  (for [id idents]
+    [:db/retractEntity id]))
 
 (defmethod transact :element/flag
   [{:keys [data]} idents flag add?]
@@ -210,13 +207,11 @@
 
 (defmethod transact :shape/create
   [_ kind vecs]
-  [[:db/add -1 :element/type :shape]
-   [:db/add -1 :shape/kind kind]
+  [[:db/add -1 :shape/kind kind]
    [:db/add -1 :shape/vecs vecs]
    [:db/add [:db/ident :canvas] :canvas/shapes -1]
    [:db/add [:db/ident :canvas] :canvas/mode :select]
-   [:db/add [:db/ident :canvas] :canvas/selected -1]
-   [:db/add [:db/ident :canvas] :panel/curr :shape]])
+   [:db/add [:db/ident :canvas] :canvas/selected -1]])
 
 (defn trans-xf [x y]
   (comp (partition-all 2) (drop 1) (map (fn [[ax ay]] [(+ ax x) (+ ay y)])) cat))
@@ -350,20 +345,16 @@
             (for [entity selected]
               [:db/add (:db/id canvas) :canvas/selected (:db/id entity)]))))
 
-(defmethod transact :selection/clear
-  [{:keys [data]}]
-  (let [{:keys [panel/prev]} (ds/pull data [:panel/prev] [:db/ident :canvas])]
-    [[:db/retract [:db/ident :canvas] :canvas/selected]
-     [:db/add [:db/ident :canvas] :panel/curr (or prev :canvas)]]))
+(defmethod transact :selection/clear [_]
+  [[:db/retract [:db/ident :canvas] :canvas/selected]])
 
 (defmethod transact :selection/remove
   [{:keys [data]}]
-  (let [select [:canvas/selected :panel/prev]
+  (let [select [:canvas/selected]
         result (ds/pull data select [:db/ident :canvas])
-        {:keys [canvas/selected panel/prev]} result]
-    (into [[:db/add [:db/ident :canvas] :panel/curr (or prev :canvas)]]
-          (for [entity selected]
-            [:db/retractEntity (:db/id entity)]))))
+        {:keys [canvas/selected]} result]
+    (for [entity selected]
+      [:db/retractEntity (:db/id entity)])))
 
 (defmethod transact :initiative/toggle
   [{:keys [data]} idents adding?]
@@ -440,7 +431,6 @@
 (defmethod transact :interface/change-panel
   [_ panel]
   [[:db/add [:db/ident :canvas] :panel/curr panel]
-   [:db/add [:db/ident :canvas] :panel/prev panel]
    [:db/add [:db/ident :canvas] :panel/collapsed? false]])
 
 (defmethod transact :interface/toggle-panel

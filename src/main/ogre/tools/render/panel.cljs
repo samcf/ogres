@@ -6,7 +6,6 @@
 (def panels
   [[:canvas "images"]
    [:initiative "hourglass-split"]
-   [:shape "triangle"]
    [:help "question-diamond"]])
 
 (def attrs

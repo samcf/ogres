@@ -570,6 +570,10 @@ legend {
 }
 
 /* Context Menu */
+.context-menu-object {
+    pointer-events: none;
+}
+
 .context-menu {
     background-color: rgba(23, 33, 37, 1);
     border-radius: 7px;
@@ -595,13 +599,14 @@ legend {
     border-radius: 3px;
 }
 
-.context-toolbar {
+.context-menu-toolbar {
     display: flex;
+    gap: 8px;
     justify-content: space-between;
     padding: 4px;
 }
 
-.context-toolbar > button {
+.context-menu-toolbar > button {
     align-items: center;
     aspect-ratio: 1 / 1;
     background: none;
@@ -613,21 +618,22 @@ legend {
     width: 32px;
 }
 
-.context-toolbar > button.selected {
+.context-menu-toolbar > button.selected {
     color: var(--theme-text-link);
 }
 
-.context-toolbar > button:not(.selected):hover {
+.context-menu-toolbar > button:not(.selected):hover {
     color: white;
 }
 
-.context-form {
+.context-menu-form {
+    background-color: hsl(208deg 21% 20%);
+    border-radius: 0 0 7px 7px;
     font-size: 12px;
     padding:  8px;
-    background-color: hsl(208deg 21% 20%);
 }
 
-.context-form-label form {
+.context-menu-form-label form {
     align-items: center;
     display: flex;
     gap: 4px;
@@ -635,14 +641,14 @@ legend {
     position: relative;
 }
 
-.context-form-label button,
-.context-form-label input[type="text"] {
+.context-menu-form-label button,
+.context-menu-form-label input[type="text"] {
     border-radius: 4px;
     box-sizing: border-box;
     height: 32px;
 }
 
-.context-form-label button {
+.context-menu-form-label button {
     align-items: center;
     aspect-ratio: 1 / 1;
     background-color: var(--theme-background-d);
@@ -654,13 +660,13 @@ legend {
     padding: 6px;
 }
 
-.context-form-label input[type="text"] {
+.context-menu-form-label input[type="text"] {
     background-color: var(--theme-background-d);
     border: none;
     color: var(--theme-text);
 }
 
-.context-form-modal {
+.context-menu-form-modal {
     background-color: var(--theme-background-d);
     border-radius: 4px;
     box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.45);
@@ -671,20 +677,20 @@ legend {
     box-sizing: border-box;
 }
 
-.context-form-details button {
+.context-menu-form-details button {
     background-color: var(--theme-background-d);
     aspect-ratio: 1 / 1;
     line-height: 0;
     width: 26px;
 }
 
-.context-form-details > div {
+.context-menu-form-details > div {
     display: flex;
     align-items: center;
     gap: 4px;
 }
 
-.context-form-details > div > legend {
+.context-menu-form-details > div > legend {
     border-radius: 4px;
     font-weight: normal;
     padding: 4px 8px;
@@ -692,7 +698,7 @@ legend {
     width: 40px;
 }
 
-.context-form-details > div > span {
+.context-menu-form-details > div > span {
     align-items: center;
     border-radius: 4px;
     border: 1px solid var(--theme-background-d);
@@ -704,35 +710,35 @@ legend {
     padding-left: 12px;
 }
 
-.context-form-details > div + div {
+.context-menu-form-details > div + div {
     margin-top: 4px;
 }
 
-.context-form-conditions {
+.context-menu-form-conditions {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     grid-gap: 4px;
 }
 
-.context-form-conditions .button {
+.context-menu-form-conditions .button {
     aspect-ratio: 1 / 1;
     background-color: var(--theme-background-d);
 }
 
-.context-form-conditions input {
+.context-menu-form-conditions input {
     display: none;
 }
 
-.context-form-conditions input:checked + label {
+.context-menu-form-conditions input:checked + label {
     background-color: var(--theme-background-d);
     color: var(--theme-text-link) !important;
 }
 
-.context-form-conditions input:indeterminate + label {
+.context-menu-form-conditions input:indeterminate + label {
     background-color: var(--theme-background-d);
 }
 
-.context-form-conditions label {
+.context-menu-form-conditions label {
     align-items: center;
     aspect-ratio: 1 / 1;
     border-radius: 3px;
@@ -743,8 +749,47 @@ legend {
     position: relative;
 }
 
-.context-form-conditions label:hover {
+.context-menu-form-conditions label:hover {
     background-color: var(--theme-background-d);
+}
+
+.context-menu-form-color input[type="range"] {
+    width: 100%;
+}
+
+.context-menu-form-colors {
+    display: grid;
+    gap: 4px;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+}
+
+.context-menu-form-colors > div {
+    aspect-ratio: 1 / 1;
+    border-radius: 3px;
+}
+
+.context-menu-form-pattern {
+    display: grid;
+    gap: 4px;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+}
+
+.context-menu-form-pattern svg {
+    aspect-ratio: 1 / 1;
+    background-color: var(--theme-background-d);
+    border-radius: 50%;
+    border: 1px solid var(--theme-text);
+    box-sizing: border-box;
+    color: var(--theme-text);
+    cursor: pointer;
+}
+
+.context-menu-form-pattern svg:hover {
+    background-color: var(--theme-paper-light);
+    border-color: #fff;
+    color: var(--theme-background-d);
 }
 
 /* Token Images Form */
