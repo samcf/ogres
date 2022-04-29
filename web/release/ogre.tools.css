@@ -1212,7 +1212,6 @@ legend {
     background-size: cover;
     border: 1px solid var(--theme-background-d);
     cursor: pointer;
-    height: 100%;
     grid-area: a;
     border-radius: 3px;
     box-sizing: border-box;
