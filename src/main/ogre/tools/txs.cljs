@@ -120,11 +120,12 @@
    (transact context element true))
   ([{:keys [data]} element replace?]
    (let [select [:canvas/_selected]
-         result (ds/pull data select element)
-         tx-fn  (if (:canvas/_selected result) :db/retract :db/add)]
+         result (ds/pull data select element)]
      [(if replace?
         [:db/retract [:db/ident :canvas] :canvas/selected])
-      [tx-fn [:db/ident :canvas] :canvas/selected element]])))
+      (if (and (not replace?) (:canvas/_selected result))
+        [:db/retract [:db/ident :canvas] :canvas/selected element]
+        [:db/add [:db/ident :canvas] :canvas/selected element])])))
 
 (defmethod transact :element/remove
   [_ idents]

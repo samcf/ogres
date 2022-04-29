@@ -418,7 +418,7 @@
               (let [ox (.-x data) oy (.-y data)]
                 (if (and (= ox 0) (= oy 0))
                   (let [id (.. event -target (closest ".canvas-token[data-id]") -dataset -id)]
-                    (dispatch :element/select (js/Number id) false))
+                    (dispatch :element/select (js/Number id) (not (.-shiftKey event))))
                   (dispatch :token/translate-all idents ox oy (not= (.-metaKey event) align?)))))}
            [:g.canvas-selected {:key idents}
             (for [data selected :let [{id :db/id [x y] :pos/vec} data]]
