@@ -68,6 +68,24 @@
        (fn [event]
          (on-change (.. event -target -checked)))}] key)))
 
+(defn compare-and-toggle
+  ([prev next]
+   (compare-and-toggle prev next nil))
+  ([prev next else]
+   (if (= prev next) else next)))
+
+(defn context-menu [render-toolbar render-form]
+  (let [selected (uix/state nil)
+        callback (uix/callback #(swap! selected compare-and-toggle %1) [@selected])
+        props    {:selected @selected :on-change callback}]
+    [:div.context-menu {:on-mouse-down stop-propagation}
+     [:div.context-menu-toolbar
+      (render-toolbar props)]
+     (if-let [selected @selected]
+       [:div.context-menu-form
+        {:css (str "context-menu-form-" (name selected))}
+        (render-form props)])]))
+
 (def scene-query
   {:pull
    [{:root/canvas
@@ -260,53 +278,44 @@
 (defmethod shape-form :default [] [])
 
 (defmethod shape-form :color [{:keys [on-change values]}]
-  [:div.context-form-color
+  [:fieldset
    [:input
     {:type "range" :min 0 :max 1 :step 0.10
      :value (first (values :shape/opacity))
      :on-change #(on-change :element/update :shape/opacity (.. %1 -target -value))}]
-   [:div.context-form-colors
+   [:div.context-menu-form-colors
     (for [color ["#ffeb3b" "#ff9800" "#f44336" "#673ab7" "#2196f3" "#009688" "#8bc34a" "#fff" "#9e9e9e" "#000"]]
       [:div
        {:key color :style {:background-color color}
         :on-click #(on-change :element/update :shape/color color)}])]])
 
 (defmethod shape-form :pattern [{:keys [on-change]}]
-  [:div.context-form-pattern
-   (for [pattern-name [:solid :lines :circles :crosses :caps :waves]]
-     (let [id (str "template-pattern-" (name pattern-name))]
-       [:svg {:key pattern-name :width "100%" :on-click #(on-change :element/update :shape/pattern pattern-name)}
-        [:defs [pattern {:id id :name pattern-name}]]
-        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill (str "url(#" id ")")}]]))])
+  (for [pattern-name [:solid :lines :circles :crosses :caps :waves]]
+    (let [id (str "template-pattern-" (name pattern-name))]
+      [:svg {:key pattern-name :width "100%" :on-click #(on-change :element/update :shape/pattern pattern-name)}
+       [:defs [pattern {:id id :name pattern-name}]]
+       [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill (str "url(#" id ")")}]])))
 
-(defn shapes-context-menu [{:keys [shape]}]
-  (let [dispatch    (use-query)
-        selected    (uix/state nil)
-        on-select   (fn [form-name]
-                      (fn []
-                        (reset! selected (if (not= form-name @selected) form-name nil))))]
-    [:div.context-menu {:on-mouse-down stop-propagation}
-     [:div.context-toolbar
-      [:button {:type "button" :data-tooltip "Color" :on-click (on-select :color)}
-       [icon {:name "palette-fill"}]]
-      [:button {:type "button" :data-tooltip "Pattern" :on-click (on-select :pattern)}
-       [icon {:name "paint-bucket"}]]
-      [:button
-       {:type "button" :data-tooltip "Remove" :style {:margin-left "auto"}
-        :on-click #(dispatch :element/remove [(:db/id shape)])}
-       [icon {:name "trash"}]]]
-     (let [selected @selected]
-       (if (not (nil? selected))
-         [:div.context-form
-          [shape-form
-           {:name selected
-            :values
-            (fn vs
-              ([f] (vs f #{}))
-              ([f init] (into init (map f) [shape])))
-            :on-change
-            (fn [tx-name & args]
-              (apply dispatch tx-name [(:db/id shape)] args))}]]))]))
+(defn shape-context-menu [{:keys [shape]}]
+  (let [dispatch (use-query)]
+    [context-menu
+     (fn [{:keys [on-change]}]
+       [:<>
+        [:button {:type "button" :data-tooltip "Color" :on-click #(on-change :color)}
+         [icon {:name "palette-fill"}]]
+        [:button {:type "button" :data-tooltip "Pattern" :on-click #(on-change :pattern)}
+         [icon {:name "paint-bucket"}]]
+        [:button
+         {:type "button" :data-tooltip "Remove" :style {:margin-left "auto"}
+          :on-click #(dispatch :element/remove [(:db/id shape)])}
+         [icon {:name "trash"}]]])
+     (fn [{:keys [selected]}]
+       [shape-form
+        {:name      selected
+         :on-change #(apply dispatch %1 [(:db/id shape)] %&)
+         :values    (fn vs
+                      ([f] (vs f #{}))
+                      ([f init] (into init (map f) [shape])))}])]))
 
 (def shapes-query
   {:pull
@@ -345,9 +354,8 @@
            [:defs [pattern {:id id :name (:shape/pattern element) :color (:shape/color element)}]]
            [shape {:element element :attrs {:fill (str "url(#" id ")")}}]
            (if (and (:root/host? result) (:canvas/_selected element))
-             [:foreignObject
-              {:x -200 :y 0 :width 400 :height 400 :transform (str "") :style {:pointer-events "none"}}
-              [shapes-context-menu
+             [:foreignObject.context-menu-object {:x -200 :y 0 :width 400 :height 400}
+              [shape-context-menu
                {:shape element}]])])]])))
 
 (defn stamp [{:keys [checksum]}]
@@ -438,17 +446,17 @@
                  (.delete (.-images store) checksum))}
               (js/String.fromCharCode 215)]])]))]]))
 
-(defmulti form :name)
+(defmulti token-form :name)
 
-(defmethod form :default [] nil)
+(defmethod token-form :default [] nil)
 
-(defmethod form :label [props]
-  (let [input-ref   (uix/ref)
-        input-val   (uix/state
-                     (fn []
-                       (let [vs ((:values props) :element/name)]
-                         (if (= (count vs) 1) (first vs) ""))))
-        modal-open? (uix/state false)]
+(defmethod token-form :label [props]
+  (let [thumb-open (uix/state false)
+        input-ref  (uix/ref)
+        input-val  (uix/state
+                    (fn []
+                      (let [vs ((:values props) :element/name)]
+                        (if (= (count vs) 1) (first vs) ""))))]
     (uix/effect! #(.select @input-ref) [])
     [:form
      {:on-submit
@@ -459,7 +467,7 @@
      [:button.button
       {:type         "button"
        :data-tooltip "Select or upload an image"
-       :on-click     #(swap! modal-open? not)}
+       :on-click     #(swap! thumb-open not)}
       [icon {:name "person-circle" :size 22}]]
      [:input
       {:type "text"
@@ -468,15 +476,15 @@
        :auto-focus true
        :placeholder "Press 'Enter' to submit..."
        :on-change #(reset! input-val (.. %1 -target -value))}]
-     (if @modal-open?
+     (if @thumb-open
        [portal/use {:label :modal}
-        [:div.context-form-modal
+        [:div.context-menu-form-modal
          [images-form
           {:on-change
            (fn [checksum]
              ((:on-change props) :token/change-stamp checksum))}]]])]))
 
-(defmethod form :details [props]
+(defmethod token-form :details [props]
   (for [[label tx-name attr min def]
         [["Size" :token/change-size :token/size 5 5]
          ["Light" :token/change-light :token/light 0 15]
@@ -503,7 +511,7 @@
            (let [next (if (> (count values) 1) 5 (+ (first values) 5))]
              ((:on-change props) tx-name next)))} "+"]])))
 
-(defmethod form :conditions [props]
+(defmethod token-form :conditions [props]
   (let [fqs (frequencies (reduce into [] ((:values props) :element/flags [])))
         ids ((:values props) :db/id)]
     (for [[flag icon-name] conditions]
@@ -519,48 +527,43 @@
           [:label {:for key :data-tooltip (capitalize (name flag))}
            [icon {:name icon-name :size 22}]]])])))
 
-(defn context-menu [{tokens :tokens}]
-  (let [dispatch   (use-query)
-        idents     (map :db/id tokens)
-        selected   (uix/state nil)]
-    [:div.context-menu
-     {:on-mouse-down stop-propagation}
-     [:div.context-toolbar
-      (for [[form icon-name tooltip]
-            [[:label "fonts" "Label"]
-             [:details "sliders" "Options"]
-             [:conditions "flag-fill" "Conditions"]]]
+(defn token-context-menu [{tokens :tokens}]
+  (let [dispatch (use-query)
+        idents   (map :db/id tokens)]
+    [context-menu
+     (fn [{:keys [selected on-change]}]
+       [:<>
+        (for [[form icon-name tooltip]
+              [[:label "fonts" "Label"]
+               [:details "sliders" "Options"]
+               [:conditions "flag-fill" "Conditions"]]]
+          [:button
+           {:key form :type "button" :data-tooltip tooltip
+            :css {:selected (= selected form)}
+            :on-click #(on-change form)}
+           [icon {:name icon-name :size 22}]])
+        (let [on (every? (comp boolean :hidden :element/flags) tokens)]
+          [:button
+           {:type "button" :css {:selected on} :data-tooltip (if on "Reveal" "Hide")
+            :on-click #(dispatch :element/flag idents :hidden (not on))}
+           [icon {:name (if on "eye-slash-fill" "eye-fill") :size 22}]])
+        (let [on (every? (comp vector? :canvas/_initiative) tokens)]
+          [:button
+           {:type "button" :css {:selected on} :data-tooltip "Initiative"
+            :on-click #(dispatch :initiative/toggle idents (not on))}
+           [icon {:name "hourglass-split" :size 22}]])
         [:button
-         {:key form :type "button" :data-tooltip tooltip
-          :css {:selected (= @selected form)}
-          :on-click
-          (fn []
-            (swap! selected (fn [prev] (if (not (= prev form)) form nil))))}
-         [icon {:name icon-name :size 22}]])
-      (let [on (every? (comp boolean :hidden :element/flags) tokens)]
-        [:button
-         {:type "button" :css {:selected on} :data-tooltip (if on "Reveal" "Hide")
-          :on-click #(dispatch :element/flag idents :hidden (not on))}
-         [icon {:name (if on "eye-slash-fill" "eye-fill") :size 22}]])
-      (let [on (every? (comp vector? :canvas/_initiative) tokens)]
-        [:button
-         {:type "button" :css {:selected on} :data-tooltip "Initiative"
-          :on-click #(dispatch :initiative/toggle idents (not on))}
-         [icon {:name "hourglass-split" :size 22}]])
-      [:button
-       {:type "button" :data-tooltip "Remove"
-        :on-click #(dispatch :element/remove idents)}
-       [icon {:name "trash" :size 22}]]]
-     (if-let [form-name @selected]
-       [:div.context-form
-        {:key form-name :css (str "context-form-" (name form-name))}
-        [form
-         {:name      form-name
-          :on-close  #(reset! selected nil)
-          :on-change #(apply dispatch %1 idents %&)
-          :values    (fn vs
-                       ([f] (vs f #{}))
-                       ([f init] (into init (map f) tokens)))}]])]))
+         {:type "button" :data-tooltip "Remove"
+          :on-click #(dispatch :element/remove idents)}
+         [icon {:name "trash" :size 22}]]])
+     (fn [{:keys [selected on-change]}]
+       [token-form
+        {:name      selected
+         :on-close  #(on-change nil)
+         :on-change #(apply dispatch %1 idents %&)
+         :values    (fn vs
+                      ([f] (vs f #{}))
+                      ([f init] (into init (map f) tokens)))}])]))
 
 (defn token [{:keys [data size]}]
   (let [radius (-> data :token/size (ft->px size) (/ 2) (- 2) (max 16))]
@@ -592,8 +595,8 @@
              [icon {:name (icons flag) :size 12}]]])))
      (let [token-label (label data)]
        (if (seq token-label)
-         [:foreignObject
-          {:x -200 :y (- radius 8) :width 400 :height 32 :style {:pointer-events "none"}}
+         [:foreignObject.context-menu-object
+          {:x -200 :y (- radius 8) :width 400 :height 32}
           [:div.canvas-token-label
            [:span token-label]]]))]))
 
@@ -688,7 +691,7 @@
                 :width 400 :height 400
                 :transform (str "scale(" (/ scale) ")")
                 :style {:pointer-events "none"}}
-               [context-menu {:tokens selected}]])]]]))]))
+               [token-context-menu {:tokens selected}]])]]]))]))
 
 (defn bounds []
   (let [[result] (use-query {:pull [:bounds/host :bounds/guest]})
