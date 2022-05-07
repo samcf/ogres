@@ -207,7 +207,9 @@ legend {
 }
 
 .layout-workspaces {
+    gap: 8px;
     grid-area: a;
+    display: flex;
 }
 
 .layout-canvas,
@@ -243,6 +245,7 @@ legend {
 /* Workspaces */
 .workspaces {
     display: flex;
+    flex: 1;
     flex-wrap: wrap;
     font-size: 14px;
     gap: 4px;
@@ -300,6 +303,21 @@ legend {
     color: rgb(180, 180, 180);
     cursor: pointer;
     width: 30px;
+}
+
+/* Lobby */
+.lobby {
+    margin-left: auto;
+}
+
+.lobby button {
+    background: rgb(63,94,251);
+    background: linear-gradient(90deg, rgba(63,94,251,1) 0%, rgba(255,0,255,1) 100%);
+    padding: 4px 8px;
+    border: none;
+    color: white;
+    cursor: pointer;
+    border-radius: 4px;
 }
 
 /* Toolbar */

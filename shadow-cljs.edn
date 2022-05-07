@@ -1,4 +1,4 @@
-{:deps     true
+{:deps     {:aliases [:application]}
  :dev-http {8080 "web"}
  :builds   {:app {:target           :browser
                   :compiler-options {:infer-externs :auto :externs ["datascript/externs.js"]}

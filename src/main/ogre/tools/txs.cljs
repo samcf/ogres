@@ -471,3 +471,5 @@
 (defmethod transact :mask/remove
   [_ id]
   [[:db/retract [:db/ident :canvas] :canvas/masks id]])
+
+(defmethod transact :lobby/create [] [])

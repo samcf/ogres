@@ -7,6 +7,7 @@
             [ogre.tools.render.tokens :refer [tokens]]
             [ogre.tools.render.toolbar :refer [toolbar]]
             [ogre.tools.render.workspaces :refer [workspaces]]
+            [ogre.tools.session :as session]
             [ogre.tools.shortcut :as shortcut]
             [ogre.tools.state :as state :refer [use-query]]
             [ogre.tools.storage :as storage]
@@ -63,6 +64,7 @@
       [:<>
        [storage/handlers]
        [window/provider]
+       [session/handlers]
        [shortcut/handlers]
        [portal/provider
         [layout]]]]]]])
