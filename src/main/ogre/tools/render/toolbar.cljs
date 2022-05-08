@@ -34,7 +34,8 @@
     [:share/open? :default false]
     [:share/paused? :default false]
     {:root/canvas
-     [[:canvas/mode :default :select]
+     [:entity/key
+      [:canvas/mode :default :select]
       [:zoom/scale :default 1]]}]})
 
 (defn toolbar []
@@ -74,17 +75,17 @@
       [:div.toolbar-group
        [:button.toolbar-zoom
         {:disabled (= (:zoom/scale canvas) 1)
-         :on-click #(dispatch :zoom/reset)
+         :on-click #(dispatch :zoom/reset (:entity/key canvas))
          :on-mouse-enter (tooltip-fn :zoom/reset)}
         (-> (:zoom/scale canvas) (* 100) (js/Math.trunc) (str "%"))]
        [:button
         {:disabled (= (:zoom/scale canvas) 0.15)
-         :on-click #(dispatch :zoom/out)
+         :on-click #(dispatch :zoom/out (:entity/key canvas))
          :on-mouse-enter (tooltip-fn :zoom/out)}
         [icon {:name "zoom-out"}]]
        [:button
         {:disabled (= (:zoom/scale canvas) 4)
-         :on-click #(dispatch :zoom/in)
+         :on-click #(dispatch :zoom/in (:entity/key canvas))
          :on-mouse-enter (tooltip-fn :zoom/in)}
         [icon {:name "zoom-in"}]]]
       [:div.toolbar-group
@@ -100,11 +101,11 @@
        [:button (mode-attrs :mask-toggle) [icon {:name "magic"}] [shortcut "T"]]
        [:button (mode-attrs :mask-remove) [icon {:name "eraser-fill"}] [shortcut "X"]]
        [:button
-        {:on-click #(dispatch :mask/fill)
+        {:on-click #(dispatch :mask/fill (:entity/key canvas))
          :on-mouse-enter (tooltip-fn :mask/hide)}
         [icon {:name "eye-slash-fill"}]]
        [:button
-        {:on-click #(dispatch :mask/clear)
+        {:on-click #(dispatch :mask/clear (:entity/key canvas))
          :on-mouse-enter (tooltip-fn :mask/show)}
         [icon {:name "eye-fill"}]]]
       [:div.toolbar-group

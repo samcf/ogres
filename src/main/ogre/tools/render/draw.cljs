@@ -1,5 +1,6 @@
 (ns ogre.tools.render.draw
   (:require [clojure.string :refer [join]]
+            [datascript.core :refer [squuid]]
             [ogre.tools.render.portal :as portal]
             [ogre.tools.geom :refer [chebyshev euclidean triangle]]
             [ogre.tools.state :refer [use-query]]
@@ -57,7 +58,8 @@
   {:pull
    [:bounds/self
     {:root/canvas
-     [[:grid/size :default 70]
+     [:entity/key
+      [:grid/size :default 70]
       [:grid/align :default false]
       [:zoom/scale :default 1]
       [:pos/vec :default [0 0]]]}]})
@@ -129,9 +131,11 @@
 
 (defmethod draw :grid []
   (let [[result dispatch] (use-query draw-query)
-        {[ox oy] :bounds/self
-         {[tx ty] :pos/vec
-          scale :zoom/scale} :root/canvas} result]
+        {[ox oy]  :bounds/self
+         {key     :entity/key
+          [tx ty] :pos/vec
+          scale   :zoom/scale} :root/canvas} result]
+    (println key)
     [drawable
      {:transform
       (fn [_ xs]
@@ -141,7 +145,7 @@
         (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)
               size (js/Math.abs (min (- bx ax) (- by ay)))]
           (if (> size 0)
-            (dispatch :grid/draw ax ay size))))}
+            (dispatch :grid/draw key ax ay size))))}
      (fn [_ xs]
        (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)
              size (min (- bx ax) (- by ay))]
@@ -197,7 +201,7 @@
             [ax ay bx by])))
       :on-release
       (fn [_ xs]
-        (dispatch :shape/create :circle xs))}
+        (dispatch :shape/create (squuid) :circle xs))}
      (fn [_ xs]
        (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)
              radius (chebyshev ax ay bx by)]
@@ -222,7 +226,7 @@
             (xs-xfs xs xf cat))))
       :on-release
       (fn [_ xs]
-        (dispatch :shape/create :rect xs))}
+        (dispatch :shape/create (squuid) :rect xs))}
      (fn [_ xs]
        (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)]
          [:g
@@ -248,7 +252,7 @@
             (xs-xfs xs xf cat))))
       :on-release
       (fn [_ xs]
-        (dispatch :shape/create :line xs))}
+        (dispatch :shape/create (squuid) :line xs))}
      (fn [_ xs]
        (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)]
          [:g [:line {:x1 ax :y1 ay :x2 bx :y2 by}]
@@ -270,7 +274,7 @@
           (xs-xfs xs xf cat)))
       :on-release
       (fn [_ xs]
-        (dispatch :shape/create :cone xs))}
+        (dispatch :shape/create (squuid) :cone xs))}
      (fn [_ xs]
        (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)]
          [:g
@@ -285,11 +289,12 @@
     [polygon
      {:on-create
       (fn [_ xs]
-        (dispatch :shape/create :poly xs))}]))
+        (dispatch :shape/create (squuid) :poly xs))}]))
 
 (defmethod draw :mask []
-  (let [dispatch (use-query)]
+  (let [[result dispatch] (use-query draw-query)
+        {{key :entity/key} :root/canvas} result]
     [polygon
      {:on-create
       (fn [event xs]
-        (dispatch :mask/create (not (.-shiftKey event)) xs))}]))
+        (dispatch :mask/create key (squuid) (not (.-shiftKey event)) xs))}]))

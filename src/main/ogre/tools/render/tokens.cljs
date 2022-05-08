@@ -1,5 +1,6 @@
 (ns ogre.tools.render.tokens
-  (:require [ogre.tools.state :refer [use-query]]
+  (:require [datascript.core :refer [squuid]]
+            [ogre.tools.state :refer [use-query]]
             [react-draggable]))
 
 (defn round [x n]
@@ -34,5 +35,5 @@
                y (-> (.-y r) (+ (* (/ 2) h)) (- oy) (* (/ scale)) (- ty))
                x (if (not= align (.-metaKey event)) (round x (/ size 2)) x)
                y (if (not= align (.-metaKey event)) (round y (/ size 2)) y)]
-           (dispatch :token/create x y)))}
+           (dispatch :token/create (squuid) x y)))}
       [:svg [:circle {:cx 32 :cy 32 :r 33 :fill "url(#token-stamp-default)"}]]]]))

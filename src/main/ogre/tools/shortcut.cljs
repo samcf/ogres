@@ -79,15 +79,19 @@
    ["wheel"]
    (fn [[conn dispatch] event]
      (if (.. event -target (closest "svg.canvas"))
-       (let [{[ox oy _ _] :bounds/self} (pull @conn [:bounds/self] [:db/ident :root])
+       (let [lookup [:db/ident :root]
+             select [:bounds/self {:root/canvas [:entity/key]}]
+             result (pull @conn select lookup)
+             {[ox oy _ _]       :bounds/self
+              {key :entity/key} :root/canvas} result
              cx (- (.-clientX event) ox)
              cy (- (.-clientY event) oy)
              dy (.-deltaY event)
              dt (linear -400 400 -0.50 0.50)]
          (if (.-ctrlKey event)
            (do (.preventDefault event)
-               (dispatch :zoom/delta (dt (* -1 8 dy)) cx cy))
-           (dispatch :zoom/delta (dt (* -1 2 dy)) cx cy)))))})
+               (dispatch :zoom/delta key (dt (* -1 8 dy)) cx cy))
+           (dispatch :zoom/delta key (dt (* -1 2 dy)) cx cy)))))})
 
 (defn event-key [type event]
   (case type

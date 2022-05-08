@@ -1,6 +1,6 @@
 (ns ogre.tools.state
   (:require [uix.core.alpha :as uix :refer [defcontext]]
-            [datascript.core :as ds]
+            [datascript.core :as ds :refer [squuid]]
             [ogre.tools.txs :as txs]))
 
 (goog-define VERSION "latest")
@@ -8,6 +8,7 @@
 
 (def schema
   {:db/ident          {:db/unique :db.unique/identity}
+   :entity/key        {:db/unique :db.unique/identity}
    :root/canvases     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :root/scenes       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :root/stamps       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
@@ -25,12 +26,14 @@
   (ds/db-with
    (ds/empty-db schema)
    [[:db/add -1 :db/ident :root]
+    [:db/add -1 :entity/key (squuid)]
     [:db/add -1 :root/release VERSION]
     [:db/add -1 :root/canvases -2]
     [:db/add -1 :root/canvas -2]
     [:db/add -1 :bounds/self [0 0 0 0]]
     [:db/add -1 :bounds/host [0 0 0 0]]
     [:db/add -1 :bounds/guest [0 0 0 0]]
+    [:db/add -2 :entity/key (squuid)]
     [:db/add -2 :db/ident :canvas]
     [:db/add -2 :element/name ""]]))
 
@@ -48,7 +51,7 @@
   ([] (let [[_ dispatch] (uix/context state)] dispatch))
   ([{:keys [query pull args] :or {query root-query args []}}]
    (let [[conn dispatch] (uix/context state)
-         listen-key      (deref (uix/state (ds/squuid)))
+         listen-key      (deref (uix/state (squuid)))
          get-result      (uix/callback
                           (fn []
                             (let [args (if pull (conj args pull) args)]

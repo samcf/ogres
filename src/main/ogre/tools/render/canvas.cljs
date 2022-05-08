@@ -123,7 +123,7 @@
      [[:canvas/mode :default :select]
       [:mask/filled? :default false]
       {:canvas/scene [:image/width :image/height]}
-      {:canvas/masks [:db/id :mask/vecs :mask/enabled?]}]}]})
+      {:canvas/masks [:entity/key :mask/vecs :mask/enabled?]}]}]})
 
 (defn canvas-mask []
   (let [[result dispatch] (use-query canvas-mask-query)
@@ -140,22 +140,22 @@
       [:mask {:id "canvas-mask"}
        (if filled?
          [:rect {:x 0 :y 0 :width width :height height :fill "white"}])
-       (for [{id :db/id enabled? :mask/enabled? xs :mask/vecs} masks]
-         [:polygon {:key id :points (join " " xs) :fill (if enabled? "white" "black")}])]]
+       (for [{key :entity/key enabled? :mask/enabled? xs :mask/vecs} masks]
+         [:polygon {:key key :points (join " " xs) :fill (if enabled? "white" "black")}])]]
      [:rect.canvas-mask-background {:x 0 :y 0 :width width :height height :mask "url(#canvas-mask)"}]
      [:rect.canvas-mask-pattern {:x 0 :y 0 :width width :height height :fill "url(#mask-pattern)" :mask "url(#canvas-mask)"}]
      (if (and host? (contains? modes mode))
-       (for [{id :db/id xs :mask/vecs enabled? :mask/enabled?} masks]
+       (for [{key :entity/key xs :mask/vecs enabled? :mask/enabled?} masks]
          [:polygon.canvas-mask-polygon
-          {:key id
+          {:key key
            :data-enabled enabled?
            :points (join " " xs)
            :on-mouse-down stop-propagation
            :on-click
            (fn []
              (case mode
-               :mask-toggle (dispatch :mask/toggle id (not enabled?))
-               :mask-remove (dispatch :mask/remove id)))}]))]))
+               :mask-toggle (dispatch :mask/toggle key (not enabled?))
+               :mask-remove (dispatch :mask/remove key)))}]))]))
 
 (def grid-query
   {:pull
@@ -247,7 +247,7 @@
       [[:zoom/scale :default 1]
        [:grid/align :default false]
        {:canvas/shapes
-        [:db/id
+        [:entity/key
          :element/name
          :shape/kind
          :shape/vecs
@@ -258,8 +258,8 @@
 
 (defn shapes []
   (let [[result dispatch] (use-query shapes-query)]
-    (for [element (-> result :root/canvas :canvas/shapes) :let [{id :db/id [ax ay] :shape/vecs} element]]
-      ^{:key id}
+    (for [element (-> result :root/canvas :canvas/shapes) :let [{key :entity/key [ax ay] :shape/vecs} element]]
+      ^{:key key}
       [portal/use {:label (if (and (:canvas/_selected element) (:root/host? result)) :selected)}
        [:> react-draggable
         {:scale    (-> result :root/canvas :zoom/scale)
@@ -269,8 +269,8 @@
          (fn [event data]
            (let [ox (.-x data) oy (.-y data)]
              (if (> (euclidean ax ay ox oy) 0)
-               (dispatch :shape/translate id ox oy (not= (.-metaKey event) (-> result :root/canvas :grid/align)))
-               (dispatch :element/select id))))}
+               (dispatch :shape/translate key ox oy (not= (.-metaKey event) (-> result :root/canvas :grid/align)))
+               (dispatch :element/select key true))))}
         (let [id (squuid)]
           [:g
            {:css {:canvas-shape true :selected (:canvas/_selected element) (str "canvas-shape-" (name (:shape/kind element))) true}}
@@ -355,7 +355,7 @@
       [:grid/align :default false]
       [:zoom/scale :default 1]
       {:canvas/tokens
-       [:db/id
+       [:entity/key
         [:initiative/suffix :default nil]
         [:pos/vec :default [0 0]]
         [:element/flags :default #{}]
@@ -364,8 +364,8 @@
         [:token/light :default 15]
         [:aura/radius :default 0]
         {:token/stamp [:image/checksum]}
-        {:canvas/_initiative [:db/id]}
-        {:canvas/_selected [:db/id]}]}]}]})
+        {:canvas/_initiative [:db/id :entity/key]}
+        {:canvas/_selected [:entity/key]}]}]}]})
 
 (defn tokens []
   (let [[result dispatch] (use-query tokens-query)
@@ -389,9 +389,9 @@
              (sort token-comparator)
              (separate (fn [token] (contains? token :canvas/_selected))))]
     [:<>
-     (for [data tokens :let [{id :db/id [ax ay] :pos/vec} data]]
+     (for [data tokens :let [{key :entity/key [ax ay] :pos/vec} data]]
        [:> react-draggable
-        {:key      id
+        {:key      key
          :position #js {:x ax :y ay}
          :scale    scale
          :on-start stop-propagation
@@ -400,13 +400,13 @@
            (.stopPropagation event)
            (let [bx (.-x data) by (.-y data)]
              (if (= (euclidean ax ay bx by) 0)
-               (dispatch :element/select id (not (.-shiftKey event)))
+               (dispatch :element/select key (not (.-shiftKey event)))
                (let [align? (not= (.-metaKey event) align?)]
-                 (dispatch :token/translate id bx by align?)))))}
+                 (dispatch :token/translate key bx by align?)))))}
         [:g.canvas-token {:css (css data)}
          [token {:data data :size size}]]])
      (if (seq selected)
-       (let [idents (map :db/id selected)
+       (let [keys         (map :entity/key selected)
              [ax _ bx by] (apply bounding-box (map :pos/vec selected))]
          [portal/use {:label (if host? :selected)}
           [:> react-draggable
@@ -417,13 +417,13 @@
             (fn [event data]
               (let [ox (.-x data) oy (.-y data)]
                 (if (and (= ox 0) (= oy 0))
-                  (let [id (.. event -target (closest ".canvas-token[data-id]") -dataset -id)]
-                    (dispatch :element/select (js/Number id) (not (.-shiftKey event))))
-                  (dispatch :token/translate-all idents ox oy (not= (.-metaKey event) align?)))))}
-           [:g.canvas-selected {:key idents}
-            (for [data selected :let [{id :db/id [x y] :pos/vec} data]]
+                  (let [key (.. event -target (closest ".canvas-token[data-key]") -dataset -key)]
+                    (dispatch :element/select (uuid key) (not (.-shiftKey event))))
+                  (dispatch :token/translate-all keys ox oy (not= (.-metaKey event) align?)))))}
+           [:g.canvas-selected {:key keys}
+            (for [data selected :let [{key :entity/key [x y] :pos/vec} data]]
               [:g.canvas-token
-               {:key id :css (css data) :data-id id :transform (str "translate(" x "," y ")")}
+               {:key key :css (css data) :data-key key :transform (str "translate(" x "," y ")")}
                [token {:data data :size size}]])
             (if host?
               [:foreignObject

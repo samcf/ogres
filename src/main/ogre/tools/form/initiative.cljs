@@ -15,6 +15,7 @@
    '[:find (pull $ ?id pattern) . :in $ ?id pattern]
    :pull
    [:db/id
+    :entity/key
     :element/name
     :element/flags
     :initiative/roll
@@ -74,8 +75,9 @@
 
 (defn initiant [{:keys [id]}]
   (let [[data dispatch] (use-query (initiant-query id))
-        {name :element/name
-         sffx :initiative/suffix
+        {key   :entity/key
+         name  :element/name
+         sffx  :initiative/suffix
          flags :element/flags
          {checksum :image/checksum} :token/stamp} data
         url (use-image checksum)]
@@ -83,15 +85,15 @@
      (if checksum
        [:div.initiant-image
         {:style {:background-image (str "url(" url ")")}
-         :on-click #(dispatch :element/select id)}]
+         :on-click #(dispatch :element/select key true)}]
        [:div.initiant-pattern
-        {:on-click #(dispatch :element/select id)}
+        {:on-click #(dispatch :element/select key true)}
         [icon {:name "person-circle" :size 36}]])
      [roll-form
       {:value (:initiative/roll data)
        :on-change
        (fn [value]
-         (dispatch :initiative/change-roll id value))}]
+         (dispatch :initiative/change-roll key value))}]
      (if sffx
        [:div.initiant-suffix (char (+ sffx 64))])
      [:div.initiant-info
@@ -105,32 +107,33 @@
       {:value (:initiative/health data)
        :on-change
        (fn [f v]
-         (dispatch :initiative/change-health id f v))}]]))
+         (dispatch :initiative/change-health key f v))}]]))
 
 (def query
   {:pull
    [{:root/canvas
-     [{:canvas/initiative
+     [:entity/key
+      {:canvas/initiative
        [:db/id
+        :entity/key
         :element/name
         :element/flags
         :initiative/roll
         :initiative/suffix]}]}]})
 
 (defn initiative []
-  (let [[data dispatch] (use-query query)
-        initiating      (-> data :root/canvas :canvas/initiative)]
-    (if (seq initiating)
+  (let [[{{key :entity/key initiative :canvas/initiative} :root/canvas} dispatch] (use-query query)]
+    (if (seq initiative)
       [:div.initiative
        [:section [:header "Initiative"]]
        [:section
         [:fieldset.table {:style {:padding "0 12px"}}
-         [button {:on-click #(dispatch :initiative/roll-all)} "Roll"]
-         [button {:on-click #(dispatch :initiative/reset-rolls)} "Reset"]
-         [button {:on-click #(dispatch :initiative/leave)} "Leave"]]]
+         [button {:on-click #(dispatch :initiative/roll-all key)} "Roll"]
+         [button {:on-click #(dispatch :initiative/reset-rolls key)} "Reset"]
+         [button {:on-click #(dispatch :initiative/leave key)} "Leave"]]]
        [:section
         [:ol
-         (for [{:keys [db/id]} (sort order initiating)]
+         (for [{:keys [db/id]} (sort order initiative)]
            ^{:key id} [initiant {:id id}])]]]
       [:div.initiative
        [:section [:header "Initiative"]]

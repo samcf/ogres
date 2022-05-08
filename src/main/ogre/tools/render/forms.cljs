@@ -78,15 +78,10 @@
       {:ref upload-ref
        :on-upload
        (fn [[file data-url image]]
-         (let [checksum (checksum data-url)
-               record   #js {:checksum checksum :data data-url :created-at (.now js/Date)}
-               entity   {:image/checksum checksum
-                         :image/name     (.-name file)
-                         :image/width    (.-width image)
-                         :image/height   (.-height image)}]
+         (let [checksum (checksum data-url)]
            (.then
-            (.put (.-images store) record)
-            (fn [] (dispatch :stamp/create entity))
+            (.put (.-images store) #js {:checksum checksum :data data-url :created-at (.now js/Date)})
+            (fn [] (dispatch :stamp/create checksum (.-name file) (.-width image) (.-height image)))
             (reset! page-index 0))))}]
      [:div.images-form
       (concat
@@ -201,7 +196,7 @@
 
 (defn token-context-menu [{tokens :tokens}]
   (let [dispatch (use-query)
-        idents   (map :db/id tokens)]
+        keys     (map :entity/key tokens)]
     [context-menu
      (fn [{:keys [selected on-change]}]
        [:<>
@@ -217,22 +212,22 @@
         (let [on (every? (comp boolean :hidden :element/flags) tokens)]
           [:button
            {:type "button" :css {:selected on} :data-tooltip (if on "Reveal" "Hide")
-            :on-click #(dispatch :element/flag idents :hidden (not on))}
+            :on-click #(dispatch :element/flag keys :hidden (not on))}
            [icon {:name (if on "eye-slash-fill" "eye-fill") :size 22}]])
         (let [on (every? (comp vector? :canvas/_initiative) tokens)]
           [:button
            {:type "button" :css {:selected on} :data-tooltip "Initiative"
-            :on-click #(dispatch :initiative/toggle idents (not on))}
+            :on-click #(dispatch :initiative/toggle keys (not on))}
            [icon {:name "hourglass-split" :size 22}]])
         [:button
          {:type "button" :data-tooltip "Remove"
-          :on-click #(dispatch :element/remove idents)}
+          :on-click #(dispatch :element/remove keys)}
          [icon {:name "trash" :size 22}]]])
      (fn [{:keys [selected on-change]}]
        [token-form
         {:name      selected
          :on-close  #(on-change nil)
-         :on-change #(apply dispatch %1 idents %&)
+         :on-change #(apply dispatch %1 keys %&)
          :values    (fn vs
                       ([f] (vs f #{}))
                       ([f init] (into init (map f) tokens)))}])]))
@@ -271,12 +266,12 @@
          [icon {:name "paint-bucket"}]]
         [:button
          {:type "button" :data-tooltip "Remove" :style {:margin-left "auto"}
-          :on-click #(dispatch :element/remove [(:db/id shape)])}
+          :on-click #(dispatch :element/remove [(:entity/key shape)])}
          [icon {:name "trash"}]]])
      (fn [{:keys [selected]}]
        [shape-form
         {:name      selected
-         :on-change #(apply dispatch %1 [(:db/id shape)] %&)
+         :on-change #(apply dispatch %1 [(:entity/key shape)] %&)
          :values    (fn vs
                       ([f] (vs f #{}))
                       ([f init] (into init (map f) [shape])))}])]))

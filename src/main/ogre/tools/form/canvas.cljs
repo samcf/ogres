@@ -12,9 +12,9 @@
    [{:root/scenes [:db/id :image/checksum]}
     {:root/canvas
      [:db/id
+      :entity/key
       :element/name
-      {:canvas/scene
-       [:image/checksum]}
+      {:canvas/scene [:image/checksum]}
       [:canvas/theme :default :light]
       [:canvas/visibility :default :revealed]
       [:canvas/color :default :none]
@@ -71,7 +71,7 @@
         :on-change
         (fn [event]
           (let [value (.. event -target -value)]
-            (dispatch :element/update [(:db/id canvas)] :element/name value)))}]]
+            (dispatch :element/update [(:entity/key canvas)] :element/name value)))}]]
      [:section
       (if (and (seq scenes) @show-images)
         [:fieldset.thumbnails
@@ -80,10 +80,10 @@
            [thumbnail
             {:checksum  checksum
              :selected  (= id (:db/id (:canvas/scene canvas)))
-             :on-select (fn [] (dispatch :canvas/change-scene id))
+             :on-select (fn [] (dispatch :canvas/change-scene checksum))
              :on-remove (fn []
                           (.delete (.-images store) checksum)
-                          (dispatch :map/remove id))}])])
+                          (dispatch :map/remove checksum))}])])
       [:input
        {:type "file"
         :ref file-upload
@@ -97,13 +97,10 @@
                 (fn [[file data-url element]]
                   (let [checks (image/checksum data-url)
                         record #js {:checksum checks :data data-url :created-at (.now js/Date)}
-                        entity {:image/checksum checks
-                                :image/name     (.-name file)
-                                :image/width    (.-width element)
-                                :image/height   (.-height element)}]
+                        args   [checks (.-name file) (.-width element) (.-height element)]]
                     (-> (.put (.-images store) record)
                         (.then
-                         (fn [] (dispatch :scene/create entity)))))))))}]]
+                         (fn [] (apply dispatch :scene/create args)))))))))}]]
      [:section
       [:legend "Options"]
       [:fieldset.setting
@@ -123,7 +120,7 @@
          ^{:key option}
          [checkbox
           {:checked checked
-           :on-change #(dispatch :canvas/change-visibility option)}
+           :on-change #(dispatch :canvas/change-visibility (:entity/key canvas) option)}
           (capitalize (name option))])]
       [:fieldset.setting
        [:label "Filter"]
@@ -133,7 +130,7 @@
          ^{:key color}
          [checkbox
           {:checked checked?
-           :on-change #(dispatch :canvas/change-color color)}
+           :on-change #(dispatch :canvas/change-color (:entity/key canvas) color)}
           (capitalize (name color))])]]
      [:section.form-canvas-grid
       [:legend "Grid Configuration"]
@@ -144,14 +141,20 @@
          [checkbox
           {:checked checked?
            :on-change
-           (fn [] (if (not checked?) (dispatch :grid/toggle)))}
+           (fn []
+             (if (not checked?)
+               (dispatch :grid/toggle (:entity/key canvas) value)))}
           (if value "Yes" "No")])]
       [:fieldset.setting
        [:label "Align to Grid"]
        (for [value [false true] :let [checked? (= (:grid/align canvas) value)]]
          ^{:key value}
          [checkbox
-          {:checked checked? :on-change (fn [] (if (not checked?) (dispatch :grid/align)))}
+          {:checked checked?
+           :on-change
+           (fn []
+             (if (not checked?)
+               (dispatch :grid/align (:entity/key canvas) value)))}
           (if value "Yes" "No")])]
       [:hr]
       [:fieldset.group
