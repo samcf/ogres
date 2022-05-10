@@ -42,15 +42,18 @@
   (let [[data dispatch] (use-query query)
         container       (uix/ref)
         tooltip-key     (uix/state nil)
-        canvas          (:root/canvas data)
+
+        {{key   :entity/key
+          scale :zoom/scale
+          mode  :canvas/mode} :root/canvas} data
 
         mode-attrs
-        (fn [mode]
+        (fn [value]
           {:type "button"
-           :key mode
-           :css {:selected (= mode (:canvas/mode canvas))}
-           :on-click #(dispatch :canvas/toggle-mode mode)
-           :on-mouse-enter #(reset! tooltip-key (keyword "mode" (name mode)))})
+           :key value
+           :css {:selected (= value mode)}
+           :on-click #(dispatch :canvas/toggle-mode value)
+           :on-mouse-enter #(reset! tooltip-key (keyword "mode" (name value)))})
 
         tooltip-fn
         (fn [key]
@@ -74,18 +77,18 @@
      [:div.toolbar-groups
       [:div.toolbar-group
        [:button.toolbar-zoom
-        {:disabled (= (:zoom/scale canvas) 1)
-         :on-click #(dispatch :zoom/reset (:entity/key canvas))
+        {:disabled (= scale 1)
+         :on-click #(dispatch :zoom/reset key)
          :on-mouse-enter (tooltip-fn :zoom/reset)}
-        (-> (:zoom/scale canvas) (* 100) (js/Math.trunc) (str "%"))]
+        (-> scale (* 100) (js/Math.trunc) (str "%"))]
        [:button
-        {:disabled (= (:zoom/scale canvas) 0.15)
-         :on-click #(dispatch :zoom/out (:entity/key canvas))
+        {:disabled (= scale 0.15)
+         :on-click #(dispatch :zoom/out key)
          :on-mouse-enter (tooltip-fn :zoom/out)}
         [icon {:name "zoom-out"}]]
        [:button
-        {:disabled (= (:zoom/scale canvas) 4)
-         :on-click #(dispatch :zoom/in (:entity/key canvas))
+        {:disabled (= scale 4)
+         :on-click #(dispatch :zoom/in key)
          :on-mouse-enter (tooltip-fn :zoom/in)}
         [icon {:name "zoom-in"}]]]
       [:div.toolbar-group
@@ -101,11 +104,11 @@
        [:button (mode-attrs :mask-toggle) [icon {:name "magic"}] [shortcut "T"]]
        [:button (mode-attrs :mask-remove) [icon {:name "eraser-fill"}] [shortcut "X"]]
        [:button
-        {:on-click #(dispatch :mask/fill (:entity/key canvas))
+        {:on-click #(dispatch :mask/fill key)
          :on-mouse-enter (tooltip-fn :mask/hide)}
         [icon {:name "eye-slash-fill"}]]
        [:button
-        {:on-click #(dispatch :mask/clear (:entity/key canvas))
+        {:on-click #(dispatch :mask/clear key)
          :on-mouse-enter (tooltip-fn :mask/show)}
         [icon {:name "eye-fill"}]]]
       [:div.toolbar-group
