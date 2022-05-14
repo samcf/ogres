@@ -68,7 +68,7 @@
   (render-fn (use-image checksum)))
 
 (defn images-form [{:keys [on-change]}]
-  (let [[result dispatch] (use-query [{:root/stamps [:image/checksum]}])
+  (let [[result dispatch] (use-query [{:root/stamps [:image/checksum]}] [:db/ident :root])
         {:keys [store]}   (uix/context storage)
         thumbnails        (into [] (comp (map :image/checksum) (partition-all 15)) (reverse (:root/stamps result)))
         page-index        (uix/state 0)
@@ -180,7 +180,7 @@
 
 (defmethod token-form :conditions [props]
   (let [fqs (frequencies (reduce into [] ((:values props) :token/flags [])))
-        ids ((:values props) :db/id)]
+        ids ((:values props) :entity/key)]
     (for [[flag icon-name] conditions]
       ^{:key flag}
       [checkbox
