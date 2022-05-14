@@ -249,21 +249,21 @@
   [[:db/add [:entity/key canvas] :grid/size size]])
 
 (defmethod transact :grid/draw
-  [{:keys [data]} key _ _ size]
-  (let [lookup (ds/entid data [:entity/key key])
-        select [:db/id [:zoom/scale :default 1] {:canvas/scene [:image/width]}]
+  [{:keys [data window canvas]} _ _ size]
+  (let [lookup [:entity/key window]
+        select [[:window/scale :default 1] {:window/canvas [{:canvas/scene [:image/width]}]}]
         result (ds/pull data select lookup)
-        {scale :zoom/scale
-         scene :canvas/scene
-         {width :image/width} :canvas/scene} result
+        {scale :window/scale
+         {scene :canvas/scene
+          {width :image/width} :canvas/scene} :window/canvas} result
         size (js/Math.round (/ size scale))]
     (if (nil? scene)
-      [[:db/add lookup :grid/size size]
-       [:db/add lookup :canvas/mode :select]]
+      [[:db/add [:entity/key canvas] :grid/size size]
+       [:db/add [:entity/key window] :window/mode :select]]
       (let [pattern [size (+ size 1) (- size 1) (+ size 2) (- size 2) (+ size 3) (- size 3) (+ size 4) (- size 4)]
             next    (reduce (fn [_ n] (when (zero? (mod width n)) (reduced n))) pattern)]
-        [[:db/add lookup :grid/size (or next size)]
-         [:db/add lookup :canvas/mode :select]]))))
+        [[:db/add [:entity/key canvas] :grid/size (or next size)]
+         [:db/add [:entity/key window] :window/mode :select]]))))
 
 (defmethod transact :grid/toggle
   [{:keys [window]} value]
@@ -350,7 +350,7 @@
         select (filter
                 (fn [{[x y] :pos/vec}]
                   (within? x y normal)) (:canvas/tokens result))]
-    (concat [[:db/add [:entity/key window] :canvas/mode :select]]
+    (concat [[:db/add [:entity/key window] :window/mode :select]]
             (for [{:keys [entity/key]} select :let [ref [:entity/key key]]]
               [:db/add [:entity/key window] :window/selected ref]))))
 

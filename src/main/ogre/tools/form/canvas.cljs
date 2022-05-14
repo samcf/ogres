@@ -27,7 +27,7 @@
   (let [url (use-image checksum)]
     [:div {:style {:background-image (str "url(" url ")")}}]))
 
-(def pattern
+(def query
   [{:root/scenes [:image/checksum]}
    {:root/local
     [{:local/window
@@ -44,7 +44,7 @@
          [:grid/size :default 70]]}]}]}])
 
 (defn canvas []
-  (let [[result dispatch] (use-query pattern [:db/ident :root])
+  (let [[result dispatch] (use-query query [:db/ident :root])
         {:keys [store]}   (uix/context storage)
         show-images       (uix/state false)
         file-upload       (uix/ref)

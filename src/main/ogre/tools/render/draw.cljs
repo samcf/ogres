@@ -53,7 +53,7 @@
        (if (seq xs)
          (render-fn event (transform event xs))))]))
 
-(def pattern
+(def query
   [[:bounds/self :default [0 0 0 0]]
    {:local/window
     [[:window/scale :default 1]
@@ -63,7 +63,7 @@
       [[:grid/size :default 70]]}]}])
 
 (defn polygon [{:keys [on-create]}]
-  (let [[result] (use-query pattern)
+  (let [[result] (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
@@ -111,7 +111,7 @@
 (defmethod draw :default [] nil)
 
 (defmethod draw :select []
-  (let [[result dispatch] (use-query pattern)
+  (let [[result dispatch] (use-query query)
         {[ox oy]  :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale} :local/window} result]
@@ -128,7 +128,7 @@
           [:path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}]]))]))
 
 (defmethod draw :grid []
-  (let [[result dispatch] (use-query pattern)
+  (let [[result dispatch] (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale} :local/window} result]
@@ -154,7 +154,7 @@
                (str "px"))]]))]))
 
 (defmethod draw :ruler []
-  (let [[result] (use-query pattern)
+  (let [[result] (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
@@ -180,7 +180,7 @@
              (str "ft."))]])]))
 
 (defmethod draw :circle []
-  (let [[result dispatch] (use-query pattern)
+  (let [[result dispatch] (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
@@ -207,7 +207,7 @@
            (-> radius (px->ft (* size scale)) (str "ft. radius"))]]))]))
 
 (defmethod draw :rect []
-  (let [[result dispatch] (use-query pattern)
+  (let [[result dispatch] (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
@@ -233,7 +233,7 @@
              (str w "ft. x " h "ft."))]]))]))
 
 (defmethod draw :line []
-  (let [[result dispatch] (use-query pattern)
+  (let [[result dispatch] (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
@@ -258,7 +258,7 @@
                (str "ft."))]]))]))
 
 (defmethod draw :cone []
-  (let [[result dispatch] (use-query pattern)
+  (let [[result dispatch] (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale

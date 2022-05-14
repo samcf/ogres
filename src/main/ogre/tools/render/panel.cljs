@@ -8,13 +8,13 @@
    [:initiative "hourglass-split"]
    [:help "question-diamond"]])
 
-(def pattern
+(def query
   [{:local/window
     [[:panel/current :default :canvas]
      [:panel/collapsed? :default false]]}])
 
 (defn container []
-  (let [[result dispatch] (use-query pattern)
+  (let [[result dispatch] (use-query query)
         {{current :panel/current
           collapsed? :panel/collapsed?} :local/window} result]
     [:aside.panel

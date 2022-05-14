@@ -93,7 +93,7 @@
        (fn [f v]
          (dispatch :initiative/change-health key f v))}]]))
 
-(def initiative-pattern
+(def query
   [{:local/window
     [{:window/canvas
       [:entity/key
@@ -108,7 +108,7 @@
          {:token/stamp [:image/checksum]}]}]}]}])
 
 (defn initiative []
-  (let [[result dispatch] (use-query initiative-pattern)
+  (let [[result dispatch] (use-query query)
         initiative        (-> result :local/window :window/canvas :canvas/initiative)]
     (if (seq initiative)
       [:div.initiative

@@ -53,7 +53,7 @@
     (string? name) (str name)
     (number? suffix) (str " " (char (+ suffix 64)))))
 
-(def scene-pattern
+(def scene-query
   [{:local/window
     [{:window/canvas
       [[:canvas/color :default :none]
@@ -61,7 +61,7 @@
         [:image/checksum]}]}]}])
 
 (defn scene []
-  (let [[result] (use-query scene-pattern)
+  (let [[result] (use-query scene-query)
         {{{color :canvas/color {checksum :image/checksum}
            :canvas/scene}
           :window/canvas}
@@ -73,7 +73,7 @@
        [:feColorMatrix {:type "matrix" :values (join " " (atmosphere color))}]]]
      [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere)"}}]]))
 
-(def light-mask-pattern
+(def light-mask-query
   [[:local/host? :default true]
    {:local/window
     [{:window/canvas
@@ -87,7 +87,7 @@
        {:canvas/scene [:image/checksum :image/width :image/height]}]}]}])
 
 (defn light-mask []
-  (let [[result] (use-query light-mask-pattern)
+  (let [[result] (use-query light-mask-query)
         {host? :local/host?
          {{visibility :canvas/visibility
            size       :grid/size
@@ -118,7 +118,7 @@
           {:x 0 :y 0 :width width :height height
            :fill "url(#mask-pattern)" :mask "url(#light-mask)"}])])))
 
-(def canvas-mask-pattern
+(def canvas-mask-query
   [[:local/host? :default false]
    {:local/window
     [[:window/mode :default :select]
@@ -128,7 +128,7 @@
        {:canvas/masks [:entity/key :mask/vecs :mask/enabled?]}]}]}])
 
 (defn canvas-mask []
-  (let [[result dispatch] (use-query canvas-mask-pattern)
+  (let [[result dispatch] (use-query canvas-mask-query)
         {host? :local/host?
          {mode :window/mode
           {filled? :mask/filled?
@@ -162,7 +162,7 @@
                :mask-toggle (dispatch :mask/toggle key (not enabled?))
                :mask-remove (dispatch :mask/remove key)))}]))]))
 
-(def grid-pattern
+(def grid-query
   [[:bounds/self :default [0 0 0 0]]
    {:local/window
     [[:window/vec :default [0 0]]
@@ -173,7 +173,7 @@
        [:grid/size :default 70]]}]}])
 
 (defn grid []
-  (let [[data] (use-query grid-pattern)
+  (let [[data] (use-query grid-query)
         {[_ _ w h] :bounds/self
          {[cx cy] :window/vec
           mode    :window/mode
@@ -245,7 +245,7 @@
         pairs   (into [] (poly-xf ax ay) vecs)]
     [:polygon (assoc attrs :points (join " " pairs) :fill-opacity opacity :stroke color)]))
 
-(def shapes-pattern
+(def shapes-query
   [[:local/host? :default true]
    {:local/window
     [[:window/scale :default 1]
@@ -261,7 +261,7 @@
          :window/_selected]}]}]}])
 
 (defn shapes []
-  (let [[result dispatch] (use-query shapes-pattern)
+  (let [[result dispatch] (use-query shapes-query)
         {host? :local/host?
          {scale :window/scale
           align :grid/align
@@ -297,7 +297,7 @@
   (let [url (use-image checksum)]
     [:image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"}]))
 
-(def stamps-pattern
+(def stamps-query
   [{:local/window
     [{:window/canvas
       [{:canvas/tokens
@@ -305,7 +305,7 @@
           [:image/checksum]}]}]}]}])
 
 (defn stamps []
-  (let [[result _] (use-query stamps-pattern)
+  (let [[result _] (use-query stamps-query)
         tokens     (-> result :local/window :window/canvas :canvas/tokens)
         checksums  (into #{} (comp (map :token/stamp) (map :image/checksum)) tokens)
         attrs      {:width "100%" :height "100%" :patternContentUnits "objectBoundingBox"}]
@@ -362,7 +362,7 @@
     (compare [(:token/size b) by bx]
              [(:token/size a) ay ax])))
 
-(def tokens-pattern
+(def tokens-query
   [[:local/host? :default true]
    {:local/window
     [[:window/scale :default 1]
@@ -384,7 +384,7 @@
          {:window/_selected [:entity/key]}]}]}]}])
 
 (defn tokens []
-  (let [[result dispatch] (use-query tokens-pattern)
+  (let [[result dispatch] (use-query tokens-query)
 
         {host? :local/host?
          {scale :window/scale
@@ -462,7 +462,7 @@
     [:g.canvas-bounds {:transform (str "translate(" ox " , " oy ")")}
      [:rect {:x 0 :y 0 :width gw :height gh :rx 8}]]))
 
-(def canvas-pattern
+(def canvas-query
   [[:local/host? :default true]
    [:local/privileged? :default false]
    [:bounds/host :default [0 0 0 0]]
@@ -477,7 +477,7 @@
       [[:canvas/theme :default :light]]}]}])
 
 (defn canvas []
-  (let [[result dispatch] (use-query canvas-pattern)
+  (let [[result dispatch] (use-query canvas-query)
         {host?       :local/host?
          priv?       :local/privileged?
          [_ _ hw hh] :bounds/host

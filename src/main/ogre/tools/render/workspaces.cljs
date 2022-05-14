@@ -2,12 +2,12 @@
   (:require [clojure.string :refer [blank? trim]]
             [ogre.tools.state :refer [use-query]]))
 
-(def pattern
+(def query
   [{:local/window [:entity/key]}
    {:local/windows [:entity/key {:window/canvas [:entity/key :element/name]}]}])
 
 (defn workspaces []
-  (let [[result dispatch] (use-query pattern)
+  (let [[result dispatch] (use-query query)
         {current :local/window
          windows :local/windows} result]
     [:div.workspaces

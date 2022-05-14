@@ -3,7 +3,7 @@
             [ogre.tools.render :refer [button checkbox]]
             [ogre.tools.state :refer [use-query VERSION]]))
 
-(def pattern
+(def query
   [[:local/shortcuts? :default true]
    [:local/tooltips? :default true]])
 
@@ -13,7 +13,7 @@
    ["mailto:mail@samcf.me" "Personal email"]])
 
 (defn help []
-  (let [[result dispatch] (use-query pattern)
+  (let [[result dispatch] (use-query query)
         {shortcuts? :local/shortcuts?
          tooltips?  :local/tooltips?} result]
     [:<>

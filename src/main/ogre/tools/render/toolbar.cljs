@@ -28,7 +28,7 @@
     :mask/hide   "Remove all masks and then mask the entire scene."
     :mask/show   "Remove all masks and reveal the entire scene."))
 
-(def pattern
+(def query
   [[:local/tooltips? :default true]
    [:local/sharing? :default false]
    [:local/paused? :default false]
@@ -37,7 +37,7 @@
      [:window/scale :default 1]]}])
 
 (defn toolbar []
-  (let [[data dispatch] (use-query pattern)
+  (let [[data dispatch] (use-query query)
         container       (uix/ref)
         tooltip-key     (uix/state nil)
 

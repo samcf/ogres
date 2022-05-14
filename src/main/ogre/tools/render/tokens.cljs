@@ -5,7 +5,7 @@
 (defn round [x n]
   (* (js/Math.round (/ x n)) n))
 
-(def pattern
+(def query
   [:bounds/self
    {:local/window
     [[:window/scale :default 1]
@@ -15,7 +15,7 @@
       [[:grid/size :default 70]]}]}])
 
 (defn tokens []
-  (let [[result dispatch] (use-query pattern)
+  (let [[result dispatch] (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
