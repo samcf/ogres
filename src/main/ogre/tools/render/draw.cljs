@@ -58,7 +58,7 @@
    {:local/window
     [[:window/scale :default 1]
      [:window/vec :default [0 0]]
-     [:grid/align :default false]
+     [:window/snap-grid :default false]
      {:window/canvas
       [[:grid/size :default 70]]}]}])
 
@@ -67,7 +67,7 @@
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
-          align   :grid/align
+          align   :window/snap-grid
           {size :grid/size} :window/canvas} :local/window} result
         pairs   (uix/state [])
         mouse   (uix/state [])
@@ -141,7 +141,7 @@
         (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)
               size (js/Math.abs (min (- bx ax) (- by ay)))]
           (if (> size 0)
-            (dispatch :grid/draw ax ay size))))}
+            (dispatch :canvas/draw-grid-size ax ay size))))}
      (fn [_ xs]
        (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)
              size (min (- bx ax) (- by ay))]
@@ -158,7 +158,7 @@
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
-          align   :grid/align
+          align   :window/snap-grid
           {size :grid/size} :window/canvas} :local/window} result]
     [drawable
      {:on-release identity
@@ -184,7 +184,7 @@
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
-          align   :grid/align
+          align   :window/snap-grid
           {size :grid/size} :window/canvas} :local/window} result]
     [drawable
      {:transform
@@ -211,7 +211,7 @@
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
-          align   :grid/align
+          align   :window/snap-grid
           {size :grid/size} :window/canvas} :local/window} result]
     [drawable
      {:transform
@@ -237,7 +237,7 @@
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
-          align   :grid/align
+          align   :window/snap-grid
           {size :grid/size} :window/canvas} :local/window} result]
     [drawable
      {:transform

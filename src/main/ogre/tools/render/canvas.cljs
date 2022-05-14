@@ -121,7 +121,7 @@
 (def canvas-mask-query
   [[:local/host? :default false]
    {:local/window
-    [[:window/mode :default :select]
+    [[:window/draw-mode :default :select]
      {:window/canvas
       [[:mask/filled? :default false]
        {:canvas/scene [:image/width :image/height]}
@@ -130,7 +130,7 @@
 (defn canvas-mask []
   (let [[result dispatch] (use-query canvas-mask-query)
         {host? :local/host?
-         {mode :window/mode
+         {mode :window/draw-mode
           {filled? :mask/filled?
            masks   :canvas/masks
            {width  :image/width
@@ -167,19 +167,19 @@
    {:local/window
     [[:window/vec :default [0 0]]
      [:window/scale :default 1]
-     [:window/mode :default :select]
+     [:window/draw-mode :default :select]
+     [:window/show-grid :default true]
      {:window/canvas
-      [[:grid/show :default true]
-       [:grid/size :default 70]]}]}])
+      [[:grid/size :default 70]]}]}])
 
 (defn grid []
   (let [[data] (use-query grid-query)
         {[_ _ w h] :bounds/self
          {[cx cy] :window/vec
-          mode    :window/mode
+          mode    :window/draw-mode
           scale   :window/scale
-          {size :grid/size
-           show :grid/show} :window/canvas} :local/window} data]
+          show    :window/show-grid
+          {size :grid/size} :window/canvas} :local/window} data]
     (if (or show (= mode :grid))
       (let [w (/ w scale)
             h (/ h scale)
@@ -249,7 +249,7 @@
   [[:local/host? :default true]
    {:local/window
     [[:window/scale :default 1]
-     [:grid/align :default false]
+     [:window/snap-grid :default false]
      {:window/canvas
       [{:canvas/shapes
         [:entity/key
@@ -264,7 +264,7 @@
   (let [[result dispatch] (use-query shapes-query)
         {host? :local/host?
          {scale :window/scale
-          align :grid/align
+          align :window/snap-grid
           {shapes :canvas/shapes}
           :window/canvas}
          :local/window} result]
@@ -365,11 +365,11 @@
 (def tokens-query
   [[:local/host? :default true]
    {:local/window
-    [[:window/scale :default 1]
+    [[:window/snap-grid :default false]
+     [:window/scale :default 1]
      :window/selected
      {:window/canvas
       [[:grid/size :default 70]
-       [:grid/align :default false]
        {:canvas/tokens
         [:entity/key
          [:initiative/suffix :default nil]
@@ -387,9 +387,9 @@
   (let [[result dispatch] (use-query tokens-query)
 
         {host? :local/host?
-         {scale :window/scale
+         {align :window/snap-grid
+          scale :window/scale
           {size :grid/size
-           align? :grid/align
            tokens :canvas/tokens}
           :window/canvas}
          :local/window} result
@@ -421,8 +421,7 @@
            (let [bx (.-x data) by (.-y data)]
              (if (= (euclidean ax ay bx by) 0)
                (dispatch :element/select key (not (.-shiftKey event)))
-               (let [align? (not= (.-metaKey event) align?)]
-                 (dispatch :token/translate key bx by align?)))))}
+               (dispatch :token/translate key bx by (not= (.-metaKey event) align)))))}
         [:g.canvas-token {:css (css data)}
          [token {:data data :size size}]]])
      (if (seq selected)
@@ -439,7 +438,7 @@
                 (if (and (= ox 0) (= oy 0))
                   (let [key (.. event -target (closest ".canvas-token[data-key]") -dataset -key)]
                     (dispatch :element/select (uuid key) (not (.-shiftKey event))))
-                  (dispatch :token/translate-all keys ox oy (not= (.-metaKey event) align?)))))}
+                  (dispatch :token/translate-all keys ox oy (not= (.-metaKey event) align)))))}
            [:g.canvas-selected {:key keys}
             (for [data selected :let [{key :entity/key [x y] :pos/vec} data]]
               [:g.canvas-token
@@ -472,7 +471,7 @@
      :window/modifier
      [:window/vec :default [0 0]]
      [:window/scale :default 1]
-     [:window/mode :default :select]
+     [:window/draw-mode :default :select]
      {:window/canvas
       [[:canvas/theme :default :light]]}]}])
 
@@ -484,7 +483,7 @@
          [_ _ gw gh] :bounds/guest
          {key     :entity/key
           scale   :window/scale
-          mode    :window/mode
+          mode    :window/draw-mode
           modif   :window/modifier
           [cx cy] :window/vec
           {theme :canvas/theme} :window/canvas} :local/window} result

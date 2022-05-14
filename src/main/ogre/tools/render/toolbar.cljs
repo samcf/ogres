@@ -33,7 +33,7 @@
    [:local/sharing? :default false]
    [:local/paused? :default false]
    {:local/window
-    [[:window/mode :default :select]
+    [[:window/draw-mode :default :select]
      [:window/scale :default 1]]}])
 
 (defn toolbar []
@@ -45,14 +45,14 @@
          sharing?  :local/sharing?
          paused?   :local/paused?
          {scale :window/scale
-          mode  :window/mode} :local/window} data
+          mode  :window/draw-mode} :local/window} data
 
         mode-attrs
         (fn [value]
           {:type "button"
            :key value
            :css {:selected (= value mode)}
-           :on-click #(dispatch :canvas/change-mode value)
+           :on-click #(dispatch :window/change-mode value)
            :on-mouse-enter #(reset! tooltip-key (keyword "mode" (name value)))})
 
         tooltip-fn

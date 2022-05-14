@@ -31,9 +31,9 @@
   [{:root/scenes [:image/checksum]}
    {:root/local
     [{:local/window
-      [[:window/mode :default :select]
-       [:grid/show :default true]
-       [:grid/align :default false]
+      [[:window/draw-mode :default :select]
+       [:window/show-grid :default true]
+       [:window/snap-grid :default false]
        {:window/canvas
         [:entity/key
          [:element/name :default ""]
@@ -49,15 +49,15 @@
         show-images       (uix/state false)
         file-upload       (uix/ref)
         {scenes :root/scenes
-         {{show-grid   :grid/show
-           align-grid  :grid/align
-           mode        :window/mode
-           {key        :entity/key
-            label      :element/name
-            theme      :canvas/theme
-            visibility :canvas/visibility
-            color      :canvas/color
-            grid-size  :grid/size
+         {{show :window/show-grid
+           snap :window/snap-grid
+           mode :window/draw-mode
+           {key   :entity/key
+            label :element/name
+            theme :canvas/theme
+            vis   :canvas/visibility
+            color :canvas/color
+            size  :grid/size
             {checksum  :image/checksum}
             :canvas/scene}
            :window/canvas}
@@ -129,7 +129,7 @@
           (capitalize (name value))])]
       [:fieldset.setting
        [:label "Visibility"]
-       (for [value [:revealed :dimmed :hidden] :let [checked (= value visibility)]]
+       (for [value [:revealed :dimmed :hidden] :let [checked (= value vis)]]
          ^{:key value}
          [checkbox
           {:checked checked :on-change #(dispatch :canvas/change-visibility value)}
@@ -145,42 +145,42 @@
       [:legend "Grid Configuration"]
       [:fieldset.setting
        [:label "Show Grid"]
-       (for [value [false true] :let [checked? (= show-grid value)]]
+       (for [value [false true] :let [checked? (= show value)]]
          ^{:key value}
          [checkbox
           {:checked checked?
            :on-change
            (fn []
              (if (not checked?)
-               (dispatch :grid/toggle value)))}
+               (dispatch :window/change-grid-show value)))}
           (if value "Yes" "No")])]
       [:fieldset.setting
        [:label "Align to Grid"]
-       (for [value [false true] :let [checked? (= align-grid value)]]
+       (for [value [false true] :let [checked? (= snap value)]]
          ^{:key value}
          [checkbox
           {:checked checked?
            :on-change
            (fn []
              (if (not checked?)
-               (dispatch :grid/align value)))}
+               (dispatch :window/change-grid-snap value)))}
           (if value "Yes" "No")])]
       [:hr]
       [:fieldset.group
        [:input
         {:type "number"
          :placeholder "Grid size"
-         :value (or grid-size 0)
+         :value (or size 0)
          :on-change
          (fn [event]
-           (dispatch :grid/change-size (.. event -target -value)))}]
+           (dispatch :canvas/change-grid-size (.. event -target -value)))}]
        [checkbox
         {:checked (= mode :grid)
          :on-change
          (fn [checked]
            (if checked
-             (dispatch :canvas/change-mode :grid)
-             (dispatch :canvas/change-mode :select)))}
+             (dispatch :window/change-mode :grid)
+             (dispatch :window/change-mode :select)))}
         [icon {:name "crop" :size 16}]]]
       [:p {:style {:margin-top 4}}
        "Manually enter the grid size or click the button to draw a square

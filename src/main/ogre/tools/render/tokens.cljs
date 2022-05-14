@@ -9,7 +9,7 @@
   [:bounds/self
    {:local/window
     [[:window/scale :default 1]
-     [:window/align :default false]
+     [:window/snap-grid :default false]
      [:window/vec :default [0 0]]
      {:window/canvas
       [[:grid/size :default 70]]}]}])
@@ -19,7 +19,7 @@
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
-          align   :window/align
+          align   :window/snap-grid
           {size :grid/size} :window/canvas} :local/window} result]
     [:<>
      [:svg [:circle {:cx 32 :cy 32 :r 33 :fill "url(#token-stamp-default)"}]]
