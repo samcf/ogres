@@ -170,7 +170,7 @@
 
 (defmethod transact :canvas/change-scene
   [{:keys [canvas]} checksum]
-  [[:db/add [:entity/key canvas] :canvas/scene [:image/checksum checksum]]])
+  [[:db/add [:entity/key canvas] :canvas/image [:image/checksum checksum]]])
 
 (defmethod transact :canvas/change-grid-size
   [{:keys [canvas]} size]
@@ -179,11 +179,11 @@
 (defmethod transact :canvas/draw-grid-size
   [{:keys [data window canvas]} _ _ size]
   (let [lookup [:entity/key window]
-        select [[:window/scale :default 1] {:window/canvas [{:canvas/scene [:image/width]}]}]
+        select [[:window/scale :default 1] {:window/canvas [{:canvas/image [:image/width]}]}]
         result (ds/pull data select lookup)
         {scale :window/scale
-         {scene :canvas/scene
-          {width :image/width} :canvas/scene} :window/canvas} result
+         {scene :canvas/image
+          {width :image/width} :canvas/image} :window/canvas} result
         size (js/Math.round (/ size scale))]
     (if (nil? scene)
       [[:db/add [:entity/key canvas] :grid/size size]
@@ -235,8 +235,8 @@
        [:db/add -1 :image/width width]
        [:db/add -1 :image/height height]
        [:db/add [:db/ident :root] :root/scenes -1]
-       [:db/add [:entity/key canvas] :canvas/scene -1]]
-      [[:db/add [:entity/key canvas] :canvas/scene lookup]])))
+       [:db/add [:entity/key canvas] :canvas/image -1]]
+      [[:db/add [:entity/key canvas] :canvas/image lookup]])))
 
 (defmethod transact :map/remove
   [_ checksum]
@@ -247,13 +247,13 @@
   [[:db/add [:entity/key canvas] :canvas/tokens -1]
    [:db/add [:entity/key window] :window/selected -1]
    [:db/add [:entity/key window] :window/draw-mode :select]
-   {:db/id -1 :entity/key (squuid) :pos/vec [x y]}])
+   {:db/id -1 :entity/key (squuid) :token/vec [x y]}])
 
 (defmethod transact :token/translate
   [{:keys [data canvas]} key x y align?]
   (let [{size :grid/size} (ds/pull data [[:grid/size :default 70]] [:entity/key canvas])
         radius            (if align? (/ size 2) 1)]
-    [[:db/add [:entity/key key] :pos/vec [(round x radius) (round y radius)]]]))
+    [[:db/add [:entity/key key] :token/vec [(round x radius) (round y radius)]]]))
 
 (defmethod transact :token/change-flag
   [{:keys [data]} keys flag add?]
@@ -266,10 +266,10 @@
   [{:keys [data canvas]} keys x y align?]
   (let [{size :grid/size} (ds/pull data [[:grid/size :default 70]] [:entity/key canvas])
         lookup            (map (fn [key] [:entity/key key]) keys)
-        tokens            (ds/pull-many data [:entity/key :pos/vec] lookup)
+        tokens            (ds/pull-many data [:entity/key :token/vec] lookup)
         radius            (if align? (/ size 2) 1)]
-    (for [{key :entity/key [tx ty] :pos/vec} tokens]
-      [:db/add [:entity/key key] :pos/vec [(round (+ x tx) radius) (round (+ y ty) radius)]])))
+    (for [{key :entity/key [tx ty] :token/vec} tokens]
+      [:db/add [:entity/key key] :token/vec [(round (+ x tx) radius) (round (+ y ty) radius)]])))
 
 (defmethod transact :token/change-label
   [_ keys value]
@@ -294,12 +294,12 @@
 (defmethod transact :token/change-stamp
   [_ keys checksum]
   (for [key keys]
-    [:db/add [:entity/key key] :token/stamp [:image/checksum checksum]]))
+    [:db/add [:entity/key key] :token/image [:image/checksum checksum]]))
 
 (defmethod transact :token/remove-stamp
   [_ keys]
   (for [key keys]
-    [:db/retract [:entity/key key] :token/stamp]))
+    [:db/retract [:entity/key key] :token/image]))
 
 (defmethod transact :shape/create
   [{:keys [window canvas]} kind vecs]
@@ -347,10 +347,10 @@
 
 (defmethod transact :selection/from-rect
   [{:keys [data window canvas]} vecs]
-  (let [result (ds/pull data [{:canvas/tokens [:entity/key :pos/vec]}] [:entity/key canvas])
+  (let [result (ds/pull data [{:canvas/tokens [:entity/key :token/vec]}] [:entity/key canvas])
         normal (normalize vecs)
         select (filter
-                (fn [{[x y] :pos/vec}]
+                (fn [{[x y] :token/vec}]
                   (within? x y normal)) (:canvas/tokens result))]
     (concat [[:db/add [:entity/key window] :window/draw-mode :select]]
             (for [{:keys [entity/key]} select :let [ref [:entity/key key]]]

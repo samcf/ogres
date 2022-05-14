@@ -57,13 +57,13 @@
   [{:local/window
     [{:window/canvas
       [[:canvas/color :default :none]
-       {:canvas/scene
+       {:canvas/image
         [:image/checksum]}]}]}])
 
 (defn scene []
   (let [[result] (use-query scene-query)
         {{{color :canvas/color {checksum :image/checksum}
-           :canvas/scene}
+           :canvas/image}
           :window/canvas}
          :local/window} result
         url (use-image checksum)]
@@ -83,8 +83,8 @@
         [:entity/key
          [:token/flags :default #{}]
          [:token/light :default 15]
-         [:pos/vec :default [0 0]]]}
-       {:canvas/scene [:image/checksum :image/width :image/height]}]}]}])
+         [:token/vec :default [0 0]]]}
+       {:canvas/image [:image/checksum :image/width :image/height]}]}]}])
 
 (defn light-mask []
   (let [[result] (use-query light-mask-query)
@@ -95,7 +95,7 @@
            {checksum :image/checksum
             width    :image/width
             height   :image/height}
-           :canvas/scene}
+           :canvas/image}
           :window/canvas}
          :local/window} result]
     (if (and checksum (not= visibility :revealed))
@@ -108,7 +108,7 @@
          [:stop {:offset "100%" :stop-color "black" :stop-opacity "0%"}]]
         [:mask {:id "light-mask"}
          [:rect {:x 0 :y 0 :width width :height height :fill "white" :fill-opacity "100%"}]
-         (for [{id :db/id flags :token/flags [x y] :pos/vec radius :token/light} tokens
+         (for [{id :db/id flags :token/flags [x y] :token/vec radius :token/light} tokens
                :when (and (> radius 0) (or host? (visible? flags)))]
            [:circle {:key id :cx x :cy y :r (+ (ft->px radius size) (/ size 2)) :fill "url(#mask-gradient)"}])]]
        [:rect.canvas-mask-background
@@ -124,7 +124,7 @@
     [[:window/draw-mode :default :select]
      {:window/canvas
       [[:mask/filled? :default false]
-       {:canvas/scene [:image/width :image/height]}
+       {:canvas/image [:image/width :image/height]}
        {:canvas/masks [:entity/key :mask/vecs :mask/enabled?]}]}]}])
 
 (defn canvas-mask []
@@ -135,7 +135,7 @@
            masks   :canvas/masks
            {width  :image/width
             height :image/height}
-           :canvas/scene}
+           :canvas/image}
           :window/canvas}
          :local/window} result
         modes #{:mask :mask-toggle :mask-remove}]
@@ -301,13 +301,13 @@
   [{:local/window
     [{:window/canvas
       [{:canvas/tokens
-        [{:token/stamp
+        [{:token/image
           [:image/checksum]}]}]}]}])
 
 (defn stamps []
   (let [[result _] (use-query stamps-query)
         tokens     (-> result :local/window :window/canvas :canvas/tokens)
-        checksums  (into #{} (comp (map :token/stamp) (map :image/checksum)) tokens)
+        checksums  (into #{} (comp (map :token/image) (map :image/checksum)) tokens)
         attrs      {:width "100%" :height "100%" :patternContentUnits "objectBoundingBox"}]
     [:defs
      [:pattern (merge attrs {:id "token-stamp-default" :viewBox "0 0 16 16" :fill "#f2f2eb"})
@@ -329,7 +329,7 @@
         {:cx 0 :cy 0 :r (+ (ft->px (:aura/radius data) size) (/ size 2))}])
      [:circle.canvas-token-ring
       {:cx 0 :cy 0 :style {:r radius :fill "transparent"}}]
-     (let [checksum (:image/checksum (:token/stamp data))
+     (let [checksum (:image/checksum (:token/image data))
            pattern  (cond
                       ((:token/flags data) :unconscious) "token-stamp-deceased"
                       (string? checksum)   (str "token-stamp-" checksum)
@@ -357,8 +357,8 @@
            [:span token-label]]]))]))
 
 (defn token-comparator [a b]
-  (let [[ax ay] (:pos/vec a)
-        [bx by] (:pos/vec b)]
+  (let [[ax ay] (:token/vec a)
+        [bx by] (:token/vec b)]
     (compare [(:token/size b) by bx]
              [(:token/size a) ay ax])))
 
@@ -373,13 +373,13 @@
        {:canvas/tokens
         [:entity/key
          [:initiative/suffix :default nil]
-         [:pos/vec :default [0 0]]
+         [:token/vec :default [0 0]]
          [:token/flags :default #{}]
          [:token/label :default ""]
          [:token/size :default 5]
          [:token/light :default 15]
          [:aura/radius :default 0]
-         {:token/stamp [:image/checksum]}
+         {:token/image [:image/checksum]}
          {:canvas/_initiative [:db/id :entity/key]}
          {:window/_selected [:entity/key]}]}]}]}])
 
@@ -409,7 +409,7 @@
              (sort token-comparator)
              (separate (fn [token] (contains? token :window/_selected))))]
     [:<>
-     (for [data tokens :let [{key :entity/key [ax ay] :pos/vec} data]]
+     (for [data tokens :let [{key :entity/key [ax ay] :token/vec} data]]
        [:> react-draggable
         {:key      key
          :position #js {:x ax :y ay}
@@ -426,7 +426,7 @@
          [token {:data data :size size}]]])
      (if (seq selected)
        (let [keys         (map :entity/key selected)
-             [ax _ bx by] (apply bounding-box (map :pos/vec selected))]
+             [ax _ bx by] (apply bounding-box (map :token/vec selected))]
          [portal/use {:label (if host? :selected)}
           [:> react-draggable
            {:position #js {:x 0 :y 0}
@@ -440,7 +440,7 @@
                     (dispatch :element/select (uuid key) (not (.-shiftKey event))))
                   (dispatch :token/translate-all keys ox oy (not= (.-metaKey event) align)))))}
            [:g.canvas-selected {:key keys}
-            (for [data selected :let [{key :entity/key [x y] :pos/vec} data]]
+            (for [data selected :let [{key :entity/key [x y] :token/vec} data]]
               [:g.canvas-token
                {:key key :css (css data) :data-key key :transform (str "translate(" x "," y ")")}
                [token {:data data :size size}]])

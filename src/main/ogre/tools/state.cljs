@@ -9,9 +9,9 @@
 (def schema
   {:db/ident          {:db/unique :db.unique/identity}
    :entity/key        {:db/unique :db.unique/identity}
+   :canvas/image      {:db/valueType :db.type/ref}
    :canvas/initiative {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :canvas/masks      {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
-   :canvas/scene      {:db/valueType :db.type/ref}
    :canvas/shapes     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :canvas/tokens     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :image/checksum    {:db/unique :db.unique/identity}
@@ -21,7 +21,7 @@
    :root/local        {:db/valueType :db.type/ref :db/isComponent true}
    :root/scenes       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :root/stamps       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
-   :token/stamp       {:db/valueType :db.type/ref}
+   :token/image       {:db/valueType :db.type/ref}
    :window/canvas     {:db/valueType :db.type/ref}
    :window/selected   {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}})
 

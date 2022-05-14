@@ -37,7 +37,7 @@
        [:window/snap-grid :default false]
        {:window/canvas
         [:entity/key
-         {:canvas/scene [:image/checksum]}
+         {:canvas/image [:image/checksum]}
          [:canvas/theme :default :light]
          [:canvas/visibility :default :revealed]
          [:canvas/color :default :none]
@@ -51,7 +51,7 @@
         {scenes :root/scenes
          {window :local/window
           {canvas :window/canvas} :local/window} :root/local} result
-        checksum (-> canvas :canvas/scene :image/checksum)]
+        checksum (-> canvas :canvas/image :image/checksum)]
     [:<>
      [:section
       [:header "Canvas Options"]]

@@ -63,7 +63,7 @@
          label :token/label
          sffx  :initiative/suffix
          flags :token/flags
-         {checksum :image/checksum} :token/stamp} entity
+         {checksum :image/checksum} :token/image} entity
         url (use-image checksum)]
     [:li.initiant
      (if checksum
@@ -105,7 +105,7 @@
          :initiative/suffix
          :initiative/health
          :window/_selected
-         {:token/stamp [:image/checksum]}]}]}]}])
+         {:token/image [:image/checksum]}]}]}]}])
 
 (defn initiative []
   (let [[result dispatch] (use-query query)
