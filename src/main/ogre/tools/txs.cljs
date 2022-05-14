@@ -23,21 +23,21 @@
   [entities]
   (->>
    (reduce
-    (fn [m {:keys [db/id element/name initiative/suffix]}]
+    (fn [m {:keys [entity/key element/name initiative/suffix]}]
       (update
        m name
        (fn [[idents current]]
-         [(if (= suffix nil) (conj idents id) idents)
+         [(if (= suffix nil) (conj idents key) idents)
           (max current suffix)]))) {} entities)
    (mapcat
     (fn [[_ [idents suffix]]]
       (if (or (> (count idents) 1) (number? suffix))
         (loop [idents idents suffix (inc suffix) txs []]
-          (if-let [id (first idents)]
+          (if-let [key (first idents)]
             (recur
              (rest idents)
              (inc suffix)
-             (conj txs [:db/add id :initiative/suffix suffix]))
+             (conj txs [:db/add [:entity/key key] :initiative/suffix suffix]))
             txs)) [])))))
 
 (def initiative-attrs
@@ -71,8 +71,8 @@
          windows :local/windows} result]
     (cond
       (= (count windows) 1)
-      [[:db.fn/retractEntity [:entity/key key]]
-       [:db.fn/retractEntity [:entity/key (:entity/key (:window/canvas window))]]
+      [[:db/retractEntity [:entity/key key]]
+       [:db/retractEntity [:entity/key (:entity/key (:window/canvas window))]]
        [:db/add -1 :entity/key (squuid)]
        [:db/add -1 :window/canvas -2]
        [:db/add -2 :entity/key (squuid)]
@@ -82,13 +82,13 @@
 
       (= (:entity/key window) (:entity/key current))
       (let [next (first (disj (set windows) current))]
-        [[:db.fn/retractEntity [:entity/key key]]
-         [:db.fn/retractEntity [:entity/key (:entity/key (:window/canvas window))]]
+        [[:db/retractEntity [:entity/key key]]
+         [:db/retractEntity [:entity/key (:entity/key (:window/canvas window))]]
          [:db/add lookup :local/window [:entity/key (:entity/key next)]]])
 
       :else
-      [[:db.fn/retractEntity [:entity/key key]]
-       [:db.fn/retractEntity [:entity/key (:entity/key (:window/canvas window))]]])))
+      [[:db/retractEntity [:entity/key key]]
+       [:db/retractEntity [:entity/key (:entity/key (:window/canvas window))]]])))
 
 (defmethod transact :canvas/change-scene
   [{:keys [canvas]} checksum]
@@ -236,9 +236,9 @@
   (comp (partition-all 2) (drop 1) (map (fn [[ax ay]] [(+ ax x) (+ ay y)])) cat))
 
 (defmethod transact :shape/translate
-  [{:keys [data]} key x y align?]
+  [{:keys [data canvas]} key x y align?]
   (let [{[ax ay] :shape/vecs vecs :shape/vecs} (ds/pull data [:shape/vecs] [:entity/key key])
-        {size :grid/size} (ds/pull data [[:grid/size :default 70]] [:db/ident :canvas])
+        {size :grid/size} (ds/pull data [[:grid/size :default 70]] [:entity/key canvas])
         r (if align? (/ size 2) 1)
         x (round x r)
         y (round y r)]
@@ -292,9 +292,10 @@
       [:db/add [:entity/key window] :window/scale next]])))
 
 (defmethod transact :zoom/delta
-  [{:keys [data] :as context} delta x y]
-  (let [canvas (ds/pull data [[:zoom/scale :default 1]] [:db/ident :canvas])
-        next   (-> (:zoom/scale canvas)
+  [{:keys [data window] :as context} delta x y]
+  (let [result (ds/pull data [[:window/scale :default 1]] [:entity/key window])
+        _ (println result)
+        next   (-> (:window/scale result)
                    (js/Math.log)
                    (+ delta)
                    (js/Math.exp)
@@ -358,28 +359,26 @@
   [[:db/retract [:entity/key window] :window/selected]])
 
 (defmethod transact :selection/remove
-  [{:keys [data]}]
-  (let [select [:canvas/selected]
-        result (ds/pull data select [:db/ident :canvas])
-        {:keys [canvas/selected]} result]
-    (for [entity selected]
-      [:db/retractEntity (:db/id entity)])))
+  [{:keys [data window]}]
+  (let [result (ds/pull data [{:window/selected [:entity/key]}] [:entity/key window])]
+    (for [{:keys [entity/key]} (:window/selected result)]
+      [:db/retractEntity [:entity/key key]])))
 
 (defmethod transact :initiative/toggle
-  [{:keys [data]} keys adding?]
-  (let [lookup   (map (fn [key] [:entity/key key]) keys)
-        select-t [:db/id :element/name :initiative/suffix [:element/flags :default #{}]]
-        select-r [{:root/canvas [:db/id {:canvas/initiative select-t}]}]
-        result   (ds/pull data select-r [:db/ident :root])
-        adding   (ds/pull-many data select-t lookup)
-        {{id :db/id exists :canvas/initiative} :root/canvas} result]
+  [{:keys [data canvas]} keys adding?]
+  (let [tokens   (map (fn [key] [:entity/key key]) keys)
+        select-t [:entity/key :element/name :initiative/suffix [:element/flags :default #{}]]
+        select-r [:entity/key {:canvas/initiative select-t}]
+        result   (ds/pull data select-r [:entity/key canvas])
+        adding   (ds/pull-many data select-t tokens)
+        {key :entity/key exists :canvas/initiative} result]
     (if adding?
       (->> (union (set exists) (set adding))
            (filter (fn [t] (nil? ((:element/flags t) :player))))
            (suffix-txs)
-           (into [{:db/id id :canvas/initiative lookup}]))
-      (into (for [tk lookup] [:db/retract id :canvas/initiative tk])
-            (for [tk lookup attr initiative-attrs] [:db/retract tk attr])))))
+           (into [{:db/id [:entity/key canvas] :canvas/initiative tokens}]))
+      (into (for [tk tokens] [:db/retract [:entity/key key] :canvas/initiative tk])
+            (for [tk tokens attr initiative-attrs] [:db/retract tk attr])))))
 
 (defmethod transact :initiative/change-roll
   [_ key roll]
@@ -395,19 +394,19 @@
       [[:db/add [:entity/key key] :initiative/roll parsed]])))
 
 (defmethod transact :initiative/roll-all
-  [{:keys [data]} key]
-  (let [select [{:canvas/initiative [:db/id :element/flags :initiative/roll]}]
-        result (ds/pull data select [:entity/key key])
+  [{:keys [data canvas]}]
+  (let [select [{:canvas/initiative [:entity/key :element/flags :initiative/roll]}]
+        result (ds/pull data select [:entity/key canvas])
         {initiative :canvas/initiative} result]
-    (for [{:keys [db/id initiative/roll element/flags]} initiative
+    (for [{:keys [entity/key initiative/roll element/flags]} initiative
           :when (and (nil? roll) (not (contains? flags :player)))]
-      [:db/add id :initiative/roll (inc (rand-int 20))])))
+      [:db/add [:entity/key key] :initiative/roll (inc (rand-int 20))])))
 
 (defmethod transact :initiative/reset-rolls
-  [{:keys [data]} key]
-  (let [result (ds/pull data [[:canvas/initiative :default #{}]] [:entity/key key])]
-    (for [{:keys [db/id]} (:canvas/initiative result)]
-      [:db/retract id :initiative/roll])))
+  [{:keys [data canvas]}]
+  (let [result (ds/pull data [{:canvas/initiative [:entity/key]}] [:entity/key canvas])]
+    (for [{:keys [entity/key]} (:canvas/initiative result)]
+      [:db/retract [:entity/key key] :initiative/roll])))
 
 (defmethod transact :initiative/change-health
   [{:keys [data]} key f value]
@@ -417,13 +416,13 @@
           [[:db/add [:entity/key key] :initiative/health (f health parsed)]]))))
 
 (defmethod transact :initiative/leave
-  [{:keys [data]} key]
-  (let [select [:db/id :canvas/initiative]
-        result (ds/pull data select [:entity/key key])
-        {id :db/id initiative :canvas/initiative} result]
-    (into [[:db/retract id :canvas/initiative]]
-          (for [{:keys [db/id]} initiative attr initiative-attrs]
-            [:db/retract id attr]))))
+  [{:keys [data canvas]}]
+  (let [select [{:canvas/initiative [:entity/key]}]
+        result (ds/pull data select [:entity/key canvas])
+        {initiative :canvas/initiative} result]
+    (into [[:db/retract [:entity/key canvas] :canvas/initiative]]
+          (for [{:keys [entity/key]} initiative attr initiative-attrs]
+            [:db/retract [:entity/key key] attr]))))
 
 (defmethod transact :storage/reset [] [])
 

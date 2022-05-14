@@ -1,13 +1,13 @@
 (ns ogre.tools.render.workspaces
   (:require [clojure.string :refer [blank? trim]]
-            [ogre.tools.state :refer [use-pull]]))
+            [ogre.tools.state :refer [use-query]]))
 
 (def pattern
   [{:local/window [:entity/key]}
    {:local/windows [:entity/key {:window/canvas [:entity/key :element/name]}]}])
 
 (defn workspaces []
-  (let [[result dispatch] (use-pull pattern [:db/ident :local])
+  (let [[result dispatch] (use-query pattern)
         {current :local/window
          windows :local/windows} result]
     [:div.workspaces

@@ -1,7 +1,7 @@
 (ns ogre.tools.render.panel
   (:require [ogre.tools.render :refer [icon]]
             [ogre.tools.form.render :refer [form]]
-            [ogre.tools.state :refer [use-pull]]))
+            [ogre.tools.state :refer [use-query]]))
 
 (def panels
   [[:canvas "images"]
@@ -14,7 +14,7 @@
      [:panel/collapsed? :default false]]}])
 
 (defn container []
-  (let [[result dispatch] (use-pull pattern [:db/ident :local])
+  (let [[result dispatch] (use-query pattern)
         {{current :panel/current
           collapsed? :panel/collapsed?} :local/window} result]
     [:aside.panel

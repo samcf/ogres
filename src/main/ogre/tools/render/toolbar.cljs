@@ -1,6 +1,6 @@
 (ns ogre.tools.render.toolbar
   (:require [ogre.tools.render :refer [icon listen!]]
-            [ogre.tools.state :refer [use-pull]]
+            [ogre.tools.state :refer [use-query]]
             [uix.core.alpha :as uix]))
 
 (defn shortcut [key]
@@ -28,16 +28,6 @@
     :mask/hide   "Remove all masks and then mask the entire scene."
     :mask/show   "Remove all masks and reveal the entire scene."))
 
-(def query
-  {:pull
-   [[:root/tooltips? :default true]
-    [:share/open? :default false]
-    [:share/paused? :default false]
-    {:root/canvas
-     [:entity/key
-      [:canvas/mode :default :select]
-      [:zoom/scale :default 1]]}]})
-
 (def pattern
   [[:local/tooltips? :default true]
    [:local/sharing? :default false]
@@ -47,7 +37,7 @@
      [:window/scale :default 1]]}])
 
 (defn toolbar []
-  (let [[data dispatch] (use-pull pattern [:db/ident :local])
+  (let [[data dispatch] (use-query pattern)
         container       (uix/ref)
         tooltip-key     (uix/state nil)
 

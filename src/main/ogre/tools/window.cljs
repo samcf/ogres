@@ -120,9 +120,8 @@
        (reset)) "beforeunload" []) nil))
 
 (def query
-  {:pull
-   [{:root/local
-     [:local/host? :local/loaded?]}]})
+  [[:local/host? :default true]
+   [:local/loaded? :default false]])
 
 (defn provider
   "Provides a reference to the guest window, if any, and registers several
@@ -138,10 +137,10 @@
                 ([element]
                  (reset! guest element)))]
 
-    (if (:local/loaded? (:root/local data))
+    (if (:local/loaded? data)
       (uix/context-provider
        [context {:guest @guest :reset reset}]
-       (if (:local/host? (:root/local data))
+       (if (:local/host? data)
          [:<>
           [initialize]
           [dispatcher]

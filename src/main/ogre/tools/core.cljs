@@ -22,17 +22,15 @@
      (assoc (dissoc attrs :css) :class (css (:class attrs) (:css attrs)))
      attrs)))
 
-(def layout-query
-  {:pull
-   [{:root/local
-     [:local/loaded?
-      :local/host?
-      [:local/shortcuts? :default true]
-      [:local/tooltips? :default true]]}]})
+(def layout-pattern
+  [[:local/loaded? :default false]
+   [:local/host? :default true]
+   [:local/shortcuts? :default true]
+   [:local/tooltips? :default true]])
 
 (defn layout []
-  (let [[result] (use-query layout-query)
-        {:local/keys [loaded? host? shortcuts? tooltips?]} (:root/local result)
+  (let [[result] (use-query layout-pattern)
+        {:local/keys [loaded? host? shortcuts? tooltips?]} result
         classes
         {:global--host       host?
          :global--guest      (not host?)

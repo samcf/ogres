@@ -1,7 +1,7 @@
 (ns ogre.tools.form.help
   (:require [ogre.tools.form.render :refer [form]]
             [ogre.tools.render :refer [button checkbox]]
-            [ogre.tools.state :refer [use-pull VERSION]]))
+            [ogre.tools.state :refer [use-query VERSION]]))
 
 (def pattern
   [[:local/shortcuts? :default true]
@@ -13,7 +13,7 @@
    ["mailto:mail@samcf.me" "Personal email"]])
 
 (defn help []
-  (let [[result dispatch] (use-pull pattern [:db/ident :local])
+  (let [[result dispatch] (use-query pattern)
         {shortcuts? :local/shortcuts?
          tooltips?  :local/tooltips?} result]
     [:<>

@@ -8,7 +8,7 @@
             [ogre.tools.render.forms :refer [token-context-menu shape-context-menu]]
             [ogre.tools.render.pattern :refer [pattern]]
             [ogre.tools.render.portal :as portal]
-            [ogre.tools.state :refer [use-query use-pull]]
+            [ogre.tools.state :refer [use-query]]
             [react-draggable]))
 
 (def draw-modes
@@ -61,7 +61,7 @@
         [:image/checksum]}]}]}])
 
 (defn scene []
-  (let [[result] (use-pull scene-pattern [:db/ident :local])
+  (let [[result] (use-query scene-pattern)
         {{{color :canvas/color {checksum :image/checksum}
            :canvas/scene}
           :window/canvas}
@@ -73,31 +73,31 @@
        [:feColorMatrix {:type "matrix" :values (join " " (atmosphere color))}]]]
      [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere)"}}]]))
 
-(def light-mask-query
-  {:pull
-   [:root/host?
-    {:root/canvas
-     [[:canvas/visibility :default :revealed]
-      [:grid/size :default 70]
-      {:canvas/tokens
-       [:db/id
-        [:element/flags :default #{}]
-        [:token/light :default 15]
-        [:pos/vec :default [0 0]]]}
-      {:canvas/scene
-       [:image/checksum
-        :image/width
-        :image/height]}]}]})
+(def light-mask-pattern
+  [[:local/host? :default true]
+   {:local/window
+    [{:window/canvas
+      [[:grid/size :default 70]
+       [:canvas/visibility :default :revealed]
+       {:canvas/tokens
+        [:entity/key
+         [:element/flags :default #{}]
+         [:token/light :default 15]
+         [:pos/vec :default [0 0]]]}
+       {:canvas/scene [:image/checksum :image/width :image/height]}]}]}])
 
 (defn light-mask []
-  (let [[result] (use-query light-mask-query)
-        {host? :root/host?
-         {visibility :canvas/visibility
-          tokens     :canvas/tokens
-          size       :grid/size
-          {checksum :image/checksum
-           width    :image/width
-           height   :image/height} :canvas/scene} :root/canvas} result]
+  (let [[result] (use-query light-mask-pattern)
+        {host? :local/host?
+         {{visibility :canvas/visibility
+           size       :grid/size
+           tokens     :canvas/tokens
+           {checksum :image/checksum
+            width    :image/width
+            height   :image/height}
+           :canvas/scene}
+          :window/canvas}
+         :local/window} result]
     (if (and checksum (not= visibility :revealed))
       [:g.canvas-mask {:css {:is-dimmed (= visibility :dimmed)}}
        [:defs
@@ -118,23 +118,26 @@
           {:x 0 :y 0 :width width :height height
            :fill "url(#mask-pattern)" :mask "url(#light-mask)"}])])))
 
-(def canvas-mask-query
-  {:pull
-   [:root/host?
-    {:root/canvas
-     [[:canvas/mode :default :select]
-      [:mask/filled? :default false]
-      {:canvas/scene [:image/width :image/height]}
-      {:canvas/masks [:entity/key :mask/vecs :mask/enabled?]}]}]})
+(def canvas-mask-pattern
+  [[:local/host? :default false]
+   {:local/window
+    [[:window/mode :default :select]
+     {:window/canvas
+      [[:mask/filled? :default false]
+       {:canvas/scene [:image/width :image/height]}
+       {:canvas/masks [:entity/key :mask/vecs :mask/enabled?]}]}]}])
 
 (defn canvas-mask []
-  (let [[result dispatch] (use-query canvas-mask-query)
-        {host?    :root/host?
-         {filled? :mask/filled?
-          masks   :canvas/masks
-          mode    :canvas/mode
-          {width  :image/width
-           height :image/height} :canvas/scene} :root/canvas} result
+  (let [[result dispatch] (use-query canvas-mask-pattern)
+        {host? :local/host?
+         {mode :window/mode
+          {filled? :mask/filled?
+           masks   :canvas/masks
+           {width  :image/width
+            height :image/height}
+           :canvas/scene}
+          :window/canvas}
+         :local/window} result
         modes #{:mask :mask-toggle :mask-remove}]
     [:g.canvas-mask
      [:defs
@@ -170,7 +173,7 @@
        [:grid/size :default 70]]}]}])
 
 (defn grid []
-  (let [[data] (use-pull grid-pattern [:db/ident :local])
+  (let [[data] (use-query grid-pattern)
         {[_ _ w h] :bounds/self
          {[cx cy] :window/vec
           mode    :window/mode
@@ -258,7 +261,7 @@
          :window/_selected]}]}]}])
 
 (defn shapes []
-  (let [[result dispatch] (use-pull shapes-pattern [:db/ident :local])
+  (let [[result dispatch] (use-query shapes-pattern)
         {host? :local/host?
          {scale :window/scale
           align :grid/align
@@ -294,18 +297,18 @@
   (let [url (use-image checksum)]
     [:image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"}]))
 
-(def stands-pattern
-  {:query
-   '[:find [?c ...] :where
-     [[:db/ident :local] :local/window ?w]
-     [?w :window/canvas ?c]
-     [?c :canvas/tokens ?t]
-     [?t :token/stamp ?s]
-     [?s :image/checksum ?c]]})
+(def stamps-pattern
+  [{:local/window
+    [{:window/canvas
+      [{:canvas/tokens
+        [{:token/stamp
+          [:image/checksum]}]}]}]}])
 
 (defn stamps []
-  (let [[checksums] (use-query stands-pattern)
-        attrs  {:width "100%" :height "100%" :patternContentUnits "objectBoundingBox"}]
+  (let [[result _] (use-query stamps-pattern)
+        tokens     (-> result :local/window :window/canvas :canvas/tokens)
+        checksums  (into #{} (comp (map :token/stamp) (map :image/checksum)) tokens)
+        attrs      {:width "100%" :height "100%" :patternContentUnits "objectBoundingBox"}]
     [:defs
      [:pattern (merge attrs {:id "token-stamp-default" :viewBox "0 0 16 16" :fill "#f2f2eb"})
       [:rect {:x 0 :y 0 :width 16 :height 16 :fill "hsl(200, 20%, 12%)"}]
@@ -381,7 +384,7 @@
          {:window/_selected [:entity/key]}]}]}]}])
 
 (defn tokens []
-  (let [[result dispatch] (use-pull tokens-pattern [:db/ident :local])
+  (let [[result dispatch] (use-query tokens-pattern)
 
         {host? :local/host?
          {scale :window/scale
@@ -452,7 +455,7 @@
                [token-context-menu {:tokens selected}]])]]]))]))
 
 (defn bounds []
-  (let [[result] (use-query {:pull [:bounds/host :bounds/guest]})
+  (let [[result] (use-query [:bounds/host :bounds/guest])
         {[_ _ hw hh] :bounds/host
          [_ _ gw gh] :bounds/guest} result
         [ox oy] [(/ (- hw gw) 2) (/ (- hh gh) 2)]]
@@ -474,7 +477,7 @@
       [[:canvas/theme :default :light]]}]}])
 
 (defn canvas []
-  (let [[result dispatch] (use-pull canvas-pattern [:db/ident :local])
+  (let [[result dispatch] (use-query canvas-pattern)
         {host?       :local/host?
          priv?       :local/privileged?
          [_ _ hw hh] :bounds/host

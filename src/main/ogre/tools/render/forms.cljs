@@ -68,7 +68,7 @@
   (render-fn (use-image checksum)))
 
 (defn images-form [{:keys [on-change]}]
-  (let [[result dispatch] (use-query {:pull [{:root/stamps [:image/checksum]}]})
+  (let [[result dispatch] (use-query [{:root/stamps [:image/checksum]}])
         {:keys [store]}   (uix/context storage)
         thumbnails        (into [] (comp (map :image/checksum) (partition-all 15)) (reverse (:root/stamps result)))
         page-index        (uix/state 0)

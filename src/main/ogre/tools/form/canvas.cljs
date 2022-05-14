@@ -3,7 +3,7 @@
             [ogre.tools.form.render :refer [form]]
             [ogre.tools.image :as image]
             [ogre.tools.render :refer [button checkbox icon use-image]]
-            [ogre.tools.state :refer [use-pull]]
+            [ogre.tools.state :refer [use-query]]
             [ogre.tools.storage :refer [storage]]
             [uix.core.alpha :as uix]))
 
@@ -44,7 +44,7 @@
          [:grid/size :default 70]]}]}]}])
 
 (defn canvas []
-  (let [[result dispatch] (use-pull pattern)
+  (let [[result dispatch] (use-query pattern [:db/ident :root])
         {:keys [store]}   (uix/context storage)
         show-images       (uix/state false)
         file-upload       (uix/ref)

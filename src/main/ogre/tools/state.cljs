@@ -1,7 +1,8 @@
 (ns ogre.tools.state
   (:require [uix.core.alpha :as uix :refer [defcontext]]
             [datascript.core :as ds :refer [squuid]]
-            [ogre.tools.txs :as txs]))
+            [ogre.tools.txs :as txs]
+            [cljs.pprint :refer [pprint]]))
 
 (goog-define VERSION "latest")
 (goog-define PATH "/release")
@@ -51,44 +52,13 @@
 
 (defcontext state)
 
-(def root-query
-  '[:find (pull $ ?id pattern) . :in $ pattern :where [?id :db/ident :root]])
-
 (defn listening? [data]
   (let [result (ds/pull data [:local/host? :local/paused?] [:db/ident :local])]
     (or (:local/host? result) (not (:local/paused? result)))))
 
 (defn use-query
-  "React hook to run queries against the underlying DataScript database."
   ([] (let [[_ dispatch] (uix/context state)] dispatch))
-  ([{:keys [query pull args] :or {query root-query args []}}]
-   (let [[conn dispatch] (uix/context state)
-         listen-key      (deref (uix/state (squuid)))
-         get-result      (uix/callback
-                          (fn []
-                            (let [args (if pull (conj args pull) args)]
-                              (apply ds/q query @conn args))) [])
-         prev-state      (uix/state (get-result))]
-
-     (uix/effect!
-      (fn []
-        (let [canceled? (atom false)]
-          (ds/listen!
-           conn listen-key
-           (fn [{:keys [db-after]}]
-             (if (and (listening? db-after) (not @canceled?))
-               (let [next-state (get-result)]
-                 (if-not (= @prev-state next-state)
-                   (reset! prev-state next-state))))))
-          (fn []
-            (reset! canceled? true)
-            (ds/unlisten! conn listen-key)))) [])
-
-     [@prev-state dispatch])))
-
-(defn use-pull
-  ([] (let [[_ dispatch] (uix/context state)] dispatch))
-  ([pattern] (use-pull pattern [:db/ident :root]))
+  ([pattern] (use-query pattern [:db/ident :local]))
   ([pattern entity]
    (let [[conn dispatch] (uix/context state)
          listen-key      (deref (uix/state (squuid)))
@@ -118,6 +88,7 @@
             {canvas :entity/key} :window/canvas} :local/window} result
           context {:data @conn :event event :local local :window window :canvas canvas}
           changes (apply txs/transact context args)]
+      (pprint changes)
       (ds/transact! conn changes [event args changes]) nil)))
 
 (defn provider

@@ -10,22 +10,6 @@
    [(:initiative/roll b) (contains? (:element/flags a) :player) (:element/name a)]
    [(:initiative/roll a) (contains? (:element/flags b) :player) (:element/name b)]))
 
-(defn initiant-query [id]
-  {:query
-   '[:find (pull $ ?id pattern) . :in $ ?id pattern]
-   :pull
-   [:db/id
-    :entity/key
-    :element/name
-    :element/flags
-    :initiative/roll
-    :initiative/health
-    :initiative/suffix
-    :canvas/_selected
-    {:token/stamp
-     [:image/checksum]}]
-   :args [id]})
-
 (defn roll-form [{:keys [value on-change]}]
   (let [input (uix/ref) [editing? form] (use-modal)]
     [:div.initiant-roll
@@ -73,13 +57,13 @@
       (if (number? value)
         [:div.initiant-health-label value])]]))
 
-(defn initiant [{:keys [id]}]
-  (let [[data dispatch] (use-query (initiant-query id))
+(defn initiant [{:keys [entity]}]
+  (let [dispatch (use-query)
         {key   :entity/key
          name  :element/name
          sffx  :initiative/suffix
          flags :element/flags
-         {checksum :image/checksum} :token/stamp} data
+         {checksum :image/checksum} :token/stamp} entity
         url (use-image checksum)]
     [:li.initiant
      (if checksum
@@ -90,7 +74,7 @@
         {:on-click #(dispatch :element/select key true)}
         [icon {:name "person-circle" :size 36}]])
      [roll-form
-      {:value (:initiative/roll data)
+      {:value (:initiative/roll entity)
        :on-change
        (fn [value]
          (dispatch :initiative/change-roll key value))}]
@@ -104,37 +88,40 @@
          [:em (join ", " (mapv (comp capitalize clojure.core/name) flags))]
          [:em "No Conditions"])]]
      [health-form
-      {:value (:initiative/health data)
+      {:value (:initiative/health entity)
        :on-change
        (fn [f v]
          (dispatch :initiative/change-health key f v))}]]))
 
-(def query
-  {:pull
-   [{:root/canvas
-     [:entity/key
-      {:canvas/initiative
-       [:db/id
-        :entity/key
-        :element/name
-        :element/flags
-        :initiative/roll
-        :initiative/suffix]}]}]})
+(def initiative-pattern
+  [{:local/window
+    [{:window/canvas
+      [:entity/key
+       {:canvas/initiative
+        [:entity/key
+         :element/name
+         :element/flags
+         :initiative/roll
+         :initiative/suffix
+         :initiative/health
+         :window/_selected
+         {:token/stamp [:image/checksum]}]}]}]}])
 
 (defn initiative []
-  (let [[{{key :entity/key initiative :canvas/initiative} :root/canvas} dispatch] (use-query query)]
+  (let [[result dispatch] (use-query initiative-pattern)
+        initiative        (-> result :local/window :window/canvas :canvas/initiative)]
     (if (seq initiative)
       [:div.initiative
        [:section [:header "Initiative"]]
        [:section
         [:fieldset.table {:style {:padding "0 12px"}}
-         [button {:on-click #(dispatch :initiative/roll-all key)} "Roll"]
-         [button {:on-click #(dispatch :initiative/reset-rolls key)} "Reset"]
-         [button {:on-click #(dispatch :initiative/leave key)} "Leave"]]]
+         [button {:on-click #(dispatch :initiative/roll-all)} "Roll"]
+         [button {:on-click #(dispatch :initiative/reset-rolls)} "Reset"]
+         [button {:on-click #(dispatch :initiative/leave)} "Leave"]]]
        [:section
         [:ol
-         (for [{:keys [db/id]} (sort order initiative)]
-           ^{:key id} [initiant {:id id}])]]]
+         (for [entity (sort order initiative)]
+           ^{:key (:entity/key entity)} [initiant {:entity entity}])]]]
       [:div.initiative
        [:section [:header "Initiative"]]
        [:section

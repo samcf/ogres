@@ -1,5 +1,5 @@
 (ns ogre.tools.render.tokens
-  (:require [ogre.tools.state :refer [use-pull]]
+  (:require [ogre.tools.state :refer [use-query]]
             [react-draggable]))
 
 (defn round [x n]
@@ -15,7 +15,7 @@
       [[:grid/size :default 70]]}]}])
 
 (defn tokens []
-  (let [[result dispatch] (use-pull pattern [:db/ident :local])
+  (let [[result dispatch] (use-query pattern)
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
