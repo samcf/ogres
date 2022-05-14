@@ -1,8 +1,7 @@
 (ns ogre.tools.state
   (:require [uix.core.alpha :as uix :refer [defcontext]]
             [datascript.core :as ds :refer [squuid]]
-            [ogre.tools.txs :as txs]
-            [cljs.pprint :refer [pprint]]))
+            [ogre.tools.txs :as txs]))
 
 (goog-define VERSION "latest")
 (goog-define PATH "/release")
@@ -10,21 +9,21 @@
 (def schema
   {:db/ident          {:db/unique :db.unique/identity}
    :entity/key        {:db/unique :db.unique/identity}
-   :image/checksum    {:db/unique :db.unique/identity}
-   :root/canvases     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
-   :root/scenes       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
-   :root/stamps       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
-   :root/local        {:db/valueType :db.type/ref :db/isComponent true}
-   :canvas/scene      {:db/valueType :db.type/ref}
-   :canvas/tokens     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
-   :canvas/shapes     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
-   :canvas/masks      {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :canvas/initiative {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
-   :window/canvas     {:db/valueType :db.type/ref}
-   :window/selected   {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
+   :canvas/masks      {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :canvas/scene      {:db/valueType :db.type/ref}
+   :canvas/shapes     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :canvas/tokens     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :image/checksum    {:db/unique :db.unique/identity}
    :local/window      {:db/valueType :db.type/ref}
    :local/windows     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
-   :token/stamp       {:db/valueType :db.type/ref}})
+   :root/canvases     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :root/local        {:db/valueType :db.type/ref :db/isComponent true}
+   :root/scenes       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :root/stamps       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :token/stamp       {:db/valueType :db.type/ref}
+   :window/canvas     {:db/valueType :db.type/ref}
+   :window/selected   {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}})
 
 (defn initial-data []
   (ds/db-with
@@ -45,10 +44,6 @@
 
     [:db/add -4 :entity/key (squuid)]
     [:db/add -4 :window/canvas -2]]))
-
-[{:root/conn
-  [{:local/window
-    [:window/vec]}]}]
 
 (defcontext state)
 
@@ -88,7 +83,6 @@
             {canvas :entity/key} :window/canvas} :local/window} result
           context {:data @conn :event event :local local :window window :canvas canvas}
           changes (apply txs/transact context args)]
-      (pprint changes)
       (ds/transact! conn changes [event args changes]) nil)))
 
 (defn provider
