@@ -31,12 +31,12 @@
   [{:root/scenes [:image/checksum]}
    {:root/local
     [{:local/window
-      [[:window/draw-mode :default :select]
+      [[:window/label :default ""]
+       [:window/draw-mode :default :select]
        [:window/show-grid :default true]
        [:window/snap-grid :default false]
        {:window/canvas
         [:entity/key
-         [:element/name :default ""]
          {:canvas/scene [:image/checksum]}
          [:canvas/theme :default :light]
          [:canvas/visibility :default :revealed]
@@ -49,20 +49,9 @@
         show-images       (uix/state false)
         file-upload       (uix/ref)
         {scenes :root/scenes
-         {{show :window/show-grid
-           snap :window/snap-grid
-           mode :window/draw-mode
-           {key   :entity/key
-            label :element/name
-            theme :canvas/theme
-            vis   :canvas/visibility
-            color :canvas/color
-            size  :grid/size
-            {checksum  :image/checksum}
-            :canvas/scene}
-           :window/canvas}
-          :local/window}
-         :root/local} result]
+         {window :local/window
+          {canvas :window/canvas} :local/window} :root/local} result
+        checksum (-> canvas :canvas/scene :image/checksum)]
     [:<>
      [:section
       [:header "Canvas Options"]]
@@ -80,11 +69,11 @@
         :placeholder "New Canvas"
         :maxLength 36
         :spellCheck "false"
-        :value label
+        :value (:window/label window)
         :on-change
         (fn [event]
           (let [value (.. event -target -value)]
-            (dispatch :element/update [key] :element/name value)))}]]
+            (dispatch :window/change-label value)))}]]
      [:section
       (if (and (seq scenes) @show-images)
         [:fieldset.thumbnails
@@ -118,7 +107,7 @@
       [:legend "Options"]
       [:fieldset.setting
        [:label "Theme"]
-       (for [value [:light :dark] :let [checked? (= value theme)]]
+       (for [value [:light :dark] :let [checked? (= value (:canvas/theme canvas))]]
          ^{:key value}
          [checkbox
           {:checked checked?
@@ -129,14 +118,14 @@
           (capitalize (name value))])]
       [:fieldset.setting
        [:label "Visibility"]
-       (for [value [:revealed :dimmed :hidden] :let [checked (= value vis)]]
+       (for [value [:revealed :dimmed :hidden] :let [checked (= value (:canvas/visibility canvas))]]
          ^{:key value}
          [checkbox
           {:checked checked :on-change #(dispatch :canvas/change-visibility value)}
           (capitalize (name value))])]
       [:fieldset.setting
        [:label "Filter"]
-       (for [value [:none :dusk :midnight] :let [checked? (= value color)]]
+       (for [value [:none :dusk :midnight] :let [checked? (= value (:canvas/color canvas))]]
          ^{:key value}
          [checkbox
           {:checked checked? :on-change #(dispatch :canvas/change-color value)}
@@ -145,7 +134,7 @@
       [:legend "Grid Configuration"]
       [:fieldset.setting
        [:label "Show Grid"]
-       (for [value [false true] :let [checked? (= show value)]]
+       (for [value [false true] :let [checked? (= (:window/show-grid window) value)]]
          ^{:key value}
          [checkbox
           {:checked checked?
@@ -156,7 +145,7 @@
           (if value "Yes" "No")])]
       [:fieldset.setting
        [:label "Align to Grid"]
-       (for [value [false true] :let [checked? (= snap value)]]
+       (for [value [false true] :let [checked? (= (:window/snap-grid window) value)]]
          ^{:key value}
          [checkbox
           {:checked checked?
@@ -170,12 +159,12 @@
        [:input
         {:type "number"
          :placeholder "Grid size"
-         :value (or size 0)
+         :value (or (:grid/size canvas) 0)
          :on-change
          (fn [event]
            (dispatch :canvas/change-grid-size (.. event -target -value)))}]
        [checkbox
-        {:checked (= mode :grid)
+        {:checked (= (:window/draw-mode window) :grid)
          :on-change
          (fn [checked]
            (if checked

@@ -7,8 +7,8 @@
 
 (defn order [a b]
   (compare
-   [(:initiative/roll b) (contains? (:element/flags a) :player) (:element/name a)]
-   [(:initiative/roll a) (contains? (:element/flags b) :player) (:element/name b)]))
+   [(:initiative/roll b) (contains? (:token/flags a) :player) (:token/label a)]
+   [(:initiative/roll a) (contains? (:token/flags b) :player) (:token/label b)]))
 
 (defn roll-form [{:keys [value on-change]}]
   (let [input (uix/ref) [editing? form] (use-modal)]
@@ -60,9 +60,9 @@
 (defn initiant [{:keys [entity]}]
   (let [dispatch (use-query)
         {key   :entity/key
-         name  :element/name
+         label :token/label
          sffx  :initiative/suffix
-         flags :element/flags
+         flags :token/flags
          {checksum :image/checksum} :token/stamp} entity
         url (use-image checksum)]
     [:li.initiant
@@ -81,11 +81,11 @@
      (if sffx
        [:div.initiant-suffix (char (+ sffx 64))])
      [:div.initiant-info
-      (if (not (blank? name))
-        [:div.initiant-label name])
+      (if (not (blank? label))
+        [:div.initiant-label label])
       [:div.initiant-flags
        (if (seq flags)
-         [:em (join ", " (mapv (comp capitalize clojure.core/name) flags))]
+         [:em (join ", " (mapv (comp capitalize name) flags))]
          [:em "No Conditions"])]]
      [health-form
       {:value (:initiative/health entity)
@@ -99,8 +99,8 @@
       [:entity/key
        {:canvas/initiative
         [:entity/key
-         :element/name
-         :element/flags
+         :token/label
+         :token/flags
          :initiative/roll
          :initiative/suffix
          :initiative/health

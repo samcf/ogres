@@ -33,15 +33,11 @@
     [:db/add -1 :root/release VERSION]
     [:db/add -1 :root/canvases -2]
     [:db/add -1 :root/local -3]
-
     [:db/add -2 :entity/key (squuid)]
-    [:db/add -2 :element/name ""]
-
     [:db/add -3 :db/ident :local]
     [:db/add -3 :entity/key (squuid)]
     [:db/add -3 :local/window -4]
     [:db/add -3 :local/windows -4]
-
     [:db/add -4 :entity/key (squuid)]
     [:db/add -4 :window/canvas -2]]))
 

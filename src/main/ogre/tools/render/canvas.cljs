@@ -48,9 +48,9 @@
       (flags :player)
       (not (some flags [:hidden :invisible]))))
 
-(defn label [{:keys [element/name initiative/suffix]}]
+(defn label [{:keys [token/label initiative/suffix]}]
   (cond-> ""
-    (string? name) (str name)
+    (string? label) (str label)
     (number? suffix) (str " " (char (+ suffix 64)))))
 
 (def scene-query
@@ -81,7 +81,7 @@
        [:canvas/visibility :default :revealed]
        {:canvas/tokens
         [:entity/key
-         [:element/flags :default #{}]
+         [:token/flags :default #{}]
          [:token/light :default 15]
          [:pos/vec :default [0 0]]]}
        {:canvas/scene [:image/checksum :image/width :image/height]}]}]}])
@@ -108,7 +108,7 @@
          [:stop {:offset "100%" :stop-color "black" :stop-opacity "0%"}]]
         [:mask {:id "light-mask"}
          [:rect {:x 0 :y 0 :width width :height height :fill "white" :fill-opacity "100%"}]
-         (for [{id :db/id flags :element/flags [x y] :pos/vec radius :token/light} tokens
+         (for [{id :db/id flags :token/flags [x y] :pos/vec radius :token/light} tokens
                :when (and (> radius 0) (or host? (visible? flags)))]
            [:circle {:key id :cx x :cy y :r (+ (ft->px radius size) (/ size 2)) :fill "url(#mask-gradient)"}])]]
        [:rect.canvas-mask-background
@@ -331,7 +331,7 @@
       {:cx 0 :cy 0 :style {:r radius :fill "transparent"}}]
      (let [checksum (:image/checksum (:token/stamp data))
            pattern  (cond
-                      ((:element/flags data) :unconscious) "token-stamp-deceased"
+                      ((:token/flags data) :unconscious) "token-stamp-deceased"
                       (string? checksum)   (str "token-stamp-" checksum)
                       :else                "token-stamp-default")]
        [:circle.canvas-token-shape
@@ -341,7 +341,7 @@
            exclu #{:player :hidden :unconscious}]
        (for [[index flag]
              (into [] (comp (take 6) (map-indexed vector))
-                   (difference (:element/flags data) exclu))]
+                   (difference (:token/flags data) exclu))]
          (let [rn (* (/ js/Math.PI 180) (nth degrs index 0))
                cx (* (js/Math.sin rn) radius)
                cy (* (js/Math.cos rn) radius)]
@@ -374,8 +374,8 @@
         [:entity/key
          [:initiative/suffix :default nil]
          [:pos/vec :default [0 0]]
-         [:element/flags :default #{}]
-         [:element/name :default ""]
+         [:token/flags :default #{}]
+         [:token/label :default ""]
          [:token/size :default 5]
          [:token/light :default 15]
          [:aura/radius :default 0]
@@ -401,11 +401,11 @@
 
         css
         (fn [token]
-          (into {} flags-xf (:element/flags token)))
+          (into {} flags-xf (:token/flags token)))
 
         [selected tokens]
         (->> tokens
-             (filter (fn [token] (or host? (visible? (:element/flags token)))))
+             (filter (fn [token] (or host? (visible? (:token/flags token)))))
              (sort token-comparator)
              (separate (fn [token] (contains? token :window/_selected))))]
     [:<>

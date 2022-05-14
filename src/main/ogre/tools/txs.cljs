@@ -23,9 +23,9 @@
   [entities]
   (->>
    (reduce
-    (fn [m {:keys [entity/key element/name initiative/suffix]}]
+    (fn [m {:keys [entity/key token/label initiative/suffix]}]
       (update
-       m name
+       m label
        (fn [[idents current]]
          [(if (= suffix nil) (conj idents key) idents)
           (max current suffix)]))) {} entities)
@@ -52,7 +52,6 @@
   [[:db/add -1 :entity/key (squuid)]
    [:db/add -1 :window/canvas -2]
    [:db/add -2 :entity/key (squuid)]
-   [:db/add -2 :element/name ""]
    [:db/add [:entity/key local] :local/window -1]
    [:db/add [:entity/key local] :local/windows -1]
    [:db/add [:db/ident :root] :root/canvases -2]])
@@ -76,7 +75,6 @@
        [:db/add -1 :entity/key (squuid)]
        [:db/add -1 :window/canvas -2]
        [:db/add -2 :entity/key (squuid)]
-       [:db/add -2 :element/name ""]
        [:db/add lookup :local/window -1]
        [:db/add lookup :local/windows -1]]
 
@@ -89,6 +87,10 @@
       :else
       [[:db/retractEntity [:entity/key key]]
        [:db/retractEntity [:entity/key (:entity/key (:window/canvas window))]]])))
+
+(defmethod transact :window/change-label
+  [{:keys [window]} label]
+  [[:db/add [:entity/key window] :window/label label]])
 
 (defmethod transact :window/translate
   [{:keys [window]} x y]
@@ -223,13 +225,6 @@
   (for [key keys]
     [:db/retractEntity [:entity/key key]]))
 
-(defmethod transact :element/flag
-  [{:keys [data]} keys flag add?]
-  (let [idents (map (fn [key] [:entity/key key]) keys)
-        tokens (ds/pull-many data [:db/id :element/flags] idents)]
-    (for [{:keys [db/id element/flags] :or {flags #{}}} tokens]
-      [:db/add id :element/flags ((if add? conj disj) flags flag)])))
-
 (defmethod transact :scene/create
   [{:keys [data canvas]} checksum filename width height]
   (let [lookup   [:image/checksum checksum]
@@ -260,6 +255,13 @@
         radius            (if align? (/ size 2) 1)]
     [[:db/add [:entity/key key] :pos/vec [(round x radius) (round y radius)]]]))
 
+(defmethod transact :token/change-flag
+  [{:keys [data]} keys flag add?]
+  (let [idents (map (fn [key] [:entity/key key]) keys)
+        tokens (ds/pull-many data [:entity/key :token/flags] idents)]
+    (for [{:keys [entity/key token/flags] :or {flags #{}}} tokens]
+      [:db/add [:entity/key key] :token/flags ((if add? conj disj) flags flag)])))
+
 (defmethod transact :token/translate-all
   [{:keys [data canvas]} keys x y align?]
   (let [{size :grid/size} (ds/pull data [[:grid/size :default 70]] [:entity/key canvas])
@@ -272,7 +274,7 @@
 (defmethod transact :token/change-label
   [_ keys value]
   (for [key keys]
-    [:db/add [:entity/key key] :element/name (trim value)]))
+    [:db/add [:entity/key key] :token/label (trim value)]))
 
 (defmethod transact :token/change-size
   [_ keys radius]
@@ -367,14 +369,14 @@
 (defmethod transact :initiative/toggle
   [{:keys [data canvas]} keys adding?]
   (let [tokens   (map (fn [key] [:entity/key key]) keys)
-        select-t [:entity/key :element/name :initiative/suffix [:element/flags :default #{}]]
+        select-t [:entity/key :token/label :initiative/suffix [:token/flags :default #{}]]
         select-r [:entity/key {:canvas/initiative select-t}]
         result   (ds/pull data select-r [:entity/key canvas])
         adding   (ds/pull-many data select-t tokens)
         {key :entity/key exists :canvas/initiative} result]
     (if adding?
       (->> (union (set exists) (set adding))
-           (filter (fn [t] (nil? ((:element/flags t) :player))))
+           (filter (fn [t] (nil? ((:token/flags t) :player))))
            (suffix-txs)
            (into [{:db/id [:entity/key canvas] :canvas/initiative tokens}]))
       (into (for [tk tokens] [:db/retract [:entity/key key] :canvas/initiative tk])
@@ -395,10 +397,10 @@
 
 (defmethod transact :initiative/roll-all
   [{:keys [data canvas]}]
-  (let [select [{:canvas/initiative [:entity/key :element/flags :initiative/roll]}]
+  (let [select [{:canvas/initiative [:entity/key :token/flags :initiative/roll]}]
         result (ds/pull data select [:entity/key canvas])
         {initiative :canvas/initiative} result]
-    (for [{:keys [entity/key initiative/roll element/flags]} initiative
+    (for [{:keys [entity/key initiative/roll token/flags]} initiative
           :when (and (nil? roll) (not (contains? flags :player)))]
       [:db/add [:entity/key key] :initiative/roll (inc (rand-int 20))])))
 

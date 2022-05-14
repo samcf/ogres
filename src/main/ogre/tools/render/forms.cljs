@@ -122,7 +122,7 @@
         input-ref  (uix/ref)
         input-val  (uix/state
                     (fn []
-                      (let [vs ((:values props) :element/name)]
+                      (let [vs ((:values props) :token/label)]
                         (if (= (count vs) 1) (first vs) ""))))]
     (uix/effect! #(.select @input-ref) [])
     [:form
@@ -179,7 +179,7 @@
              ((:on-change props) tx-name next)))} "+"]])))
 
 (defmethod token-form :conditions [props]
-  (let [fqs (frequencies (reduce into [] ((:values props) :element/flags [])))
+  (let [fqs (frequencies (reduce into [] ((:values props) :token/flags [])))
         ids ((:values props) :db/id)]
     (for [[flag icon-name] conditions]
       ^{:key flag}
@@ -188,7 +188,7 @@
         (cond (= (get fqs flag 0) 0) false
               (= (get fqs flag 0) (count ids)) true
               :else :indeterminate)
-        :on-change #((:on-change props) :element/flag flag %1)}
+        :on-change #((:on-change props) :token/change-flag flag %1)}
        (fn [input key]
          [:div input
           [:label {:for key :data-tooltip (capitalize (name flag))}
@@ -209,10 +209,10 @@
             :css {:selected (= selected form)}
             :on-click #(on-change form)}
            [icon {:name icon-name :size 22}]])
-        (let [on (every? (comp boolean :hidden :element/flags) tokens)]
+        (let [on (every? (comp boolean :hidden :token/flags) tokens)]
           [:button
            {:type "button" :css {:selected on} :data-tooltip (if on "Reveal" "Hide")
-            :on-click #(dispatch :element/flag keys :hidden (not on))}
+            :on-click #(dispatch :token/change-flag keys :hidden (not on))}
            [icon {:name (if on "eye-slash-fill" "eye-fill") :size 22}]])
         (let [on (every? (comp vector? :canvas/_initiative) tokens)]
           [:button
