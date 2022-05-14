@@ -9,7 +9,8 @@
 (defcontext storage)
 
 (def ignored-attrs
-  #{:local/loaded?
+  #{:local/host?
+    :local/loaded?
     :local/privileged?
     :local/sharing?
     :local/paused?
