@@ -142,7 +142,6 @@
 (defmethod transact :zoom/delta
   [{:keys [data window] :as context} delta x y]
   (let [result (ds/pull data [[:window/scale :default 1]] [:entity/key window])
-        _ (println result)
         next   (-> (:window/scale result)
                    (js/Math.log)
                    (+ delta)
@@ -213,10 +212,10 @@
 (defmethod transact :element/select
   [{:keys [data window]} key replace?]
   (let [lookup [:entity/key key]
-        result (ds/pull data [:window/_selected] lookup)]
+        entity (ds/entity data lookup)]
     [(if replace?
        [:db/retract [:entity/key window] :window/selected])
-     (if (and (not replace?) (:canvas/_selected result))
+     (if (and (not replace?) (:window/_selected entity))
        [:db/retract [:entity/key window] :window/selected lookup]
        [:db/add [:entity/key window] :window/selected lookup])]))
 
@@ -331,11 +330,11 @@
      [:db/add [:entity/key local] :local/privileged? (and host? open?)]]))
 
 (defmethod transact :share/switch
-  ([{:keys [data] :as context}]
-   (let [{:keys [share/paused?]} (ds/pull data [:share/paused?] [:db/ident :root])]
+  ([{:keys [data local] :as context}]
+   (let [{:keys [local/paused?]} (ds/pull data [:local/paused?] [:entity/key local])]
      (transact context (not paused?))))
-  ([_ paused?]
-   [[:db/add [:db/ident :root] :share/paused? paused?]]))
+  ([{:keys [local]} paused?]
+   [[:db/add [:entity/key local] :local/paused? paused?]]))
 
 (defmethod transact :bounds/change
   [{:keys [data local]} w-host? bounds]
@@ -430,8 +429,7 @@
 
 (defmethod transact :interface/toggle-shortcuts
   [{:keys [local]} display?]
-  (let [lookup [:entity/key (:entity/key local)]]
-    [[:db/add lookup :local/shortcuts? display?]]))
+  [[:db/add [:entity/key local] :local/shortcuts? display?]])
 
 (defmethod transact :interface/toggle-tooltips
   [{:keys [local]} display?]
@@ -443,8 +441,9 @@
    [:db/add [:entity/key window] :panel/collapsed? false]])
 
 (defmethod transact :interface/toggle-panel
-  [{:keys [window]} collapsed]
-  [[:db/add [:entity/key window] :panel/collapsed? collapsed]])
+  [{:keys [data window]}]
+  (let [entity (ds/entity data [:entity/key window])]
+    [[:db/add [:entity/key window] :panel/collapsed? (not (:panel/collapsed? entity))]]))
 
 (defmethod transact :stamp/create
   [{:keys [data]} checksum filename width height]

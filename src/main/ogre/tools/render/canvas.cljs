@@ -108,9 +108,9 @@
          [:stop {:offset "100%" :stop-color "black" :stop-opacity "0%"}]]
         [:mask {:id "light-mask"}
          [:rect {:x 0 :y 0 :width width :height height :fill "white" :fill-opacity "100%"}]
-         (for [{id :db/id flags :token/flags [x y] :token/vec radius :token/light} tokens
+         (for [{key :entity/key flags :token/flags [x y] :token/vec radius :token/light} tokens
                :when (and (> radius 0) (or host? (visible? flags)))]
-           [:circle {:key id :cx x :cy y :r (+ (ft->px radius size) (/ size 2)) :fill "url(#mask-gradient)"}])]]
+           [:circle {:key key :cx x :cy y :r (+ (ft->px radius size) (/ size 2)) :fill "url(#mask-gradient)"}])]]
        [:rect.canvas-mask-background
         {:x 0 :y 0 :width width :height height :mask "url(#light-mask)"}]
        (if (= visibility :hidden)
@@ -380,7 +380,7 @@
          [:token/light :default 15]
          [:aura/radius :default 0]
          {:token/image [:image/checksum]}
-         {:canvas/_initiative [:db/id :entity/key]}
+         {:canvas/_initiative [:entity/key]}
          {:window/_selected [:entity/key]}]}]}]}])
 
 (defn tokens []

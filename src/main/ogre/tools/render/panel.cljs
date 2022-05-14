@@ -28,7 +28,7 @@
           :on-click #(dispatch :interface/change-panel panel)}
          [icon {:name icon-name}]])
       [:div.panel-tab
-       {:on-click #(dispatch :interface/toggle-panel (not collapsed?))}
+       {:on-click #(dispatch :interface/toggle-panel)}
        [icon
         {:name
          (if collapsed?
