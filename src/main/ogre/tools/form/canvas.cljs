@@ -3,25 +3,9 @@
             [ogre.tools.form.render :refer [form]]
             [ogre.tools.image :as image]
             [ogre.tools.render :refer [button checkbox icon use-image]]
-            [ogre.tools.state :refer [use-query]]
+            [ogre.tools.state :refer [use-pull]]
             [ogre.tools.storage :refer [storage]]
             [uix.core.alpha :as uix]))
-
-(def query
-  {:pull
-   [{:root/scenes [:db/id :image/checksum]}
-    {:root/canvas
-     [:db/id
-      :entity/key
-      :element/name
-      {:canvas/scene [:image/checksum]}
-      [:canvas/theme :default :light]
-      [:canvas/visibility :default :revealed]
-      [:canvas/color :default :none]
-      [:canvas/mode :default :select]
-      [:grid/show :default true]
-      [:grid/size :default 70]
-      [:grid/align :default false]]}]})
 
 (defn thumbnail [{:keys [checksum selected on-select on-remove]}]
   (let [url (use-image checksum)]
@@ -43,13 +27,42 @@
   (let [url (use-image checksum)]
     [:div {:style {:background-image (str "url(" url ")")}}]))
 
+(def pattern
+  [{:root/scenes [:image/checksum]}
+   {:root/local
+    [{:local/window
+      [[:window/mode :default :select]
+       [:grid/show :default true]
+       [:grid/align :default false]
+       {:window/canvas
+        [:entity/key
+         [:element/name :default ""]
+         {:canvas/scene [:image/checksum]}
+         [:canvas/theme :default :light]
+         [:canvas/visibility :default :revealed]
+         [:canvas/color :default :none]
+         [:grid/size :default 70]]}]}]}])
+
 (defn canvas []
-  (let [[result dispatch] (use-query query)
+  (let [[result dispatch] (use-pull pattern)
         {:keys [store]}   (uix/context storage)
         show-images       (uix/state false)
         file-upload       (uix/ref)
-        {canvas :root/canvas
-         scenes :root/scenes} result]
+        {scenes :root/scenes
+         {{show-grid   :grid/show
+           align-grid  :grid/align
+           mode        :window/mode
+           {key        :entity/key
+            label      :element/name
+            theme      :canvas/theme
+            visibility :canvas/visibility
+            color      :canvas/color
+            grid-size  :grid/size
+            {checksum  :image/checksum}
+            :canvas/scene}
+           :window/canvas}
+          :local/window}
+         :root/local} result]
     [:<>
      [:section
       [:header "Canvas Options"]]
@@ -58,8 +71,8 @@
        {:type "button"
         :on-click #(swap! show-images not)
         :disabled (not (seq scenes))}
-       (if (:canvas/scene canvas)
-         [preview {:checksum (-> canvas :canvas/scene :image/checksum)}]
+       (if checksum
+         [preview {:checksum checksum}]
          [icon {:name "images" :size 32}])]
       [button {:on-click #(.click @file-upload)} "Choose File(s)"]
       [:input
@@ -67,23 +80,23 @@
         :placeholder "New Canvas"
         :maxLength 36
         :spellCheck "false"
-        :value (or (:element/name canvas) "")
+        :value label
         :on-change
         (fn [event]
           (let [value (.. event -target -value)]
-            (dispatch :element/update [(:entity/key canvas)] :element/name value)))}]]
+            (dispatch :element/update [key] :element/name value)))}]]
      [:section
       (if (and (seq scenes) @show-images)
         [:fieldset.thumbnails
-         (for [{:keys [db/id image/checksum]} scenes]
-           ^{:key checksum}
+         (for [scene scenes :let [value (:image/checksum scene)]]
+           ^{:key value}
            [thumbnail
-            {:checksum  checksum
-             :selected  (= id (:db/id (:canvas/scene canvas)))
-             :on-select (fn [] (dispatch :canvas/change-scene checksum))
+            {:checksum  value
+             :selected  (= value checksum)
+             :on-select (fn [] (dispatch :canvas/change-scene value))
              :on-remove (fn []
-                          (.delete (.-images store) checksum)
-                          (dispatch :map/remove checksum))}])])
+                          (.delete (.-images store) value)
+                          (dispatch :map/remove value))}])])
       [:input
        {:type "file"
         :ref file-upload
@@ -105,73 +118,69 @@
       [:legend "Options"]
       [:fieldset.setting
        [:label "Theme"]
-       (for [theme [:light :dark] :let [checked? (= theme (:canvas/theme canvas))]]
-         ^{:key theme}
+       (for [value [:light :dark] :let [checked? (= value theme)]]
+         ^{:key value}
          [checkbox
           {:checked checked?
            :on-change
            (fn []
-             (when (not checked?)
-               (dispatch :canvas/toggle-theme)))}
-          (capitalize (name theme))])]
+             (if (not checked?)
+               (dispatch :canvas/change-theme value)))}
+          (capitalize (name value))])]
       [:fieldset.setting
        [:label "Visibility"]
-       (for [option [:revealed :dimmed :hidden] :let [checked (= option (:canvas/visibility canvas))]]
-         ^{:key option}
+       (for [value [:revealed :dimmed :hidden] :let [checked (= value visibility)]]
+         ^{:key value}
          [checkbox
-          {:checked checked
-           :on-change #(dispatch :canvas/change-visibility (:entity/key canvas) option)}
-          (capitalize (name option))])]
+          {:checked checked :on-change #(dispatch :canvas/change-visibility value)}
+          (capitalize (name value))])]
       [:fieldset.setting
        [:label "Filter"]
-       (for [color [:none :dusk :midnight]
-             :let  [current  (or (:canvas/color canvas) :none)
-                    checked? (= color current)]]
-         ^{:key color}
+       (for [value [:none :dusk :midnight] :let [checked? (= value color)]]
+         ^{:key value}
          [checkbox
-          {:checked checked?
-           :on-change #(dispatch :canvas/change-color (:entity/key canvas) color)}
-          (capitalize (name color))])]]
+          {:checked checked? :on-change #(dispatch :canvas/change-color value)}
+          (capitalize (name value))])]]
      [:section.form-canvas-grid
       [:legend "Grid Configuration"]
       [:fieldset.setting
        [:label "Show Grid"]
-       (for [value [false true] :let [checked? (= (:grid/show canvas) value)]]
+       (for [value [false true] :let [checked? (= show-grid value)]]
          ^{:key value}
          [checkbox
           {:checked checked?
            :on-change
            (fn []
              (if (not checked?)
-               (dispatch :grid/toggle (:entity/key canvas) value)))}
+               (dispatch :grid/toggle value)))}
           (if value "Yes" "No")])]
       [:fieldset.setting
        [:label "Align to Grid"]
-       (for [value [false true] :let [checked? (= (:grid/align canvas) value)]]
+       (for [value [false true] :let [checked? (= align-grid value)]]
          ^{:key value}
          [checkbox
           {:checked checked?
            :on-change
            (fn []
              (if (not checked?)
-               (dispatch :grid/align (:entity/key canvas) value)))}
+               (dispatch :grid/align value)))}
           (if value "Yes" "No")])]
       [:hr]
       [:fieldset.group
        [:input
         {:type "number"
          :placeholder "Grid size"
-         :value (or (:grid/size canvas) 0)
+         :value (or grid-size 0)
          :on-change
          (fn [event]
            (dispatch :grid/change-size (.. event -target -value)))}]
        [checkbox
-        {:checked (= (:canvas/mode canvas) :grid)
+        {:checked (= mode :grid)
          :on-change
          (fn [checked]
            (if checked
-             (dispatch :canvas/toggle-mode :grid)
-             (dispatch :canvas/toggle-mode :select)))}
+             (dispatch :canvas/change-mode :grid)
+             (dispatch :canvas/change-mode :select)))}
         [icon {:name "crop" :size 16}]]]
       [:p {:style {:margin-top 4}}
        "Manually enter the grid size or click the button to draw a square

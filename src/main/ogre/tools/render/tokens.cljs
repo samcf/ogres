@@ -1,27 +1,26 @@
 (ns ogre.tools.render.tokens
-  (:require [datascript.core :refer [squuid]]
-            [ogre.tools.state :refer [use-query]]
+  (:require [ogre.tools.state :refer [use-pull]]
             [react-draggable]))
 
 (defn round [x n]
   (* (js/Math.round (/ x n)) n))
 
-(def attrs
-  {:pull
-   [:bounds/self
-    {:root/canvas
-     [[:zoom/scale :default 1]
-      [:grid/align :default false]
-      [:grid/size :default 70]
-      [:pos/vec :default [0 0]]]}]})
+(def pattern
+  [:bounds/self
+   {:local/window
+    [[:window/scale :default 1]
+     [:window/align :default false]
+     [:window/vec :default [0 0]]
+     {:window/canvas
+      [[:grid/size :default 70]]}]}])
 
 (defn tokens []
-  (let [[result dispatch] (use-query attrs)
+  (let [[result dispatch] (use-pull pattern [:db/ident :local])
         {[ox oy] :bounds/self
-         {[tx ty] :pos/vec
-          scale :zoom/scale
-          align :grid/align
-          size :grid/size} :root/canvas} result]
+         {[tx ty] :window/vec
+          scale   :window/scale
+          align   :window/align
+          {size :grid/size} :window/canvas} :local/window} result]
     [:<>
      [:svg [:circle {:cx 32 :cy 32 :r 33 :fill "url(#token-stamp-default)"}]]
      [:> react-draggable
@@ -35,5 +34,5 @@
                y (-> (.-y r) (+ (* (/ 2) h)) (- oy) (* (/ scale)) (- ty))
                x (if (not= align (.-metaKey event)) (round x (/ size 2)) x)
                y (if (not= align (.-metaKey event)) (round y (/ size 2)) y)]
-           (dispatch :token/create (squuid) x y)))}
+           (dispatch :token/create x y)))}
       [:svg [:circle {:cx 32 :cy 32 :r 33 :fill "url(#token-stamp-default)"}]]]]))

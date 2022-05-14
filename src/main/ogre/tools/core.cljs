@@ -24,14 +24,15 @@
 
 (def layout-query
   {:pull
-   [:root/loaded?
-    :root/host?
-    [:root/shortcuts? :default true]
-    [:root/tooltips? :default true]]})
+   [{:root/local
+     [:local/loaded?
+      :local/host?
+      [:local/shortcuts? :default true]
+      [:local/tooltips? :default true]]}]})
 
 (defn layout []
   (let [[result] (use-query layout-query)
-        {:root/keys [loaded? host? shortcuts? tooltips?]} result
+        {:local/keys [loaded? host? shortcuts? tooltips?]} (:root/local result)
         classes
         {:global--host       host?
          :global--guest      (not host?)

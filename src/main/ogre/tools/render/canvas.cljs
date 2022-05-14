@@ -8,7 +8,7 @@
             [ogre.tools.render.forms :refer [token-context-menu shape-context-menu]]
             [ogre.tools.render.pattern :refer [pattern]]
             [ogre.tools.render.portal :as portal]
-            [ogre.tools.state :refer [use-query]]
+            [ogre.tools.state :refer [use-query use-pull]]
             [react-draggable]))
 
 (def draw-modes
@@ -53,17 +53,19 @@
     (string? name) (str name)
     (number? suffix) (str " " (char (+ suffix 64)))))
 
-(def scene-query
-  {:pull
-   [{:root/canvas
-     [[:canvas/color :default :none]
-      {:canvas/scene
-       [:image/checksum]}]}]})
+(def scene-pattern
+  [{:local/window
+    [{:window/canvas
+      [[:canvas/color :default :none]
+       {:canvas/scene
+        [:image/checksum]}]}]}])
 
 (defn scene []
-  (let [[result] (use-query scene-query)
-        {{color :canvas/color
-          {checksum :image/checksum} :canvas/scene} :root/canvas} result
+  (let [[result] (use-pull scene-pattern [:db/ident :local])
+        {{{color :canvas/color {checksum :image/checksum}
+           :canvas/scene}
+          :window/canvas}
+         :local/window} result
         url (use-image checksum)]
     [:g.canvas-image
      [:defs {:key color}
@@ -157,24 +159,24 @@
                :mask-toggle (dispatch :mask/toggle key (not enabled?))
                :mask-remove (dispatch :mask/remove key)))}]))]))
 
-(def grid-query
-  {:pull
-   [:bounds/self
-    {:root/canvas
-     [[:canvas/mode :default :select]
-      [:pos/vec :default [0 0]]
-      [:grid/size :default 70]
-      [:grid/show :default true]
-      [:zoom/scale :default 1]]}]})
+(def grid-pattern
+  [[:bounds/self :default [0 0 0 0]]
+   {:local/window
+    [[:window/vec :default [0 0]]
+     [:window/scale :default 1]
+     [:window/mode :default :select]
+     {:window/canvas
+      [[:grid/show :default true]
+       [:grid/size :default 70]]}]}])
 
 (defn grid []
-  (let [[data] (use-query grid-query)
+  (let [[data] (use-pull grid-pattern [:db/ident :local])
         {[_ _ w h] :bounds/self
-         {mode    :canvas/mode
-          size    :grid/size
-          show    :grid/show
-          scale   :zoom/scale
-          [cx cy] :pos/vec} :root/canvas} data]
+         {[cx cy] :window/vec
+          mode    :window/mode
+          scale   :window/scale
+          {size :grid/size
+           show :grid/show} :window/canvas} :local/window} data]
     (if (or show (= mode :grid))
       (let [w (/ w scale)
             h (/ h scale)
@@ -240,59 +242,69 @@
         pairs   (into [] (poly-xf ax ay) vecs)]
     [:polygon (assoc attrs :points (join " " pairs) :fill-opacity opacity :stroke color)]))
 
-(def shapes-query
-  {:pull
-   '[:root/host?
-     {:root/canvas
-      [[:zoom/scale :default 1]
-       [:grid/align :default false]
-       {:canvas/shapes
+(def shapes-pattern
+  [[:local/host? :default true]
+   {:local/window
+    [[:window/scale :default 1]
+     [:grid/align :default false]
+     {:window/canvas
+      [{:canvas/shapes
         [:entity/key
-         :element/name
          :shape/kind
          :shape/vecs
          [:shape/color :default "#f44336"]
          [:shape/opacity :default 0.25]
          [:shape/pattern :default :solid]
-         :canvas/_selected]}]}]})
+         :window/_selected]}]}]}])
 
 (defn shapes []
-  (let [[result dispatch] (use-query shapes-query)]
-    (for [element (-> result :root/canvas :canvas/shapes) :let [{key :entity/key [ax ay] :shape/vecs} element]]
+  (let [[result dispatch] (use-pull shapes-pattern [:db/ident :local])
+        {host? :local/host?
+         {scale :window/scale
+          align :grid/align
+          {shapes :canvas/shapes}
+          :window/canvas}
+         :local/window} result]
+    (for [entity shapes
+          :let [{:keys [entity/key shape/kind shape/color]} entity
+                {[ax ay] :shape/vecs selected? :window/_selected} entity]]
       ^{:key key}
-      [portal/use {:label (if (and (:canvas/_selected element) (:root/host? result)) :selected)}
+      [portal/use {:label (if (and selected? host?) :selected)}
        [:> react-draggable
-        {:scale    (-> result :root/canvas :zoom/scale)
+        {:scale    scale
          :position #js {:x ax :y ay}
          :on-start stop-propagation
          :on-stop
          (fn [event data]
            (let [ox (.-x data) oy (.-y data)]
              (if (> (euclidean ax ay ox oy) 0)
-               (dispatch :shape/translate key ox oy (not= (.-metaKey event) (-> result :root/canvas :grid/align)))
+               (dispatch :shape/translate key ox oy (not= align (.-metaKey event)))
                (dispatch :element/select key true))))}
         (let [id (squuid)]
           [:g
-           {:css {:canvas-shape true :selected (:canvas/_selected element) (str "canvas-shape-" (name (:shape/kind element))) true}}
-           [:defs [pattern {:id id :name (:shape/pattern element) :color (:shape/color element)}]]
-           [shape {:element element :attrs {:fill (str "url(#" id ")")}}]
-           (if (and (:root/host? result) (:canvas/_selected element))
+           {:css {:canvas-shape true :selected selected? (str "canvas-shape-" (name kind)) true}}
+           [:defs [pattern {:id id :name (:shape/pattern entity) :color color}]]
+           [shape {:element entity :attrs {:fill (str "url(#" id ")")}}]
+           (if (and host? selected?)
              [:foreignObject.context-menu-object {:x -200 :y 0 :width 400 :height 400}
               [shape-context-menu
-               {:shape element}]])])]])))
+               {:shape entity}]])])]])))
 
 (defn stamp [{:keys [checksum]}]
   (let [url (use-image checksum)]
     [:image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"}]))
 
-(def stamps-query
-  {:query '[:find [?cs ...] :where
-            [[:db/ident :canvas] :canvas/tokens ?tk]
-            [?tk :token/stamp ?st]
-            [?st :image/checksum ?cs]]})
+(def stands-pattern
+  {:query
+   '[:find [?c ...] :where
+     [[:db/ident :local] :local/window ?w]
+     [?w :window/canvas ?c]
+     [?c :canvas/tokens ?t]
+     [?t :token/stamp ?s]
+     [?s :image/checksum ?c]]})
 
 (defn stamps []
-  (let [[checksums] (use-query stamps-query)
+  (let [[checksums] (use-query stands-pattern)
         attrs  {:width "100%" :height "100%" :patternContentUnits "objectBoundingBox"}]
     [:defs
      [:pattern (merge attrs {:id "token-stamp-default" :viewBox "0 0 16 16" :fill "#f2f2eb"})
@@ -347,32 +359,37 @@
     (compare [(:token/size b) by bx]
              [(:token/size a) ay ax])))
 
-(def tokens-query
-  {:pull
-   [[:root/host? :default true]
-    {:root/canvas
-     [[:grid/size :default 70]
-      [:grid/align :default false]
-      [:zoom/scale :default 1]
-      {:canvas/tokens
-       [:entity/key
-        [:initiative/suffix :default nil]
-        [:pos/vec :default [0 0]]
-        [:element/flags :default #{}]
-        [:element/name :default ""]
-        [:token/size :default 5]
-        [:token/light :default 15]
-        [:aura/radius :default 0]
-        {:token/stamp [:image/checksum]}
-        {:canvas/_initiative [:db/id :entity/key]}
-        {:canvas/_selected [:entity/key]}]}]}]})
+(def tokens-pattern
+  [[:local/host? :default true]
+   {:local/window
+    [[:window/scale :default 1]
+     :window/selected
+     {:window/canvas
+      [[:grid/size :default 70]
+       [:grid/align :default false]
+       {:canvas/tokens
+        [:entity/key
+         [:initiative/suffix :default nil]
+         [:pos/vec :default [0 0]]
+         [:element/flags :default #{}]
+         [:element/name :default ""]
+         [:token/size :default 5]
+         [:token/light :default 15]
+         [:aura/radius :default 0]
+         {:token/stamp [:image/checksum]}
+         {:canvas/_initiative [:db/id :entity/key]}
+         {:window/_selected [:entity/key]}]}]}]}])
 
 (defn tokens []
-  (let [[result dispatch] (use-query tokens-query)
-        {host?   :root/host?
-         {size   :grid/size
-          align? :grid/align
-          scale  :zoom/scale} :root/canvas} result
+  (let [[result dispatch] (use-pull tokens-pattern [:db/ident :local])
+
+        {host? :local/host?
+         {scale :window/scale
+          {size :grid/size
+           align? :grid/align
+           tokens :canvas/tokens}
+          :window/canvas}
+         :local/window} result
 
         flags-xf
         (comp (map name)
@@ -384,10 +401,10 @@
           (into {} flags-xf (:element/flags token)))
 
         [selected tokens]
-        (->> (:canvas/tokens (:root/canvas result))
+        (->> tokens
              (filter (fn [token] (or host? (visible? (:element/flags token)))))
              (sort token-comparator)
-             (separate (fn [token] (contains? token :canvas/_selected))))]
+             (separate (fn [token] (contains? token :window/_selected))))]
     [:<>
      (for [data tokens :let [{key :entity/key [ax ay] :pos/vec} data]]
        [:> react-draggable
@@ -442,35 +459,35 @@
     [:g.canvas-bounds {:transform (str "translate(" ox " , " oy ")")}
      [:rect {:x 0 :y 0 :width gw :height gh :rx 8}]]))
 
-(def canvas-query
-  {:pull
-   [:root/privileged?
-    :root/host?
-    :bounds/host
-    :bounds/guest
-    {:root/canvas
-     [:db/id
-      [:pos/vec :default [0 0]]
-      [:canvas/mode :default :select]
-      [:canvas/theme :default :light]
-      :canvas/modifier
-      [:zoom/scale :default 1]]}]})
+(def canvas-pattern
+  [[:local/host? :default true]
+   [:local/privileged? :default false]
+   [:bounds/host :default [0 0 0 0]]
+   [:bounds/guest :default [0 0 0 0]]
+   {:local/window
+    [:entity/key
+     :window/modifier
+     [:window/vec :default [0 0]]
+     [:window/scale :default 1]
+     [:window/mode :default :select]
+     {:window/canvas
+      [[:canvas/theme :default :light]]}]}])
 
 (defn canvas []
-  (let [[result dispatch] (use-query canvas-query)
-        {priv? :root/privileged?
-         host? :root/host?
+  (let [[result dispatch] (use-pull canvas-pattern [:db/ident :local])
+        {host?       :local/host?
+         priv?       :local/privileged?
          [_ _ hw hh] :bounds/host
          [_ _ gw gh] :bounds/guest
-         {id    :db/id
-          scale :zoom/scale
-          mode  :canvas/mode
-          theme :canvas/theme
-          modif :canvas/modifier
-          [cx cy] :pos/vec} :root/canvas} result
+         {key     :entity/key
+          scale   :window/scale
+          mode    :window/mode
+          modif   :window/modifier
+          [cx cy] :window/vec
+          {theme :canvas/theme} :window/canvas} :local/window} result
         cx (if host? cx (->> (- hw gw) (max 0) (* (/ -1 2 scale)) (+ cx)))
         cy (if host? cy (->> (- hh gh) (max 0) (* (/ -1 2 scale)) (+ cy)))]
-    [:svg.canvas {:key id :css {(str "theme--" (name theme)) true :is-host host? :is-priv priv?}}
+    [:svg.canvas {:key key :css {(str "theme--" (name theme)) true :is-host host? :is-priv priv?}}
      [:> react-draggable
       {:position #js {:x 0 :y 0}
        :on-stop
@@ -481,7 +498,7 @@
              (dispatch :selection/clear)
              (let [tx (+ cx (* ox (/ scale)))
                    ty (+ cy (* oy (/ scale)))]
-               (dispatch :camera/translate tx ty)))))}
+               (dispatch :window/translate tx ty)))))}
       [:g {:style {:will-change "transform"}}
        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
        (if (and (= mode :select) (= modif :shift))

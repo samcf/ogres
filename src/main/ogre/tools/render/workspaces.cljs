@@ -1,21 +1,19 @@
 (ns ogre.tools.render.workspaces
   (:require [clojure.string :refer [blank? trim]]
-            [datascript.core :refer [squuid]]
-            [ogre.tools.state :refer [use-query]]))
+            [ogre.tools.state :refer [use-pull]]))
 
-(def query
-  {:pull
-   [{:root/canvas [:entity/key]}
-    {:root/canvases [:entity/key :element/name]}]})
+(def pattern
+  [{:local/window [:entity/key]}
+   {:local/windows [:entity/key {:window/canvas [:entity/key :element/name]}]}])
 
 (defn workspaces []
-  (let [[data dispatch] (use-query query)
-        {current :root/canvas
-         workspaces :root/canvases} data]
+  (let [[result dispatch] (use-pull pattern [:db/ident :local])
+        {current :local/window
+         windows :local/windows} result]
     [:div.workspaces
-     (for [{:keys [entity/key element/name]} workspaces]
+     (for [{:keys [entity/key element/name]} windows]
        [:div {:key key :css {:selected (= key (:entity/key current))}}
         [:div {:on-click #(dispatch :workspace/change key)}
          (if (blank? name) [:em "New Canvas"] (trim name))]
-        [:button {:type "button" :on-click #(dispatch :workspace/remove key (squuid)) :title "Close canvas"} "×"]])
-     [:button {:type "button" :on-click #(dispatch :workspace/create (squuid)) :title "Create new canvas"} "+"]]))
+        [:button {:type "button" :on-click #(dispatch :workspace/remove key) :title "Close canvas"} "×"]])
+     [:button {:type "button" :on-click #(dispatch :workspace/create) :title "Create new canvas"} "+"]]))

@@ -1,6 +1,6 @@
 (ns ogre.tools.render.toolbar
   (:require [ogre.tools.render :refer [icon listen!]]
-            [ogre.tools.state :refer [use-query]]
+            [ogre.tools.state :refer [use-pull]]
             [uix.core.alpha :as uix]))
 
 (defn shortcut [key]
@@ -38,21 +38,31 @@
       [:canvas/mode :default :select]
       [:zoom/scale :default 1]]}]})
 
+(def pattern
+  [[:local/tooltips? :default true]
+   [:local/sharing? :default false]
+   [:local/paused? :default false]
+   {:local/window
+    [[:window/mode :default :select]
+     [:window/scale :default 1]]}])
+
 (defn toolbar []
-  (let [[data dispatch] (use-query query)
+  (let [[data dispatch] (use-pull pattern [:db/ident :local])
         container       (uix/ref)
         tooltip-key     (uix/state nil)
 
-        {{key   :entity/key
-          scale :zoom/scale
-          mode  :canvas/mode} :root/canvas} data
+        {tooltips? :local/tooltips?
+         sharing?  :local/sharing?
+         paused?   :local/paused?
+         {scale :window/scale
+          mode  :window/mode} :local/window} data
 
         mode-attrs
         (fn [value]
           {:type "button"
            :key value
            :css {:selected (= value mode)}
-           :on-click #(dispatch :canvas/toggle-mode value)
+           :on-click #(dispatch :canvas/change-mode value)
            :on-mouse-enter #(reset! tooltip-key (keyword "mode" (name value)))})
 
         tooltip-fn
@@ -61,8 +71,7 @@
             (reset! tooltip-key key)))
 
         element
-        (if (and (not (nil? @tooltip-key))
-                 (:root/tooltips? data))
+        (if (and (not (nil? @tooltip-key)) tooltips?)
           js/window nil)]
 
     (listen!
@@ -78,17 +87,17 @@
       [:div.toolbar-group
        [:button.toolbar-zoom
         {:disabled (= scale 1)
-         :on-click #(dispatch :zoom/reset key)
+         :on-click #(dispatch :zoom/reset)
          :on-mouse-enter (tooltip-fn :zoom/reset)}
         (-> scale (* 100) (js/Math.trunc) (str "%"))]
        [:button
         {:disabled (= scale 0.15)
-         :on-click #(dispatch :zoom/out key)
+         :on-click #(dispatch :zoom/out)
          :on-mouse-enter (tooltip-fn :zoom/out)}
         [icon {:name "zoom-out"}]]
        [:button
         {:disabled (= scale 4)
-         :on-click #(dispatch :zoom/in key)
+         :on-click #(dispatch :zoom/in)
          :on-mouse-enter (tooltip-fn :zoom/in)}
         [icon {:name "zoom-in"}]]]
       [:div.toolbar-group
@@ -104,26 +113,26 @@
        [:button (mode-attrs :mask-toggle) [icon {:name "magic"}] [shortcut "T"]]
        [:button (mode-attrs :mask-remove) [icon {:name "eraser-fill"}] [shortcut "X"]]
        [:button
-        {:on-click #(dispatch :mask/fill key)
+        {:on-click #(dispatch :mask/fill)
          :on-mouse-enter (tooltip-fn :mask/hide)}
         [icon {:name "eye-slash-fill"}]]
        [:button
-        {:on-click #(dispatch :mask/clear key)
+        {:on-click #(dispatch :mask/clear)
          :on-mouse-enter (tooltip-fn :mask/show)}
         [icon {:name "eye-fill"}]]]
       [:div.toolbar-group
        [:button
-        {:css {:active (:share/open? data)}
+        {:css {:active sharing?}
          :on-click #(dispatch :share/initiate)
          :on-mouse-enter (tooltip-fn :share/open)}
         [icon {:name "pip" :size 22}]]
        [:button
-        {:disabled (or (not (:share/open? data)) (not (:share/paused? data)))
+        {:disabled (or (not sharing?) (not paused?))
          :on-click #(dispatch :share/switch)
          :on-mouse-enter (tooltip-fn :share/play)}
         [icon {:name "play-fill" :size 22}]]
        [:button
-        {:disabled (or (not (:share/open? data)) (:share/paused? data))
+        {:disabled (or (not sharing?) paused?)
          :on-click #(dispatch :share/switch)
          :on-mouse-enter (tooltip-fn :share/pause)}
         [icon {:name "pause-fill" :size 22}]]]]]))

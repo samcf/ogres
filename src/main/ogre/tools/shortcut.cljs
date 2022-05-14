@@ -10,11 +10,11 @@
 (def events
   {["keydown" "Shift"]
    (fn [[_ dispatch]]
-     (dispatch :canvas/modifier-start :shift))
+     (dispatch :window/modifier-start :shift))
 
    ["keyup" "Shift"]
    (fn [[_ dispatch]]
-     (dispatch :canvas/modifier-release))
+     (dispatch :window/modifier-release))
 
    ["keydown" "Escape"]
    (fn [[_ dispatch]]
@@ -30,47 +30,47 @@
 
    ["keydown" \s]
    (fn [[_ dispatch]]
-     (dispatch :canvas/toggle-mode :select))
+     (dispatch :canvas/change-mode :select))
 
    ["keydown" \g]
    (fn [[_ dispatch]]
-     (dispatch :canvas/toggle-mode :grid))
+     (dispatch :canvas/change-mode :grid))
 
    ["keydown" \r]
    (fn [[_ dispatch]]
-     (dispatch :canvas/toggle-mode :ruler))
+     (dispatch :canvas/change-mode :ruler))
 
    ["keydown" \1]
    (fn [[_ dispatch]]
-     (dispatch :canvas/toggle-mode :circle))
+     (dispatch :canvas/change-mode :circle))
 
    ["keydown" \2]
    (fn [[_ dispatch]]
-     (dispatch :canvas/toggle-mode :rect))
+     (dispatch :canvas/change-mode :rect))
 
    ["keydown" \3]
    (fn [[_ dispatch]]
-     (dispatch :canvas/toggle-mode :cone))
+     (dispatch :canvas/change-mode :cone))
 
    ["keydown" \4]
    (fn [[_ dispatch]]
-     (dispatch :canvas/toggle-mode :poly))
+     (dispatch :canvas/change-mode :poly))
 
    ["keydown" \5]
    (fn [[_ dispatch]]
-     (dispatch :canvas/toggle-mode :line))
+     (dispatch :canvas/change-mode :line))
 
    ["keydown" \f]
    (fn [[_ dispatch]]
-     (dispatch :canvas/toggle-mode :mask))
+     (dispatch :canvas/change-mode :mask))
 
    ["keydown" \t]
    (fn [[_ dispatch]]
-     (dispatch :canvas/toggle-mode :mask-toggle))
+     (dispatch :canvas/change-mode :mask-toggle))
 
    ["keydown" \x]
    (fn [[_ dispatch]]
-     (dispatch :canvas/toggle-mode :mask-remove))
+     (dispatch :canvas/change-mode :mask-remove))
 
    ["keydown" \ ]
    (fn [[_ dispatch]]
