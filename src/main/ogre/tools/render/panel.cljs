@@ -8,14 +8,15 @@
    [:initiative "hourglass-split"]
    [:help "question-diamond"]])
 
-(def attrs
-  [{:root/canvas
-    [[:panel/curr :default :canvas]
+(def query
+  [{:local/window
+    [[:panel/current :default :canvas]
      [:panel/collapsed? :default false]]}])
 
 (defn container []
-  (let [[result dispatch] (use-query {:pull attrs})
-        {{:keys [panel/curr panel/collapsed?]} :root/canvas} result]
+  (let [[result dispatch] (use-query query)
+        {{current :panel/current
+          collapsed? :panel/collapsed?} :local/window} result]
     [:aside.panel
      {:css {:panel--collapsed collapsed?
             :panel--expanded (not collapsed?)}}
@@ -23,7 +24,7 @@
       (for [[panel icon-name] panels]
         [:div.panel-tab
          {:key panel
-          :css {:selected (and (not collapsed?) (= panel curr))}
+          :css {:selected (and (not collapsed?) (= panel current))}
           :on-click #(dispatch :interface/change-panel panel)}
          [icon {:name icon-name}]])
       [:div.panel-tab
@@ -34,6 +35,6 @@
            "chevron-double-left"
            "chevron-double-right")}]]]
      (if (not collapsed?)
-       [:div.panel-content {:css (->> curr name (str "panel-content-"))}
-        (let [component (form {:form curr})]
+       [:div.panel-content {:css (->> current name (str "panel-content-"))}
+        (let [component (form {:form current})]
           [component])])]))

@@ -7,23 +7,8 @@
 
 (defn order [a b]
   (compare
-   [(:initiative/roll b) (contains? (:element/flags a) :player) (:element/name a)]
-   [(:initiative/roll a) (contains? (:element/flags b) :player) (:element/name b)]))
-
-(defn initiant-query [id]
-  {:query
-   '[:find (pull $ ?id pattern) . :in $ ?id pattern]
-   :pull
-   [:db/id
-    :element/name
-    :element/flags
-    :initiative/roll
-    :initiative/health
-    :initiative/suffix
-    :canvas/_selected
-    {:token/stamp
-     [:image/checksum]}]
-   :args [id]})
+   [(:initiative/roll b) (contains? (:token/flags a) :player) (:token/label a)]
+   [(:initiative/roll a) (contains? (:token/flags b) :player) (:token/label b)]))
 
 (defn roll-form [{:keys [value on-change]}]
   (let [input (uix/ref) [editing? form] (use-modal)]
@@ -72,55 +57,60 @@
       (if (number? value)
         [:div.initiant-health-label value])]]))
 
-(defn initiant [{:keys [id]}]
-  (let [[data dispatch] (use-query (initiant-query id))
-        {name :element/name
-         sffx :initiative/suffix
-         flags :element/flags
-         {checksum :image/checksum} :token/stamp} data
+(defn initiant [{:keys [entity]}]
+  (let [dispatch (use-query)
+        {key   :entity/key
+         label :token/label
+         sffx  :initiative/suffix
+         flags :token/flags
+         {checksum :image/checksum} :token/image} entity
         url (use-image checksum)]
     [:li.initiant
      (if checksum
        [:div.initiant-image
         {:style {:background-image (str "url(" url ")")}
-         :on-click #(dispatch :element/select id)}]
+         :on-click #(dispatch :element/select key true)}]
        [:div.initiant-pattern
-        {:on-click #(dispatch :element/select id)}
+        {:on-click #(dispatch :element/select key true)}
         [icon {:name "person-circle" :size 36}]])
      [roll-form
-      {:value (:initiative/roll data)
+      {:value (:initiative/roll entity)
        :on-change
        (fn [value]
-         (dispatch :initiative/change-roll id value))}]
+         (dispatch :initiative/change-roll key value))}]
      (if sffx
        [:div.initiant-suffix (char (+ sffx 64))])
      [:div.initiant-info
-      (if (not (blank? name))
-        [:div.initiant-label name])
+      (if (not (blank? label))
+        [:div.initiant-label label])
       [:div.initiant-flags
        (if (seq flags)
-         [:em (join ", " (mapv (comp capitalize clojure.core/name) flags))]
+         [:em (join ", " (mapv (comp capitalize name) flags))]
          [:em "No Conditions"])]]
      [health-form
-      {:value (:initiative/health data)
+      {:value (:initiative/health entity)
        :on-change
        (fn [f v]
-         (dispatch :initiative/change-health id f v))}]]))
+         (dispatch :initiative/change-health key f v))}]]))
 
 (def query
-  {:pull
-   [{:root/canvas
-     [{:canvas/initiative
-       [:db/id
-        :element/name
-        :element/flags
-        :initiative/roll
-        :initiative/suffix]}]}]})
+  [{:local/window
+    [{:window/canvas
+      [:entity/key
+       {:canvas/initiative
+        [:entity/key
+         :token/label
+         :token/flags
+         :initiative/roll
+         :initiative/suffix
+         :initiative/health
+         :window/_selected
+         {:token/image [:image/checksum]}]}]}]}])
 
 (defn initiative []
-  (let [[data dispatch] (use-query query)
-        initiating      (-> data :root/canvas :canvas/initiative)]
-    (if (seq initiating)
+  (let [[result dispatch] (use-query query)
+        initiative        (-> result :local/window :window/canvas :canvas/initiative)]
+    (if (seq initiative)
       [:div.initiative
        [:section [:header "Initiative"]]
        [:section
@@ -130,8 +120,8 @@
          [button {:on-click #(dispatch :initiative/leave)} "Leave"]]]
        [:section
         [:ol
-         (for [{:keys [db/id]} (sort order initiating)]
-           ^{:key id} [initiant {:id id}])]]]
+         (for [entity (sort order initiative)]
+           ^{:key (:entity/key entity)} [initiant {:entity entity}])]]]
       [:div.initiative
        [:section [:header "Initiative"]]
        [:section

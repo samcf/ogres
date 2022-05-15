@@ -3,19 +3,17 @@
             [ogre.tools.state :refer [use-query]]))
 
 (def query
-  {:pull
-   [:root/canvas
-    {:root/canvases
-     [:db/id :element/name]}]})
+  [{:local/window [:entity/key]}
+   {:local/windows [:entity/key :window/label]}])
 
 (defn workspaces []
-  (let [[data dispatch] (use-query query)
-        {current :root/canvas
-         workspaces :root/canvases} data]
+  (let [[result dispatch] (use-query query)
+        {current :local/window
+         windows :local/windows} result]
     [:div.workspaces
-     (for [{:keys [db/id element/name]} workspaces]
-       [:div {:key id :css {:selected (= id (:db/id current))}}
-        [:div {:on-click #(dispatch :workspace/change id)}
-         (if (blank? name) [:em "New Canvas"] (trim name))]
-        [:button {:type "button" :on-click #(dispatch :workspace/remove id) :title "Close canvas"} "×"]])
+     (for [{:keys [entity/key window/label]} windows]
+       [:div {:key key :css {:selected (= key (:entity/key current))}}
+        [:div {:on-click #(dispatch :workspace/change key)}
+         (if (blank? label) [:em "New Canvas"] (trim label))]
+        [:button {:type "button" :on-click #(dispatch :workspace/remove key) :title "Close canvas"} "×"]])
      [:button {:type "button" :on-click #(dispatch :workspace/create) :title "Create new canvas"} "+"]]))

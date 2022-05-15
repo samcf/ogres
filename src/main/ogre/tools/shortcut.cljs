@@ -10,11 +10,11 @@
 (def events
   {["keydown" "Shift"]
    (fn [[_ dispatch]]
-     (dispatch :canvas/modifier-start :shift))
+     (dispatch :window/modifier-start :shift))
 
    ["keyup" "Shift"]
    (fn [[_ dispatch]]
-     (dispatch :canvas/modifier-release))
+     (dispatch :window/modifier-release))
 
    ["keydown" "Escape"]
    (fn [[_ dispatch]]
@@ -30,47 +30,47 @@
 
    ["keydown" \s]
    (fn [[_ dispatch]]
-     (dispatch :canvas/toggle-mode :select))
+     (dispatch :window/change-mode :select))
 
    ["keydown" \g]
    (fn [[_ dispatch]]
-     (dispatch :canvas/toggle-mode :grid))
+     (dispatch :window/change-mode :grid))
 
    ["keydown" \r]
    (fn [[_ dispatch]]
-     (dispatch :canvas/toggle-mode :ruler))
+     (dispatch :window/change-mode :ruler))
 
    ["keydown" \1]
    (fn [[_ dispatch]]
-     (dispatch :canvas/toggle-mode :circle))
+     (dispatch :window/change-mode :circle))
 
    ["keydown" \2]
    (fn [[_ dispatch]]
-     (dispatch :canvas/toggle-mode :rect))
+     (dispatch :window/change-mode :rect))
 
    ["keydown" \3]
    (fn [[_ dispatch]]
-     (dispatch :canvas/toggle-mode :cone))
+     (dispatch :window/change-mode :cone))
 
    ["keydown" \4]
    (fn [[_ dispatch]]
-     (dispatch :canvas/toggle-mode :poly))
+     (dispatch :window/change-mode :poly))
 
    ["keydown" \5]
    (fn [[_ dispatch]]
-     (dispatch :canvas/toggle-mode :line))
+     (dispatch :window/change-mode :line))
 
    ["keydown" \f]
    (fn [[_ dispatch]]
-     (dispatch :canvas/toggle-mode :mask))
+     (dispatch :window/change-mode :mask))
 
    ["keydown" \t]
    (fn [[_ dispatch]]
-     (dispatch :canvas/toggle-mode :mask-toggle))
+     (dispatch :window/change-mode :mask-toggle))
 
    ["keydown" \x]
    (fn [[_ dispatch]]
-     (dispatch :canvas/toggle-mode :mask-remove))
+     (dispatch :window/change-mode :mask-remove))
 
    ["keydown" \ ]
    (fn [[_ dispatch]]
@@ -79,7 +79,9 @@
    ["wheel"]
    (fn [[conn dispatch] event]
      (if (.. event -target (closest "svg.canvas"))
-       (let [{[ox oy _ _] :bounds/self} (pull @conn [:bounds/self] [:db/ident :root])
+       (let [select [[:bounds/self :default [0 0 0 0]]]
+             result (pull @conn select [:db/ident :root])
+             {[ox oy _ _] :bounds/self} result
              cx (- (.-clientX event) ox)
              cy (- (.-clientY event) oy)
              dy (.-deltaY event)

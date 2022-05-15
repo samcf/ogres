@@ -29,27 +29,31 @@
     :mask/show   "Remove all masks and reveal the entire scene."))
 
 (def query
-  {:pull
-   [[:root/tooltips? :default true]
-    [:share/open? :default false]
-    [:share/paused? :default false]
-    {:root/canvas
-     [[:canvas/mode :default :select]
-      [:zoom/scale :default 1]]}]})
+  [[:local/tooltips? :default true]
+   [:local/sharing? :default false]
+   [:local/paused? :default false]
+   {:local/window
+    [[:window/draw-mode :default :select]
+     [:window/scale :default 1]]}])
 
 (defn toolbar []
   (let [[data dispatch] (use-query query)
         container       (uix/ref)
         tooltip-key     (uix/state nil)
-        canvas          (:root/canvas data)
+
+        {tooltips? :local/tooltips?
+         sharing?  :local/sharing?
+         paused?   :local/paused?
+         {scale :window/scale
+          mode  :window/draw-mode} :local/window} data
 
         mode-attrs
-        (fn [mode]
+        (fn [value]
           {:type "button"
-           :key mode
-           :css {:selected (= mode (:canvas/mode canvas))}
-           :on-click #(dispatch :canvas/toggle-mode mode)
-           :on-mouse-enter #(reset! tooltip-key (keyword "mode" (name mode)))})
+           :key value
+           :css {:selected (= value mode)}
+           :on-click #(dispatch :window/change-mode value)
+           :on-mouse-enter #(reset! tooltip-key (keyword "mode" (name value)))})
 
         tooltip-fn
         (fn [key]
@@ -57,8 +61,7 @@
             (reset! tooltip-key key)))
 
         element
-        (if (and (not (nil? @tooltip-key))
-                 (:root/tooltips? data))
+        (if (and (not (nil? @tooltip-key)) tooltips?)
           js/window nil)]
 
     (listen!
@@ -73,17 +76,17 @@
      [:div.toolbar-groups
       [:div.toolbar-group
        [:button.toolbar-zoom
-        {:disabled (= (:zoom/scale canvas) 1)
+        {:disabled (= scale 1)
          :on-click #(dispatch :zoom/reset)
          :on-mouse-enter (tooltip-fn :zoom/reset)}
-        (-> (:zoom/scale canvas) (* 100) (js/Math.trunc) (str "%"))]
+        (-> scale (* 100) (js/Math.trunc) (str "%"))]
        [:button
-        {:disabled (= (:zoom/scale canvas) 0.15)
+        {:disabled (= scale 0.15)
          :on-click #(dispatch :zoom/out)
          :on-mouse-enter (tooltip-fn :zoom/out)}
         [icon {:name "zoom-out"}]]
        [:button
-        {:disabled (= (:zoom/scale canvas) 4)
+        {:disabled (= scale 4)
          :on-click #(dispatch :zoom/in)
          :on-mouse-enter (tooltip-fn :zoom/in)}
         [icon {:name "zoom-in"}]]]
@@ -109,17 +112,17 @@
         [icon {:name "eye-fill"}]]]
       [:div.toolbar-group
        [:button
-        {:css {:active (:share/open? data)}
+        {:css {:active sharing?}
          :on-click #(dispatch :share/initiate)
          :on-mouse-enter (tooltip-fn :share/open)}
         [icon {:name "pip" :size 22}]]
        [:button
-        {:disabled (or (not (:share/open? data)) (not (:share/paused? data)))
+        {:disabled (or (not sharing?) (not paused?))
          :on-click #(dispatch :share/switch)
          :on-mouse-enter (tooltip-fn :share/play)}
         [icon {:name "play-fill" :size 22}]]
        [:button
-        {:disabled (or (not (:share/open? data)) (:share/paused? data))
+        {:disabled (or (not sharing?) paused?)
          :on-click #(dispatch :share/switch)
          :on-mouse-enter (tooltip-fn :share/pause)}
         [icon {:name "pause-fill" :size 22}]]]]]))

@@ -53,22 +53,22 @@
        (if (seq xs)
          (render-fn event (transform event xs))))]))
 
-(def draw-query
-  {:pull
-   [:bounds/self
-    {:root/canvas
-     [[:grid/size :default 70]
-      [:grid/align :default false]
-      [:zoom/scale :default 1]
-      [:pos/vec :default [0 0]]]}]})
+(def query
+  [[:bounds/self :default [0 0 0 0]]
+   {:local/window
+    [[:window/scale :default 1]
+     [:window/vec :default [0 0]]
+     [:window/snap-grid :default false]
+     {:window/canvas
+      [[:grid/size :default 70]]}]}])
 
 (defn polygon [{:keys [on-create]}]
-  (let [[result] (use-query draw-query)
+  (let [[result] (use-query query)
         {[ox oy] :bounds/self
-         {[tx ty] :pos/vec
-          scale :zoom/scale
-          align :grid/align
-          size  :grid/size} :root/canvas} result
+         {[tx ty] :window/vec
+          scale   :window/scale
+          align   :window/snap-grid
+          {size :grid/size} :window/canvas} :local/window} result
         pairs   (uix/state [])
         mouse   (uix/state [])
         [ax ay] @pairs
@@ -111,10 +111,10 @@
 (defmethod draw :default [] nil)
 
 (defmethod draw :select []
-  (let [[result dispatch] (use-query draw-query)
-        {[ox oy] :bounds/self
-         {[tx ty] :pos/vec
-          scale :zoom/scale} :root/canvas} result]
+  (let [[result dispatch] (use-query query)
+        {[ox oy]  :bounds/self
+         {[tx ty] :window/vec
+          scale   :window/scale} :local/window} result]
     [drawable
      {:transform
       (fn [_ xs]
@@ -128,10 +128,10 @@
           [:path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}]]))]))
 
 (defmethod draw :grid []
-  (let [[result dispatch] (use-query draw-query)
+  (let [[result dispatch] (use-query query)
         {[ox oy] :bounds/self
-         {[tx ty] :pos/vec
-          scale :zoom/scale} :root/canvas} result]
+         {[tx ty] :window/vec
+          scale   :window/scale} :local/window} result]
     [drawable
      {:transform
       (fn [_ xs]
@@ -141,7 +141,7 @@
         (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)
               size (js/Math.abs (min (- bx ax) (- by ay)))]
           (if (> size 0)
-            (dispatch :grid/draw ax ay size))))}
+            (dispatch :canvas/draw-grid-size ax ay size))))}
      (fn [_ xs]
        (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)
              size (min (- bx ax) (- by ay))]
@@ -154,12 +154,12 @@
                (str "px"))]]))]))
 
 (defmethod draw :ruler []
-  (let [[result] (use-query draw-query)
+  (let [[result] (use-query query)
         {[ox oy] :bounds/self
-         {[tx ty] :pos/vec
-          scale :zoom/scale
-          align :grid/align
-          size  :grid/size} :root/canvas} result]
+         {[tx ty] :window/vec
+          scale   :window/scale
+          align   :window/snap-grid
+          {size :grid/size} :window/canvas} :local/window} result]
     [drawable
      {:on-release identity
       :transform
@@ -180,12 +180,12 @@
              (str "ft."))]])]))
 
 (defmethod draw :circle []
-  (let [[result dispatch] (use-query draw-query)
+  (let [[result dispatch] (use-query query)
         {[ox oy] :bounds/self
-         {[tx ty] :pos/vec
-          scale :zoom/scale
-          align :grid/align
-          size  :grid/size} :root/canvas} result]
+         {[tx ty] :window/vec
+          scale   :window/scale
+          align   :window/snap-grid
+          {size :grid/size} :window/canvas} :local/window} result]
     [drawable
      {:transform
       (fn [event xs]
@@ -207,12 +207,12 @@
            (-> radius (px->ft (* size scale)) (str "ft. radius"))]]))]))
 
 (defmethod draw :rect []
-  (let [[result dispatch] (use-query draw-query)
+  (let [[result dispatch] (use-query query)
         {[ox oy] :bounds/self
-         {[tx ty] :pos/vec
-          scale :zoom/scale
-          align :grid/align
-          size  :grid/size} :root/canvas} result]
+         {[tx ty] :window/vec
+          scale   :window/scale
+          align   :window/snap-grid
+          {size :grid/size} :window/canvas} :local/window} result]
     [drawable
      {:transform
       (fn [event xs]
@@ -233,12 +233,12 @@
              (str w "ft. x " h "ft."))]]))]))
 
 (defmethod draw :line []
-  (let [[result dispatch] (use-query draw-query)
+  (let [[result dispatch] (use-query query)
         {[ox oy] :bounds/self
-         {[tx ty] :pos/vec
-          scale :zoom/scale
-          align :grid/align
-          size  :grid/size} :root/canvas} result]
+         {[tx ty] :window/vec
+          scale   :window/scale
+          align   :window/snap-grid
+          {size :grid/size} :window/canvas} :local/window} result]
     [drawable
      {:transform
       (fn [event xs]
@@ -258,11 +258,11 @@
                (str "ft."))]]))]))
 
 (defmethod draw :cone []
-  (let [[result dispatch] (use-query draw-query)
+  (let [[result dispatch] (use-query query)
         {[ox oy] :bounds/self
-         {[tx ty] :pos/vec
-          scale :zoom/scale
-          size  :grid/size} :root/canvas} result]
+         {[tx ty] :window/vec
+          scale   :window/scale
+          {size :grid/size} :window/canvas} :local/window} result]
     [drawable
      {:transform
       (fn [_ xs]

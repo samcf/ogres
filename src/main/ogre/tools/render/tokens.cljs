@@ -5,22 +5,22 @@
 (defn round [x n]
   (* (js/Math.round (/ x n)) n))
 
-(def attrs
-  {:pull
-   [:bounds/self
-    {:root/canvas
-     [[:zoom/scale :default 1]
-      [:grid/align :default false]
-      [:grid/size :default 70]
-      [:pos/vec :default [0 0]]]}]})
+(def query
+  [:bounds/self
+   {:local/window
+    [[:window/scale :default 1]
+     [:window/snap-grid :default false]
+     [:window/vec :default [0 0]]
+     {:window/canvas
+      [[:grid/size :default 70]]}]}])
 
 (defn tokens []
-  (let [[result dispatch] (use-query attrs)
+  (let [[result dispatch] (use-query query)
         {[ox oy] :bounds/self
-         {[tx ty] :pos/vec
-          scale :zoom/scale
-          align :grid/align
-          size :grid/size} :root/canvas} result]
+         {[tx ty] :window/vec
+          scale   :window/scale
+          align   :window/snap-grid
+          {size :grid/size} :window/canvas} :local/window} result]
     [:<>
      [:svg [:circle {:cx 32 :cy 32 :r 33 :fill "url(#token-stamp-default)"}]]
      [:> react-draggable

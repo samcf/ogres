@@ -3,9 +3,9 @@
             [ogre.tools.render :refer [button checkbox]]
             [ogre.tools.state :refer [use-query VERSION]]))
 
-(def attrs
-  [[:root/shortcuts? :default true]
-   [:root/tooltips? :default true]])
+(def query
+  [[:local/shortcuts? :default true]
+   [:local/tooltips? :default true]])
 
 (def links
   [["https://reddit.com/r/ogretools/" "Project subreddit"]
@@ -13,8 +13,9 @@
    ["mailto:mail@samcf.me" "Personal email"]])
 
 (defn help []
-  (let [[result dispatch] (use-query {:pull attrs})
-        {:root/keys [shortcuts? tooltips?]} result]
+  (let [[result dispatch] (use-query query)
+        {shortcuts? :local/shortcuts?
+         tooltips?  :local/tooltips?} result]
     [:<>
      [:section
       [:header "Settings"]]

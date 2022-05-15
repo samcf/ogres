@@ -1,5 +1,5 @@
 (ns ogre.tools.txs
-  (:require [datascript.core :as ds]
+  (:require [datascript.core :as ds :refer [squuid]]
             [clojure.set :refer [union]]
             [clojure.string :refer [trim]]
             [ogre.tools.geom :refer [normalize within?]]))
@@ -23,21 +23,21 @@
   [entities]
   (->>
    (reduce
-    (fn [m {:keys [db/id element/name initiative/suffix]}]
+    (fn [m {:keys [entity/key token/label initiative/suffix]}]
       (update
-       m name
+       m label
        (fn [[idents current]]
-         [(if (= suffix nil) (conj idents id) idents)
+         [(if (= suffix nil) (conj idents key) idents)
           (max current suffix)]))) {} entities)
    (mapcat
     (fn [[_ [idents suffix]]]
       (if (or (> (count idents) 1) (number? suffix))
         (loop [idents idents suffix (inc suffix) txs []]
-          (if-let [id (first idents)]
+          (if-let [key (first idents)]
             (recur
              (rest idents)
              (inc suffix)
-             (conj txs [:db/add id :initiative/suffix suffix]))
+             (conj txs [:db/add [:entity/key key] :initiative/suffix suffix]))
             txs)) [])))))
 
 (def initiative-attrs
@@ -47,427 +47,439 @@
 
 (defmulti transact (fn [{:keys [event]}] event))
 
-(defmethod transact :workspace/create []
-  [[:db/retract [:db/ident :canvas] :db/ident]
-   [:db/add [:db/ident :root] :root/canvases -1]
-   [:db/add [:db/ident :root] :root/canvas -1]
-   {:db/id -1 :db/ident :canvas :element/name ""}])
+(defmethod transact :workspace/create
+  [{:keys [local]}]
+  [[:db/add -1 :entity/key (squuid)]
+   [:db/add -1 :window/canvas -2]
+   [:db/add -2 :entity/key (squuid)]
+   [:db/add [:entity/key local] :local/window -1]
+   [:db/add [:entity/key local] :local/windows -1]
+   [:db/add [:db/ident :root] :root/canvases -2]])
 
 (defmethod transact :workspace/change
-  [_ id]
-  [[:db/retract [:db/ident :canvas] :db/ident]
-   [:db/add id :db/ident :canvas]
-   [:db/add [:db/ident :root] :root/canvas id]])
+  [{:keys [local]} key]
+  [[:db/add [:entity/key local] :local/window [:entity/key key]]])
 
 (defmethod transact :workspace/remove
-  [{:keys [data]} id]
-  (let [result   (ds/pull data '[{:root/canvases [*]}] [:db/ident :root])
-        canvas   (ds/pull data '[*] [:db/ident :canvas])
-        canvases (:root/canvases result)]
+  [{:keys [data local]} key]
+  (let [lookup [:entity/key local]
+        select [{:local/window [:entity/key]} {:local/windows [:entity/key]}]
+        result (ds/pull data select lookup)
+        window (ds/pull data [:entity/key {:window/canvas [:entity/key]}] [:entity/key key])
+        {current :local/window
+         windows :local/windows} result]
     (cond
-      (= (count canvases) 1)
-      (let [next {:db/id -1 :db/ident :canvas :element/name ""}]
-        [[:db.fn/retractEntity id]
-         [:db/add [:db/ident :root] :root/canvases -1]
-         [:db/add [:db/ident :root] :root/canvas -1]
-         next])
+      (= (count windows) 1)
+      [[:db/retractEntity [:entity/key key]]
+       [:db/retractEntity [:entity/key (:entity/key (:window/canvas window))]]
+       [:db/add -1 :entity/key (squuid)]
+       [:db/add -1 :window/canvas -2]
+       [:db/add -2 :entity/key (squuid)]
+       [:db/add lookup :local/window -1]
+       [:db/add lookup :local/windows -1]]
 
-      (= (:db/id canvas) id)
-      (let [next (-> (set canvases) (disj canvas) (first))]
-        [[:db.fn/retractEntity id]
-         [:db/add [:db/ident :root] :root/canvas (:db/id next)]
-         [:db/add (:db/id next) :db/ident :canvas]])
+      (= (:entity/key window) (:entity/key current))
+      (let [next (first (disj (set windows) current))]
+        [[:db/retractEntity [:entity/key key]]
+         [:db/retractEntity [:entity/key (:entity/key (:window/canvas window))]]
+         [:db/add lookup :local/window [:entity/key (:entity/key next)]]])
 
       :else
-      [[:db.fn/retractEntity id]])))
+      [[:db/retractEntity [:entity/key key]]
+       [:db/retractEntity [:entity/key (:entity/key (:window/canvas window))]]])))
 
-(defmethod transact :canvas/change-scene
-  [_ scene]
-  [[:db/add [:db/ident :canvas] :canvas/scene scene]
-   [:db/add [:db/ident :canvas] :pos/vec [0 0]]])
+(defmethod transact :window/change-label
+  [{:keys [window]} label]
+  [[:db/add [:entity/key window] :window/label label]])
 
-(defmethod transact :canvas/toggle-mode
-  [{:keys [data]} mode]
-  (let [ident  [:db/ident :canvas]
-        select [:db/id :canvas/mode :canvas/selected]
-        result (ds/pull data select ident)
-        {curr :canvas/mode} result]
-    (concat [[:db/add ident :canvas/mode mode]]
-            (if (not= mode curr)
-              [[:db/retract ident :canvas/selected]]
-              [[:db/add ident :canvas/mode :select]]))))
+(defmethod transact :window/translate
+  [{:keys [window]} x y]
+  [[:db/add [:entity/key window] :window/vec [(round x 1) (round y 1)]]])
 
-(defmethod transact :canvas/toggle-theme
-  [{:keys [data]}]
-  (let [ident  [:db/ident :canvas]
-        canvas (ds/pull data [:canvas/theme] ident)]
-    [[:db/add ident :canvas/theme (if (= (:canvas/theme canvas) :dark) :light :dark)]]))
+(defmethod transact :window/change-mode
+  [{:keys [data window]} mode]
+  (let [lookup [:entity/key window]
+        entity (ds/entity data lookup)]
+    (concat [[:db/add lookup :window/draw-mode mode]]
+            (if (not= mode (:window/draw-mode entity))
+              [[:db/retract lookup :window/selected]]
+              [[:db/add lookup :window/draw-mode :select]]))))
 
-(defmethod transact :canvas/modifier-start
-  [_ modifier]
-  [[:db/add [:db/ident :canvas] :canvas/modifier modifier]])
+(defmethod transact :window/modifier-start
+  [{:keys [window]} modifier]
+  [[:db/add [:entity/key window] :window/modifier modifier]])
 
-(defmethod transact :canvas/modifier-release []
-  [[:db/retract [:db/ident :canvas] :canvas/modifier]])
+(defmethod transact :window/modifier-release
+  [{:keys [window]}]
+  [[:db/retract [:entity/key window] :window/modifier]])
 
-(defmethod transact :element/update
-  [_ idents attr value]
-  (for [id idents]
-    [:db/add id attr value]))
+(defmethod transact :window/change-grid-show
+  [{:keys [window]} value]
+  [[:db/add [:entity/key window] :window/show-grid value]])
 
-(defmethod transact :element/select
-  ([context element]
-   (transact context element true))
-  ([{:keys [data]} element replace?]
-   (let [select [:canvas/_selected]
-         result (ds/pull data select element)]
-     [(if replace?
-        [:db/retract [:db/ident :canvas] :canvas/selected])
-      (if (and (not replace?) (:canvas/_selected result))
-        [:db/retract [:db/ident :canvas] :canvas/selected element]
-        [:db/add [:db/ident :canvas] :canvas/selected element])])))
-
-(defmethod transact :element/remove
-  [_ idents]
-  (for [id idents]
-    [:db/retractEntity id]))
-
-(defmethod transact :element/flag
-  [{:keys [data]} idents flag add?]
-  (let [tokens (ds/pull-many data [:db/id :element/flags] idents)]
-    (for [{:keys [db/id element/flags] :or {flags #{}}} tokens]
-      [:db/add id :element/flags ((if add? conj disj) flags flag)])))
-
-(defmethod transact :camera/translate [_ x y]
-  [[:db/add [:db/ident :canvas] :pos/vec [(round x 1) (round y 1)]]])
-
-(defmethod transact :scene/create
-  [{:keys [data]} map-data]
-  (let [checksum (:image/checksum map-data)
-        existing (ds/entity data [:image/checksum checksum])]
-    (if (nil? existing)
-      [(assoc map-data :db/id -1)
-       [:db/add [:db/ident :root] :root/scenes -1]
-       [:db/add [:db/ident :canvas] :canvas/scene -1]]
-      [[:db/add [:db/ident :canvas] :canvas/scene [:image/checksum checksum]]])))
-
-(defmethod transact :map/remove
-  [_ map]
-  [[:db/retractEntity map]])
-
-(defmethod transact :token/create
-  [_ x y]
-  [[:db/add [:db/ident :canvas] :canvas/tokens -1]
-   [:db/add [:db/ident :canvas] :canvas/selected -1]
-   [:db/add [:db/ident :canvas] :canvas/mode :select]
-   {:db/id -1 :pos/vec [x y]}])
-
-(defmethod transact :token/translate
-  [{:keys [data]} id x y align?]
-  (let [{size :grid/size} (ds/pull data [[:grid/size :default 70]] [:db/ident :canvas])
-        r (if align? (/ size 2) 1)]
-    [[:db/add id :pos/vec [(round x r) (round y r)]]]))
-
-(defmethod transact :token/translate-all
-  [{:keys [data]} idents x y align?]
-  (let [{size :grid/size} (ds/pull data [[:grid/size :default 70]] [:db/ident :canvas])
-        tokens            (ds/pull-many data [:db/id :pos/vec] idents)
-        r                 (if align? (/ size 2) 1)]
-    (for [{id :db/id [tx ty] :pos/vec} tokens]
-      [:db/add id :pos/vec [(round (+ x tx) r) (round (+ y ty) r)]])))
-
-(defmethod transact :token/change-label
-  [_ idents value]
-  (for [ident idents]
-    [:db/add ident :element/name (trim value)]))
-
-(defmethod transact :token/change-size
-  [_ idents radius]
-  (for [id idents]
-    [:db/add id :token/size radius]))
-
-(defmethod transact :token/change-light
-  [_ idents radius]
-  (for [id idents]
-    [:db/add id :token/light radius]))
-
-(defmethod transact :token/change-aura
-  [_ idents radius]
-  (for [id idents]
-    [:db/add id :aura/radius radius]))
-
-(defmethod transact :token/change-stamp
-  [_ idents checksum]
-  (for [id idents]
-    [:db/add id :token/stamp [:image/checksum checksum]]))
-
-(defmethod transact :token/remove-stamp
-  [_ idents]
-  (for [id idents]
-    [:db/retract id :token/stamp]))
-
-(defmethod transact :shape/create
-  [_ kind vecs]
-  [[:db/add -1 :shape/kind kind]
-   [:db/add -1 :shape/vecs vecs]
-   [:db/add [:db/ident :canvas] :canvas/shapes -1]
-   [:db/add [:db/ident :canvas] :canvas/mode :select]
-   [:db/add [:db/ident :canvas] :canvas/selected -1]])
-
-(defn trans-xf [x y]
-  (comp (partition-all 2) (drop 1) (map (fn [[ax ay]] [(+ ax x) (+ ay y)])) cat))
-
-(defmethod transact :shape/translate
-  [{:keys [data]} id x y align?]
-  (let [{[ax ay] :shape/vecs vecs :shape/vecs} (ds/pull data [:shape/vecs] id)
-        {size :grid/size} (ds/pull data [[:grid/size :default 70]] [:db/ident :canvas])
-        r (if align? (/ size 2) 1)
-        x (round x r)
-        y (round y r)]
-    [[:db/add id :shape/vecs (into [x y] (trans-xf (- x ax) (- y ay)) vecs)]]))
-
-(defmethod transact :grid/change-size
-  [_ size]
-  [[:db/add [:db/ident :canvas] :grid/size size]])
-
-(defmethod transact :grid/draw
-  [{:keys [data]} _ _ size]
-  (let [ident  [:db/ident :canvas]
-        select [:db/id [:zoom/scale :default 1] {:canvas/scene [:image/width]}]
-        result (ds/pull data select ident)
-        {scale :zoom/scale
-         scene :canvas/scene
-         {width :image/width} :canvas/scene} result
-        size (js/Math.round (/ size scale))]
-    (if (nil? scene)
-      [[:db/add ident :grid/size size]
-       [:db/add ident :canvas/mode :select]]
-      (let [pattern [size (+ size 1) (- size 1) (+ size 2) (- size 2) (+ size 3) (- size 3) (+ size 4) (- size 4)]
-            next    (reduce (fn [_ n] (when (zero? (mod width n)) (reduced n))) pattern)]
-        [[:db/add ident :grid/size (or next size)]
-         [:db/add ident :canvas/mode :select]]))))
-
-(defmethod transact :grid/toggle
-  [{:keys [data]}]
-  (let [{show? :grid/show} (ds/pull data [[:grid/show :default true]] [:db/ident :canvas])]
-    [[:db/add [:db/ident :canvas] :grid/show (not show?)]]))
-
-(defmethod transact :grid/align
-  [{:keys [data]}]
-  (let [{align? :grid/align} (ds/pull data [[:grid/align :default false]] [:db/ident :canvas])]
-    [[:db/add [:db/ident :canvas] :grid/align (not align?)]]))
-
-(defmethod transact :canvas/change-visibility
-  [_ type]
-  [[:db/add [:db/ident :canvas] :canvas/visibility type]])
-
-(defmethod transact :canvas/change-color
-  [_ color]
-  [[:db/add [:db/ident :canvas] :canvas/color color]])
+(defmethod transact :window/change-grid-snap
+  [{:keys [window]} value]
+  [[:db/add [:entity/key window] :window/snap-grid value]])
 
 (defmethod transact :zoom/change
   ([context]
    (transact context 1))
-  ([{:keys [data] :as context} next]
-   (let [result    (ds/pull data [:bounds/self] [:db/ident :root])
+  ([{:keys [data local] :as context} next]
+   (let [select    [[:bounds/self :default [0 0 0 0]]]
+         result    (ds/pull data select [:entity/key local])
          [_ _ w h] (:bounds/self result)]
      (transact context next (/ w 2) (/ h 2))))
-  ([{:keys [data]} next x y]
-   (let [select [[:zoom/scale :default 1] [:pos/vec :default [0 0]]]
-         result (ds/pull data select [:db/ident :canvas])
-         {prev :zoom/scale [cx cy] :pos/vec} result
+  ([{:keys [data window]} next x y]
+   (let [select [[:window/scale :default 1] [:window/vec :default [0 0]]]
+         result (ds/pull data select [:entity/key window])
+         {prev :window/scale [cx cy] :window/vec} result
          fx (/ next prev)
          dx (/ (- (* x fx) x) next)
          dy (/ (- (* y fx) y) next)]
-     [[:db/add [:db/ident :canvas] :pos/vec [(round (- cx dx) 1) (round (- cy dy) 1)]]
-      [:db/add [:db/ident :canvas] :zoom/scale next]])))
+     [[:db/add [:entity/key window] :window/vec [(round (- cx dx) 1) (round (- cy dy) 1)]]
+      [:db/add [:entity/key window] :window/scale next]])))
 
 (defmethod transact :zoom/delta
-  [{:keys [data]} delta x y]
-  (let [canvas (ds/pull data [[:zoom/scale :default 1]] [:db/ident :canvas])
-        next   (-> (:zoom/scale canvas)
+  [{:keys [data window] :as context} delta x y]
+  (let [result (ds/pull data [[:window/scale :default 1]] [:entity/key window])
+        next   (-> (:window/scale result)
                    (js/Math.log)
                    (+ delta)
                    (js/Math.exp)
                    (to-precision 2)
                    (constrain 0.15 4))]
-    (transact {:data data :event :zoom/change} next x y)))
+    (transact (assoc context :event :zoom/change) next x y)))
 
-(defmethod transact :zoom/in [{:keys [data]}]
-  (let [info (ds/pull data [[:zoom/scale :default 1]] [:db/ident :canvas])
-        prev (:zoom/scale info)
+(defmethod transact :zoom/in
+  [{:keys [data window] :as context}]
+  (let [info (ds/pull data [[:window/scale :default 1]] [:entity/key window])
+        prev (:window/scale info)
         next (reduce (fn [n s] (if (> s prev) (reduced s) n)) prev zoom-scales)]
-    (transact {:data data :event :zoom/change} next)))
+    (transact (assoc context :event :zoom/change) next)))
 
-(defmethod transact :zoom/out [{:keys [data]}]
-  (let [info (ds/pull data [[:zoom/scale :default 1]] [:db/ident :canvas])
-        prev (:zoom/scale info)
+(defmethod transact :zoom/out
+  [{:keys [data window] :as context}]
+  (let [info (ds/pull data [[:window/scale :default 1]] [:entity/key window])
+        prev (:window/scale info)
         next (reduce (fn [n s] (if (< s prev) (reduced s) n)) prev (reverse zoom-scales))]
-    (transact {:data data :event :zoom/change} next)))
+    (transact (assoc context :event :zoom/change) next)))
 
-(defmethod transact :zoom/reset [{:keys [data]}]
-  (transact {:data data :event :zoom/change} 1))
+(defmethod transact :zoom/reset [context]
+  (transact (assoc context :event :zoom/change) 1))
 
+(defmethod transact :canvas/change-scene
+  [{:keys [canvas]} checksum]
+  [[:db/add [:entity/key canvas] :canvas/image [:image/checksum checksum]]])
 
-(defmethod transact :share/initiate []
-  [])
+(defmethod transact :canvas/change-grid-size
+  [{:keys [canvas]} size]
+  [[:db/add [:entity/key canvas] :grid/size size]])
 
-(defmethod transact :share/toggle [{:keys [data]} open?]
-  (let [{:keys [root/host?]} (ds/pull data [:root/host?] [:db/ident :root])]
-    [[:db/add [:db/ident :root] :share/open? open?]
-     [:db/add [:db/ident :root] :share/paused? false]
-     [:db/add [:db/ident :root] :root/privileged? (and host? open?)]]))
+(defmethod transact :canvas/draw-grid-size
+  [{:keys [data window canvas]} _ _ size]
+  (let [lookup [:entity/key window]
+        select [[:window/scale :default 1] {:window/canvas [{:canvas/image [:image/width]}]}]
+        result (ds/pull data select lookup)
+        {scale :window/scale
+         {scene :canvas/image
+          {width :image/width} :canvas/image} :window/canvas} result
+        size (js/Math.round (/ size scale))]
+    (if (nil? scene)
+      [[:db/add [:entity/key canvas] :grid/size size]
+       [:db/add [:entity/key window] :window/draw-mode :select]]
+      (let [pattern [size (+ size 1) (- size 1) (+ size 2) (- size 2) (+ size 3) (- size 3) (+ size 4) (- size 4)]
+            next    (reduce (fn [_ n] (when (zero? (mod width n)) (reduced n))) pattern)]
+        [[:db/add [:entity/key canvas] :grid/size (or next size)]
+         [:db/add [:entity/key window] :window/draw-mode :select]]))))
+
+(defmethod transact :canvas/change-theme
+  [{:keys [canvas]} theme]
+  [[:db/add [:entity/key canvas] :canvas/theme theme]])
+
+(defmethod transact :canvas/change-visibility
+  [{:keys [canvas]} value]
+  [[:db/add [:entity/key canvas] :canvas/visibility value]])
+
+(defmethod transact :canvas/change-color
+  [{:keys [canvas]} value]
+  [[:db/add [:entity/key canvas] :canvas/color value]])
+
+(defmethod transact :element/update
+  [_ keys attr value]
+  (for [key keys]
+    [:db/add [:entity/key key] attr value]))
+
+(defmethod transact :element/select
+  [{:keys [data window]} key replace?]
+  (let [lookup [:entity/key key]
+        entity (ds/entity data lookup)]
+    [(if replace?
+       [:db/retract [:entity/key window] :window/selected])
+     (if (and (not replace?) (:window/_selected entity))
+       [:db/retract [:entity/key window] :window/selected lookup]
+       [:db/add [:entity/key window] :window/selected lookup])]))
+
+(defmethod transact :element/remove
+  [_ keys]
+  (for [key keys]
+    [:db/retractEntity [:entity/key key]]))
+
+(defmethod transact :scene/create
+  [{:keys [data canvas]} checksum filename width height]
+  (let [lookup   [:image/checksum checksum]
+        existing (ds/entity data lookup)]
+    (if (nil? existing)
+      [[:db/add -1 :image/checksum checksum]
+       [:db/add -1 :image/filename filename]
+       [:db/add -1 :image/width width]
+       [:db/add -1 :image/height height]
+       [:db/add [:db/ident :root] :root/scenes -1]
+       [:db/add [:entity/key canvas] :canvas/image -1]]
+      [[:db/add [:entity/key canvas] :canvas/image lookup]])))
+
+(defmethod transact :map/remove
+  [_ checksum]
+  [[:db/retractEntity [:image/checksum checksum]]])
+
+(defmethod transact :token/create
+  [{:keys [window canvas]} x y]
+  [[:db/add [:entity/key canvas] :canvas/tokens -1]
+   [:db/add [:entity/key window] :window/selected -1]
+   [:db/add [:entity/key window] :window/draw-mode :select]
+   {:db/id -1 :entity/key (squuid) :token/vec [x y]}])
+
+(defmethod transact :token/translate
+  [{:keys [data canvas]} key x y align?]
+  (let [{size :grid/size} (ds/pull data [[:grid/size :default 70]] [:entity/key canvas])
+        radius            (if align? (/ size 2) 1)]
+    [[:db/add [:entity/key key] :token/vec [(round x radius) (round y radius)]]]))
+
+(defmethod transact :token/change-flag
+  [{:keys [data]} keys flag add?]
+  (let [idents (map (fn [key] [:entity/key key]) keys)
+        tokens (ds/pull-many data [:entity/key :token/flags] idents)]
+    (for [{:keys [entity/key token/flags] :or {flags #{}}} tokens]
+      [:db/add [:entity/key key] :token/flags ((if add? conj disj) flags flag)])))
+
+(defmethod transact :token/translate-all
+  [{:keys [data canvas]} keys x y align?]
+  (let [{size :grid/size} (ds/pull data [[:grid/size :default 70]] [:entity/key canvas])
+        lookup            (map (fn [key] [:entity/key key]) keys)
+        tokens            (ds/pull-many data [:entity/key :token/vec] lookup)
+        radius            (if align? (/ size 2) 1)]
+    (for [{key :entity/key [tx ty] :token/vec} tokens]
+      [:db/add [:entity/key key] :token/vec [(round (+ x tx) radius) (round (+ y ty) radius)]])))
+
+(defmethod transact :token/change-label
+  [_ keys value]
+  (for [key keys]
+    [:db/add [:entity/key key] :token/label (trim value)]))
+
+(defmethod transact :token/change-size
+  [_ keys radius]
+  (for [key keys]
+    [:db/add [:entity/key key] :token/size radius]))
+
+(defmethod transact :token/change-light
+  [_ keys radius]
+  (for [key keys]
+    [:db/add [:entity/key key] :token/light radius]))
+
+(defmethod transact :token/change-aura
+  [_ keys radius]
+  (for [key keys]
+    [:db/add [:entity/key key] :aura/radius radius]))
+
+(defmethod transact :token/change-stamp
+  [_ keys checksum]
+  (for [key keys]
+    [:db/add [:entity/key key] :token/image [:image/checksum checksum]]))
+
+(defmethod transact :token/remove-stamp
+  [_ keys]
+  (for [key keys]
+    [:db/retract [:entity/key key] :token/image]))
+
+(defmethod transact :shape/create
+  [{:keys [window canvas]} kind vecs]
+  [[:db/add -1 :entity/key (squuid)]
+   [:db/add -1 :shape/kind kind]
+   [:db/add -1 :shape/vecs vecs]
+   [:db/add [:entity/key canvas] :canvas/shapes -1]
+   [:db/add [:entity/key window] :window/draw-mode :select]
+   [:db/add [:entity/key window] :window/selected -1]])
+
+(defn trans-xf [x y]
+  (comp (partition-all 2) (drop 1) (map (fn [[ax ay]] [(+ ax x) (+ ay y)])) cat))
+
+(defmethod transact :shape/translate
+  [{:keys [data canvas]} key x y align?]
+  (let [{[ax ay] :shape/vecs vecs :shape/vecs} (ds/pull data [:shape/vecs] [:entity/key key])
+        {size :grid/size} (ds/pull data [[:grid/size :default 70]] [:entity/key canvas])
+        r (if align? (/ size 2) 1)
+        x (round x r)
+        y (round y r)]
+    [[:db/add [:entity/key key] :shape/vecs (into [x y] (trans-xf (- x ax) (- y ay)) vecs)]]))
+
+(defmethod transact :share/initiate [] [])
+
+(defmethod transact :share/toggle [{:keys [data local]} open?]
+  (let [{:keys [local/host?]} (ds/pull data [:local/host?] [:db/ident :local])]
+    [[:db/add [:entity/key local] :local/sharing? open?]
+     [:db/add [:entity/key local] :local/paused? false]
+     [:db/add [:entity/key local] :local/privileged? (and host? open?)]]))
 
 (defmethod transact :share/switch
-  ([{:keys [data] :as context}]
-   (let [{:keys [share/paused?]} (ds/pull data [:share/paused?] [:db/ident :root])]
+  ([{:keys [data local] :as context}]
+   (let [{:keys [local/paused?]} (ds/pull data [:local/paused?] [:entity/key local])]
      (transact context (not paused?))))
-  ([_ paused?]
-   [[:db/add [:db/ident :root] :share/paused? paused?]]))
+  ([{:keys [local]} paused?]
+   [[:db/add [:entity/key local] :local/paused? paused?]]))
 
 (defmethod transact :bounds/change
-  [{:keys [data]} w-host? bounds]
-  (let [{id :db/id v-host? :root/host?} (ds/pull data [:db/id :root/host?] [:db/ident :root])]
+  [{:keys [data local]} w-host? bounds]
+  (let [{v-host? :local/host?} (ds/pull data [:local/host?] [:db/ident :local])]
     (cond-> []
-      (= w-host? v-host?) (conj [:db/add id :bounds/self bounds])
-      (= w-host? true) (conj [:db/add id :bounds/host bounds])
-      (= w-host? false) (conj [:db/add id :bounds/guest bounds]))))
+      (= w-host? v-host?) (conj [:db/add [:entity/key local] :bounds/self bounds])
+      (= w-host? true)    (conj [:db/add [:entity/key local] :bounds/host bounds])
+      (= w-host? false)   (conj [:db/add [:entity/key local] :bounds/guest bounds]))))
 
 (defmethod transact :selection/from-rect
-  [{:keys [data]} vecs]
-  (let [selector   [{:root/canvas [:db/id {:canvas/tokens [:db/id :pos/vec]}]}]
-        root       (ds/pull data selector [:db/ident :root])
-        canvas     (:root/canvas root)
-        normalized (normalize vecs)
-        selected   (filter
-                    (fn [{[x y] :pos/vec}]
-                      (within? x y normalized)) (:canvas/tokens canvas))]
-    (concat [[:db/add (:db/id canvas) :canvas/mode :select]]
-            (for [entity selected]
-              [:db/add (:db/id canvas) :canvas/selected (:db/id entity)]))))
+  [{:keys [data window canvas]} vecs]
+  (let [result (ds/pull data [{:canvas/tokens [:entity/key :token/vec]}] [:entity/key canvas])
+        normal (normalize vecs)
+        select (filter
+                (fn [{[x y] :token/vec}]
+                  (within? x y normal)) (:canvas/tokens result))]
+    (concat [[:db/add [:entity/key window] :window/draw-mode :select]]
+            (for [{:keys [entity/key]} select :let [ref [:entity/key key]]]
+              [:db/add [:entity/key window] :window/selected ref]))))
 
-(defmethod transact :selection/clear [_]
-  [[:db/retract [:db/ident :canvas] :canvas/selected]])
+(defmethod transact :selection/clear
+  [{:keys [window]}]
+  [[:db/retract [:entity/key window] :window/selected]])
 
 (defmethod transact :selection/remove
-  [{:keys [data]}]
-  (let [select [:canvas/selected]
-        result (ds/pull data select [:db/ident :canvas])
-        {:keys [canvas/selected]} result]
-    (for [entity selected]
-      [:db/retractEntity (:db/id entity)])))
+  [{:keys [data window]}]
+  (let [result (ds/pull data [{:window/selected [:entity/key]}] [:entity/key window])]
+    (for [{:keys [entity/key]} (:window/selected result)]
+      [:db/retractEntity [:entity/key key]])))
 
 (defmethod transact :initiative/toggle
-  [{:keys [data]} idents adding?]
-  (let [select-t [:db/id :element/name :initiative/suffix [:element/flags :default #{}]]
-        select-r [{:root/canvas [:db/id {:canvas/initiative select-t}]}]
-        result   (ds/pull data select-r [:db/ident :root])
-        adding   (ds/pull-many data select-t idents)
-        {{id :db/id exists :canvas/initiative} :root/canvas} result]
+  [{:keys [data canvas]} keys adding?]
+  (let [tokens   (map (fn [key] [:entity/key key]) keys)
+        select-t [:entity/key :token/label :initiative/suffix [:token/flags :default #{}]]
+        select-r [:entity/key {:canvas/initiative select-t}]
+        result   (ds/pull data select-r [:entity/key canvas])
+        adding   (ds/pull-many data select-t tokens)
+        {key :entity/key exists :canvas/initiative} result]
     (if adding?
       (->> (union (set exists) (set adding))
-           (filter (fn [t] (nil? ((:element/flags t) :player))))
+           (filter (fn [t] (nil? ((:token/flags t) :player))))
            (suffix-txs)
-           (into [{:db/id id :canvas/initiative idents}]))
-      (into (for [tk idents] [:db/retract id :canvas/initiative tk])
-            (for [tk idents attr initiative-attrs] [:db/retract tk attr])))))
+           (into [{:db/id [:entity/key canvas] :canvas/initiative tokens}]))
+      (into (for [tk tokens] [:db/retract [:entity/key key] :canvas/initiative tk])
+            (for [tk tokens attr initiative-attrs] [:db/retract tk attr])))))
 
 (defmethod transact :initiative/change-roll
-  [_ id roll]
+  [_ key roll]
   (let [parsed (.parseFloat js/window roll)]
     (cond
       (or (nil? roll) (= roll ""))
-      [[:db/retract id :initiative/roll]]
+      [[:db/retract [:entity/key key] :initiative/roll]]
 
       (.isNaN js/Number parsed)
       []
 
       :else
-      [[:db/add id :initiative/roll parsed]])))
+      [[:db/add [:entity/key key] :initiative/roll parsed]])))
 
 (defmethod transact :initiative/roll-all
-  [{:keys [data]}]
-  (let [attrs  [:db/id :element/flags :initiative/roll]
-        select [{:root/canvas [{:canvas/initiative attrs}]}]
-        result (ds/pull data select [:db/ident :root])
-        {{initiative :canvas/initiative} :root/canvas} result]
-    (for [{:keys [db/id initiative/roll element/flags]} initiative
+  [{:keys [data canvas]}]
+  (let [select [{:canvas/initiative [:entity/key :token/flags :initiative/roll]}]
+        result (ds/pull data select [:entity/key canvas])
+        {initiative :canvas/initiative} result]
+    (for [{:keys [entity/key initiative/roll token/flags]} initiative
           :when (and (nil? roll) (not (contains? flags :player)))]
-      [:db/add id :initiative/roll (inc (rand-int 20))])))
+      [:db/add [:entity/key key] :initiative/roll (inc (rand-int 20))])))
 
 (defmethod transact :initiative/reset-rolls
-  [{:keys [data]}]
-  (let [select     [{:root/canvas [:canvas/initiative]}]
-        result     (ds/pull data select [:db/ident :root])
-        initiative (-> result :root/canvas :canvas/initiative)]
-    (for [{:keys [db/id]} initiative]
-      [:db/retract id :initiative/roll])))
+  [{:keys [data canvas]}]
+  (let [result (ds/pull data [{:canvas/initiative [:entity/key]}] [:entity/key canvas])]
+    (for [{:keys [entity/key]} (:canvas/initiative result)]
+      [:db/retract [:entity/key key] :initiative/roll])))
 
 (defmethod transact :initiative/change-health
-  [{:keys [data]} id f value]
+  [{:keys [data]} key f value]
   (let [parsed (.parseFloat js/window value)]
     (if (.isNaN js/Number parsed) []
-        (let [{:keys [initiative/health]} (ds/entity data id)]
-          [[:db/add id :initiative/health (f health parsed)]]))))
+        (let [{:keys [initiative/health]} (ds/entity data [:entity/key key])]
+          [[:db/add [:entity/key key] :initiative/health (f health parsed)]]))))
 
 (defmethod transact :initiative/leave
-  [{:keys [data]}]
-  (let [select [{:root/canvas [:db/id :canvas/initiative]}]
-        result (ds/pull data select [:db/ident :root])
-        {{id :db/id initiative :canvas/initiative} :root/canvas} result]
-    (into [[:db/retract id :canvas/initiative]]
-          (for [{:keys [db/id]} initiative attr initiative-attrs]
-            [:db/retract id attr]))))
+  [{:keys [data canvas]}]
+  (let [select [{:canvas/initiative [:entity/key]}]
+        result (ds/pull data select [:entity/key canvas])
+        {initiative :canvas/initiative} result]
+    (into [[:db/retract [:entity/key canvas] :canvas/initiative]]
+          (for [{:keys [entity/key]} initiative attr initiative-attrs]
+            [:db/retract [:entity/key key] attr]))))
 
 (defmethod transact :storage/reset [] [])
 
 (defmethod transact :interface/toggle-shortcuts
-  [_ display?]
-  [[:db/add [:db/ident :root] :root/shortcuts? display?]])
+  [{:keys [local]} display?]
+  [[:db/add [:entity/key local] :local/shortcuts? display?]])
 
 (defmethod transact :interface/toggle-tooltips
-  [_ display?]
-  [[:db/add [:db/ident :root] :root/tooltips? display?]])
+  [{:keys [local]} display?]
+  [[:db/add [:entity/key local] :local/tooltips? display?]])
 
 (defmethod transact :interface/change-panel
-  [_ panel]
-  [[:db/add [:db/ident :canvas] :panel/curr panel]
-   [:db/add [:db/ident :canvas] :panel/collapsed? false]])
+  [{:keys [window]} panel]
+  [[:db/add [:entity/key window] :panel/current panel]
+   [:db/add [:entity/key window] :panel/collapsed? false]])
 
 (defmethod transact :interface/toggle-panel
-  [{:keys [data]}]
-  (let [{:keys [panel/collapsed?]} (ds/pull data [:panel/collapsed?] [:db/ident :canvas])]
-    [[:db/add [:db/ident :canvas] :panel/collapsed? (not (or collapsed? false))]]))
+  [{:keys [data window]}]
+  (let [entity (ds/entity data [:entity/key window])]
+    [[:db/add [:entity/key window] :panel/collapsed? (not (:panel/collapsed? entity))]]))
 
 (defmethod transact :stamp/create
-  [{:keys [data]} stamp-data]
-  (let [checksum (:image/checksum stamp-data)
-        exists?  (ds/entity data [:image/checksum checksum])]
-    (if (not exists?)
-      [(assoc stamp-data :db/id -1)
-       [:db/add [:db/ident :root] :root/stamps -1]] [])))
+  [{:keys [data]} checksum filename width height]
+  (let [existing (ds/entity data [:image/checksum checksum])]
+    (if (not existing)
+      [[:db/add -1 :image/checksum checksum]
+       [:db/add -1 :image/filename filename]
+       [:db/add -1 :image/width width]
+       [:db/add -1 :image/height height]
+       [:db/add [:db/ident :root] :root/stamps -1]]
+      [])))
 
 (defmethod transact :stamp/remove [_ checksum]
   [[:db/retractEntity [:image/checksum checksum]]])
 
-(defmethod transact :mask/fill []
-  [[:db/add [:db/ident :canvas] :mask/filled? true]
-   [:db/retract [:db/ident :canvas] :canvas/masks]])
+(defmethod transact :mask/fill
+  [{:keys [canvas]}]
+  [[:db/add [:entity/key canvas] :mask/filled? true]
+   [:db/retract [:entity/key canvas] :canvas/masks]])
 
-(defmethod transact :mask/clear []
-  [[:db/add [:db/ident :canvas] :mask/filled? false]
-   [:db/retract [:db/ident :canvas] :canvas/masks]])
+(defmethod transact :mask/clear
+  [{:keys [canvas]}]
+  [[:db/add [:entity/key canvas] :mask/filled? false]
+   [:db/retract [:entity/key canvas] :canvas/masks]])
 
 (defmethod transact :mask/create
-  [_ state vecs]
-  [[:db/add -1 :mask/enabled? state]
-   [:db/add -1 :mask/vecs vecs]
-   [:db/add [:db/ident :canvas] :canvas/masks -1]])
+  [{:keys [canvas]} state vecs]
+  [[:db/add [:entity/key canvas] :canvas/masks -1]
+   [:db/add -1 :entity/key (squuid)]
+   [:db/add -1 :mask/enabled? state]
+   [:db/add -1 :mask/vecs vecs]])
 
 (defmethod transact :mask/toggle
-  [_ id state]
-  [[:db/add id :mask/enabled? state]])
+  [_ mask state]
+  [[:db/add [:entity/key mask] :mask/enabled? state]])
 
 (defmethod transact :mask/remove
-  [_ id]
-  [[:db/retract [:db/ident :canvas] :canvas/masks id]])
+  [_ mask]
+  [[:db/retractEntity [:entity/key mask]]])

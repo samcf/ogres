@@ -76,11 +76,10 @@
         canvas   (uix/state nil)
         handler  (debounce
                   (fn []
-                    (->>
-                     (.querySelector (.-document target) selector)
-                     (.getBoundingClientRect)
-                     (bounds->vector)
-                     (dispatch :bounds/change host?))) 100)
+                    (if-let [element (.. target -document (querySelector selector))]
+                      (->> (.getBoundingClientRect element)
+                           (bounds->vector)
+                           (dispatch :bounds/change host?)))) 100)
         observer (uix/state (js/ResizeObserver. handler))]
 
     (listen! handler "resize" [])
@@ -121,7 +120,8 @@
        (reset)) "beforeunload" []) nil))
 
 (def query
-  {:pull [:root/host? :root/loaded?]})
+  [[:local/host? :default true]
+   [:local/loaded? :default false]])
 
 (defn provider
   "Provides a reference to the guest window, if any, and registers several
@@ -137,10 +137,10 @@
                 ([element]
                  (reset! guest element)))]
 
-    (if (:root/loaded? data)
+    (if (:local/loaded? data)
       (uix/context-provider
        [context {:guest @guest :reset reset}]
-       (if (:root/host? data)
+       (if (:local/host? data)
          [:<>
           [initialize]
           [dispatcher]

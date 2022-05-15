@@ -7,22 +7,6 @@
             [ogre.tools.storage :refer [storage]]
             [uix.core.alpha :as uix]))
 
-(def query
-  {:pull
-   [{:root/scenes [:db/id :image/checksum]}
-    {:root/canvas
-     [:db/id
-      :element/name
-      {:canvas/scene
-       [:image/checksum]}
-      [:canvas/theme :default :light]
-      [:canvas/visibility :default :revealed]
-      [:canvas/color :default :none]
-      [:canvas/mode :default :select]
-      [:grid/show :default true]
-      [:grid/size :default 70]
-      [:grid/align :default false]]}]})
-
 (defn thumbnail [{:keys [checksum selected on-select on-remove]}]
   (let [url (use-image checksum)]
     [:div
@@ -43,13 +27,31 @@
   (let [url (use-image checksum)]
     [:div {:style {:background-image (str "url(" url ")")}}]))
 
+(def query
+  [{:root/scenes [:image/checksum]}
+   {:root/local
+    [{:local/window
+      [[:window/label :default ""]
+       [:window/draw-mode :default :select]
+       [:window/show-grid :default true]
+       [:window/snap-grid :default false]
+       {:window/canvas
+        [:entity/key
+         {:canvas/image [:image/checksum]}
+         [:canvas/theme :default :light]
+         [:canvas/visibility :default :revealed]
+         [:canvas/color :default :none]
+         [:grid/size :default 70]]}]}]}])
+
 (defn canvas []
-  (let [[result dispatch] (use-query query)
+  (let [[result dispatch] (use-query query [:db/ident :root])
         {:keys [store]}   (uix/context storage)
         show-images       (uix/state false)
         file-upload       (uix/ref)
-        {canvas :root/canvas
-         scenes :root/scenes} result]
+        {scenes :root/scenes
+         {window :local/window
+          {canvas :window/canvas} :local/window} :root/local} result
+        checksum (-> canvas :canvas/image :image/checksum)]
     [:<>
      [:section
       [:header "Canvas Options"]]
@@ -58,8 +60,8 @@
        {:type "button"
         :on-click #(swap! show-images not)
         :disabled (not (seq scenes))}
-       (if (:canvas/scene canvas)
-         [preview {:checksum (-> canvas :canvas/scene :image/checksum)}]
+       (if checksum
+         [preview {:checksum checksum}]
          [icon {:name "images" :size 32}])]
       [button {:on-click #(.click @file-upload)} "Choose File(s)"]
       [:input
@@ -67,23 +69,23 @@
         :placeholder "New Canvas"
         :maxLength 36
         :spellCheck "false"
-        :value (or (:element/name canvas) "")
+        :value (:window/label window)
         :on-change
         (fn [event]
           (let [value (.. event -target -value)]
-            (dispatch :element/update [(:db/id canvas)] :element/name value)))}]]
+            (dispatch :window/change-label value)))}]]
      [:section
       (if (and (seq scenes) @show-images)
         [:fieldset.thumbnails
-         (for [{:keys [db/id image/checksum]} scenes]
-           ^{:key checksum}
+         (for [scene scenes :let [value (:image/checksum scene)]]
+           ^{:key value}
            [thumbnail
-            {:checksum  checksum
-             :selected  (= id (:db/id (:canvas/scene canvas)))
-             :on-select (fn [] (dispatch :canvas/change-scene id))
+            {:checksum  value
+             :selected  (= value checksum)
+             :on-select (fn [] (dispatch :canvas/change-scene value))
              :on-remove (fn []
-                          (.delete (.-images store) checksum)
-                          (dispatch :map/remove id))}])])
+                          (.delete (.-images store) value)
+                          (dispatch :map/remove value))}])])
       [:input
        {:type "file"
         :ref file-upload
@@ -97,61 +99,60 @@
                 (fn [[file data-url element]]
                   (let [checks (image/checksum data-url)
                         record #js {:checksum checks :data data-url :created-at (.now js/Date)}
-                        entity {:image/checksum checks
-                                :image/name     (.-name file)
-                                :image/width    (.-width element)
-                                :image/height   (.-height element)}]
+                        args   [checks (.-name file) (.-width element) (.-height element)]]
                     (-> (.put (.-images store) record)
                         (.then
-                         (fn [] (dispatch :scene/create entity)))))))))}]]
+                         (fn [] (apply dispatch :scene/create args)))))))))}]]
      [:section
       [:legend "Options"]
       [:fieldset.setting
        [:label "Theme"]
-       (for [theme [:light :dark] :let [checked? (= theme (:canvas/theme canvas))]]
-         ^{:key theme}
+       (for [value [:light :dark] :let [checked? (= value (:canvas/theme canvas))]]
+         ^{:key value}
          [checkbox
           {:checked checked?
            :on-change
            (fn []
-             (when (not checked?)
-               (dispatch :canvas/toggle-theme)))}
-          (capitalize (name theme))])]
+             (if (not checked?)
+               (dispatch :canvas/change-theme value)))}
+          (capitalize (name value))])]
       [:fieldset.setting
        [:label "Visibility"]
-       (for [option [:revealed :dimmed :hidden] :let [checked (= option (:canvas/visibility canvas))]]
-         ^{:key option}
+       (for [value [:revealed :dimmed :hidden] :let [checked (= value (:canvas/visibility canvas))]]
+         ^{:key value}
          [checkbox
-          {:checked checked
-           :on-change #(dispatch :canvas/change-visibility option)}
-          (capitalize (name option))])]
+          {:checked checked :on-change #(dispatch :canvas/change-visibility value)}
+          (capitalize (name value))])]
       [:fieldset.setting
        [:label "Filter"]
-       (for [color [:none :dusk :midnight]
-             :let  [current  (or (:canvas/color canvas) :none)
-                    checked? (= color current)]]
-         ^{:key color}
+       (for [value [:none :dusk :midnight] :let [checked? (= value (:canvas/color canvas))]]
+         ^{:key value}
          [checkbox
-          {:checked checked?
-           :on-change #(dispatch :canvas/change-color color)}
-          (capitalize (name color))])]]
+          {:checked checked? :on-change #(dispatch :canvas/change-color value)}
+          (capitalize (name value))])]]
      [:section.form-canvas-grid
       [:legend "Grid Configuration"]
       [:fieldset.setting
        [:label "Show Grid"]
-       (for [value [false true] :let [checked? (= (:grid/show canvas) value)]]
+       (for [value [false true] :let [checked? (= (:window/show-grid window) value)]]
          ^{:key value}
          [checkbox
           {:checked checked?
            :on-change
-           (fn [] (if (not checked?) (dispatch :grid/toggle)))}
+           (fn []
+             (if (not checked?)
+               (dispatch :window/change-grid-show value)))}
           (if value "Yes" "No")])]
       [:fieldset.setting
        [:label "Align to Grid"]
-       (for [value [false true] :let [checked? (= (:grid/align canvas) value)]]
+       (for [value [false true] :let [checked? (= (:window/snap-grid window) value)]]
          ^{:key value}
          [checkbox
-          {:checked checked? :on-change (fn [] (if (not checked?) (dispatch :grid/align)))}
+          {:checked checked?
+           :on-change
+           (fn []
+             (if (not checked?)
+               (dispatch :window/change-grid-snap value)))}
           (if value "Yes" "No")])]
       [:hr]
       [:fieldset.group
@@ -161,14 +162,14 @@
          :value (or (:grid/size canvas) 0)
          :on-change
          (fn [event]
-           (dispatch :grid/change-size (.. event -target -value)))}]
+           (dispatch :canvas/change-grid-size (.. event -target -value)))}]
        [checkbox
-        {:checked (= (:canvas/mode canvas) :grid)
+        {:checked (= (:window/draw-mode window) :grid)
          :on-change
          (fn [checked]
            (if checked
-             (dispatch :canvas/toggle-mode :grid)
-             (dispatch :canvas/toggle-mode :select)))}
+             (dispatch :window/change-mode :grid)
+             (dispatch :window/change-mode :select)))}
         [icon {:name "crop" :size 16}]]]
       [:p {:style {:margin-top 4}}
        "Manually enter the grid size or click the button to draw a square

@@ -9,12 +9,12 @@
 (defcontext storage)
 
 (def ignored-attrs
-  #{:root/host?
-    :root/loaded?
-    :root/privileged?
-    :share/open?
-    :share/paused?
-    :canvas/modifier})
+  #{:local/host?
+    :local/loaded?
+    :local/privileged?
+    :local/sharing?
+    :local/paused?
+    :local/modifier})
 
 (defn host? [element]
   (->
@@ -35,8 +35,8 @@
   (let [[conn]          (uix/context state/state)
         {:keys [store]} (uix/context storage)
         tx-data
-        [[:db/add [:db/ident :root] :root/loaded? true]
-         [:db/add [:db/ident :root] :root/host? (host? js/window)]]]
+        [[:db/add [:db/ident :local] :local/loaded? true]
+         [:db/add [:db/ident :local] :local/host? (host? js/window)]]]
     (uix/effect!
      (fn []
        (-> (.table store "app")
@@ -62,33 +62,33 @@
    on the host window and only after the application has already initialized
    the state." []
   (let [[conn]          (uix/context state/state)
-        {:keys [store]} (uix/context storage)
-        [data]          (state/use-query {:pull [:root/host? :root/loaded?]})
-        {:root/keys [host? loaded?]} data]
+        {:keys [store]} (uix/context storage)]
     (uix/effect!
      (fn []
        (ds/listen!
         conn :marshaller
         (debounce
          (fn [report]
-           (if (and host? loaded?)
-             (-> (ds/filter
-                  (:db-after report)
-                  (fn [_ [_ attr _ _]]
-                    (not (contains? ignored-attrs attr))))
-                 (ds/datoms :eavt)
-                 (dt/write-transit-str)
-                 (as-> marshalled
-                       (let [record #js {:release state/VERSION
-                                         :updated (* -1 (.now js/Date))
-                                         :data    marshalled}]
-                         (.put (.table store "app") record)))))) 200))
-       (fn [] (ds/unlisten! conn :marshaller))) [loaded?]) nil))
+           (let [result (ds/pull (:db-after report) [:local/host? :local/loaded?] [:db/ident :local])
+                 {:local/keys [host? loaded?]} result]
+             (if (and host? loaded?)
+               (-> (ds/filter
+                    (:db-after report)
+                    (fn [_ [_ attr _ _]]
+                      (not (contains? ignored-attrs attr))))
+                   (ds/datoms :eavt)
+                   (dt/write-transit-str)
+                   (as-> marshalled
+                         (let [record #js {:release state/VERSION
+                                           :updated (* -1 (.now js/Date))
+                                           :data    marshalled}]
+                           (.put (.table store "app") record))))))) 200))
+       (fn [] (ds/unlisten! conn :marshaller))) []) nil))
 
 (defn handlers
   "Registers event handlers related to IndexedDB, such as those involved in
    saving and loading the application state." []
-  (let [[conn]          (uix/context state/state)
+  (let [[conn _]        (uix/context state/state)
         {:keys [store]} (uix/context storage)]
     (uix/effect!
      (fn []

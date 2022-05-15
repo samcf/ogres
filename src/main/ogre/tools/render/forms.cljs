@@ -68,7 +68,7 @@
   (render-fn (use-image checksum)))
 
 (defn images-form [{:keys [on-change]}]
-  (let [[result dispatch] (use-query {:pull [{:root/stamps [:image/checksum]}]})
+  (let [[result dispatch] (use-query [{:root/stamps [:image/checksum]}] [:db/ident :root])
         {:keys [store]}   (uix/context storage)
         thumbnails        (into [] (comp (map :image/checksum) (partition-all 15)) (reverse (:root/stamps result)))
         page-index        (uix/state 0)
@@ -78,15 +78,10 @@
       {:ref upload-ref
        :on-upload
        (fn [[file data-url image]]
-         (let [checksum (checksum data-url)
-               record   #js {:checksum checksum :data data-url :created-at (.now js/Date)}
-               entity   {:image/checksum checksum
-                         :image/name     (.-name file)
-                         :image/width    (.-width image)
-                         :image/height   (.-height image)}]
+         (let [checksum (checksum data-url)]
            (.then
-            (.put (.-images store) record)
-            (fn [] (dispatch :stamp/create entity))
+            (.put (.-images store) #js {:checksum checksum :data data-url :created-at (.now js/Date)})
+            (fn [] (dispatch :stamp/create checksum (.-name file) (.-width image) (.-height image)))
             (reset! page-index 0))))}]
      [:div.images-form
       (concat
@@ -127,7 +122,7 @@
         input-ref  (uix/ref)
         input-val  (uix/state
                     (fn []
-                      (let [vs ((:values props) :element/name)]
+                      (let [vs ((:values props) :token/label)]
                         (if (= (count vs) 1) (first vs) ""))))]
     (uix/effect! #(.select @input-ref) [])
     [:form
@@ -184,8 +179,8 @@
              ((:on-change props) tx-name next)))} "+"]])))
 
 (defmethod token-form :conditions [props]
-  (let [fqs (frequencies (reduce into [] ((:values props) :element/flags [])))
-        ids ((:values props) :db/id)]
+  (let [fqs (frequencies (reduce into [] ((:values props) :token/flags [])))
+        ids ((:values props) :entity/key)]
     (for [[flag icon-name] conditions]
       ^{:key flag}
       [checkbox
@@ -193,7 +188,7 @@
         (cond (= (get fqs flag 0) 0) false
               (= (get fqs flag 0) (count ids)) true
               :else :indeterminate)
-        :on-change #((:on-change props) :element/flag flag %1)}
+        :on-change #((:on-change props) :token/change-flag flag %1)}
        (fn [input key]
          [:div input
           [:label {:for key :data-tooltip (capitalize (name flag))}
@@ -201,7 +196,7 @@
 
 (defn token-context-menu [{tokens :tokens}]
   (let [dispatch (use-query)
-        idents   (map :db/id tokens)]
+        keys     (map :entity/key tokens)]
     [context-menu
      (fn [{:keys [selected on-change]}]
        [:<>
@@ -214,25 +209,25 @@
             :css {:selected (= selected form)}
             :on-click #(on-change form)}
            [icon {:name icon-name :size 22}]])
-        (let [on (every? (comp boolean :hidden :element/flags) tokens)]
+        (let [on (every? (comp boolean :hidden :token/flags) tokens)]
           [:button
            {:type "button" :css {:selected on} :data-tooltip (if on "Reveal" "Hide")
-            :on-click #(dispatch :element/flag idents :hidden (not on))}
+            :on-click #(dispatch :token/change-flag keys :hidden (not on))}
            [icon {:name (if on "eye-slash-fill" "eye-fill") :size 22}]])
         (let [on (every? (comp vector? :canvas/_initiative) tokens)]
           [:button
            {:type "button" :css {:selected on} :data-tooltip "Initiative"
-            :on-click #(dispatch :initiative/toggle idents (not on))}
+            :on-click #(dispatch :initiative/toggle keys (not on))}
            [icon {:name "hourglass-split" :size 22}]])
         [:button
          {:type "button" :data-tooltip "Remove"
-          :on-click #(dispatch :element/remove idents)}
+          :on-click #(dispatch :element/remove keys)}
          [icon {:name "trash" :size 22}]]])
      (fn [{:keys [selected on-change]}]
        [token-form
         {:name      selected
          :on-close  #(on-change nil)
-         :on-change #(apply dispatch %1 idents %&)
+         :on-change #(apply dispatch %1 keys %&)
          :values    (fn vs
                       ([f] (vs f #{}))
                       ([f init] (into init (map f) tokens)))}])]))
@@ -263,20 +258,28 @@
 (defn shape-context-menu [{:keys [shape]}]
   (let [dispatch (use-query)]
     [context-menu
-     (fn [{:keys [on-change]}]
+     (fn [{:keys [selected on-change]}]
        [:<>
-        [:button {:type "button" :data-tooltip "Color" :on-click #(on-change :color)}
+        [:button
+         {:type "button"
+          :css {:selected (= selected :color)}
+          :data-tooltip "Color"
+          :on-click #(on-change :color)}
          [icon {:name "palette-fill"}]]
-        [:button {:type "button" :data-tooltip "Pattern" :on-click #(on-change :pattern)}
+        [:button
+         {:type "button"
+          :css {:selected (= selected :pattern)}
+          :data-tooltip "Pattern"
+          :on-click #(on-change :pattern)}
          [icon {:name "paint-bucket"}]]
         [:button
          {:type "button" :data-tooltip "Remove" :style {:margin-left "auto"}
-          :on-click #(dispatch :element/remove [(:db/id shape)])}
+          :on-click #(dispatch :element/remove [(:entity/key shape)])}
          [icon {:name "trash"}]]])
      (fn [{:keys [selected]}]
        [shape-form
         {:name      selected
-         :on-change #(apply dispatch %1 [(:db/id shape)] %&)
+         :on-change #(apply dispatch %1 [(:entity/key shape)] %&)
          :values    (fn vs
                       ([f] (vs f #{}))
                       ([f init] (into init (map f) [shape])))}])]))
