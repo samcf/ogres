@@ -258,11 +258,19 @@
 (defn shape-context-menu [{:keys [shape]}]
   (let [dispatch (use-query)]
     [context-menu
-     (fn [{:keys [on-change]}]
+     (fn [{:keys [selected on-change]}]
        [:<>
-        [:button {:type "button" :data-tooltip "Color" :on-click #(on-change :color)}
+        [:button
+         {:type "button"
+          :css {:selected (= selected :color)}
+          :data-tooltip "Color"
+          :on-click #(on-change :color)}
          [icon {:name "palette-fill"}]]
-        [:button {:type "button" :data-tooltip "Pattern" :on-click #(on-change :pattern)}
+        [:button
+         {:type "button"
+          :css {:selected (= selected :pattern)}
+          :data-tooltip "Pattern"
+          :on-click #(on-change :pattern)}
          [icon {:name "paint-bucket"}]]
         [:button
          {:type "button" :data-tooltip "Remove" :style {:margin-left "auto"}
