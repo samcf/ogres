@@ -31,7 +31,7 @@
 (defn unmarshaller
   "Initializes the DataScript database from the serialized state within the
    browser's IndexedDB store. This is only run once for both the host and
-   guest windows." []
+   view window." []
   (let [[conn]          (uix/context state/state)
         {:keys [store]} (uix/context storage)
         tx-data

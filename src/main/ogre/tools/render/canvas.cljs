@@ -454,18 +454,18 @@
                [token-context-menu {:tokens selected}]])]]]))]))
 
 (defn bounds []
-  (let [[result] (use-query [:bounds/host :bounds/guest])
+  (let [[result] (use-query [:bounds/host :bounds/view])
         {[_ _ hw hh] :bounds/host
-         [_ _ gw gh] :bounds/guest} result
-        [ox oy] [(/ (- hw gw) 2) (/ (- hh gh) 2)]]
+         [_ _ vw vh] :bounds/view} result
+        [ox oy] [(/ (- hw vw) 2) (/ (- hh vh) 2)]]
     [:g.canvas-bounds {:transform (str "translate(" ox " , " oy ")")}
-     [:rect {:x 0 :y 0 :width gw :height gh :rx 8}]]))
+     [:rect {:x 0 :y 0 :width vw :height vh :rx 8}]]))
 
 (def canvas-query
   [[:local/host? :default true]
    [:local/privileged? :default false]
    [:bounds/host :default [0 0 0 0]]
-   [:bounds/guest :default [0 0 0 0]]
+   [:bounds/view :default [0 0 0 0]]
    {:local/window
     [:entity/key
      :window/modifier
@@ -480,15 +480,15 @@
         {host?       :local/host?
          priv?       :local/privileged?
          [_ _ hw hh] :bounds/host
-         [_ _ gw gh] :bounds/guest
+         [_ _ vw vh] :bounds/view
          {key     :entity/key
           scale   :window/scale
           mode    :window/draw-mode
           modif   :window/modifier
           [cx cy] :window/vec
           {theme :canvas/theme} :window/canvas} :local/window} result
-        cx (if host? cx (->> (- hw gw) (max 0) (* (/ -1 2 scale)) (+ cx)))
-        cy (if host? cy (->> (- hh gh) (max 0) (* (/ -1 2 scale)) (+ cy)))]
+        cx (if host? cx (->> (- hw vw) (max 0) (* (/ -1 2 scale)) (+ cx)))
+        cy (if host? cy (->> (- hh vh) (max 0) (* (/ -1 2 scale)) (+ cy)))]
     [:svg.canvas {:key key :css {(str "theme--" (name theme)) true :is-host host? :is-priv priv?}}
      [:> react-draggable
       {:position #js {:x 0 :y 0}

@@ -342,7 +342,7 @@
     (cond-> []
       (= w-host? v-host?) (conj [:db/add [:entity/key local] :bounds/self bounds])
       (= w-host? true)    (conj [:db/add [:entity/key local] :bounds/host bounds])
-      (= w-host? false)   (conj [:db/add [:entity/key local] :bounds/guest bounds]))))
+      (= w-host? false)   (conj [:db/add [:entity/key local] :bounds/view bounds]))))
 
 (defmethod transact :selection/from-rect
   [{:keys [data window canvas]} vecs]

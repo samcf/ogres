@@ -1367,13 +1367,13 @@ legend {
     animation: stroke-animation 1s linear infinite;
 }
 
-.global--guest {
+.global--view {
     grid-template-areas: "b";
     grid-template-columns: 1fr;
     grid-template-rows: 1fr;
 }
 
-.global--guest .canvas {
+.global--view .canvas {
     pointer-events: none;
 }
 
