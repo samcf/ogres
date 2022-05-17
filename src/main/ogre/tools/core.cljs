@@ -7,6 +7,7 @@
             [ogre.tools.render.tokens :refer [tokens]]
             [ogre.tools.render.toolbar :refer [toolbar]]
             [ogre.tools.render.workspaces :refer [workspaces]]
+            [ogre.tools.session :as session]
             [ogre.tools.shortcut :as shortcut]
             [ogre.tools.state :as state :refer [use-query]]
             [ogre.tools.storage :as storage]
@@ -33,7 +34,7 @@
         {:local/keys [loaded? host? shortcuts? tooltips?]} result
         classes
         {:global--host       host?
-         :global--guest      (not host?)
+         :global--view       (not host?)
          :global--shortcuts  shortcuts?
          :global--tooltips   tooltips?}]
     (if loaded?
@@ -63,6 +64,7 @@
        [storage/handlers]
        [window/provider]
        [shortcut/handlers]
+       [session/handlers]
        [portal/provider
         [layout]]]]]]])
 

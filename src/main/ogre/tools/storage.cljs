@@ -65,29 +65,20 @@
         {:keys [store]} (uix/context storage)]
     (uix/effect!
      (fn []
-       (ds/listen!
-        conn :marshaller
-        (debounce
-         (fn [report]
-           (let [result (ds/pull (:db-after report) [:local/host? :local/loaded?] [:db/ident :local])
-                 {:local/keys [host? loaded?]} result]
-             (if (and host? loaded?)
-               (-> (ds/filter
-                    (:db-after report)
-                    (fn [_ [_ attr _ _]]
-                      (not (contains? ignored-attrs attr))))
-                   (ds/datoms :eavt)
-                   (dt/write-transit-str)
-                   (as-> marshalled
-                         (let [record #js {:release state/VERSION
-                                           :updated (* -1 (.now js/Date))
-                                           :data    marshalled}]
-                           (.put (.table store "app") record))))))) 200))
+       (ds/listen! conn :marshaller
+                   (debounce
+                    (fn [{:keys [db-after]}]
+                      (if (:local/loaded? (ds/entity db-after [:db/ident :local]))
+                        (-> db-after
+                            (ds/db-with [[:db/retractEntity [:db/ident :session]]])
+                            (ds/filter (fn [_ [_ attr _ _]] (not (contains? ignored-attrs attr))))
+                            (ds/datoms :eavt)
+                            (dt/write-transit-str)
+                            (as-> marshalled #js {:release state/VERSION :updated (* -1 (.now js/Date)) :data marshalled})
+                            (as-> record (.put (.table store "app") record))))) 200))
        (fn [] (ds/unlisten! conn :marshaller))) []) nil))
 
-(defn handlers
-  "Registers event handlers related to IndexedDB, such as those involved in
-   saving and loading the application state." []
+(defn reset-handler []
   (let [[conn _]        (uix/context state/state)
         {:keys [store]} (uix/context storage)]
     (uix/effect!
@@ -97,10 +88,17 @@
         (fn [{[event _ _] :tx-meta}]
           (when (= event :storage/reset)
             (.delete store)
-            (.reload (.-location js/window)))))) [])
-    [:<>
-     [unmarshaller]
-     [marshaller]]))
+            (.reload (.-location js/window)))))) [])) nil)
+
+(defn handlers
+  "Registers event handlers related to IndexedDB, such as those involved in
+   saving and loading the application state." []
+  (let [[conn _]        (uix/context state/state)
+        local           (ds/entity @conn [:db/ident :local])]
+    (case (:local/type local)
+      :host [:<> [unmarshaller] [marshaller] [reset-handler]]
+      :view [unmarshaller]
+      :conn [:<>])))
 
 (defn provider
   "Provides an instance of the Dexie object, a convenience wrapper around

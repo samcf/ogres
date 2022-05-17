@@ -6,6 +6,7 @@
 (def panels
   [[:canvas "images"]
    [:initiative "hourglass-split"]
+   [:session "people-fill"]
    [:help "question-diamond"]])
 
 (def query

@@ -19,27 +19,39 @@
    :local/windows     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :root/canvases     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :root/local        {:db/valueType :db.type/ref :db/isComponent true}
+   :root/session      {:db/valueType :db.type/ref :db/isComponent true}
    :root/scenes       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :root/stamps       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :session/host      {:db/valueType :db.type/ref}
+   :session/conns     {:db/valueType :db.type/ref :db.cardinality :db.cardinality/many :db/isComponent true}
    :token/image       {:db/valueType :db.type/ref}
    :window/canvas     {:db/valueType :db.type/ref}
    :window/selected   {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}})
+
+(defn local-type []
+  (let [search (.. js/window -location -search)
+        params (js/URLSearchParams. search)]
+    (cond (= (.get params "share") "true") :view
+          (string? (.get params "join"))   :conn
+          :else                            :host)))
 
 (defn initial-data []
   (ds/db-with
    (ds/empty-db schema)
    [[:db/add -1 :db/ident :root]
-    [:db/add -1 :entity/key (squuid)]
     [:db/add -1 :root/release VERSION]
     [:db/add -1 :root/canvases -2]
     [:db/add -1 :root/local -3]
+    [:db/add -1 :root/session -5]
     [:db/add -2 :entity/key (squuid)]
     [:db/add -3 :db/ident :local]
     [:db/add -3 :entity/key (squuid)]
     [:db/add -3 :local/window -4]
     [:db/add -3 :local/windows -4]
+    [:db/add -3 :local/type (local-type)]
     [:db/add -4 :entity/key (squuid)]
-    [:db/add -4 :window/canvas -2]]))
+    [:db/add -4 :window/canvas -2]
+    [:db/add -5 :db/ident :session]]))
 
 (defcontext state)
 
@@ -70,16 +82,18 @@
             (ds/unlisten! conn listen-key)))) [])
      [@prev-state dispatch])))
 
+(def context-query
+  [:entity/key {:local/window [:entity/key {:window/canvas [:entity/key]}]}])
+
 (defn create-dispatch [conn]
   (fn [event & args]
-    (let [select  [:entity/key {:local/window [:entity/key {:window/canvas [:entity/key]}]}]
-          result  (ds/pull @conn select [:db/ident :local])
-          {local :entity/key
-           {window :entity/key
+    (let [result  (ds/pull @conn context-query [:db/ident :local])
+          {local    :entity/key
+           {window  :entity/key
             {canvas :entity/key} :window/canvas} :local/window} result
           context {:data @conn :event event :local local :window window :canvas canvas}
           changes (apply txs/transact context args)]
-      (ds/transact! conn changes [event args changes]) nil)))
+      (ds/transact! conn changes [event args changes]))))
 
 (defn provider
   "Provides a DataScript in-memory database to the application and causes

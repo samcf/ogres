@@ -19,20 +19,19 @@
   "Registers a DataScript listener in order to manage the view window, the
    player's view of the canvas." []
   (let [[conn dispatch]       (uix/context state)
-        {:keys [view reset]} (uix/context context)]
+        {:keys [view reset]}  (uix/context context)]
     (uix/effect!
      (fn []
        (ds/listen!
         conn :initialize
         (fn [{[event _ _] :tx-meta}]
-          (when (= event :share/initiate)
-            (if (nil? view)
-              (let [url (.. js/window -location -origin)
-                    url (str url "?share=true")
-                    win (.open js/window url "ogre.tools" "width=640,height=640")]
-                (reset win)
-                (dispatch :share/toggle true))
-              (reset)))))
+          (if (and (= event :share/initiate) (nil? view))
+            (let [url (.. js/window -location -origin)
+                  url (str url "?share=true")
+                  win (.open js/window url "ogre.tools" "width=640,height=640")]
+              (reset win)
+              (dispatch :share/toggle true))
+            (reset))))
        (fn [] (ds/unlisten! conn :initialize))) [view]) nil))
 
 (defn dispatcher
@@ -119,33 +118,29 @@
      (fn []
        (reset)) "beforeunload" []) nil))
 
-(def query
-  [[:local/host? :default true]
-   [:local/loaded? :default false]])
-
 (defn provider
   "Provides a reference to the view window, if any, and registers several
    event handlers needed for them." []
-  (let [[data dispatch] (use-query query)
-        view            (uix/state nil)
-        reset (fn
-                ([]
-                 (when-let [element @view]
-                   (.close element)
-                   (dispatch :share/toggle false)
-                   (reset! view nil)))
-                ([element]
-                 (reset! view element)))]
-
-    (if (:local/loaded? data)
+  (let [[result dispatch] (use-query [[:local/type :default :conn] [:local/loaded? :default false]])
+        view              (uix/state nil)
+        reset             (fn
+                            ([]
+                             (when-let [element @view]
+                               (.close element)
+                               (dispatch :share/toggle false)
+                               (reset! view nil)))
+                            ([element]
+                             (reset! view element)))]
+    (if (:local/loaded? result)
       (uix/context-provider
        [context {:view @view :reset reset}]
-       (if (:local/host? data)
-         [:<>
-          [initialize]
-          [dispatcher]
-          [bounds {:target js/window :host? true}]
-          (when-let [element @view]
-            [bounds {:target element :host? false}])
-          [closers]]
-         [listener])))))
+       (case (:local/type result)
+         :host [:<>
+                [initialize]
+                [dispatcher]
+                [bounds {:target js/window :host? true}]
+                (if-let [element @view]
+                  [bounds {:target element :host? false}])
+                [closers]]
+         :view [listener]
+         :conn [:<>])))))

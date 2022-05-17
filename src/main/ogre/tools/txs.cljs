@@ -483,3 +483,33 @@
 (defmethod transact :mask/remove
   [_ mask]
   [[:db/retractEntity [:entity/key mask]]])
+
+(defmethod transact :session/request
+  [{:keys [local]}]
+  [[:db/add -1 :db/ident :session]
+   [:db/add -1 :session/state :connecting]
+   [:db/add -1 :session/host [:entity/key local]]
+   [:db/add [:db/ident :root] :root/session -1]])
+
+(defmethod transact :session/created
+  [{:keys [local]} uuid room]
+  [[:db/add [:entity/key local] :entity/key uuid]
+   [:db/add [:db/ident :session] :session/state :connected]
+   [:db/add [:db/ident :session] :session/room room]])
+
+(defmethod transact :session/joined
+  [{:keys [local]} uuid]
+  [[:db/add [:entity/key local] :entity/key uuid]])
+
+(defmethod transact :session/join
+  [_ uuid]
+  [[:db/add -1 :entity/key uuid]
+   [:db/add [:db/ident :session] :session/conns -1]])
+
+(defmethod transact :session/leave
+  [_ uuid]
+  [[:db/retractEntity [:entity/key uuid]]])
+
+(defmethod transact :session/disconnect
+  []
+  [[:db/add [:db/ident :session] :session/state :disconnected]])
