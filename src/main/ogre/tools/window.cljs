@@ -25,13 +25,14 @@
        (ds/listen!
         conn :initialize
         (fn [{[event _ _] :tx-meta}]
-          (if (and (= event :share/initiate) (nil? view))
-            (let [url (.. js/window -location -origin)
-                  url (str url "?share=true")
-                  win (.open js/window url "ogre.tools" "width=640,height=640")]
-              (reset win)
-              (dispatch :share/toggle true))
-            (reset))))
+          (if (= event :share/initiate)
+            (if (nil? view)
+              (let [url (.. js/window -location -origin)
+                    url (str url "?share=true")
+                    win (.open js/window url "ogre.tools" "width=640,height=640")]
+                (reset win)
+                (dispatch :share/toggle true))
+              (reset)))))
        (fn [] (ds/unlisten! conn :initialize))) [view]) nil))
 
 (defn dispatcher
