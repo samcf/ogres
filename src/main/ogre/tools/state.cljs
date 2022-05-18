@@ -56,8 +56,9 @@
 (defcontext state)
 
 (defn listening? [data]
-  (let [result (ds/pull data [:local/host? :local/paused?] [:db/ident :local])]
-    (or (:local/host? result) (not (:local/paused? result)))))
+  (let [select [:local/type :local/paused?]
+        {:keys [local/type local/paused?]} (ds/pull data select [:db/ident :local])]
+    (or (= type :host) (not paused?))))
 
 (defn use-query
   ([] (let [[_ dispatch] (uix/context state)] dispatch))

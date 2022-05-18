@@ -324,10 +324,10 @@
 (defmethod transact :share/initiate [] [])
 
 (defmethod transact :share/toggle [{:keys [data local]} open?]
-  (let [{:keys [local/host?]} (ds/pull data [:local/host?] [:db/ident :local])]
+  (let [{:keys [local/type]} (ds/pull data [:local/type] [:db/ident :local])]
     [[:db/add [:entity/key local] :local/sharing? open?]
      [:db/add [:entity/key local] :local/paused? false]
-     [:db/add [:entity/key local] :local/privileged? (and host? open?)]]))
+     [:db/add [:entity/key local] :local/privileged? (and (= type :host) open?)]]))
 
 (defmethod transact :share/switch
   ([{:keys [data local] :as context}]
@@ -338,7 +338,8 @@
 
 (defmethod transact :bounds/change
   [{:keys [data local]} w-host? bounds]
-  (let [{v-host? :local/host?} (ds/pull data [:local/host?] [:db/ident :local])]
+  (let [{type :local/type} (ds/pull data [:local/type] [:db/ident :local])
+        v-host? (= type :host)]
     (cond-> []
       (= w-host? v-host?) (conj [:db/add [:entity/key local] :bounds/self bounds])
       (= w-host? true)    (conj [:db/add [:entity/key local] :bounds/host bounds])

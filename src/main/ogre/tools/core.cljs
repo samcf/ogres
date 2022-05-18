@@ -24,21 +24,20 @@
      attrs)))
 
 (def query
-  [[:local/loaded? :default false]
-   [:local/host? :default true]
+  [[:local/type :default :conn]
+   [:local/loaded? :default false]
    [:local/shortcuts? :default true]
    [:local/tooltips? :default true]])
 
 (defn layout []
   (let [[result] (use-query query)
-        {:local/keys [loaded? host? shortcuts? tooltips?]} result
+        {:local/keys [loaded? type shortcuts? tooltips?]} result
         classes
-        {:global--host       host?
-         :global--view       (not host?)
+        {(str "global--" (name type)) true
          :global--shortcuts  shortcuts?
          :global--tooltips   tooltips?}]
     (if loaded?
-      (if host?
+      (if (= type :host)
         [:div.layout {:css classes}
          [:div.layout-workspaces [workspaces]]
          [:div.layout-canvas [canvas]]

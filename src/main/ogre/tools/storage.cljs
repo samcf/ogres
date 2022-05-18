@@ -9,19 +9,12 @@
 (defcontext storage)
 
 (def ignored-attrs
-  #{:local/host?
+  #{:local/type
     :local/loaded?
     :local/privileged?
     :local/sharing?
     :local/paused?
     :local/modifier})
-
-(defn host? [element]
-  (->
-   (.. element -location -search)
-   (js/URLSearchParams.)
-   (.get "share")
-   (not= "true")))
 
 (defn initialize []
   (let [store (dexie. "ogre.tools")]
@@ -34,9 +27,8 @@
    view window." []
   (let [[conn]          (uix/context state/state)
         {:keys [store]} (uix/context storage)
-        tx-data
-        [[:db/add [:db/ident :local] :local/loaded? true]
-         [:db/add [:db/ident :local] :local/host? (host? js/window)]]]
+        tx-data         [[:db/add [:db/ident :local] :local/loaded? true]
+                         [:db/add [:db/ident :local] :local/type (state/local-type)]]]
     (uix/effect!
      (fn []
        (-> (.table store "app")
