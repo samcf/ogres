@@ -70,7 +70,7 @@
   "Registers event handlers to watch for changes in the canvas dimensions in
    order to put those dimensions in the application state. Dimensions are
    of the form [x y width height]."
-  [{:keys [target host?]}]
+  [{:keys [target type]}]
   (let [[_ dispatch] (uix/context state)
         selector ".layout-canvas"
         canvas   (uix/state nil)
@@ -79,14 +79,14 @@
                     (if-let [element (.. target -document (querySelector selector))]
                       (->> (.getBoundingClientRect element)
                            (bounds->vector)
-                           (dispatch :bounds/change host?)))) 100)
+                           (dispatch :bounds/change type)))) 100)
         observer (uix/state (js/ResizeObserver. handler))]
 
     (listen! handler "resize" [])
 
     (uix/effect!
      (fn []
-       (when host?
+       (if (= type :host)
          (.dispatchEvent target (js/Event. "resize")))) [])
 
     (uix/effect!
@@ -122,26 +122,31 @@
 (defn provider
   "Provides a reference to the view window, if any, and registers several
    event handlers needed for them." []
-  (let [[result dispatch] (use-query [[:local/type :default :conn] [:local/loaded? :default false]])
-        view              (uix/state nil)
-        reset             (fn
-                            ([]
-                             (when-let [element @view]
-                               (.close element)
-                               (dispatch :share/toggle false)
-                               (reset! view nil)))
-                            ([element]
-                             (reset! view element)))]
+  (let [[result dispatch]
+        (use-query [:local/type :local/loaded?])
+
+        -window
+        (uix/state nil)
+
+        on-set-window
+        (fn
+          ([]
+           (when-let [element @-window]
+             (.close element)
+             (dispatch :share/toggle false)
+             (reset! -window nil)))
+          ([element]
+           (reset! -window element)))]
     (if (:local/loaded? result)
       (uix/context-provider
-       [context {:view @view :reset reset}]
+       [context {:view @-window :reset on-set-window}]
        (case (:local/type result)
          :host [:<>
                 [initialize]
                 [dispatcher]
-                [bounds {:target js/window :host? true}]
-                (if-let [element @view]
-                  [bounds {:target element :host? false}])
+                [bounds {:target js/window :type :host}]
+                (if-let [target @-window]
+                  [bounds {:target target :type :view}])
                 [closers]]
          :view [listener]
-         :conn [:<>])))))
+         :conn [bounds {:target js/window :type :conn}])))))

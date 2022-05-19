@@ -337,13 +337,11 @@
    [[:db/add [:entity/key local] :local/paused? paused?]]))
 
 (defmethod transact :bounds/change
-  [{:keys [data local]} w-host? bounds]
-  (let [{type :local/type} (ds/pull data [:local/type] [:db/ident :local])
-        v-host? (= type :host)]
-    (cond-> []
-      (= w-host? v-host?) (conj [:db/add [:entity/key local] :bounds/self bounds])
-      (= w-host? true)    (conj [:db/add [:entity/key local] :bounds/host bounds])
-      (= w-host? false)   (conj [:db/add [:entity/key local] :bounds/view bounds]))))
+  [{:keys [data local]} w-type bounds]
+  (let [{type :local/type} (ds/pull data [:local/type] [:db/ident :local])]
+    [(if (= w-type type)
+      [:db/add [:entity/key local] :bounds/self bounds])
+     [:db/add [:entity/key local] (keyword :bounds w-type) bounds]]))
 
 (defmethod transact :selection/from-rect
   [{:keys [data window canvas]} vecs]
