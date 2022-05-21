@@ -1,41 +1,120 @@
 (ns ogre.tools.session
   (:require [datascript.core :as ds]
+            [datascript.transit :as dst]
             [ogre.tools.render :refer [listen!]]
-            [ogre.tools.state :refer [state]]
+            [ogre.tools.state :refer [state schema]]
             [uix.core.alpha :as uix]
             [cognitect.transit :as transit]))
 
-;; {:src #uuid "" :dst #uuid "" :time "" :data [] :type :datoms}
-;; {:src #uuid "" :dst #uuid "" :time "" :data [] :type :tx}
-;; {:src #uuid "" :dst #uuid "" :time "" :data "" :type :image}
-;; {:src #uuid "" :dst #uuid "" :time "" :data {:name ""} :type :event}
+(def reader (transit/reader :json {:handlers dst/read-handlers}))
+(def writer (transit/writer :json {:handlers dst/write-handlers}))
 
-(defn handle-open [])
+(defn handle-open [data]
+  (js/console.log "opened" data))
 
-(defn handle-close [])
+(defn handle-close [data]
+  (js/console.log "closed" data))
+
+(def merge-query
+  [{:root/session
+    [{:session/host
+      [:entity/key
+       {:local/window
+        [{:window/canvas
+          [:entity/key]}]}]}]}])
+
+(defn merge-initial-state
+  "Returns a new DataScript database with the current local state `prev` mixed
+   into the incoming initial state `next`."
+  [next prev]
+  (let [{local :entity/key {window :entity/key} :local/window}
+        (ds/entity prev [:db/ident :local])
+
+        {{{host :entity/key
+           {{canvas :entity/key} :window/canvas}
+           :local/window}
+          :session/host}
+         :root/session}
+        (ds/pull next merge-query [:db/ident :root])
+
+        tx-data
+        [[:db/retract [:entity/key host] :db/ident]
+         [:db/add [:db/ident :root] :root/local -1]
+         [:db/add -1 :db/ident :local]
+         [:db/add -1 :entity/key local]
+         [:db/add -1 :local/loaded? true]
+         [:db/add -1 :local/type :conn]
+         [:db/add -1 :local/window -2]
+         [:db/add -2 :entity/key window]
+         [:db/add -2 :window/canvas [:entity/key canvas]]]]
+    (ds/db-with next tx-data)))
 
 (defmulti handle-message (fn [_ {:keys [type]}] type))
 
-(defmethod handle-message :default [])
+(defmethod handle-message :default
+  [_ _])
 
-(defmethod handle-message :event [{:keys [dispatch]} {:keys [data]}]
+;; Handles messages that are sent by the server, some of which are responses to
+;; creating or connecting to a session or to notify connections within a session
+;; of important events. The embedded :data map will always contain a member
+;; called :name to distinguish different kinds of events.
+(defmethod handle-message :event
+  [{:keys [conn]} {:keys [data]}]
   (case (:name data)
-    :session/created (dispatch :session/created (:uuid data) (:room data))
-    :session/joined  (dispatch :session/joined (:uuid data))
-    :session/join    (dispatch :session/join (:uuid data))
-    :session/leave   (dispatch :session/leave (:uuid data))
+    :session/created
+    (do (ds/transact!
+         conn
+         [[:db/add [:db/ident :local] :entity/key (:uuid data)]
+          [:db/add [:db/ident :session] :session/state :connected]
+          [:db/add [:db/ident :session] :session/room (:room data)]])
+        [])
+
+    :session/joined
+    (do (ds/transact! conn [[:db/add [:db/ident :local] :entity/key (:uuid data)]])
+        [])
+
+    :session/join
+    (let [tx-data [[:db/add -1 :entity/key (:uuid data)] [:db/add [:db/ident :session] :session/conns -1]]
+          report  (ds/transact! conn tx-data)
+          datoms  (ds/datoms (:db-after report) :eavt)]
+      [{:type :datoms :time "" :src "" :dst (:uuid data) :data (into [] datoms)}])
+
+    :session/leave
+    (do (ds/transact! conn [[:db/retractEntity [:entity/key (:uuid data)]]])
+        [])
+ 
     nil))
 
-(defmethod handle-message :datoms [body])
+;; Handles messages that include a complete copy of the host's initial state as
+;; a set of DataScript datoms. This message is generally received right after
+;; connecting to the session, but it may also be received periodically in an
+;; attempt to correct any divergences in state.
+(defmethod handle-message :datoms
+  [{:keys [conn]} body]
+  (-> (:data body)
+      (ds/init-db schema)
+      (merge-initial-state (ds/db conn))
+      (as-> db (ds/reset-conn! conn db))) [])
 
-(defmethod handle-message :tx [body])
+;; Handles messages that include a DataScript transaction from another
+;; connection within the session. These messages can be received at any time
+;; and from any connection besides its own.
+(defmethod handle-message :tx
+  [{:keys [conn]} message]
+  (try (ds/transact! conn (:data message))
+       (catch js/Error error
+         (println error))))
 
-(defmethod handle-message :image [body])
+;; Handles messages that include image data as data URLs. These messages are
+;; generally received from the host after sending a request for it via its
+;; checksum.
+(defmethod handle-message :image
+  [_ _])
 
 (defn handlers []
   (let [[conn dispatch] (uix/context state)
         socket (uix/state nil)]
-    
+
     (uix/effect!
      (fn []
        (let [search (.. js/window -location -search)
@@ -49,20 +128,30 @@
      (fn []
        (ds/listen!
         conn :session
-        (fn [{[event _ _] :tx-meta}]
+        (fn [{[event _ tx-data] :tx-meta}]
+          ;; Initiate a WebSocket connection.
           (if (= event :session/request)
             (let [ws (js/WebSocket. "ws://localhost:5000/ws")]
-              (reset! socket ws)))))
-       (fn [] (ds/unlisten! conn :session))))
+              (reset! socket ws)))
+
+          ;; Broadcast all transactions to the WebSocket session.
+          (if (and (not (nil? @socket)) (seq tx-data))
+            (let [marshalled (transit/write writer {:type :tx :data tx-data})]
+              (.send @socket marshalled)))))
+       (fn [] (ds/unlisten! conn :session))) [@socket])
 
     (let [socket  @socket
-          reader  (transit/reader :json)
           context {:conn conn :dispatch dispatch}]
-      (doseq [event ["open" "close" "message"]]
+      (doseq [event ["open" "close" "message" "error"]]
         (listen!
          (fn [body]
            (case event
-             "open"    (handle-open)
-             "close"   (handle-close)
-             "message" (let [parsed (transit/read reader (.-data body))]
-                         (handle-message context parsed)))) socket event [socket]))) nil))
+             "open"    (handle-open body)
+             "close"   (handle-close body)
+             "message" (let [parsed   (transit/read reader (.-data body))
+                             messages (handle-message context parsed)]
+                         (doseq [message messages]
+                           (let [serialized (transit/write writer message)]
+                             (.send socket serialized))))
+             "error"   (js/console.log "error" body)))
+         socket event [socket]))) nil))

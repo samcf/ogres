@@ -1,10 +1,13 @@
 (ns ogre.server.core
-  (:import [java.time Instant] [java.io ByteArrayOutputStream])
-  (:require [hashids.core :as hash]
-            [clojure.core.async :as async :refer [go <! >! >!! close! timeout]]
+  (:import [java.io ByteArrayOutputStream ByteArrayInputStream]
+           [java.time Instant])
+  (:require [clojure.core.async :as async :refer [go <! >! >!! close! timeout]]
+            [cognitect.transit :as transit]
+            [datascript.core :as ds]
+            [datascript.transit :refer [read-handlers write-handlers]]
+            [hashids.core :as hash]
             [io.pedestal.http :as server]
-            [io.pedestal.http.jetty.websockets :as ws]
-            [cognitect.transit :as transit]))
+            [io.pedestal.http.jetty.websockets :as ws]))
 
 (def sessions (atom {}))
 
@@ -37,11 +40,13 @@
       (-> (update-in sessions [:rooms room :conns] disj conn)
           (update :conns dissoc conn)))))
 
-(defn transit-encode [value]
-  (let [out (ByteArrayOutputStream.)
-        wrt (transit/writer out :json)]
-    (transit/write wrt value)
-    (.toString out)))
+(defn marshall
+  "Serializes the given value as JSON compressed EDN."
+  [value]
+  (let [stream (ByteArrayOutputStream.)
+        writer (transit/writer stream :json {:handlers write-handlers})]
+    (transit/write writer value)
+    (.toString stream)))
 
 (defn on-connect
   [uuid]
@@ -55,11 +60,11 @@
         (if (get-in sess [:rooms room])
           (do (swap! sessions room-join room uuid chan)
               (go (<! (timeout 32))
-                  (->> {:type :event :data {:name :session/joined :room room :uuid uuid} :time "" :dst uuid} (transit-encode) (>! chan))
+                  (->> {:type :event :data {:name :session/joined :room room :uuid uuid} :time "" :dst uuid} (marshall) (>! chan))
                   (let [conns (disj (get-in sess [:rooms room :conns]) uuid)
                         chans (into [] (comp (map val) (map :chan)) (select-keys (:conns sess) conns))]
                     (doseq [chan chans]
-                      (->> {:type :event :data {:name :session/join :room room :uuid uuid} :time "" :src uuid} (transit-encode) (>! chan))))))
+                      (->> {:type :event :data {:name :session/join :room room :uuid uuid} :time "" :src uuid} (marshall) (>! chan))))))
 
           ;; The session identified by the query parameter doesn't exist; simply
           ;; close the connection.
@@ -71,12 +76,23 @@
         (swap! sessions room-create room uuid chan)
         (go (<! (timeout 32))
             (->> {:type :event :data {:name :session/created :room room :uuid uuid} :time "" :src uuid :dst uuid}
-                 (transit-encode)
+                 (marshall)
                  (>! chan)))))))
 
 (defn on-text
   [uuid]
-  (fn [body]))
+  (fn [body]
+    (let [sesshs @sessions
+          stream (ByteArrayInputStream. (.getBytes body))
+          reader (transit/reader stream :json {:handlers read-handlers})
+          parsed (transit/read reader)
+          roomid (get-in sesshs [:conns uuid :room])
+          conns  (get-in sesshs [:rooms roomid :conns])
+          chans  (if (uuid? (:dst parsed))
+                   [(get-in sesshs [:conns (:dst parsed) :chan])]
+                   (into [] (comp (map val) (map :chan)) (select-keys (:conns sesshs) (disj conns uuid))))]
+      (doseq [chan chans]
+        (>!! chan body)))))
 
 (defn on-binary
   [uuid]
@@ -96,7 +112,7 @@
           chans (->> (disj (get-in sess [:rooms room :conns]) uuid)
                      (select-keys (:conns sess))
                      (into [] (comp (map val) (map :chan))))]
-      
+
       ;; The connection has been closed; close the associated channel.
       (close! chan)
 
@@ -110,7 +126,7 @@
         ;; has been closed.
         (doseq [chan chans]
           (->> {:type :event :time "" :data {:name :session/leave :uuid uuid}}
-               (transit-encode)
+               (marshall)
                (>!! chan))))
 
       ;; Update the sessions to remove the closing connection, potentially
@@ -125,7 +141,7 @@
    :on-close   (on-close uuid)})
 
 (defn create-listener [_ _ handlers-fn]
-  (let [uuid (java.util.UUID/randomUUID)]
+  (let [uuid (ds/squuid)]
     (ws/make-ws-listener (handlers-fn uuid))))
 
 (defn create-server []
