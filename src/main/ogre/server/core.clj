@@ -51,6 +51,8 @@
 (defn on-connect
   [uuid]
   (fn [session chan]
+    (.setMaxTextMessageSize (.getPolicy session) (long 10000000))
+
     (if-let [param (.. session getUpgradeRequest getParameterMap (get "key"))]
 
       ;; Join this connection to the session identified by the "key" query parameter,
