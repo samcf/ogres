@@ -552,3 +552,7 @@
    [:db/add -1 :session/state :connecting]
    [:db/add -1 :session/host [:entity/key local]]
    [:db/add [:db/ident :root] :root/session -1]])
+
+(defmethod transact :image/request [] [])
+
+(defmethod transact :image/cache [] [])

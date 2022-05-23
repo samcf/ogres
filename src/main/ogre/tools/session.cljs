@@ -3,17 +3,18 @@
             [datascript.transit :as dst]
             [ogre.tools.render :refer [listen!]]
             [ogre.tools.state :refer [state schema]]
+            [ogre.tools.storage :refer [storage]]
             [uix.core.alpha :as uix]
             [cognitect.transit :as transit]))
 
 (def reader (transit/reader :json {:handlers dst/read-handlers}))
 (def writer (transit/writer :json {:handlers dst/write-handlers}))
 
-(defn handle-open [data]
-  (js/console.log "opened" data))
+(defn handle-open [_]
+  (comment "Not implemented"))
 
-(defn handle-close [data]
-  (js/console.log "closed" data))
+(defn handle-close [_]
+  (comment "Not implemented"))
 
 (def merge-query
   [{:root/session
@@ -49,41 +50,42 @@
          [:db/add -2 :window/canvas [:entity/key canvas]]]]
     (ds/db-with next tx-data)))
 
-(defmulti handle-message (fn [_ {:keys [type]}] type))
+(defmulti handle-message (fn [_ {:keys [type]} _] type))
 
 (defmethod handle-message :default
-  [_ _])
+  [_ _ _])
 
 ;; Handles messages that are sent by the server, some of which are responses to
 ;; creating or connecting to a session or to notify connections within a session
 ;; of important events. The embedded :data map will always contain a member
 ;; called :name to distinguish different kinds of events.
 (defmethod handle-message :event
-  [{:keys [conn]} {:keys [data]}]
+  [{:keys [conn store]} {:keys [data] :as message} on-send]
   (case (:name data)
     :session/created
-    (do (ds/transact!
-         conn
-         [[:db/add [:db/ident :local] :entity/key (:uuid data)]
-          [:db/add [:db/ident :session] :session/state :connected]
-          [:db/add [:db/ident :session] :session/room (:room data)]])
-        [])
+    (ds/transact!
+     conn
+     [[:db/add [:db/ident :local] :entity/key (:uuid data)]
+      [:db/add [:db/ident :session] :session/state :connected]
+      [:db/add [:db/ident :session] :session/room (:room data)]])
 
     :session/joined
-    (do (ds/transact! conn [[:db/add [:db/ident :local] :entity/key (:uuid data)]])
-        [])
+    (ds/transact! conn [[:db/add [:db/ident :local] :entity/key (:uuid data)]])
 
     :session/join
     (let [tx-data [[:db/add -1 :entity/key (:uuid data)] [:db/add [:db/ident :session] :session/conns -1]]
           report  (ds/transact! conn tx-data)
           datoms  (ds/datoms (:db-after report) :eavt)]
-      [{:type :datoms :time "" :src "" :dst (:uuid data) :data (into [] datoms)}])
+      (on-send {:type :datoms :dst (:uuid data) :data (into [] datoms)}))
 
     :session/leave
-    (do (ds/transact! conn [[:db/retractEntity [:entity/key (:uuid data)]]])
-        [])
- 
-    nil))
+    (ds/transact! conn [[:db/retractEntity [:entity/key (:uuid data)]]])
+
+    :image/request
+    (-> (.get (.table store "images") (:checksum data))
+        (.then (fn [r] (.-data r)))
+        (.then (fn [data-url]
+                 (on-send {:type :image :dst (:src message) :data data-url}))))))
 
 ;; Handles messages that include a complete copy of the host's initial state as
 ;; a set of DataScript datoms. This message is generally received right after
@@ -101,19 +103,29 @@
 ;; and from any connection besides its own.
 (defmethod handle-message :tx
   [{:keys [conn]} message]
-  (try (ds/transact! conn (:data message))
-       (catch js/Error error
-         (println error))))
+  (ds/transact! conn (:data message)))
 
 ;; Handles messages that include image data as data URLs. These messages are
 ;; generally received from the host after sending a request for it via its
 ;; checksum.
 (defmethod handle-message :image
-  [_ _])
+  [{:keys [dispatch]} message]
+  (let [data-url (:data message)]
+    (dispatch :image/cache data-url)))
 
 (defn handlers []
-  (let [[conn dispatch] (uix/context state)
-        socket (uix/state nil)]
+  (let [{:keys [store]} (uix/context storage)
+        [conn dispatch] (uix/context state)
+        socket          (uix/state nil)
+        on-send         (uix/callback
+                         (fn [message]
+                           (if-let [socket socket]
+                             (if (= (.-readyState socket) 1)
+                               (let [{key :entity/key} (ds/entity @conn [:db/ident :local])
+                                     defaults          {:time (js/Date.now) :src key}]
+                                 (->> (merge defaults message)
+                                      (transit/write writer)
+                                      (.send socket)))))) [@socket])]
 
     (uix/effect!
      (fn []
@@ -128,30 +140,27 @@
      (fn []
        (ds/listen!
         conn :session
-        (fn [{[event _ tx-data] :tx-meta}]
-          ;; Initiate a WebSocket connection.
-          (if (= event :session/request)
-            (let [ws (js/WebSocket. "ws://localhost:5000/ws")]
-              (reset! socket ws)))
+        (fn [{db-after :db-after [event args tx-data] :tx-meta}]
+          (cond (= event :session/request)
+                (let [ws (js/WebSocket. "ws://localhost:5000/ws")]
+                  (reset! socket ws))
 
-          ;; Broadcast all transactions to the WebSocket session.
-          (if (and (not (nil? @socket)) (seq tx-data))
-            (let [marshalled (transit/write writer {:type :tx :data tx-data})]
-              (.send @socket marshalled)))))
-       (fn [] (ds/unlisten! conn :session))) [@socket])
+                (= event :image/request)
+                (let [session (ds/entity db-after [:db/ident :session])]
+                  (if-let [host (-> session :session/host :entity/key)]
+                    (on-send {:type :event :dst host :data {:name :image/request :checksum (first args)}})))
 
-    (let [socket  @socket
-          context {:conn conn :dispatch dispatch}]
-      (doseq [event ["open" "close" "message" "error"]]
-        (listen!
-         (fn [body]
-           (case event
-             "open"    (handle-open body)
-             "close"   (handle-close body)
-             "message" (let [parsed   (transit/read reader (.-data body))
-                             messages (handle-message context parsed)]
-                         (doseq [message messages]
-                           (let [serialized (transit/write writer message)]
-                             (.send socket serialized))))
-             "error"   (js/console.log "error" body)))
-         socket event [socket]))) nil))
+                (seq tx-data)
+                (on-send {:type :tx :data tx-data}))))
+       (fn [] (ds/unlisten! conn :session))) [])
+
+    (doseq [type ["open" "close" "message" "error"]]
+      (listen!
+       (fn [event]
+         (case type
+           "open"    (handle-open event)
+           "close"   (handle-close event)
+           "error"   (js/console.log "error" event)
+           "message" (let [data    (transit/read reader (.-data event))
+                           context {:conn conn :dispatch dispatch :store store}]
+                       (handle-message context data on-send)))) @socket type [@socket])) nil))
