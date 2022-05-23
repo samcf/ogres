@@ -1,5 +1,8 @@
 {:paths   ["src/main"]
- :deps    {datascript-transit/datascript-transit {:mvn/version "0.3.0"}}
+ :deps    {datascript-transit/datascript-transit
+           {:mvn/version "0.3.0"
+            :exclusions [com.cognitect/transit-clj
+                         com.cognitect/transit-cljs]}}
  :aliases
  {:application
   {:extra-deps {com.cognitect/transit-cljs {:mvn/version "0.8.269"}
@@ -18,5 +21,4 @@
                 io.pedestal/pedestal.jetty   {:mvn/version "0.5.10"}
                 jstrutz/hashids              {:mvn/version "1.0.1"}
                 org.clojure/clojure          {:mvn/version "1.10.3"}
-                org.clojure/core.async       {:mvn/version "1.5.648"}
                 org.slf4j/slf4j-simple       {:mvn/version "1.7.28"}}}}}
