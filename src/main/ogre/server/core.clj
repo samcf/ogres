@@ -9,6 +9,9 @@
             [io.pedestal.http :as server]
             [io.pedestal.http.jetty.websockets :as ws]))
 
+(def conns-chans-xf
+  (comp (map val) (map :chan) (filter identity)))
+
 (def sessions (atom {}))
 
 (defn room-create-key []
@@ -31,14 +34,13 @@
 
 (defn room-leave
   [sessions conn]
-  (let [room (get-in sessions [:conns conn :room])
-        host (get-in sessions [:rooms room :host])]
-    (if (= host conn)
-      (let [conns (get-in sessions [:rooms room :conns])
-            seshs (update sessions :rooms dissoc room)]
-        (apply update seshs :conns dissoc conns))
-      (-> (update-in sessions [:rooms room :conns] disj conn)
-          (update :conns dissoc conn)))))
+  (let [room (get-in sessions [:conns conn :room])]
+    (if-let [host (get-in sessions [:rooms room :host])]
+      (cond-> sessions
+        true             (update :conns dissoc conn)
+        (= conn host)    (update :rooms dissoc room)
+        (not= conn host) (update-in [:rooms room :conns] disj conn))
+      (update sessions :conns dissoc conn))))
 
 (defn marshall
   "Serializes the given value as JSON compressed EDN."
@@ -51,82 +53,78 @@
 (defn on-connect
   [uuid]
   (fn [session chan]
-    (.setMaxTextMessageSize (.getPolicy session) (long 10000000))
 
-    (if-let [param (.. session getUpgradeRequest getParameterMap (get "key"))]
+    ;; Increase the max text message size to 10MB to allow for large files to
+    ;; be exchanged over the socket, such as image data URLs.
+    (.setMaxTextMessageSize (.getPolicy session) 1e7)
 
-      ;; Join this connection to the session identified by the "key" query parameter,
-      ;; send a response message back to the new connection, and notify all other
-      ;; connection in the room that someone has joined.
-      (let [sess @sessions room (.get param 0)]
-        (if (get-in sess [:rooms room])
-          (do (swap! sessions room-join room uuid chan)
-              (go (<! (timeout 32))
-                  (->> {:type :event :data {:name :session/joined :room room :uuid uuid} :time "" :dst uuid} (marshall) (>! chan))
-                  (let [conns (disj (get-in sess [:rooms room :conns]) uuid)
-                        chans (into [] (comp (map val) (map :chan)) (select-keys (:conns sess) conns))]
-                    (doseq [chan chans]
-                      (->> {:type :event :data {:name :session/join :room room :uuid uuid} :time "" :src uuid} (marshall) (>! chan))))))
+    (let [param (.. session (getUpgradeRequest) (getParameterMap) (get "key"))]
+      (if (nil? param)
+        (let [room (room-create-key)]
+          (swap! sessions room-create room uuid chan)
+          (go (<! (timeout 32))
+              (->> {:type :event :data {:name :session/created :room room :uuid uuid} :time "" :src uuid :dst uuid}
+                   (marshall)
+                   (>! chan))))
+        (let [room (.get param 0)]
+          (swap! sessions room-join room uuid chan)
+          (go (<! (timeout 32))
+              (->> {:type :event :data {:name :session/joined :room room :uuid uuid} :time "" :dst uuid}
+                   (marshall)
+                   (>! chan))
+              (let [conns (disj (get-in @sessions [:rooms room :conns]) uuid)
+                    chans (into [] conns-chans-xf (select-keys (:conns @sessions) conns))]
+                (doseq [chan chans]
+                  (->> {:type :event :data {:name :session/join :room room :uuid uuid} :time "" :src uuid}
+                       (marshall)
+                       (>! chan))))))))))
 
-          ;; The session identified by the query parameter doesn't exist; simply
-          ;; close the connection.
-          (async/close! chan)))
-
-      ;; The relevant query parameter wasn't found so we'll assume the user wants
-      ;; to create a new session and be the host of it.
-      (let [room (room-create-key)]
-        (swap! sessions room-create room uuid chan)
-        (go (<! (timeout 32))
-            (->> {:type :event :data {:name :session/created :room room :uuid uuid} :time "" :src uuid :dst uuid}
-                 (marshall)
-                 (>! chan)))))))
+(defn uuid->room
+  [sessions uuid]
+  (let [room (get-in sessions [:conns uuid :room])]
+    (get-in sessions [:rooms room])))
 
 (defn on-text
   [uuid]
   (fn [body]
-    (let [sesshs @sessions
-          stream (ByteArrayInputStream. (.getBytes body))
-          reader (transit/reader stream :json {:handlers read-handlers})
-          parsed (transit/read reader)
-          roomid (get-in sesshs [:conns uuid :room])
-          conns  (get-in sesshs [:rooms roomid :conns])
-          chans  (if (uuid? (:dst parsed))
-                   [(get-in sesshs [:conns (:dst parsed) :chan])]
-                   (into [] (comp (map val) (map :chan)) (select-keys (:conns sesshs) (disj conns uuid))))]
-      (doseq [chan chans]
-        (>!! chan body)))))
-
-(defn on-binary
-  [uuid]
-  (fn [body offset length]))
-
-(defn on-error
-  [uuid]
-  (fn [ex]))
+    (let [sess @sessions
+          room (uuid->room sess uuid)]
+      (if (nil? room)
+        (close! (get-in sess [:conns uuid :chan]))
+        (let [text (ByteArrayInputStream. (.getBytes body))
+              read (transit/reader text :json {:handlers read-handlers})
+              data (transit/read read)
+              chans (if (uuid? (:dst data))
+                      [(get-in sess [:conns (:dst data) :chan])]
+                      (->> (disj (:conns room) uuid)
+                           (select-keys (:conns sess))
+                           (into [] conns-chans-xf)))]
+          (doseq [chan chans]
+            (>!! chan body)))))))
 
 (defn on-close
   [uuid]
   (fn [_ _]
-    (let [sess  @sessions
-          room  (get-in sess [:conns uuid :room])
-          host  (get-in sess [:rooms room :host])
-          chan  (get-in sess [:conns uuid :chan])
-          chans (->> (disj (get-in sess [:rooms room :conns]) uuid)
-                     (select-keys (:conns sess))
-                     (into [] (comp (map val) (map :chan))))]
+    (let [sess @sessions
+          room (get-in sess [:conns uuid :room])
+          self (get-in sess [:conns uuid :chan])
+          host (get-in sess [:rooms room :host])
+          rest (->> (disj (get-in sess [:rooms room :conns]) uuid)
+                    (select-keys (:conns sess))
+                    (into [] conns-chans-xf))]
 
       ;; The connection has been closed; close the associated channel.
-      (close! chan)
+      (close! self)
 
       (if (= uuid host)
         ;; The host has left, destroying the session entirely. Find and close
         ;; all remaining connections.
-        (doseq [chan chans]
+        (doseq [chan rest]
           (close! chan))
 
         ;; Notify all other connections in the same session that a connection
         ;; has been closed.
-        (doseq [chan chans]
+        (doseq [chan rest]
           (->> {:type :event :time "" :data {:name :session/leave :uuid uuid}}
                (marshall)
                (>!! chan))))
@@ -135,16 +133,23 @@
       ;; also removing the room and closing all related connections within.
       (swap! sessions room-leave uuid))))
 
+(defn on-error
+  [uuid]
+  (fn [ex]
+    (println ex)
+    ((on-close uuid) nil nil)))
+
 (defn actions [uuid]
   {:on-connect (ws/start-ws-connection (on-connect uuid))
    :on-text    (on-text uuid)
-   :on-binary  (on-binary uuid)
    :on-error   (on-error uuid)
    :on-close   (on-close uuid)})
 
-(defn create-listener [_ _ handlers-fn]
-  (let [uuid (ds/squuid)]
-    (ws/make-ws-listener (handlers-fn uuid))))
+(defn create-listener [req res handlers-fn]
+  (let [param (.. req getParameterMap (get "key"))]
+    (if (or (nil? param) (get-in @sessions [:rooms (.get param 0)]))
+      (ws/make-ws-listener (handlers-fn (ds/squuid)))
+      (.sendForbidden res "No such lobby currently exists."))))
 
 (defn create-server []
   {:env :dev
