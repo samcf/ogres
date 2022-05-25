@@ -119,13 +119,13 @@
         socket          (uix/state nil)
         on-send         (uix/callback
                          (fn [message]
-                           (if-let [socket socket]
+                           (if-let [socket @socket]
                              (if (= (.-readyState socket) 1)
                                (let [{key :entity/key} (ds/entity @conn [:db/ident :local])
                                      defaults          {:time (js/Date.now) :src key}]
                                  (->> (merge defaults message)
                                       (transit/write writer)
-                                      (.send socket)))))) [@socket])]
+                                      (.send socket)))))) [])]
 
     (uix/effect!
      (fn []
