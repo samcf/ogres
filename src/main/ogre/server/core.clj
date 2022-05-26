@@ -1,4 +1,5 @@
 (ns ogre.server.core
+  (:gen-class)
   (:import [java.io ByteArrayOutputStream ByteArrayInputStream]
            [java.time Instant])
   (:require [clojure.core.async :as async :refer [go <! >! >!! close! timeout]]
@@ -151,30 +152,32 @@
       (ws/make-ws-listener (handlers-fn (ds/squuid)))
       (.sendForbidden res "No such lobby currently exists."))))
 
-(defn create-server []
-  {:env :dev
-   ::server/routes #{}
-   ::server/type :jetty
-   ::server/port 80
-   ::server/container-options
-   {:context-configurator
-    (fn [context]
-      (ws/add-ws-endpoints
-       context
-       {"/ws" actions}
-       {:listener-fn create-listener}))}})
+(defn create-server
+  ([] (create-server {}))
+  ([{:keys [port] :or {port 5000}}]
+   (->> {:env :prod
+         ::server/routes #{}
+         ::server/type :jetty
+         ::server/host "0.0.0.0"
+         ::server/port port
+         ::server/container-options
+         {:context-configurator
+          (fn [context]
+            (ws/add-ws-endpoints
+             context
+             {"/ws" actions}
+             {:listener-fn create-listener}))}}
+        (server/default-interceptors))))
 
 (defn create-dev-server []
   (-> (create-server)
       (merge {:env :dev
               ::server/join? false
-              ::server/port 5000
               ::server/allowed-origins
               {:creds true :allowed-origins (constantly true)}
               ::server/secure-headers
               {:content-security-policy-settings
                {:object-src "'none'"}}})
-      (server/default-interceptors)
       (server/dev-interceptors)
       (server/create-server)))
 
@@ -183,6 +186,7 @@
     (println "Starting the development server on port" (::server/port server))
     (server/start server)))
 
-(defn -main [& _args]
-  (let [server (server/create-server (create-server))]
-    (server/start server)))
+(defn -main [port]
+  (-> (create-server {:port (Integer/parseInt port)})
+      (server/create-server)
+      (server/start)))
