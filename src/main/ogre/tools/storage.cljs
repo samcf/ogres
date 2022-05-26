@@ -2,6 +2,7 @@
   (:require [datascript.core :as ds]
             [datascript.transit :as dt]
             [dexie]
+            [ogre.tools.env :as env]
             [ogre.tools.state :as state]
             [ogre.tools.timing :refer [debounce]]
             [uix.core.alpha :as uix :refer [defcontext]]))
@@ -32,7 +33,7 @@
     (uix/effect!
      (fn []
        (-> (.table store "app")
-           (.get state/VERSION)
+           (.get env/VERSION)
            (.then
             (fn [record]
               (if (nil? record)
@@ -66,7 +67,7 @@
                             (ds/filter (fn [_ [_ attr _ _]] (not (contains? ignored-attrs attr))))
                             (ds/datoms :eavt)
                             (dt/write-transit-str)
-                            (as-> marshalled #js {:release state/VERSION :updated (* -1 (.now js/Date)) :data marshalled})
+                            (as-> marshalled #js {:release env/VERSION :updated (* -1 (.now js/Date)) :data marshalled})
                             (as-> record (.put (.table store "app") record))))) 200))
        (fn [] (ds/unlisten! conn :marshaller))) []) nil))
 

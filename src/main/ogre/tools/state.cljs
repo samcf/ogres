@@ -1,10 +1,8 @@
 (ns ogre.tools.state
   (:require [uix.core.alpha :as uix :refer [defcontext]]
             [datascript.core :as ds :refer [squuid]]
+            [ogre.tools.env :as env]
             [ogre.tools.txs :as txs]))
-
-(goog-define VERSION "latest")
-(goog-define PATH "/release")
 
 (def schema
   {:db/ident          {:db/unique :db.unique/identity}
@@ -39,7 +37,7 @@
   (ds/db-with
    (ds/empty-db schema)
    [[:db/add -1 :db/ident :root]
-    [:db/add -1 :root/release VERSION]
+    [:db/add -1 :root/release env/VERSION]
     [:db/add -1 :root/canvases -2]
     [:db/add -1 :root/local -3]
     [:db/add -1 :root/session -5]

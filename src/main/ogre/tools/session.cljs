@@ -1,6 +1,7 @@
 (ns ogre.tools.session
   (:require [datascript.core :as ds]
             [datascript.transit :as dst]
+            [ogre.tools.env :as env]
             [ogre.tools.render :refer [listen!]]
             [ogre.tools.state :refer [state schema]]
             [ogre.tools.storage :refer [storage]]
@@ -133,7 +134,7 @@
              params (js/URLSearchParams. search)
              room   (.get params "join")]
          (if (not (nil? room))
-           (let [ws (js/WebSocket. (str "ws://localhost:5000/ws?key=" room))]
+           (let [ws (js/WebSocket. (str env/SOCKET-URL "?key=" room))]
              (reset! socket ws))))) [])
 
     (uix/effect!
@@ -142,7 +143,7 @@
         conn :session
         (fn [{db-after :db-after [event args tx-data] :tx-meta}]
           (cond (= event :session/request)
-                (let [ws (js/WebSocket. "ws://localhost:5000/ws")]
+                (let [ws (js/WebSocket. env/SOCKET-URL)]
                   (reset! socket ws))
 
                 (= event :image/request)

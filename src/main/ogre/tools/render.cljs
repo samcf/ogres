@@ -1,9 +1,10 @@
 (ns ogre.tools.render
   (:require [clojure.string :refer [join trim]]
             [datascript.core :as ds :refer [squuid]]
+            [ogre.tools.env :as env]
             [ogre.tools.image :as image]
             [ogre.tools.storage :refer [storage]]
-            [ogre.tools.state :refer [PATH state]]
+            [ogre.tools.state :refer [state]]
             [uix.core.alpha :as uix]))
 
 (defn css [& class-names]
@@ -40,7 +41,7 @@
 
 (defn icon [{:keys [name size] :or {size 22}}]
   [:svg {:class "icon" :width size :height size :fill "currentColor"}
-   [:use {:href (str PATH "/icons.svg" "#icon-" name)}]])
+   [:use {:href (str env/PATH "/icons.svg" "#icon-" name)}]])
 
 (defn listen!
   "Manages the registration and cleanup of a DOM event handler."

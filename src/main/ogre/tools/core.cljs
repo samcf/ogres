@@ -1,5 +1,6 @@
 (ns ogre.tools.core
-  (:require [ogre.tools.errors :as errors]
+  (:require [ogre.tools.env :as env]
+            [ogre.tools.errors :as errors]
             [ogre.tools.render :refer [css]]
             [ogre.tools.render.canvas :refer [canvas]]
             [ogre.tools.render.panel :refer [container]]
@@ -69,6 +70,6 @@
 
 (defn main []
   (let [element (.querySelector js/document "#root")]
-    (uix.dom/render [root {:path state/PATH}] element)))
+    (uix.dom/render [root {:path env/PATH}] element)))
 
 (main)

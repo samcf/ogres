@@ -1,7 +1,8 @@
 (ns ogre.tools.form.help
-  (:require [ogre.tools.form.render :refer [form]]
+  (:require [ogre.tools.env :as env]
+            [ogre.tools.form.render :refer [form]]
             [ogre.tools.render :refer [button checkbox]]
-            [ogre.tools.state :refer [use-query VERSION]]))
+            [ogre.tools.state :refer [use-query]]))
 
 (def query
   [[:local/shortcuts? :default true]
@@ -58,7 +59,7 @@
       [:p "This will also move you to the latest version of this software so
            you may notice some changes."
        [:br]
-       "Current version: " [:strong VERSION]]
+       "Current version: " [:strong env/VERSION]]
       [button {:on-click #(dispatch :storage/reset) :style {:margin-top 8}}
        "Restore Factory Defaults"]]]))
 
