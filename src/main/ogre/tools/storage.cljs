@@ -15,7 +15,8 @@
     :local/privileged?
     :local/sharing?
     :local/paused?
-    :local/modifier})
+    :local/modifier
+    :session/state})
 
 (defn initialize []
   (let [store (dexie. "ogre.tools")]

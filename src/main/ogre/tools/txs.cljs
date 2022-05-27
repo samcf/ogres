@@ -548,10 +548,19 @@
 
 (defmethod transact :session/request
   [{:keys [local]}]
-  [[:db/add -1 :db/ident :session]
-   [:db/add -1 :session/state :connecting]
-   [:db/add -1 :session/host [:entity/key local]]
-   [:db/add [:db/ident :root] :root/session -1]])
+  [{:db/id -1 :db/ident :session :session/host -2}
+   {:db/id -2 :entity/key local :session/state :connecting}
+   {:db/id -3 :db/ident :root :root/session -1}])
+
+(defmethod transact :session/close
+  [{:keys [local]}]
+  [{:db/id -1 :entity/key local :session/state :disconnected}
+   [:db/retractEntity [:db/ident :session]]])
+
+(defmethod transact :session/disconnected
+  [{:keys [local]}]
+  [{:db/id -1 :entity/key local :session/state :disconnected}
+   [:db/retractEntity [:db/ident :session]]])
 
 (defmethod transact :image/request [] [])
 

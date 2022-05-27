@@ -11,11 +11,11 @@
 (def reader (transit/reader :json {:handlers dst/read-handlers}))
 (def writer (transit/writer :json {:handlers dst/write-handlers}))
 
-(defn handle-open [_]
+(defn handle-open [_ _]
   (comment "Not implemented"))
 
-(defn handle-close [_]
-  (comment "Not implemented"))
+(defn handle-close [{:keys [dispatch]} _]
+  (dispatch :session/disconnected))
 
 (def merge-query
   [{:root/session
@@ -42,13 +42,14 @@
         tx-data
         [[:db/retract [:entity/key host] :db/ident]
          [:db/add [:db/ident :root] :root/local -1]
-         [:db/add -1 :db/ident :local]
-         [:db/add -1 :entity/key local]
-         [:db/add -1 :local/loaded? true]
-         [:db/add -1 :local/type :conn]
-         [:db/add -1 :local/window -2]
-         [:db/add -2 :entity/key window]
-         [:db/add -2 :window/canvas [:entity/key canvas]]]]
+         {:db/id -1
+          :db/ident :local
+          :entity/key local
+          :local/loaded? true
+          :local/type :conn
+          :local/window -2
+          :session/state :connected}
+         {:db/id -2 :entity/key window :window/canvas [:entity/key canvas]}]]
     (ds/db-with next tx-data)))
 
 (defmulti handle-message (fn [_ {:keys [type]} _] type))
@@ -67,11 +68,14 @@
     (ds/transact!
      conn
      [[:db/add [:db/ident :local] :entity/key (:uuid data)]
-      [:db/add [:db/ident :session] :session/state :connected]
+      [:db/add [:db/ident :local] :session/state :connected]
       [:db/add [:db/ident :session] :session/room (:room data)]])
 
     :session/joined
-    (ds/transact! conn [[:db/add [:db/ident :local] :entity/key (:uuid data)]])
+    (ds/transact!
+     conn
+     [[:db/add [:db/ident :local] :entity/key (:uuid data)]
+      [:db/add [:db/ident :local] :session/state :connected]])
 
     :session/join
     (let [tx-data [[:db/add -1 :entity/key (:uuid data)] [:db/add [:db/ident :session] :session/conns -1]]
@@ -146,6 +150,11 @@
                 (let [ws (js/WebSocket. env/SOCKET-URL)]
                   (reset! socket ws))
 
+                (= event :session/close)
+                (if-let [ws @socket]
+                  (.close ws)
+                  (reset! socket nil))
+
                 (= event :image/request)
                 (let [session (ds/entity db-after [:db/ident :session])]
                   (if-let [host (-> session :session/host :entity/key)]
@@ -157,11 +166,12 @@
 
     (doseq [type ["open" "close" "message" "error"]]
       (listen!
-       (fn [event]
-         (case type
-           "open"    (handle-open event)
-           "close"   (handle-close event)
-           "error"   (js/console.log "error" event)
-           "message" (let [data    (transit/read reader (.-data event))
-                           context {:conn conn :dispatch dispatch :store store}]
-                       (handle-message context data on-send)))) @socket type [@socket])) nil))
+       (let [context {:conn conn :dispatch dispatch :store store}]
+         (fn [event]
+           (case type
+             "open"    (handle-open context event)
+             "close"   (handle-close context event)
+             "error"   (js/console.log "error" event)
+             "message" (let [data    (transit/read reader (.-data event))]
+                         (handle-message context data on-send)))))
+        @socket type [@socket])) nil))

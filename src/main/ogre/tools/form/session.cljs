@@ -1,46 +1,50 @@
 (ns ogre.tools.form.session
   (:require [ogre.tools.form.render :refer [form]]
             [ogre.tools.state :refer [use-query]]
-            [ogre.tools.render :refer [icon]]))
+            [uix.core.alpha :as uix]))
 
 (def query
-  [{:root/local [:entity/key]}
+  [{:root/local
+    [:entity/key
+     [:session/state :default :initial]]}
    {:root/session
     [:session/room
      {:session/conns [:entity/key]}
-     {:session/host [:entity/key]}
-     [:session/state :default :disconnected]]}])
+     {:session/host [:entity/key]}]}])
 
-(defn session-status [state]
-  (case state
-    nil           "Not Started"
-    :disconnected "Disconnected"
-    :connecting   "Connecting"
-    :connected    "Connected"))
-
-(defn session-url [session]
-  (str (.. js/window -location -origin) "?join=" (:session/room session)))
+(defn session-url [room-key]
+  (str (.. js/window -location -origin) "?join=" room-key))
 
 (defmethod form :session []
-  (fn [props]
+  (fn [_]
     (let [[result dispatch] (use-query query [:db/ident :root])
-          {local :root/local
-           session :root/session
-           {host  :session/host
-            room  :session/room
-            conns :session/conns
-            state :session/state} :root/session} result]
+          {{state :session/state} :root/local
+           {room  :session/room
+            conns :session/conns} :root/session} result]
+
       [:<>
        [:section [:header "Invite Friends"]]
-       [:section
-        [:span "Status: " (session-status state)]
-        [:button {:type "button" :on-click #(dispatch :session/request)} "Invite Friends"]
-        (let [url (session-url session)]
-          [:fieldset {:style {:display "flex" :align-items "center" :justify-content "space-between" :gap "4px"}}
-           [:input {:type "text" :readOnly true :value url}]
-           [:button {:type "button" :data-tooltip "foo" :on-click (fn [] (.. js/window -navigator -clipboard (writeText url)))}
-            [icon {:name "clipboard" :size 20}]]])]
-       [:section [:header "Players"]]
-       [:section
-        (for [{:keys [entity/key]} conns]
-          [:div {:key key} key])]])))
+       [:section {:style {:display "flex" :justify-content "space-between" :gap 4}}
+        [:button.ogre-button
+         {:type "button" :on-click #(dispatch :session/request) :style {:flex 2}
+          :disabled (#{:connecting :connected} state)}
+         "Start New Session"]
+        [:button.ogre-button
+         {:type "button" :on-click #(dispatch :session/close) :style {:flex 1}
+          :disabled (#{:initial :disconnected} state)}
+         "Disconnect"]]
+       (if (= state :connected)
+         (let [url (session-url room)]
+           [:section
+            [:fieldset.session-share
+             [:input {:type "text" :value url :readOnly true :on-click (fn [event] (.select (.-target event)))}]
+             [:label "Invite players to join this game by sharing this link
+                      with them. When you disconnect or close the browser tab,
+                      the entire session will be closed."]]]))
+       (if (= state :connected)
+         [:section.session-players
+          [:header "Players"]
+          (if (seq conns)
+            (for [{:keys [entity/key]} conns]
+              [:div.session-player {:key key} key])
+            [:em "No one is here, yet."])])])))
