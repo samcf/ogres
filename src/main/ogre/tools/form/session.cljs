@@ -1,7 +1,6 @@
 (ns ogre.tools.form.session
   (:require [ogre.tools.form.render :refer [form]]
-            [ogre.tools.state :refer [use-query]]
-            [uix.core.alpha :as uix]))
+            [ogre.tools.state :refer [use-query]]))
 
 (def query
   [{:root/local
