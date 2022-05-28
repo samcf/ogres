@@ -40,16 +40,28 @@
         (ds/pull next merge-query [:db/ident :root])
 
         tx-data
-        [[:db/retract [:entity/key host] :db/ident]
-         [:db/add [:db/ident :root] :root/local -1]
-         {:db/id -1
-          :db/ident :local
-          :entity/key local
-          :local/loaded? true
-          :local/type :conn
-          :local/window -2
-          :session/state :connected}
-         {:db/id -2 :entity/key window :window/canvas [:entity/key canvas]}]]
+        [[:db/add -1 :db/ident :session]
+         [:db/add -2 :entity/key local]
+         [:db/add -3 :entity/key window]
+
+         ;; Replace :db/ident :local
+         [:db/retract [:entity/key host] :db/ident]
+         [:db/add -2 :db/ident :local]
+
+         ;; Replace host as the local user, swap places in session
+         ;; connections.
+         [:db/add [:db/ident :session] :session/conns [:entity/key host]]
+         [:db/add [:db/ident :local] :root/local -2]
+         [:db/retract [:db/ident :session] :session/conns -2]
+
+         ;; Initialize the user entity.
+         [:db/add -2 :local/loaded? true]
+         [:db/add -2 :local/type :conn]
+         [:db/add -2 :local/window -3]
+         [:db/add -2 :session/state :connected]
+
+         ;; Move local window to the currently viewing canvas.
+         [:db/add -3 :window/canvas [:entity/key canvas]]]]
     (ds/db-with next tx-data)))
 
 (defmulti handle-message (fn [_ {:keys [type]} _] type))
