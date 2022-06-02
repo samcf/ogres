@@ -51,13 +51,14 @@
          ;; Replace host as the local user, swap places in session
          ;; connections.
          [:db/add [:db/ident :session] :session/conns [:entity/key host]]
-         [:db/add [:db/ident :local] :root/local -2]
+         [:db/add [:db/ident :root] :root/local -2]
          [:db/retract [:db/ident :session] :session/conns -2]
 
          ;; Initialize the user entity.
          [:db/add -2 :local/loaded? true]
          [:db/add -2 :local/type :conn]
          [:db/add -2 :local/window -3]
+         [:db/add -2 :local/windows -3]
          [:db/add -2 :session/state :connected]
 
          ;; Move local window to the currently viewing canvas.
