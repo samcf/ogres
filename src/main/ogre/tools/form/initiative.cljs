@@ -5,12 +5,12 @@
             [ogre.tools.state :refer [use-query]]
             [uix.core.alpha :as uix]))
 
-(defn order [a b]
+(defn ^{:private true} order [a b]
   (compare
    [(:initiative/roll b) (contains? (:token/flags a) :player) (:token/label a)]
    [(:initiative/roll a) (contains? (:token/flags b) :player) (:token/label b)]))
 
-(defn roll-form [{:keys [value on-change]}]
+(defn ^{:private true} roll-form [{:keys [value on-change]}]
   (let [input (uix/ref) [editing? form] (use-modal)]
     [:div.initiant-roll
      [:div.initiant-roll-label
@@ -32,7 +32,7 @@
           :placeholder "Roll" :default-value value}]
         [:button {:type "submit"} "✓"]])]))
 
-(defn health-form [{:keys [value on-change]}]
+(defn ^{:private true} health-form [{:keys [value on-change]}]
   (let [input (uix/ref) [editing? form] (use-modal)]
     [:div.initiant-health {:css {:active (or (number? value) @editing?)}}
      (if @editing?
@@ -57,7 +57,7 @@
       (if (number? value)
         [:div.initiant-health-label value])]]))
 
-(defn initiant [{:keys [entity]}]
+(defn ^{:private true} initiant [{:keys [entity]}]
   (let [dispatch (use-query)
         {key   :entity/key
          label :token/label
@@ -93,7 +93,7 @@
        (fn [f v]
          (dispatch :initiative/change-health key f v))}]]))
 
-(def query
+(def ^{:private true} query
   [{:local/window
     [{:window/canvas
       [:entity/key
@@ -107,14 +107,14 @@
          :window/_selected
          {:token/image [:image/checksum]}]}]}]}])
 
-(defn initiative []
+(defn ^{:private true} initiative []
   (let [[result dispatch] (use-query query)
         initiative        (-> result :local/window :window/canvas :canvas/initiative)]
     (if (seq initiative)
       [:div.initiative
-       [:section [:header "Initiative"]]
        [:section
-        [:fieldset.table {:style {:padding "0 12px"}}
+        [:header "Initiative"]
+        [:fieldset.table
          [button {:on-click #(dispatch :initiative/roll-all)} "Roll"]
          [button {:on-click #(dispatch :initiative/reset-rolls)} "Reset"]
          [button {:on-click #(dispatch :initiative/leave)} "Leave"]]]
@@ -123,8 +123,8 @@
          (for [entity (sort order initiative)]
            ^{:key (:entity/key entity)} [initiant {:entity entity}])]]]
       [:div.initiative
-       [:section [:header "Initiative"]]
        [:section
+        [:header "Initiative"]
         [:div.prompt
          [icon {:name "hourglass-split" :size 48}]
          [:br] "Begin initiative by selecting"

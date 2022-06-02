@@ -18,7 +18,7 @@
    [:grappled "fist"]
    [:prone "falling"]
    [:frightened "black-cat"]
-   [:incapacitated "dizzy"]
+   [:incapacitated "emoji-dizzy"]
    [:unconscious "skull"]])
 
 (defn stop-propagation [event]

@@ -3,10 +3,10 @@
             [ogre.tools.state :refer [use-query]]
             [uix.core.alpha :as uix]))
 
-(defn shortcut [key]
+(defn ^{:private true} shortcut [key]
   [:div.toolbar-shortcut key])
 
-(defn tooltip [key]
+(defn ^{:private true} tooltip [key]
   (case key
     :zoom/reset  "Reset to 100% zoom."
     :zoom/out    [:span "Use the " [:code "Mousewheel"] " or pinch the trackpad to zoom in and out."]
@@ -28,8 +28,9 @@
     :mask/hide   "Remove all masks and then mask the entire scene."
     :mask/show   "Remove all masks and reveal the entire scene."))
 
-(def query
-  [[:local/tooltips? :default true]
+(def ^{:private true} query
+  [[:local/type :default :conn]
+   [:local/tooltips? :default true]
    [:local/sharing? :default false]
    [:local/paused? :default false]
    {:local/window
@@ -41,19 +42,24 @@
         container       (uix/ref)
         tooltip-key     (uix/state nil)
 
-        {tooltips? :local/tooltips?
+        {type      :local/type
+         tooltips? :local/tooltips?
          sharing?  :local/sharing?
          paused?   :local/paused?
          {scale :window/scale
           mode  :window/draw-mode} :local/window} data
 
+        conn? (= type :conn)
+
         mode-attrs
-        (fn [value]
-          {:type "button"
-           :key value
-           :css {:selected (= value mode)}
-           :on-click #(dispatch :window/change-mode value)
-           :on-mouse-enter #(reset! tooltip-key (keyword "mode" (name value)))})
+        (fn [value & attrs]
+          (apply hash-map
+                 :type           "button"
+                 :key            value
+                 :css            {:selected (= value mode)}
+                 :on-click       #(dispatch :window/change-mode value)
+                 :on-mouse-enter #(reset! tooltip-key (keyword "mode" (name value)))
+                 attrs))
 
         tooltip-fn
         (fn [key]
@@ -99,30 +105,36 @@
        [:button (mode-attrs :poly) [icon {:name "star"}] [shortcut "4"]]
        [:button (mode-attrs :line) [icon {:name "slash-lg"}] [shortcut "5"]]]
       [:div.toolbar-group
-       [:button (mode-attrs :mask) [icon {:name "star-half"}] [shortcut "F"]]
-       [:button (mode-attrs :mask-toggle) [icon {:name "magic"}] [shortcut "T"]]
-       [:button (mode-attrs :mask-remove) [icon {:name "eraser-fill"}] [shortcut "X"]]
+       [:button (mode-attrs :mask :disabled conn?)
+        [icon {:name "star-half"}] [shortcut "F"]]
+       [:button (mode-attrs :mask-toggle :disabled conn?)
+        [icon {:name "magic"}] [shortcut "T"]]
+       [:button (mode-attrs :mask-remove :disabled conn?)
+        [icon {:name "eraser-fill"}] [shortcut "X"]]
        [:button
-        {:on-click #(dispatch :mask/fill)
+        {:disabled conn?
+         :on-click #(dispatch :mask/fill)
          :on-mouse-enter (tooltip-fn :mask/hide)}
         [icon {:name "eye-slash-fill"}]]
        [:button
-        {:on-click #(dispatch :mask/clear)
+        {:disabled conn?
+         :on-click #(dispatch :mask/clear)
          :on-mouse-enter (tooltip-fn :mask/show)}
         [icon {:name "eye-fill"}]]]
       [:div.toolbar-group
        [:button
         {:css {:active sharing?}
+         :disabled conn?
          :on-click #(dispatch :share/initiate)
          :on-mouse-enter (tooltip-fn :share/open)}
         [icon {:name "pip" :size 22}]]
        [:button
-        {:disabled (or (not sharing?) (not paused?))
+        {:disabled (or conn? (not sharing?) (not paused?))
          :on-click #(dispatch :share/switch)
          :on-mouse-enter (tooltip-fn :share/play)}
         [icon {:name "play-fill" :size 22}]]
        [:button
-        {:disabled (or (not sharing?) paused?)
+        {:disabled (or conn? (not sharing?) paused?)
          :on-click #(dispatch :share/switch)
          :on-mouse-enter (tooltip-fn :share/pause)}
         [icon {:name "pause-fill" :size 22}]]]]]))

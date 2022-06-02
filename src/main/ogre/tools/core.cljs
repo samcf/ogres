@@ -24,13 +24,13 @@
      (assoc (dissoc attrs :css) :class (css (:class attrs) (:css attrs)))
      attrs)))
 
-(def query
+(def ^{:private true} query
   [[:local/type :default :conn]
    [:local/loaded? :default false]
    [:local/shortcuts? :default true]
    [:local/tooltips? :default true]])
 
-(defn layout []
+(defn ^{:private true} layout []
   (let [[result] (use-query query)
         {:local/keys [loaded? type shortcuts? tooltips?]} result
         classes
@@ -38,9 +38,10 @@
          :global--shortcuts  shortcuts?
          :global--tooltips   tooltips?}]
     (if loaded?
-      (if (= type :host)
+      (if (or (= type :host) (= type :conn))
         [:div.layout {:css classes}
-         [:div.layout-workspaces [workspaces]]
+         (if (= type :host)
+           [:div.layout-workspaces [workspaces]])
          [:div.layout-canvas [canvas]]
          [portal/create
           (fn [ref]
@@ -51,7 +52,7 @@
         [:div.layout {:css classes}
          [:div.layout-canvas [canvas]]]))))
 
-(defn root [{:keys [path]}]
+(defn ^{:private true} root [{:keys [path]}]
   [:<>
    [:> Helmet
     [:link {:rel "stylesheet" :href (str path "/reset.css")}]
@@ -68,7 +69,7 @@
        [portal/provider
         [layout]]]]]]])
 
-(defn main []
+(defn ^{:private true} main []
   (let [element (.querySelector js/document "#root")]
     (uix.dom/render [root {:path env/PATH}] element)))
 
