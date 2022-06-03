@@ -365,9 +365,10 @@
 (def tokens-query
   [:local/type
    {:local/window
-    [[:window/snap-grid :default false]
-     [:window/scale :default 1]
+    [:entity/key
      :window/selected
+     [:window/snap-grid :default false]
+     [:window/scale :default 1]
      {:window/canvas
       [[:grid/size :default 70]
        {:canvas/tokens
@@ -385,14 +386,10 @@
 
 (defn tokens []
   (let [[result dispatch] (use-query tokens-query)
-
-        {type :local/type
-         {align :window/snap-grid
-          scale :window/scale
-          {size :grid/size
-           tokens :canvas/tokens}
-          :window/canvas}
-         :local/window} result
+        {:local/keys [type window]} result
+        {:window/keys [snap-grid scale canvas]} window
+        {:canvas/keys [tokens]} canvas
+        size (:grid/size canvas)
 
         flags-xf
         (comp (map name)
@@ -407,7 +404,7 @@
         (->> tokens
              (filter (fn [token] (or (= type :host) (visible? (:token/flags token)))))
              (sort token-comparator)
-             (separate (fn [token] (contains? token :window/_selected))))]
+             (separate (fn [token] ((into #{} (map :entity/key) (:window/_selected token)) (:entity/key window)))))]
     [:<>
      (for [data tokens :let [{key :entity/key [ax ay] :token/vec} data]]
        [:> react-draggable
@@ -421,7 +418,7 @@
            (let [bx (.-x data) by (.-y data)]
              (if (= (euclidean ax ay bx by) 0)
                (dispatch :element/select key (not (.-shiftKey event)))
-               (dispatch :token/translate key bx by (not= (.-metaKey event) align)))))}
+               (dispatch :token/translate key bx by (not= (.-metaKey event) snap-grid)))))}
         [:g.canvas-token {:css (css data)}
          [token {:data data :size size}]]])
      (if (seq selected)
@@ -438,13 +435,13 @@
                 (if (and (= ox 0) (= oy 0))
                   (let [key (.. event -target (closest ".canvas-token[data-key]") -dataset -key)]
                     (dispatch :element/select (uuid key) (not (.-shiftKey event))))
-                  (dispatch :token/translate-all keys ox oy (not= (.-metaKey event) align)))))}
+                  (dispatch :token/translate-all keys ox oy (not= (.-metaKey event) snap-grid)))))}
            [:g.canvas-selected {:key keys}
             (for [data selected :let [{key :entity/key [x y] :token/vec} data]]
               [:g.canvas-token
                {:key key :css (css data) :data-key key :transform (str "translate(" x "," y ")")}
                [token {:data data :size size}]])
-            (if (= type :host)
+            (if (or (= type :host) (= type :conn))
               [:foreignObject
                {:x (- (+ (* ax scale) (/ (* (- bx ax) scale) 2)) (/ 400 2))
                 :y (- (+ (* by scale) (* scale 56)) 24)
