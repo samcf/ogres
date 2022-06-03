@@ -530,6 +530,18 @@ legend {
     cursor: pointer;
 }
 
+.canvas-shape:hover > circle,
+.canvas-shape:hover > path,
+.canvas-shape:hover > line,
+.canvas-shape:hover > polygon,
+.canvas-shape.selected > circle,
+.canvas-shape.selected > path,
+.canvas-shape.selected > line,
+.canvas-shape.selected > polygon {
+    stroke-dasharray: 4px;
+    animation: stroke-animation 1s linear infinite;
+}
+
 @keyframes stroke-animation {
     0% { stroke-dashoffset: 0; }
     100% { stroke-dashoffset: 16px; }
@@ -1436,37 +1448,37 @@ legend {
     border-radius: 3px;
 }
 
-.global--host .canvas {
+/* Global */
+.root[data-view-type="host"] .canvas {
     border-radius: 0 3px 3px 3px;
 }
 
-/* Global */
-.global--host .canvas-shape:hover > circle,
-.global--host .canvas-shape:hover > path,
-.global--host .canvas-shape:hover > line,
-.global--host .canvas-shape:hover > polygon,
-.global--host .canvas-shape.selected > circle,
-.global--host .canvas-shape.selected > path,
-.global--host .canvas-shape.selected > line,
-.global--host .canvas-shape.selected > polygon {
-    stroke-dasharray: 4px;
-    animation: stroke-animation 1s linear infinite;
+.root[data-view-type="view"] .canvas-shape:hover > circle,
+.root[data-view-type="view"] .canvas-shape:hover > path,
+.root[data-view-type="view"] .canvas-shape:hover > line,
+.root[data-view-type="view"] .canvas-shape:hover > polygon,
+.root[data-view-type="view"] .canvas-shape.selected > circle,
+.root[data-view-type="view"] .canvas-shape.selected > path,
+.root[data-view-type="view"] .canvas-shape.selected > line,
+.root[data-view-type="view"] .canvas-shape.selected > polygon {
+    stroke-dasharray: none;
+    animation: none;
 }
 
-.global--view {
+.root[data-view-type="view"] {
     grid-template-areas: "b";
     grid-template-columns: 1fr;
     grid-template-rows: 1fr;
 }
 
-.global--view .canvas {
+.root[data-view-type="view"] .canvas {
     pointer-events: none;
 }
 
-.layout:not(.global--shortcuts) .toolbar-shortcut {
+.root[data-show-shortcuts="false"] .toolbar-shortcut {
     display: none !important;
 }
 
-.layout:not(.global--tooltips) .toolbar-tooltip {
+.root[data-show-tooltips="false"] .toolbar-tooltip {
     display: none !important;
 }
