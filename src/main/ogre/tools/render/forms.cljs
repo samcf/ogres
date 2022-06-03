@@ -133,6 +133,7 @@
         ((:on-close props)))}
      [:button.button
       {:type         "button"
+       :disabled     (not (:upload? props))
        :data-tooltip "Select or upload an image"
        :on-click     #(swap! thumb-open not)}
       [icon {:name "person-circle" :size 22}]]
@@ -194,7 +195,7 @@
           [:label {:for key :data-tooltip (capitalize (name flag))}
            [icon {:name icon-name :size 22}]]])])))
 
-(defn token-context-menu [{tokens :tokens}]
+(defn token-context-menu [{:keys [tokens type]}]
   (let [dispatch (use-query)
         keys     (map :entity/key tokens)]
     [context-menu
@@ -212,7 +213,8 @@
         (let [on (every? (comp boolean :hidden :token/flags) tokens)]
           [:button
            {:type "button" :css {:selected on} :data-tooltip (if on "Reveal" "Hide")
-            :on-click #(dispatch :token/change-flag keys :hidden (not on))}
+            :on-click #(dispatch :token/change-flag keys :hidden (not on))
+            :disabled (= type :conn)}
            [icon {:name (if on "eye-slash-fill" "eye-fill") :size 22}]])
         (let [on (every? (comp vector? :canvas/_initiative) tokens)]
           [:button
@@ -226,6 +228,7 @@
      (fn [{:keys [selected on-change]}]
        [token-form
         {:name      selected
+         :upload?   (= type :host)
          :on-close  #(on-change nil)
          :on-change #(apply dispatch %1 keys %&)
          :values    (fn vs

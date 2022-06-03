@@ -44,9 +44,8 @@
 (defn ft->px [ft size] (* (/ ft 5) size))
 
 (defn visible? [flags]
-  (or (nil? flags)
-      (flags :player)
-      (not (some flags [:hidden :invisible]))))
+  (or (contains? flags :player)
+      (not (contains? flags :hidden))))
 
 (defn label [{:keys [token/label initiative/suffix]}]
   (cond-> ""
@@ -448,7 +447,7 @@
                 :width 400 :height 400
                 :transform (str "scale(" (/ scale) ")")
                 :style {:pointer-events "none"}}
-               [token-context-menu {:tokens selected}]])]]]))]))
+               [token-context-menu {:tokens selected :type type}]])]]]))]))
 
 (defn bounds []
   (let [[result] (use-query [:bounds/host :bounds/view])

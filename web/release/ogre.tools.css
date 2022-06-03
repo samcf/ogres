@@ -598,7 +598,7 @@ legend {
     position: relative;
 }
 
-.context-menu [data-tooltip]:hover:after {
+.context-menu [data-tooltip]:not(:disabled):hover:after {
     content: attr(data-tooltip);
     position: absolute;
     top: -24px;
@@ -624,17 +624,24 @@ legend {
     background: none;
     border: none;
     color: hsl(0, 0%, 70%);
-    cursor: pointer;
     display: flex;
     justify-content: center;
     width: 32px;
+}
+
+.context-menu-toolbar button:not(:disabled) {
+    cursor: pointer;
+}
+
+.context-menu-toolbar button:disabled {
+    color: #666;
 }
 
 .context-menu-toolbar > button.selected {
     color: var(--theme-text-link);
 }
 
-.context-menu-toolbar > button:not(.selected):hover {
+.context-menu-toolbar > button:not(.selected):not(:disabled):hover {
     color: white;
 }
 
@@ -666,7 +673,6 @@ legend {
     background-color: var(--theme-background-d);
     border: none;
     color: white;
-    cursor: pointer;
     display: flex;
     justify-content: center;
     padding: 6px;
