@@ -5,6 +5,10 @@
             [ogre.tools.state :refer [use-query]]
             [uix.core.alpha :as uix]))
 
+(defn ^{:private true} visible? [flags]
+  (or (contains? flags :player)
+      (not (contains? flags :hidden))))
+
 (defn ^{:private true} order [a b]
   (compare
    [(:initiative/roll b) (contains? (:token/flags a) :player) (:token/label a)]
@@ -58,15 +62,13 @@
         [:div.initiant-health-label value])]]))
 
 (defn ^{:private true} initiant [{:keys [entity]}]
-  (let [dispatch (use-query)
-        {key   :entity/key
-         label :token/label
-         sffx  :initiative/suffix
-         flags :token/flags
-         {checksum :image/checksum} :token/image} entity
-        url (use-image checksum)]
+  (let [dispatch                    (use-query)
+        {:keys [entity/key]}        entity
+        {:token/keys [label flags]} entity
+        {:initiative/keys [suffix]} entity
+        url                         (use-image (-> entity :token/image :image/checksum))]
     [:li.initiant
-     (if checksum
+     (if url
        [:div.initiant-image
         {:style {:background-image (str "url(" url ")")}
          :on-click #(dispatch :element/select key true)}]
@@ -78,8 +80,8 @@
        :on-change
        (fn [value]
          (dispatch :initiative/change-roll key value))}]
-     (if sffx
-       [:div.initiant-suffix (char (+ sffx 64))])
+     (if suffix
+       [:div.initiant-suffix (char (+ suffix 64))])
      [:div.initiant-info
       (if (not (blank? label))
         [:div.initiant-label label])
@@ -94,7 +96,8 @@
          (dispatch :initiative/change-health key f v))}]]))
 
 (def ^{:private true} query
-  [{:local/window
+  [:local/type
+   {:local/window
     [{:window/canvas
       [:entity/key
        {:canvas/initiative
@@ -109,9 +112,11 @@
 
 (defn ^{:private true} initiative []
   (let [[result dispatch] (use-query query)
-        initiative        (-> result :local/window :window/canvas :canvas/initiative)]
+        initiative        (-> result :local/window :window/canvas :canvas/initiative)
+        host?             (= (:local/type result) :host)]
     (if (seq initiative)
       [:div.initiative
+       {:css {:initiative--privileged host?}}
        [:section
         [:header "Initiative"]
         [:fieldset.table
@@ -120,7 +125,8 @@
          [button {:on-click #(dispatch :initiative/leave)} "Leave"]]]
        [:section
         [:ol
-         (for [entity (sort order initiative)]
+         (for [entity (sort order initiative)
+               :when (or host? (visible? (:token/flags entity)))]
            ^{:key (:entity/key entity)} [initiant {:entity entity}])]]]
       [:div.initiative
        [:section
