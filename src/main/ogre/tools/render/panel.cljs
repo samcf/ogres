@@ -21,7 +21,6 @@
    :conn [{:form :session}
           {:form :initiative}
           {:form :settings}
-          {:form :data}
           {:form :help}]})
 
 (def ^{:private true} query
