@@ -135,6 +135,6 @@
          [icon {:name "hourglass-split" :size 48}]
          [:br] "Begin initiative by selecting"
          [:br] "one or more tokens and clicking"
-         [:br] "'Start Initiative'"]]])))
+         [:br] "the hourglass icon."]]])))
 
 (defmethod form :initiative [] initiative)
