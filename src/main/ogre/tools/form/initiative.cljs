@@ -61,7 +61,7 @@
       (if (number? value)
         [:div.initiant-health-label value])]]))
 
-(defn ^{:private true} initiant [{:keys [entity]}]
+(defn ^{:private true} initiant [context entity]
   (let [dispatch                    (use-query)
         {:keys [entity/key]}        entity
         {:token/keys [label flags]} entity
@@ -89,11 +89,13 @@
        (if (seq flags)
          [:em (join ", " (mapv (comp capitalize name) flags))]
          [:em "No Conditions"])]]
-     [health-form
-      {:value (:initiative/health entity)
-       :on-change
-       (fn [f v]
-         (dispatch :initiative/change-health key f v))}]]))
+     (if (or (= (:local/type context) :host)
+             (contains? flags :player))
+       [health-form
+        {:value (:initiative/health entity)
+         :on-change
+         (fn [f v]
+           (dispatch :initiative/change-health key f v))}])]))
 
 (def ^{:private true} query
   [:local/type
@@ -116,7 +118,6 @@
         host?             (= (:local/type result) :host)]
     (if (seq initiative)
       [:div.initiative
-       {:css {:initiative--privileged host?}}
        [:section
         [:header "Initiative"]
         [:fieldset.table
@@ -127,7 +128,7 @@
         [:ol
          (for [entity (sort order initiative)
                :when (or host? (visible? (:token/flags entity)))]
-           ^{:key (:entity/key entity)} [initiant {:entity entity}])]]]
+           ^{:key (:entity/key entity)} [initiant result entity])]]]
       [:div.initiative
        [:section
         [:header "Initiative"]
