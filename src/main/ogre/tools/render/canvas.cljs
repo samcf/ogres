@@ -247,7 +247,8 @@
 (def shapes-query
   [:local/type
    {:local/window
-    [[:window/scale :default 1]
+    [:entity/key
+     [:window/scale :default 1]
      [:window/snap-grid :default false]
      {:window/canvas
       [{:canvas/shapes
@@ -257,21 +258,21 @@
          [:shape/color :default "#f44336"]
          [:shape/opacity :default 0.25]
          [:shape/pattern :default :solid]
-         :window/_selected]}]}]}])
+         {:window/_selected [:entity/key]}]}]}]}])
 
 (defn shapes []
   (let [[result dispatch] (use-query shapes-query)
-        {type :local/type
-         {scale :window/scale
-          align :window/snap-grid
-          {shapes :canvas/shapes}
-          :window/canvas}
-         :local/window} result]
-    (for [entity shapes
-          :let [{:keys [entity/key shape/kind shape/color]} entity
-                {[ax ay] :shape/vecs selected? :window/_selected} entity]]
+        {:local/keys [type window]} result
+        {:window/keys [scale snap-grid canvas]} window
+        participant? (or (= type :host) (= type :conn))]
+    (for [entity (:canvas/shapes canvas)
+          :let [key (:entity/key entity)
+                {:shape/keys [kind color vecs]} entity
+                selecting (into #{} (map :entity/key) (:window/_selected entity))
+                selected? (contains? selecting (:entity/key window))
+                [ax ay] vecs]]
       ^{:key key}
-      [portal/use {:label (if (and selected? (= type :host)) :selected)}
+      [portal/use {:label (if (and participant? selected?) :selected)}
        [:> react-draggable
         {:scale    scale
          :position #js {:x ax :y ay}
@@ -280,14 +281,14 @@
          (fn [event data]
            (let [ox (.-x data) oy (.-y data)]
              (if (> (euclidean ax ay ox oy) 0)
-               (dispatch :shape/translate key ox oy (not= align (.-metaKey event)))
+               (dispatch :shape/translate key ox oy (not= snap-grid (.-metaKey event)))
                (dispatch :element/select key true))))}
         (let [id (squuid)]
           [:g
            {:css {:canvas-shape true :selected selected? (str "canvas-shape-" (name kind)) true}}
            [:defs [pattern {:id id :name (:shape/pattern entity) :color color}]]
            [shape {:element entity :attrs {:fill (str "url(#" id ")")}}]
-           (if (and (= type :host) selected?)
+           (if (and participant? selected?)
              [:foreignObject.context-menu-object {:x -200 :y 0 :width 400 :height 400}
               [shape-context-menu
                {:shape entity}]])])]])))
