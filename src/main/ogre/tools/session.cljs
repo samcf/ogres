@@ -29,12 +29,10 @@
   "Returns a new DataScript database with the current local state `prev` mixed
    into the incoming initial state `next`."
   [next prev]
-  (let [{local :entity/key {window :entity/key} :local/window}
+  (let [{local :entity/key}
         (ds/entity prev [:db/ident :local])
 
-        {{{host :entity/key
-           {{canvas :entity/key} :window/canvas}
-           :local/window}
+        {{{host :entity/key}
           :session/host}
          :root/session}
         (ds/pull next merge-query [:db/ident :root])
@@ -42,7 +40,6 @@
         tx-data
         [[:db/add -1 :db/ident :session]
          [:db/add -2 :entity/key local]
-         [:db/add -3 :entity/key window]
 
          ;; Replace :db/ident :local
          [:db/retract [:entity/key host] :db/ident]
@@ -57,12 +54,7 @@
          ;; Initialize the user entity.
          [:db/add -2 :local/loaded? true]
          [:db/add -2 :local/type :conn]
-         [:db/add -2 :local/window -3]
-         [:db/add -2 :local/windows -3]
-         [:db/add -2 :session/state :connected]
-
-         ;; Move local window to the currently viewing canvas.
-         [:db/add -3 :window/canvas [:entity/key canvas]]]]
+         [:db/add -2 :session/state :connected]]]
     (ds/db-with next tx-data)))
 
 (defmulti handle-message (fn [_ {:keys [type]} _] type))
@@ -91,7 +83,14 @@
       [:db/add [:db/ident :local] :session/state :connected]])
 
     :session/join
-    (let [tx-data [[:db/add -1 :entity/key (:uuid data)] [:db/add [:db/ident :session] :session/conns -1]]
+    (let [local   (ds/entity @conn [:db/ident :local])
+          tx-data [[:db/add -1 :entity/key (:uuid data)]
+                   [:db/add -1 :local/window -2]
+                   [:db/add -1 :local/windows -2]
+                   [:db/add -2 :entity/key (ds/squuid)]
+                   [:db/add -2 :window/canvas -3]
+                   [:db/add -3 :entity/key (-> local :local/window :window/canvas :entity/key)]
+                   [:db/add [:db/ident :session] :session/conns -1]]
           report  (ds/transact! conn tx-data)
           datoms  (ds/datoms (:db-after report) :eavt)]
       (on-send {:type :datoms :dst (:uuid data) :data (into [] datoms)}))

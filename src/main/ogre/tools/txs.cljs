@@ -10,9 +10,14 @@
 (defn indexed
   "Returns a transducer which decorates each element with a decreasing
    negative index suitable for use as temporary ids in a DataScript
-   transaction. Optionally receives an offset integer to begin counting."
-  ([] (indexed 1))
-  ([offset] (map-indexed (fn [idx val] [(* -1 (+ idx offset)) val]))))
+   transaction. Optionally receives an offset integer to begin counting and
+   a step integer to create space between indexes."
+  ([]
+   (indexed 1 1))
+  ([offset]
+   (indexed offset 1))
+  ([offset step]
+   (map-indexed (fn [idx val] [(-> (* idx step) (+ offset) (* -1)) val]))))
 
 (defn suffixes
   "Returns a map of `{entity key => suffix}` for the given token entities.
@@ -50,45 +55,112 @@
 (defmulti transact (fn [{:keys [event]}] event))
 
 (defmethod transact :workspace/create
-  [{:keys [local]}]
-  [[:db/add -1 :entity/key (squuid)]
-   [:db/add -1 :window/canvas -2]
-   [:db/add -2 :entity/key (squuid)]
-   [:db/add [:entity/key local] :local/window -1]
-   [:db/add [:entity/key local] :local/windows -1]
-   [:db/add [:db/ident :root] :root/canvases -2]])
+  [{:keys [data local]}]
+  (let [session (ds/entity data [:db/ident :session])]
+    (into [[:db/add -1 :entity/key (squuid)]
+           [:db/add -2 :entity/key (squuid)]
+           [:db/add [:entity/key local] :local/window -1]
+           [:db/add [:entity/key local] :local/windows -1]
+           [:db/add -1 :window/canvas -2]
+           [:db/add [:db/ident :root] :root/canvases -2]]
+          cat
+          (for [[idx conn] (sequence (indexed 3 2) (:session/conns session))
+                :let [tmp (dec idx)]]
+            [[:db/add idx :entity/key (:entity/key conn)]
+             [:db/add idx :local/windows tmp]
+             [:db/add idx :local/window tmp]
+             [:db/add tmp :entity/key (squuid)]
+             [:db/add tmp :window/canvas -2]]))))
 
 (defmethod transact :workspace/change
-  [{:keys [local]} key]
-  [[:db/add [:entity/key local] :local/window [:entity/key key]]])
+  [{:keys [data local]} key]
+  (let [window  (ds/entity data [:entity/key key])
+        session (ds/entity data [:db/ident :session])]
+    (into [[:db/add -1 :entity/key local]
+           [:db/add -2 :entity/key key]
+           [:db/add -1 :local/window -2]]
+          cat
+          (for [[idx conn] (sequence (indexed 3 2) (:session/conns session))
+                :let [tmp (dec idx)
+                      key (->> (:local/windows conn)
+                               (filter #(= (:entity/key (:window/canvas %))
+                                           (:entity/key (:window/canvas window))))
+                               (first)
+                               (:entity/key))]]
+            [[:db/add idx :entity/key (:entity/key conn)]
+             [:db/add idx :local/windows tmp]
+             [:db/add idx :local/window tmp]
+             [:db/add tmp :entity/key (or key (squuid))]
+             (if-let [value (:window/vec window)]
+               [:db/add tmp :window/vec value])
+             (if-let [value (:window/scale window)]
+               [:db/add tmp :window/scale value])
+             [:db/add tmp :window/canvas [:entity/key (:entity/key (:window/canvas window))]]]))))
 
 (defmethod transact :workspace/remove
   [{:keys [data local]} key]
-  (let [lookup [:entity/key local]
-        select [{:local/window [:entity/key]} {:local/windows [:entity/key]}]
-        result (ds/pull data select lookup)
-        window (ds/pull data [:entity/key {:window/canvas [:entity/key]}] [:entity/key key])
-        {current :local/window
-         windows :local/windows} result]
+  (let [select-w [:entity/key {:window/canvas [:entity/key]}]
+        select-l [:entity/key {:local/windows select-w :local/window select-w}]
+        select-r [{:root/local select-l} {:root/session [{:session/conns select-l}]}]
+        select-o [:entity/key {:window/canvas [:entity/key {:window/_canvas [:entity/key]}]}]
+
+        {{canvas :entity/key
+          remove :window/_canvas} :window/canvas}
+        (ds/pull data select-o [:entity/key key])
+
+        {{conns   :session/conns} :root/session
+         {window  :local/window
+          windows :local/windows} :root/local}
+        (ds/pull data select-r [:db/ident :root])]
     (cond
       (= (count windows) 1)
-      [[:db/retractEntity [:entity/key key]]
-       [:db/retractEntity [:entity/key (:entity/key (:window/canvas window))]]
-       [:db/add -1 :entity/key (squuid)]
-       [:db/add -1 :window/canvas -2]
-       [:db/add -2 :entity/key (squuid)]
-       [:db/add lookup :local/window -1]
-       [:db/add lookup :local/windows -1]]
+      (into [[:db/retractEntity [:entity/key canvas]]
+             [:db/add -1 :entity/key (squuid)]
+             [:db/add -1 :window/canvas -2]
+             [:db/add -2 :entity/key (squuid)]
+             [:db/add [:entity/key local] :local/window -1]
+             [:db/add [:entity/key local] :local/windows -1]]
+            (comp cat cat)
+            (list (for [{:keys [entity/key]} remove]
+                    [[:db/retractEntity [:entity/key key]]])
+                  (for [[idx conn] (sequence (indexed 3 2) conns)
+                        :let [tmp (dec idx)]]
+                    [[:db/add idx :entity/key (:entity/key conn)]
+                     [:db/add idx :local/windows tmp]
+                     [:db/add idx :local/window tmp]
+                     [:db/add tmp :entity/key (squuid)]
+                     [:db/add tmp :window/canvas -2]
+                     [:db/add tmp :window/vec [0 0]]
+                     [:db/add tmp :window/scale 1]])))
 
-      (= (:entity/key window) (:entity/key current))
-      (let [next (first (disj (set windows) current))]
-        [[:db/retractEntity [:entity/key key]]
-         [:db/retractEntity [:entity/key (:entity/key (:window/canvas window))]]
-         [:db/add lookup :local/window [:entity/key (:entity/key next)]]])
+      (= key (:entity/key window))
+      (let [next (->> windows (filter #(not= (:entity/key %) (:entity/key window))) (first))]
+        (into [[:db/retractEntity [:entity/key canvas]]
+               [:db/add -1 :entity/key (:entity/key next)]
+               [:db/add -2 :entity/key local]
+               [:db/add -2 :local/window -1]]
+              (comp cat cat)
+              (list (for [{:keys [entity/key]} remove]
+                      [[:db/retractEntity [:entity/key key]]])
+                    (for [[idx conn] (sequence (indexed 3 2) conns)
+                          :let [tmp (dec idx)
+                                key (->> (:local/windows conn)
+                                         (filter #(= (:entity/key (:window/canvas %))
+                                                     (:entity/key (:window/canvas next))))
+                                         (first)
+                                         (:entity/key))]]
+                      [[:db/add idx :entity/key (:entity/key conn)]
+                       [:db/add idx :local/windows tmp]
+                       [:db/add idx :local/window tmp]
+                       [:db/add tmp :entity/key (or key (squuid))]
+                       [:db/add tmp :window/canvas [:entity/key (:entity/key (:window/canvas next))]]
+                       [:db/add tmp :window/vec [0 0]]
+                       [:db/add tmp :window/scale 1]]))))
 
       :else
-      [[:db/retractEntity [:entity/key key]]
-       [:db/retractEntity [:entity/key (:entity/key (:window/canvas window))]]])))
+      (into [[:db/retractEntity [:entity/key canvas]]]
+            (for [{:keys [entity/key]} remove]
+              [:db/retractEntity [:entity/key key]])))))
 
 (defmethod transact :window/change-label
   [{:keys [window]} label]
