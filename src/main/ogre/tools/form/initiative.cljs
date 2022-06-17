@@ -5,12 +5,16 @@
             [ogre.tools.state :refer [use-query]]
             [uix.core.alpha :as uix]))
 
-(defn order [a b]
+(defn ^{:private true} visible? [flags]
+  (or (contains? flags :player)
+      (not (contains? flags :hidden))))
+
+(defn ^{:private true} order [a b]
   (compare
    [(:initiative/roll b) (contains? (:token/flags a) :player) (:token/label a)]
    [(:initiative/roll a) (contains? (:token/flags b) :player) (:token/label b)]))
 
-(defn roll-form [{:keys [value on-change]}]
+(defn ^{:private true} roll-form [{:keys [value on-change]}]
   (let [input (uix/ref) [editing? form] (use-modal)]
     [:div.initiant-roll
      [:div.initiant-roll-label
@@ -32,7 +36,7 @@
           :placeholder "Roll" :default-value value}]
         [:button {:type "submit"} "✓"]])]))
 
-(defn health-form [{:keys [value on-change]}]
+(defn ^{:private true} health-form [{:keys [value on-change]}]
   (let [input (uix/ref) [editing? form] (use-modal)]
     [:div.initiant-health {:css {:active (or (number? value) @editing?)}}
      (if @editing?
@@ -57,16 +61,14 @@
       (if (number? value)
         [:div.initiant-health-label value])]]))
 
-(defn initiant [{:keys [entity]}]
-  (let [dispatch (use-query)
-        {key   :entity/key
-         label :token/label
-         sffx  :initiative/suffix
-         flags :token/flags
-         {checksum :image/checksum} :token/image} entity
-        url (use-image checksum)]
+(defn ^{:private true} initiant [context entity]
+  (let [dispatch                    (use-query)
+        {:keys [entity/key]}        entity
+        {:token/keys [label flags]} entity
+        {:initiative/keys [suffix]} entity
+        url                         (use-image (-> entity :token/image :image/checksum))]
     [:li.initiant
-     (if checksum
+     (if url
        [:div.initiant-image
         {:style {:background-image (str "url(" url ")")}
          :on-click #(dispatch :element/select key true)}]
@@ -78,8 +80,8 @@
        :on-change
        (fn [value]
          (dispatch :initiative/change-roll key value))}]
-     (if sffx
-       [:div.initiant-suffix (char (+ sffx 64))])
+     (if suffix
+       [:div.initiant-suffix (char (+ suffix 64))])
      [:div.initiant-info
       (if (not (blank? label))
         [:div.initiant-label label])
@@ -87,14 +89,17 @@
        (if (seq flags)
          [:em (join ", " (mapv (comp capitalize name) flags))]
          [:em "No Conditions"])]]
-     [health-form
-      {:value (:initiative/health entity)
-       :on-change
-       (fn [f v]
-         (dispatch :initiative/change-health key f v))}]]))
+     (if (or (= (:local/type context) :host)
+             (contains? flags :player))
+       [health-form
+        {:value (:initiative/health entity)
+         :on-change
+         (fn [f v]
+           (dispatch :initiative/change-health key f v))}])]))
 
-(def query
-  [{:local/window
+(def ^{:private true} query
+  [:local/type
+   {:local/window
     [{:window/canvas
       [:entity/key
        {:canvas/initiative
@@ -107,28 +112,30 @@
          :window/_selected
          {:token/image [:image/checksum]}]}]}]}])
 
-(defn initiative []
+(defn ^{:private true} initiative []
   (let [[result dispatch] (use-query query)
-        initiative        (-> result :local/window :window/canvas :canvas/initiative)]
+        initiative        (-> result :local/window :window/canvas :canvas/initiative)
+        host?             (= (:local/type result) :host)]
     (if (seq initiative)
       [:div.initiative
-       [:section [:header "Initiative"]]
        [:section
-        [:fieldset.table {:style {:padding "0 12px"}}
+        [:header "Initiative"]
+        [:fieldset.table
          [button {:on-click #(dispatch :initiative/roll-all)} "Roll"]
          [button {:on-click #(dispatch :initiative/reset-rolls)} "Reset"]
          [button {:on-click #(dispatch :initiative/leave)} "Leave"]]]
        [:section
         [:ol
-         (for [entity (sort order initiative)]
-           ^{:key (:entity/key entity)} [initiant {:entity entity}])]]]
+         (for [entity (sort order initiative)
+               :when (or host? (visible? (:token/flags entity)))]
+           ^{:key (:entity/key entity)} [initiant result entity])]]]
       [:div.initiative
-       [:section [:header "Initiative"]]
        [:section
+        [:header "Initiative"]
         [:div.prompt
          [icon {:name "hourglass-split" :size 48}]
          [:br] "Begin initiative by selecting"
          [:br] "one or more tokens and clicking"
-         [:br] "'Start Initiative'"]]])))
+         [:br] "the hourglass icon."]]])))
 
 (defmethod form :initiative [] initiative)

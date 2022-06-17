@@ -28,7 +28,7 @@
    [:grappled "fist"]
    [:prone "falling"]
    [:frightened "black-cat"]
-   [:incapacitated "dizzy"]
+   [:incapacitated "emoji-dizzy"]
    [:unconscious "skull"]])
 
 (defn separate
@@ -44,9 +44,8 @@
 (defn ft->px [ft size] (* (/ ft 5) size))
 
 (defn visible? [flags]
-  (or (nil? flags)
-      (flags :player)
-      (not (some flags [:hidden :invisible]))))
+  (or (contains? flags :player)
+      (not (contains? flags :hidden))))
 
 (defn label [{:keys [token/label initiative/suffix]}]
   (cond-> ""
@@ -74,7 +73,7 @@
      [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere)"}}]]))
 
 (def light-mask-query
-  [[:local/host? :default true]
+  [:local/type
    {:local/window
     [{:window/canvas
       [[:grid/size :default 70]
@@ -88,7 +87,7 @@
 
 (defn light-mask []
   (let [[result] (use-query light-mask-query)
-        {host? :local/host?
+        {type :local/type
          {{visibility :canvas/visibility
            size       :grid/size
            tokens     :canvas/tokens
@@ -109,7 +108,7 @@
         [:mask {:id "light-mask"}
          [:rect {:x 0 :y 0 :width width :height height :fill "white" :fill-opacity "100%"}]
          (for [{key :entity/key flags :token/flags [x y] :token/vec radius :token/light} tokens
-               :when (and (> radius 0) (or host? (visible? flags)))]
+               :when (and (> radius 0) (or (= type :host) (visible? flags)))]
            [:circle {:key key :cx x :cy y :r (+ (ft->px radius size) (/ size 2)) :fill "url(#mask-gradient)"}])]]
        [:rect.canvas-mask-background
         {:x 0 :y 0 :width width :height height :mask "url(#light-mask)"}]
@@ -119,7 +118,7 @@
            :fill "url(#mask-pattern)" :mask "url(#light-mask)"}])])))
 
 (def canvas-mask-query
-  [[:local/host? :default false]
+  [:local/type
    {:local/window
     [[:window/draw-mode :default :select]
      {:window/canvas
@@ -129,7 +128,7 @@
 
 (defn canvas-mask []
   (let [[result dispatch] (use-query canvas-mask-query)
-        {host? :local/host?
+        {type :local/type
          {mode :window/draw-mode
           {filled? :mask/filled?
            masks   :canvas/masks
@@ -149,7 +148,7 @@
          [:polygon {:key key :points (join " " xs) :fill (if enabled? "white" "black")}])]]
      [:rect.canvas-mask-background {:x 0 :y 0 :width width :height height :mask "url(#canvas-mask)"}]
      [:rect.canvas-mask-pattern {:x 0 :y 0 :width width :height height :fill "url(#mask-pattern)" :mask "url(#canvas-mask)"}]
-     (if (and host? (contains? modes mode))
+     (if (and (= type :host) (contains? modes mode))
        (for [{key :entity/key xs :mask/vecs enabled? :mask/enabled?} masks]
          [:polygon.canvas-mask-polygon
           {:key key
@@ -246,9 +245,10 @@
     [:polygon (assoc attrs :points (join " " pairs) :fill-opacity opacity :stroke color)]))
 
 (def shapes-query
-  [[:local/host? :default true]
+  [:local/type
    {:local/window
-    [[:window/scale :default 1]
+    [:entity/key
+     [:window/scale :default 1]
      [:window/snap-grid :default false]
      {:window/canvas
       [{:canvas/shapes
@@ -258,21 +258,21 @@
          [:shape/color :default "#f44336"]
          [:shape/opacity :default 0.25]
          [:shape/pattern :default :solid]
-         :window/_selected]}]}]}])
+         {:window/_selected [:entity/key]}]}]}]}])
 
 (defn shapes []
   (let [[result dispatch] (use-query shapes-query)
-        {host? :local/host?
-         {scale :window/scale
-          align :window/snap-grid
-          {shapes :canvas/shapes}
-          :window/canvas}
-         :local/window} result]
-    (for [entity shapes
-          :let [{:keys [entity/key shape/kind shape/color]} entity
-                {[ax ay] :shape/vecs selected? :window/_selected} entity]]
+        {:local/keys [type window]} result
+        {:window/keys [scale snap-grid canvas]} window
+        participant? (or (= type :host) (= type :conn))]
+    (for [entity (:canvas/shapes canvas)
+          :let [key (:entity/key entity)
+                {:shape/keys [kind color vecs]} entity
+                selecting (into #{} (map :entity/key) (:window/_selected entity))
+                selected? (contains? selecting (:entity/key window))
+                [ax ay] vecs]]
       ^{:key key}
-      [portal/use {:label (if (and selected? host?) :selected)}
+      [portal/use {:label (if (and participant? selected?) :selected)}
        [:> react-draggable
         {:scale    scale
          :position #js {:x ax :y ay}
@@ -281,14 +281,14 @@
          (fn [event data]
            (let [ox (.-x data) oy (.-y data)]
              (if (> (euclidean ax ay ox oy) 0)
-               (dispatch :shape/translate key ox oy (not= align (.-metaKey event)))
+               (dispatch :shape/translate key ox oy (not= snap-grid (.-metaKey event)))
                (dispatch :element/select key true))))}
         (let [id (squuid)]
           [:g
            {:css {:canvas-shape true :selected selected? (str "canvas-shape-" (name kind)) true}}
            [:defs [pattern {:id id :name (:shape/pattern entity) :color color}]]
            [shape {:element entity :attrs {:fill (str "url(#" id ")")}}]
-           (if (and host? selected?)
+           (if (and participant? selected?)
              [:foreignObject.context-menu-object {:x -200 :y 0 :width 400 :height 400}
               [shape-context-menu
                {:shape entity}]])])]])))
@@ -363,11 +363,12 @@
              [(:token/size a) ay ax])))
 
 (def tokens-query
-  [[:local/host? :default true]
+  [:local/type
    {:local/window
-    [[:window/snap-grid :default false]
-     [:window/scale :default 1]
+    [:entity/key
      :window/selected
+     [:window/snap-grid :default false]
+     [:window/scale :default 1]
      {:window/canvas
       [[:grid/size :default 70]
        {:canvas/tokens
@@ -385,14 +386,10 @@
 
 (defn tokens []
   (let [[result dispatch] (use-query tokens-query)
-
-        {host? :local/host?
-         {align :window/snap-grid
-          scale :window/scale
-          {size :grid/size
-           tokens :canvas/tokens}
-          :window/canvas}
-         :local/window} result
+        {:local/keys [type window]} result
+        {:window/keys [snap-grid scale canvas]} window
+        {:canvas/keys [tokens]} canvas
+        size (:grid/size canvas)
 
         flags-xf
         (comp (map name)
@@ -405,9 +402,9 @@
 
         [selected tokens]
         (->> tokens
-             (filter (fn [token] (or host? (visible? (:token/flags token)))))
+             (filter (fn [token] (or (= type :host) (visible? (:token/flags token)))))
              (sort token-comparator)
-             (separate (fn [token] (contains? token :window/_selected))))]
+             (separate (fn [token] ((into #{} (map :entity/key) (:window/_selected token)) (:entity/key window)))))]
     [:<>
      (for [data tokens :let [{key :entity/key [ax ay] :token/vec} data]]
        [:> react-draggable
@@ -421,13 +418,13 @@
            (let [bx (.-x data) by (.-y data)]
              (if (= (euclidean ax ay bx by) 0)
                (dispatch :element/select key (not (.-shiftKey event)))
-               (dispatch :token/translate key bx by (not= (.-metaKey event) align)))))}
+               (dispatch :token/translate key bx by (not= (.-metaKey event) snap-grid)))))}
         [:g.canvas-token {:css (css data)}
          [token {:data data :size size}]]])
      (if (seq selected)
        (let [keys         (map :entity/key selected)
              [ax _ bx by] (apply bounding-box (map :token/vec selected))]
-         [portal/use {:label (if host? :selected)}
+         [portal/use {:label (if (= type :host) :selected)}
           [:> react-draggable
            {:position #js {:x 0 :y 0}
             :scale    scale
@@ -438,34 +435,34 @@
                 (if (and (= ox 0) (= oy 0))
                   (let [key (.. event -target (closest ".canvas-token[data-key]") -dataset -key)]
                     (dispatch :element/select (uuid key) (not (.-shiftKey event))))
-                  (dispatch :token/translate-all keys ox oy (not= (.-metaKey event) align)))))}
+                  (dispatch :token/translate-all keys ox oy (not= (.-metaKey event) snap-grid)))))}
            [:g.canvas-selected {:key keys}
             (for [data selected :let [{key :entity/key [x y] :token/vec} data]]
               [:g.canvas-token
                {:key key :css (css data) :data-key key :transform (str "translate(" x "," y ")")}
                [token {:data data :size size}]])
-            (if host?
+            (if (or (= type :host) (= type :conn))
               [:foreignObject
                {:x (- (+ (* ax scale) (/ (* (- bx ax) scale) 2)) (/ 400 2))
                 :y (- (+ (* by scale) (* scale 56)) 24)
                 :width 400 :height 400
                 :transform (str "scale(" (/ scale) ")")
                 :style {:pointer-events "none"}}
-               [token-context-menu {:tokens selected}]])]]]))]))
+               [token-context-menu {:tokens selected :type type}]])]]]))]))
 
 (defn bounds []
-  (let [[result] (use-query [:bounds/host :bounds/guest])
+  (let [[result] (use-query [:bounds/host :bounds/view])
         {[_ _ hw hh] :bounds/host
-         [_ _ gw gh] :bounds/guest} result
-        [ox oy] [(/ (- hw gw) 2) (/ (- hh gh) 2)]]
+         [_ _ vw vh] :bounds/view} result
+        [ox oy] [(/ (- hw vw) 2) (/ (- hh vh) 2)]]
     [:g.canvas-bounds {:transform (str "translate(" ox " , " oy ")")}
-     [:rect {:x 0 :y 0 :width gw :height gh :rx 8}]]))
+     [:rect {:x 0 :y 0 :width vw :height vh :rx 8}]]))
 
 (def canvas-query
-  [[:local/host? :default true]
+  [:local/type
    [:local/privileged? :default false]
    [:bounds/host :default [0 0 0 0]]
-   [:bounds/guest :default [0 0 0 0]]
+   [:bounds/view :default [0 0 0 0]]
    {:local/window
     [:entity/key
      :window/modifier
@@ -477,19 +474,19 @@
 
 (defn canvas []
   (let [[result dispatch] (use-query canvas-query)
-        {host?       :local/host?
+        {type        :local/type
          priv?       :local/privileged?
          [_ _ hw hh] :bounds/host
-         [_ _ gw gh] :bounds/guest
+         [_ _ vw vh] :bounds/view
          {key     :entity/key
           scale   :window/scale
           mode    :window/draw-mode
           modif   :window/modifier
           [cx cy] :window/vec
           {theme :canvas/theme} :window/canvas} :local/window} result
-        cx (if host? cx (->> (- hw gw) (max 0) (* (/ -1 2 scale)) (+ cx)))
-        cy (if host? cy (->> (- hh gh) (max 0) (* (/ -1 2 scale)) (+ cy)))]
-    [:svg.canvas {:key key :css {(str "theme--" (name theme)) true :is-host host? :is-priv priv?}}
+        cx (if (= type :host) cx (->> (- hw vw) (max 0) (* (/ -1 2 scale)) (+ cx)))
+        cy (if (= type :host) cy (->> (- hh vh) (max 0) (* (/ -1 2 scale)) (+ cy)))]
+    [:svg.canvas {:key key :css {(str "theme--" (name theme)) true :is-host (= type :host) :is-priv priv?}}
      [:> react-draggable
       {:position #js {:x 0 :y 0}
        :on-stop

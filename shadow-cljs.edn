@@ -4,6 +4,5 @@
                   :compiler-options {:infer-externs :auto :externs ["datascript/externs.js"]}
                   :output-dir       "web/release"
                   :asset-path       "release"
-                  :dev              {:closure-defines {ogre.tools.state/VERSION "latest"}}
                   :devtools         {:after-load ogre.tools.core/main}
                   :modules          {:ogre.tools {:entries [ogre.tools.core]}}}}}

@@ -16,42 +16,42 @@
    (.-height bounds)])
 
 (defn initialize
-  "Registers a DataScript listener in order to manage the guest window, the
+  "Registers a DataScript listener in order to manage the view window, the
    player's view of the canvas." []
   (let [[conn dispatch]       (uix/context state)
-        {:keys [guest reset]} (uix/context context)]
+        {:keys [view reset]}  (uix/context context)]
     (uix/effect!
      (fn []
        (ds/listen!
         conn :initialize
         (fn [{[event _ _] :tx-meta}]
-          (when (= event :share/initiate)
-            (if (nil? guest)
+          (if (= event :share/initiate)
+            (if (nil? view)
               (let [url (.. js/window -location -origin)
                     url (str url "?share=true")
                     win (.open js/window url "ogre.tools" "width=640,height=640")]
                 (reset win)
                 (dispatch :share/toggle true))
               (reset)))))
-       (fn [] (ds/unlisten! conn :initialize))) [guest]) nil))
+       (fn [] (ds/unlisten! conn :initialize))) [view]) nil))
 
 (defn dispatcher
   "Registers a DataScript listener in order to forward transactions from the
-   host window to the guest window." []
-  (let [[conn]          (uix/context state)
-        {:keys [guest]} (uix/context context)
-        writer          (t/writer :json)]
+   host window to the view window." []
+  (let [[conn]         (uix/context state)
+        {:keys [view]} (uix/context context)
+        writer         (t/writer :json)]
     (uix/effect!
      (fn []
        (ds/listen!
         conn :dispatcher
         (fn [{[_ _ tx] :tx-meta}]
-          (when guest
+          (if view
             (->>
              #js {:detail (t/write writer tx)}
              (js/CustomEvent. "AppStateTx")
-             (.dispatchEvent guest)))))
-       (fn [] (ds/unlisten! conn :dispatcher))) [guest]) nil))
+             (.dispatchEvent view)))))
+       (fn [] (ds/unlisten! conn :dispatcher))) [view]) nil))
 
 (defn listener
   "Registers an event handler to listen for application state changes in the
@@ -70,7 +70,7 @@
   "Registers event handlers to watch for changes in the canvas dimensions in
    order to put those dimensions in the application state. Dimensions are
    of the form [x y width height]."
-  [{:keys [target host?]}]
+  [{:keys [target type]}]
   (let [[_ dispatch] (uix/context state)
         selector ".layout-canvas"
         canvas   (uix/state nil)
@@ -79,14 +79,14 @@
                     (if-let [element (.. target -document (querySelector selector))]
                       (->> (.getBoundingClientRect element)
                            (bounds->vector)
-                           (dispatch :bounds/change host?)))) 100)
+                           (dispatch :bounds/change type)))) 100)
         observer (uix/state (js/ResizeObserver. handler))]
 
     (listen! handler "resize" [])
 
     (uix/effect!
      (fn []
-       (when host?
+       (if (= type :host)
          (.dispatchEvent target (js/Event. "resize")))) [])
 
     (uix/effect!
@@ -104,48 +104,49 @@
          (fn [] (.unobserve @observer element)))) [@canvas]) nil))
 
 (defn closers
-  "Registers event handlers to listen for the host or guest windows being
+  "Registers event handlers to listen for the host or view windows being
    closed." []
-  (let [{:keys [guest reset]} (uix/context context)]
+  (let [{:keys [view reset]} (uix/context context)]
     (listen!
      (fn []
        (.setTimeout
         js/window
         (fn []
-          (when (.-closed guest)
-            (reset))) 200)) guest "visibilitychange" [guest])
+          (when (.-closed view)
+            (reset))) 200)) view "visibilitychange" [view])
 
     (listen!
      (fn []
        (reset)) "beforeunload" []) nil))
 
-(def query
-  [[:local/host? :default true]
-   [:local/loaded? :default false]])
-
 (defn provider
-  "Provides a reference to the guest window, if any, and registers several
+  "Provides a reference to the view window, if any, and registers several
    event handlers needed for them." []
-  (let [[data dispatch] (use-query query)
-        guest           (uix/state nil)
-        reset (fn
-                ([]
-                 (when-let [element @guest]
-                   (.close element)
-                   (dispatch :share/toggle false)
-                   (reset! guest nil)))
-                ([element]
-                 (reset! guest element)))]
+  (let [[result dispatch]
+        (use-query [:local/type :local/loaded?])
 
-    (if (:local/loaded? data)
+        -window
+        (uix/state nil)
+
+        on-set-window
+        (fn
+          ([]
+           (when-let [element @-window]
+             (.close element)
+             (dispatch :share/toggle false)
+             (reset! -window nil)))
+          ([element]
+           (reset! -window element)))]
+    (if (:local/loaded? result)
       (uix/context-provider
-       [context {:guest @guest :reset reset}]
-       (if (:local/host? data)
-         [:<>
-          [initialize]
-          [dispatcher]
-          [bounds {:target js/window :host? true}]
-          (when-let [element @guest]
-            [bounds {:target element :host? false}])
-          [closers]]
-         [listener])))))
+       [context {:view @-window :reset on-set-window}]
+       (case (:local/type result)
+         :host [:<>
+                [initialize]
+                [dispatcher]
+                [bounds {:target js/window :type :host}]
+                (if-let [target @-window]
+                  [bounds {:target target :type :view}])
+                [closers]]
+         :view [listener]
+         :conn [bounds {:target js/window :type :conn}])))))

@@ -7,7 +7,7 @@
             [ogre.tools.storage :refer [storage]]
             [uix.core.alpha :as uix]))
 
-(defn thumbnail [{:keys [checksum selected on-select on-remove]}]
+(defn ^{:private true} thumbnail [{:keys [checksum selected on-select on-remove]}]
   (let [url (use-image checksum)]
     [:div
      {:key checksum
@@ -23,18 +23,16 @@
          (.stopPropagation event)
          (on-remove))} "×"]]))
 
-(defn preview [{:keys [checksum]}]
+(defn ^{:private true} preview [{:keys [checksum]}]
   (let [url (use-image checksum)]
     [:div {:style {:background-image (str "url(" url ")")}}]))
 
-(def query
+(def ^{:private true} query
   [{:root/scenes [:image/checksum]}
    {:root/local
     [{:local/window
       [[:window/label :default ""]
        [:window/draw-mode :default :select]
-       [:window/show-grid :default true]
-       [:window/snap-grid :default false]
        {:window/canvas
         [:entity/key
          {:canvas/image [:image/checksum]}
@@ -43,7 +41,7 @@
          [:canvas/color :default :none]
          [:grid/size :default 70]]}]}]}])
 
-(defn canvas []
+(defn ^{:private true} canvas []
   (let [[result dispatch] (use-query query [:db/ident :root])
         {:keys [store]}   (uix/context storage)
         show-images       (uix/state false)
@@ -54,26 +52,26 @@
         checksum (-> canvas :canvas/image :image/checksum)]
     [:<>
      [:section
-      [:header "Canvas Options"]]
-     [:section.form-canvas-profile
-      [:button
-       {:type "button"
-        :on-click #(swap! show-images not)
-        :disabled (not (seq scenes))}
-       (if checksum
-         [preview {:checksum checksum}]
-         [icon {:name "images" :size 32}])]
-      [button {:on-click #(.click @file-upload)} "Choose File(s)"]
-      [:input
-       {:type "text"
-        :placeholder "New Canvas"
-        :maxLength 36
-        :spellCheck "false"
-        :value (:window/label window)
-        :on-change
-        (fn [event]
-          (let [value (.. event -target -value)]
-            (dispatch :window/change-label value)))}]]
+      [:header "Canvas Options"]
+      [:fieldset.form-canvas-profile
+       [:button
+        {:type "button"
+         :on-click #(swap! show-images not)
+         :disabled (not (seq scenes))}
+        (if checksum
+          [preview {:checksum checksum}]
+          [icon {:name "images" :size 32}])]
+       [button {:on-click #(.click @file-upload)} "Choose File(s)"]
+       [:input
+        {:type "text"
+         :placeholder "New Canvas"
+         :maxLength 36
+         :spellCheck "false"
+         :value (:window/label window)
+         :on-change
+         (fn [event]
+           (let [value (.. event -target -value)]
+             (dispatch :window/change-label value)))}]]]
      [:section
       (if (and (seq scenes) @show-images)
         [:fieldset.thumbnails
@@ -132,29 +130,6 @@
           (capitalize (name value))])]]
      [:section.form-canvas-grid
       [:legend "Grid Configuration"]
-      [:fieldset.setting
-       [:label "Show Grid"]
-       (for [value [false true] :let [checked? (= (:window/show-grid window) value)]]
-         ^{:key value}
-         [checkbox
-          {:checked checked?
-           :on-change
-           (fn []
-             (if (not checked?)
-               (dispatch :window/change-grid-show value)))}
-          (if value "Yes" "No")])]
-      [:fieldset.setting
-       [:label "Align to Grid"]
-       (for [value [false true] :let [checked? (= (:window/snap-grid window) value)]]
-         ^{:key value}
-         [checkbox
-          {:checked checked?
-           :on-change
-           (fn []
-             (if (not checked?)
-               (dispatch :window/change-grid-snap value)))}
-          (if value "Yes" "No")])]
-      [:hr]
       [:fieldset.group
        [:input
         {:type "number"

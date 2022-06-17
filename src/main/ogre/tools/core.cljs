@@ -1,5 +1,6 @@
 (ns ogre.tools.core
-  (:require [ogre.tools.errors :as errors]
+  (:require [ogre.tools.env :as env]
+            [ogre.tools.errors :as errors]
             [ogre.tools.render :refer [css]]
             [ogre.tools.render.canvas :refer [canvas]]
             [ogre.tools.render.panel :refer [container]]
@@ -7,6 +8,7 @@
             [ogre.tools.render.tokens :refer [tokens]]
             [ogre.tools.render.toolbar :refer [toolbar]]
             [ogre.tools.render.workspaces :refer [workspaces]]
+            [ogre.tools.session :as session]
             [ogre.tools.shortcut :as shortcut]
             [ogre.tools.state :as state :refer [use-query]]
             [ogre.tools.storage :as storage]
@@ -22,24 +24,23 @@
      (assoc (dissoc attrs :css) :class (css (:class attrs) (:css attrs)))
      attrs)))
 
-(def query
-  [[:local/loaded? :default false]
-   [:local/host? :default true]
+(def ^{:private true} query
+  [[:local/type :default :conn]
+   [:local/loaded? :default false]
    [:local/shortcuts? :default true]
    [:local/tooltips? :default true]])
 
-(defn layout []
+(defn ^{:private true} layout []
   (let [[result] (use-query query)
-        {:local/keys [loaded? host? shortcuts? tooltips?]} result
-        classes
-        {:global--host       host?
-         :global--guest      (not host?)
-         :global--shortcuts  shortcuts?
-         :global--tooltips   tooltips?}]
+        {:local/keys [loaded? type shortcuts? tooltips?]} result
+        attrs {:data-view-type      (name type)
+               :data-show-shortcuts shortcuts?
+               :data-show-tooltips  tooltips?}]
     (if loaded?
-      (if host?
-        [:div.layout {:css classes}
-         [:div.layout-workspaces [workspaces]]
+      (if (or (= type :host) (= type :conn))
+        [:div.root.layout attrs
+         (if (= type :host)
+           [:div.layout-workspaces [workspaces]])
          [:div.layout-canvas [canvas]]
          [portal/create
           (fn [ref]
@@ -47,10 +48,10 @@
          [:div.layout-toolbar [toolbar]]
          [:div.layout-tokens [tokens]]
          [:div.layout-panel [container]]]
-        [:div.layout {:css classes}
+        [:div.root.layout attrs
          [:div.layout-canvas [canvas]]]))))
 
-(defn root [{:keys [path]}]
+(defn ^{:private true} root [{:keys [path]}]
   [:<>
    [:> Helmet
     [:link {:rel "stylesheet" :href (str path "/reset.css")}]
@@ -63,11 +64,12 @@
        [storage/handlers]
        [window/provider]
        [shortcut/handlers]
+       [session/handlers]
        [portal/provider
         [layout]]]]]]])
 
-(defn main []
+(defn ^{:private true} main []
   (let [element (.querySelector js/document "#root")]
-    (uix.dom/render [root {:path state/PATH}] element)))
+    (uix.dom/render [root {:path env/PATH}] element)))
 
 (main)

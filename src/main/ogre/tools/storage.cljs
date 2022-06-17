@@ -2,6 +2,7 @@
   (:require [datascript.core :as ds]
             [datascript.transit :as dt]
             [dexie]
+            [ogre.tools.env :as env]
             [ogre.tools.state :as state]
             [ogre.tools.timing :refer [debounce]]
             [uix.core.alpha :as uix :refer [defcontext]]))
@@ -9,19 +10,13 @@
 (defcontext storage)
 
 (def ignored-attrs
-  #{:local/host?
+  #{:local/type
     :local/loaded?
     :local/privileged?
     :local/sharing?
     :local/paused?
-    :local/modifier})
-
-(defn host? [element]
-  (->
-   (.. element -location -search)
-   (js/URLSearchParams.)
-   (.get "share")
-   (not= "true")))
+    :local/modifier
+    :session/state})
 
 (defn initialize []
   (let [store (dexie. "ogre.tools")]
@@ -31,16 +26,15 @@
 (defn unmarshaller
   "Initializes the DataScript database from the serialized state within the
    browser's IndexedDB store. This is only run once for both the host and
-   guest windows." []
+   view window." []
   (let [[conn]          (uix/context state/state)
         {:keys [store]} (uix/context storage)
-        tx-data
-        [[:db/add [:db/ident :local] :local/loaded? true]
-         [:db/add [:db/ident :local] :local/host? (host? js/window)]]]
+        tx-data         [[:db/add [:db/ident :local] :local/loaded? true]
+                         [:db/add [:db/ident :local] :local/type (state/local-type)]]]
     (uix/effect!
      (fn []
        (-> (.table store "app")
-           (.get state/VERSION)
+           (.get env/VERSION)
            (.then
             (fn [record]
               (if (nil? record)
@@ -65,29 +59,20 @@
         {:keys [store]} (uix/context storage)]
     (uix/effect!
      (fn []
-       (ds/listen!
-        conn :marshaller
-        (debounce
-         (fn [report]
-           (let [result (ds/pull (:db-after report) [:local/host? :local/loaded?] [:db/ident :local])
-                 {:local/keys [host? loaded?]} result]
-             (if (and host? loaded?)
-               (-> (ds/filter
-                    (:db-after report)
-                    (fn [_ [_ attr _ _]]
-                      (not (contains? ignored-attrs attr))))
-                   (ds/datoms :eavt)
-                   (dt/write-transit-str)
-                   (as-> marshalled
-                         (let [record #js {:release state/VERSION
-                                           :updated (* -1 (.now js/Date))
-                                           :data    marshalled}]
-                           (.put (.table store "app") record))))))) 200))
+       (ds/listen! conn :marshaller
+                   (debounce
+                    (fn [{:keys [db-after]}]
+                      (if (:local/loaded? (ds/entity db-after [:db/ident :local]))
+                        (-> db-after
+                            (ds/db-with [[:db/retractEntity [:db/ident :session]]])
+                            (ds/filter (fn [_ [_ attr _ _]] (not (contains? ignored-attrs attr))))
+                            (ds/datoms :eavt)
+                            (dt/write-transit-str)
+                            (as-> marshalled #js {:release env/VERSION :updated (* -1 (.now js/Date)) :data marshalled})
+                            (as-> record (.put (.table store "app") record))))) 200))
        (fn [] (ds/unlisten! conn :marshaller))) []) nil))
 
-(defn handlers
-  "Registers event handlers related to IndexedDB, such as those involved in
-   saving and loading the application state." []
+(defn reset-handler []
   (let [[conn _]        (uix/context state/state)
         {:keys [store]} (uix/context storage)]
     (uix/effect!
@@ -97,10 +82,17 @@
         (fn [{[event _ _] :tx-meta}]
           (when (= event :storage/reset)
             (.delete store)
-            (.reload (.-location js/window)))))) [])
-    [:<>
-     [unmarshaller]
-     [marshaller]]))
+            (.reload (.-location js/window)))))) [])) nil)
+
+(defn handlers
+  "Registers event handlers related to IndexedDB, such as those involved in
+   saving and loading the application state." []
+  (let [[conn _]        (uix/context state/state)
+        local           (ds/entity @conn [:db/ident :local])]
+    (case (:local/type local)
+      :host [:<> [unmarshaller] [marshaller] [reset-handler]]
+      :view [unmarshaller]
+      :conn [:<>])))
 
 (defn provider
   "Provides an instance of the Dexie object, a convenience wrapper around

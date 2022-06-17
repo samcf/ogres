@@ -1,8 +1,10 @@
 (ns ogre.tools.render
   (:require [clojure.string :refer [join trim]]
-            [datascript.core :refer [squuid]]
+            [datascript.core :as ds :refer [squuid]]
+            [ogre.tools.env :as env]
+            [ogre.tools.image :as image]
             [ogre.tools.storage :refer [storage]]
-            [ogre.tools.state :refer [PATH]]
+            [ogre.tools.state :refer [state]]
             [uix.core.alpha :as uix]))
 
 (defn css [& class-names]
@@ -39,7 +41,7 @@
 
 (defn icon [{:keys [name size] :or {size 22}}]
   [:svg {:class "icon" :width size :height size :fill "currentColor"}
-   [:use {:href (str PATH "/icons.svg" "#icon-" name)}]])
+   [:use {:href (str env/PATH "/icons.svg" "#icon-" name)}]])
 
 (defn listen!
   "Manages the registration and cleanup of a DOM event handler."
@@ -60,8 +62,16 @@
 
 (def cache (atom {}))
 
+(defn create-object-url [data-url]
+  (-> (.fetch js/window data-url)
+      (.then (fn [r] (.blob r)))
+      (.then (fn [b]
+               (->> (js/File. #js [b] "image" #js {:type (.-type b)})
+                    (js/URL.createObjectURL))))))
+
 (defn use-image [checksum]
-  (let [{:keys [store]}  (uix/context storage)
+  (let [[conn dispatch]  (uix/context state)
+        {:keys [store]}  (uix/context storage)
         sentinel         (uix/state 0)
         watch-key        (deref (uix/state (squuid)))
         [loading cached] (get @cache checksum [false nil])]
@@ -82,15 +92,25 @@
 
     (uix/effect!
      (fn []
+       (ds/listen!
+        conn :image-caching
+        (fn [{[event [data-url] _] :tx-meta}]
+          (if (= event :image/cache)
+            (let [hash   (image/checksum data-url)
+                  record #js {:checksum hash :data data-url :created-at (.now js/Date)}
+                  result (create-object-url data-url)]
+              (.then result (fn [] (.put (.table store "images") record)))
+              (.then result (fn [url] (swap! cache assoc hash [false url])))))))
+       (fn [] (ds/unlisten! conn :image-caching))) [])
+
+    (uix/effect!
+     (fn []
        (if (and (string? checksum) (not (or loading cached)))
          (-> (.table store "images")
              (.get checksum)
-             (.then (fn [r] (.fetch js/window (.-data r))))
-             (.then (fn [r] (.blob r)))
-             (.then (fn [b]
-                      (->> (js/File. #js [b] "image" #js {:type (.-type b)})
-                           (.createObjectURL js/URL)
-                           (vector false)
-                           (swap! cache assoc checksum))))))) [checksum])
+             (.then (fn [rec] (create-object-url (.-data rec))))
+             (.then (fn [url] (swap! cache assoc checksum [false url])))
+             (.catch (fn [] (dispatch :image/request checksum))))))
+     [checksum])
 
     cached))
