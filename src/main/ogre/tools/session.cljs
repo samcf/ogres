@@ -74,6 +74,7 @@
      conn
      [[:db/add [:db/ident :local] :entity/key (:uuid data)]
       [:db/add [:db/ident :local] :session/state :connected]
+      [:db/add [:db/ident :local] :session/last-room (:room data)]
       [:db/add [:db/ident :session] :session/room (:room data)]])
 
     :session/joined
@@ -150,7 +151,7 @@
              params (js/URLSearchParams. search)
              room   (.get params "join")]
          (if (not (nil? room))
-           (let [ws (js/WebSocket. (str env/SOCKET-URL "?key=" room))]
+           (let [ws (js/WebSocket. (str env/SOCKET-URL "?join=" room))]
              (reset! socket ws))))) [])
 
     (uix/effect!
@@ -159,8 +160,12 @@
         conn :session
         (fn [{db-after :db-after [event args tx-data] :tx-meta}]
           (cond (= event :session/request)
-                (let [ws (js/WebSocket. env/SOCKET-URL)]
-                  (reset! socket ws))
+                (let [host (ds/entity db-after [:db/ident :local])
+                      conn (js/WebSocket.
+                            (if (:session/last-room host)
+                              (str env/SOCKET-URL "?host=" (:session/last-room host))
+                              env/SOCKET-URL))]
+                  (reset! socket conn))
 
                 (= event :session/close)
                 (if-let [ws @socket]

@@ -59,26 +59,37 @@
     ;; be exchanged over the socket, such as image data URLs.
     (.setMaxTextMessageSize (.getPolicy session) 1e7)
 
-    (let [param (.. session (getUpgradeRequest) (getParameterMap) (get "key"))]
-      (if (nil? param)
-        (let [room (room-create-key)]
-          (swap! sessions room-create room uuid chan)
-          (go (<! (timeout 32))
-              (->> {:type :event :data {:name :session/created :room room :uuid uuid} :time "" :src uuid :dst uuid}
-                   (marshall)
-                   (>! chan))))
-        (let [room (.get param 0)]
-          (swap! sessions room-join room uuid chan)
-          (go (<! (timeout 32))
-              (->> {:type :event :data {:name :session/joined :room room :uuid uuid} :time "" :dst uuid}
-                   (marshall)
-                   (>! chan))
-              (let [conns (disj (get-in @sessions [:rooms room :conns]) uuid)
-                    chans (into [] conns-chans-xf (select-keys (:conns @sessions) conns))]
-                (doseq [chan chans]
-                  (->> {:type :event :data {:name :session/join :room room :uuid uuid} :time "" :src uuid}
+    (let [params (.. session (getUpgradeRequest) (getParameterMap))
+          host   (some-> params (.get "host") (.get 0))
+          join   (some-> params (.get "join") (.get 0))
+          time   (.getEpochSecond (Instant/now))]
+      (cond (string? host)
+            (do (swap! sessions room-create host uuid chan)
+                (go (<! (timeout 32))
+                    (->> {:type :event :data {:name :session/created :room host :uuid uuid} :time time :src uuid :dst uuid}
+                         (marshall)
+                         (>! chan))))
+
+            (string? join)
+            (do (swap! sessions room-join join uuid chan)
+                (go (<! (timeout 32))
+                    (->> {:type :event :data {:name :session/joined :room join :uuid uuid} :time time :dst uuid}
+                         (marshall)
+                         (>! chan))
+                    (let [conns (disj (get-in @sessions [:rooms join :conns]) uuid)
+                          chans (into [] conns-chans-xf (select-keys (:conns @sessions) conns))]
+                      (doseq [chan chans]
+                        (->> {:type :event :data {:name :session/join :room join :uuid uuid} :time time :src uuid}
+                             (marshall)
+                             (>! chan))))))
+
+            :else
+            (let [room (room-create-key)]
+              (swap! sessions room-create room uuid chan)
+              (go (<! (timeout 32))
+                  (->> {:type :event :data {:name :session/created :room room :uuid uuid} :time time :src uuid :dst uuid}
                        (marshall)
-                       (>! chan))))))))))
+                       (>! chan))))))))
 
 (defn uuid->room
   [sessions uuid]
@@ -147,10 +158,20 @@
    :on-close   (on-close uuid)})
 
 (defn create-listener [req res handlers-fn]
-  (let [param (.. req getParameterMap (get "key"))]
-    (if (or (nil? param) (get-in @sessions [:rooms (.get param 0)]))
-      (ws/make-ws-listener (handlers-fn (ds/squuid)))
-      (.sendForbidden res "No such lobby currently exists."))))
+  (let [params (.. req getParameterMap)
+        host   (some-> params (.get "host") (.get 0))
+        join   (some-> params (.get "join") (.get 0))]
+    (cond (and host join)
+          (.sendForbidden res "Query parameters cannot contain host and join parameters.")
+
+          (and host (get-in @sessions [:rooms host]))
+          (.sendForbidden res "Cannot create room with that key; it already exists.")
+
+          (and join (nil? (get-in @sessions [:rooms join])))
+          (.sendForbidden res "Cannot join room with that key; it does not exist.")
+
+          :else
+          (ws/make-ws-listener (handlers-fn (ds/squuid))))))
 
 (defn create-server
   ([] (create-server {}))
