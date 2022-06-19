@@ -624,6 +624,10 @@
    {:db/id -2 :entity/key local :session/state :connecting}
    {:db/id -3 :db/ident :root :root/session -1}])
 
+(defmethod transact :session/join
+  [{:keys [local]}]
+  [{:db/id -1 :entity/key local :session/state :connecting}])
+
 (defmethod transact :session/close
   [{:keys [local]}]
   [{:db/id -1 :entity/key local :session/state :disconnected}

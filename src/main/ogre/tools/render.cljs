@@ -52,6 +52,14 @@
     (fn [] (if element (.addEventListener element event handler #js {:passive false}))
       (fn [] (if element (.removeEventListener element event handler #js {:passive false})))) dependencies)))
 
+(defn use-interval
+  "Periodically runs the given function `f` every `delay` milliseconds."
+  [f delay]
+  (uix/effect!
+   (fn []
+     (let [id (js/window.setInterval f delay)]
+       (fn [] (js/window.clearInterval id))))))
+
 (defn use-modal []
   (let [ref (uix/ref) state (uix/state false)]
     (listen!
