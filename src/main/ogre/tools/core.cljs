@@ -55,7 +55,6 @@
   [:<>
    [:> Helmet
     [:link {:rel "stylesheet" :href (str path "/reset.css")}]
-    [:link {:rel "stylesheet" :href (str path "/fonts.css")}]
     [:link {:rel "stylesheet" :href (str path "/ogre.tools.css")}]]
    [errors/boundary
     [state/provider
