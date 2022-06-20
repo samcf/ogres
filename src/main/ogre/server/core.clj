@@ -181,6 +181,7 @@
          ::server/type :jetty
          ::server/host "0.0.0.0"
          ::server/port port
+         ::server/allowed-origins ["http://localhost:8080" "https://ogre.tools:80"]
          ::server/container-options
          {:context-configurator
           (fn [context]

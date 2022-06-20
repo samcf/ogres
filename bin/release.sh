@@ -6,7 +6,7 @@ set -o nounset
 src="$PWD"
 dst=$(mktemp -d -t ogre.tools)
 vrs=$1
-url="ws://ogre-tools.herokuapp.com/ws"
+url="wss://ogre-tools.herokuapp.com/ws"
 
 npx shadow-cljs release app --config-merge "{:closure-defines {ogre.tools.env/VERSION \"$vrs\" ogre.tools.env/PATH \"/release/$vrs\" ogre.tools.env/SOCKET-URL \"$url\"}}"
 
