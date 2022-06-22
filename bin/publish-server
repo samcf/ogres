@@ -1,0 +1,15 @@
+#!/bin/sh
+set -o errexit -o nounset
+
+# Compiles the ogre.server application, deploys the resulting jar
+# to the remote server, and restarts the service.
+#
+# Example
+# $ sh bin/publish-server root@0.0.0.0
+
+src="OgreServer.jar"
+dst=$1
+
+clojure -A:uberjar -m hf.depstar.uberjar "$src"
+rsync -av -e ssh "$src" "$dst":/root/"$src"
+ssh "$dst" systemctl restart ogre.server.service
