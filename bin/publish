@@ -1,7 +1,13 @@
-#!/usr/bin/env bash
-set -o errexit
-set -o pipefail
-set -o nounset
+#!/bin/sh
+set -o errexit -o nounset
+
+# Publishes the given release as the latest version of the ogre.tools
+# application by copying the contents of that release into the `latest`
+# directory, replacing the previous published release altogether. This
+# is only used for the client application.
+#
+# Example
+# $ sh bin/publish v0.1.10-alpha
 
 src="$PWD"
 dst=$(mktemp -d -t ogre.tools)

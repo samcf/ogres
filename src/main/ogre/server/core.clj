@@ -173,15 +173,18 @@
           :else
           (ws/make-ws-listener (handlers-fn (ds/squuid))))))
 
+(defn root-handler [_]
+  {:status 200 :body "This server manages multiplayer sessions for https://ogre.tools, a free and open-source virtual tabletop application."})
+
 (defn create-server
   ([] (create-server {}))
   ([{:keys [port] :or {port 5000}}]
    (->> {:env :prod
-         ::server/routes #{}
+         ::server/routes #{["/" :get `root-handler]}
          ::server/type :jetty
          ::server/host "0.0.0.0"
          ::server/port port
-         ::server/allowed-origins ["http://localhost:8080" "https://ogre.tools:80"]
+         ::server/allowed-origins (constantly true)
          ::server/container-options
          {:context-configurator
           (fn [context]
@@ -193,13 +196,7 @@
 
 (defn create-dev-server []
   (-> (create-server)
-      (merge {:env :dev
-              ::server/join? false
-              ::server/allowed-origins
-              {:creds true :allowed-origins (constantly true)}
-              ::server/secure-headers
-              {:content-security-policy-settings
-               {:object-src "'none'"}}})
+      (merge {:env :dev ::server/join? false})
       (server/dev-interceptors)
       (server/create-server)))
 

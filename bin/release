@@ -1,12 +1,18 @@
-#!/usr/bin/env bash
-set -o errexit
-set -o pipefail
-set -o nounset
+#!/bin/sh
+set -o errexit -o nounset
+
+# Creates or updates an existing release by the version given. This is
+# only used for the client application. Do not replace a release that
+# has already been published once before unless you can ensure that
+# there are no backwards-incompatible changes.
+#
+# Example
+# $ sh bin/release v0.1.10-alpha
 
 src="$PWD"
 dst=$(mktemp -d -t ogre.tools)
 vrs=$1
-url="wss://ogre-tools.herokuapp.com/ws"
+url="wss://griffons.rest/ws"
 
 npx shadow-cljs release app --config-merge "{:closure-defines {ogre.tools.env/VERSION \"$vrs\" ogre.tools.env/PATH \"/release/$vrs\" ogre.tools.env/SOCKET-URL \"$url\"}}"
 
