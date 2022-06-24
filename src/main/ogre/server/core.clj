@@ -62,32 +62,33 @@
     (let [params (.. session (getUpgradeRequest) (getParameterMap))
           host   (some-> params (.get "host") (.get 0))
           join   (some-> params (.get "join") (.get 0))
-          time   (.getEpochSecond (Instant/now))]
+          time   (.getEpochSecond (Instant/now))
+          meta   {:type :event :time time :src uuid}]
       (cond (string? host)
-            (do (swap! sessions room-create host uuid chan)
-                (go (<! (timeout 32))
-                    (->> {:type :event :data {:name :session/created :room host :uuid uuid} :time time :src uuid :dst uuid}
-                         (marshall)
-                         (>! chan))))
+            (let [_ (swap! sessions room-create host uuid chan)]
+              (go (<! (timeout 32))
+                  (->> (assoc meta :data {:name :session/created :room host :uuid uuid} :dst uuid)
+                       (marshall)
+                       (>! chan))))
 
             (string? join)
-            (do (swap! sessions room-join join uuid chan)
-                (go (<! (timeout 32))
-                    (->> {:type :event :data {:name :session/joined :room join :uuid uuid} :time time :dst uuid}
-                         (marshall)
-                         (>! chan))
-                    (let [conns (disj (get-in @sessions [:rooms join :conns]) uuid)
-                          chans (into [] conns-chans-xf (select-keys (:conns @sessions) conns))]
-                      (doseq [chan chans]
-                        (->> {:type :event :data {:name :session/join :room join :uuid uuid} :time time :src uuid}
-                             (marshall)
-                             (>! chan))))))
+            (let [sessions (swap! sessions room-join join uuid chan)]
+              (go (<! (timeout 32))
+                  (->> (assoc meta :data {:name :session/joined :room join :uuid uuid} :dst uuid)
+                       (marshall)
+                       (>! chan))
+                  (let [conns (disj (get-in sessions [:rooms join :conns]) uuid)
+                        chans (into [] conns-chans-xf (select-keys (:conns sessions) conns))]
+                    (doseq [chan chans]
+                      (->> (assoc meta :data {:name :session/join :room join :uuid uuid})
+                           (marshall)
+                           (>! chan))))))
 
             :else
-            (let [room (room-create-key)]
-              (swap! sessions room-create room uuid chan)
+            (let [room (room-create-key)
+                  _    (swap! sessions room-create room uuid chan)]
               (go (<! (timeout 32))
-                  (->> {:type :event :data {:name :session/created :room room :uuid uuid} :time time :src uuid :dst uuid}
+                  (->> (assoc meta :data {:name :session/created :room room :uuid uuid} :dst uuid)
                        (marshall)
                        (>! chan))))))))
 
