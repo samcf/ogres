@@ -1439,12 +1439,23 @@ legend {
 }
 
 .session-player {
+    align-items: center;
     border-radius: 3px;
     border: 1px solid hsl(0, 10%, 55%);
     cursor: default;
-    font-family: var(--font-stack-mono);
-    font-size: 10px;
+    display: flex;
+    gap: 8px;
     padding: 4px 8px;
+}
+
+.session-player-color {
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    height: 15px;
+}
+
+.session-player-label {
+    flex: 1;
 }
 
 /* Shared */

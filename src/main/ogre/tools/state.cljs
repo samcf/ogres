@@ -45,6 +45,7 @@
     [:db/add -3 :db/ident :local]
     [:db/add -3 :entity/key (squuid)]
     [:db/add -3 :local/loaded? false]
+    [:db/add -3 :local/color "#ffeb3b"]
     [:db/add -3 :local/window -4]
     [:db/add -3 :local/windows -4]
     [:db/add -3 :local/type (local-type)]

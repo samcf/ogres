@@ -1,15 +1,28 @@
 (ns ogre.tools.session
-  (:require [datascript.core :as ds]
+  (:require [clojure.set :refer [difference]]
+            [cognitect.transit :as transit]
+            [datascript.core :as ds]
             [datascript.transit :as dst]
             [ogre.tools.env :as env]
             [ogre.tools.render :refer [listen! use-interval]]
             [ogre.tools.state :refer [state schema]]
             [ogre.tools.storage :refer [storage]]
-            [uix.core.alpha :as uix]
-            [cognitect.transit :as transit]))
+            [uix.core.alpha :as uix]))
 
 (def reader (transit/reader :json {:handlers dst/read-handlers}))
 (def writer (transit/writer :json {:handlers dst/write-handlers}))
+
+(def ^{:private true} session-color-options
+  #{"#f44336" "#2196f3" "#8bc34a" "#673ab7" "#ff9800" "#009688" "#3f51b5" "#9c27b0" "#ff5722"})
+
+(defn ^{:private true} next-color [data colors]
+  (let [unused (->> (ds/entity data [:db/ident :session])
+                    (:session/conns)
+                    (into #{} (map :local/color))
+                    (difference colors))]
+    (if (seq unused)
+      (first (shuffle unused))
+      (first (shuffle colors)))))
 
 (defn handle-open [_ _]
   (comment "Not implemented"))
@@ -91,21 +104,29 @@
 
     :session/join
     (let [local   (ds/entity @conn [:db/ident :local])
-          tx-data (into [[:db/add -1 :entity/key (:uuid data)]
-                         [:db/add -1 :local/type :conn]
-                         [:db/add [:db/ident :session] :session/conns -1]]
-                        (if (= (:local/type local) :host)
-                          [[:db/add -1 :local/loaded? true]
-                           [:db/add -1 :session/state :connected]
-                           [:db/add -1 :local/window -2]
-                           [:db/add -1 :local/windows -2]
-                           [:db/add -2 :entity/key (ds/squuid)]
-                           [:db/add -2 :window/canvas -3]
-                           [:db/add -3 :entity/key (-> local :local/window :window/canvas :entity/key)]]))
-          report  (ds/transact! conn tx-data)]
+          tx-data
+          [[:db/add -1 :entity/key (:uuid data)]
+           [:db/add -1 :local/type :conn]
+           [:db/add [:db/ident :session] :session/conns -1]]
+
+          tx-data-addtl
+          (if (= (:local/type local) :host)
+            [[:db/add -1 :entity/key (:uuid data)]
+             [:db/add -1 :local/type :conn]
+             [:db/add -1 :local/loaded? true]
+             [:db/add -1 :local/color (next-color @conn session-color-options)]
+             [:db/add -1 :session/state :connected]
+             [:db/add -1 :local/window -2]
+             [:db/add -1 :local/windows -2]
+             [:db/add -2 :entity/key (ds/squuid)]
+             [:db/add -2 :window/canvas -3]
+             [:db/add -3 :entity/key (-> local :local/window :window/canvas :entity/key)]]
+            [])
+          report (ds/transact! conn (into tx-data tx-data-addtl))]
       (if (= (:local/type local) :host)
         (let [datoms (ds/datoms (:db-after report) :eavt)]
-          (on-send {:type :datoms :dst (:uuid data) :data (into [] datoms)}))))
+          (on-send {:type :datoms :data (into [] datoms) :dst (:uuid data)})
+          (on-send {:type :tx :data tx-data-addtl}))))
 
     :session/leave
     (ds/transact! conn [[:db/retractEntity [:entity/key (:uuid data)]]])

@@ -8,10 +8,11 @@
   [{:root/local
     [:entity/key
      :local/type
+     :local/color
      [:session/state :default :initial]]}
    {:root/session
     [:session/room
-     {:session/conns [:entity/key]}
+     {:session/conns [:entity/key :local/color :local/type]}
      {:session/host [:entity/key]}]}])
 
 (defn ^{:private true} session-url [room-key]
@@ -50,10 +51,20 @@
        [:section
         [:header "Players"]
         [:fieldset.session-players
+         (let [{:keys [local/color]} (:root/local result)]
+           [:div.session-player
+            [:div.session-player-color {:style {:background-color color}}]
+            [:div.session-player-label "You"]])
          (if (seq conns)
-           (for [{:keys [entity/key]} conns]
-             [:div.session-player {:key key} key])
-           [:em "No one is here, yet."])]])]))
+           (for [{:local/keys [color type] :as conn} conns]
+             [:div.session-player {:key (:entity/key conn)}
+              [:div.session-player-color {:style {:background-color color}}]
+              [:div.session-player-label
+               (case type
+                 :conn "Player"
+                 :host "Host"
+                 nil)]])
+           [:span "No one else is here, yet."])]])]))
 
 (defmethod form :session []
   session-form)
