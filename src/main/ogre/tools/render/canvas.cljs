@@ -424,7 +424,7 @@
      (if (seq selected)
        (let [keys         (map :entity/key selected)
              [ax _ bx by] (apply bounding-box (map :token/vec selected))]
-         [portal/use {:label (if (= type :host) :selected)}
+         [portal/use {:label (if (or (= type :host) (= type :conn)) :selected)}
           [:> react-draggable
            {:position #js {:x 0 :y 0}
             :scale    scale
