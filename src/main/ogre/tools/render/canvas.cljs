@@ -511,8 +511,12 @@
         [tokens]
         [light-mask]
         [canvas-mask]
-        [portal/create (fn [ref] [:g {:ref ref}]) :selected]]]]
-     [portal/create (fn [ref] [:g {:ref ref :class "canvas-drawable canvas-drawable-select"}]) :multiselect]
+        [portal/create (fn [ref] [:g {:ref ref :style {:outline "none"}}]) :selected]]]]
+     [portal/create
+      (fn [ref]
+        [:g {:ref ref
+             :style {:outline "none"}
+             :class "canvas-drawable canvas-drawable-select"}]) :multiselect]
      (if (contains? draw-modes mode)
        [:g {:class (str "canvas-drawable canvas-drawable-" (name mode))}
         ^{:key mode} [draw {:mode mode :node nil}]])
