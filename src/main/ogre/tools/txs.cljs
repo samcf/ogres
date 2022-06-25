@@ -569,13 +569,13 @@
   [{:db/id -1 :entity/key local :local/tooltips? display?}])
 
 (defmethod transact :interface/change-panel
-  [{:keys [window]} panel]
-  [{:db/id -1 :entity/key window :panel/current panel :panel/collapsed? false}])
+  [{:keys [local]} panel]
+  [{:db/id -1 :entity/key local :panel/current panel :panel/collapsed? false}])
 
 (defmethod transact :interface/toggle-panel
-  [{:keys [data window]}]
-  (let [entity (ds/entity data [:entity/key window])]
-    [{:db/id -1 :entity/key window :panel/collapsed? (not (:panel/collapsed? entity))}]))
+  [{:keys [data local]}]
+  (let [entity (ds/entity data [:entity/key local])]
+    [{:db/id -1 :entity/key local :panel/collapsed? (not (:panel/collapsed? entity))}]))
 
 (defmethod transact :stamp/create
   [_ checksum filename width height]

@@ -58,6 +58,8 @@
                [:db/add -2 :entity/key (:entity/key prev-local)]
                [:db/add -2 :db/ident :local]
                [:db/add -2 :bounds/self (or (:bounds/self prev-local) [0 0 0 0])]
+               [:db/add -2 :panel/current (or (:panel/current prev-local) :session)]
+               [:db/add -2 :panel/collapsed? (or (:panel/collapsed? prev-local) false)]
 
                ;; Replace host as the local user, swap places in session
                ;; connections.
@@ -71,9 +73,7 @@
                      (:entity/key (:window/canvas (:local/window next-local))))
                 [[:db/add -3 :entity/key (:entity/key (:local/window next-local))]
                  [:db/add -3 :window/vec (or (:window/vec prev-window) [0 0])]
-                 [:db/add -3 :window/scale (or (:window/scale prev-window) 1)]
-                 [:db/add -3 :panel/current (or (:panel/current prev-window) :session)]
-                 [:db/add -3 :panel/collapsed? (or (:panel/collapsed? prev-window) false)]] []))]
+                 [:db/add -3 :window/scale (or (:window/scale prev-window) 1)]] []))]
     (ds/db-with next tx-data)))
 
 (defmulti handle-message (fn [_ {:keys [type]} _] type))

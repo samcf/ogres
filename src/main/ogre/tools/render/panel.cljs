@@ -25,14 +25,12 @@
 
 (def ^{:private true} query
   [:local/type
-   {:local/window
-    [:panel/current
-     [:panel/collapsed? :default false]]}])
+   [:panel/current :default :canvas]
+   [:panel/collapsed? :default false]])
 
 (defn container []
   (let [[result dispatch] (use-query query)
-        {:local/keys [type window]} result
-        {:panel/keys [current collapsed?]} window
+        {:keys [local/type panel/current panel/collapsed?]} result
         forms    (panel-forms type)
         selected (or current (:form (first forms)))]
     [:section.panel
