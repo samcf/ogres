@@ -1,10 +1,11 @@
 (ns ogre.tools.form.canvas
   (:require [clojure.string :refer [capitalize]]
+            [ogre.tools.events :refer [use-dispatch]]
             [ogre.tools.form.render :refer [form]]
             [ogre.tools.image :as image]
             [ogre.tools.render :refer [button checkbox icon use-image]]
             [ogre.tools.state :refer [use-query]]
-            [ogre.tools.storage :refer [storage]]
+            [ogre.tools.storage :refer [use-store]]
             [uix.core.alpha :as uix]))
 
 (defn ^{:private true} thumbnail [{:keys [checksum selected on-select on-remove]}]
@@ -42,10 +43,11 @@
          [:grid/size :default 70]]}]}]}])
 
 (defn ^{:private true} canvas []
-  (let [[result dispatch] (use-query query [:db/ident :root])
-        {:keys [store]}   (uix/context storage)
-        show-images       (uix/state false)
-        file-upload       (uix/ref)
+  (let [dispatch    (use-dispatch)
+        result      (use-query query [:db/ident :root])
+        store       (use-store)
+        show-images (uix/state false)
+        file-upload (uix/ref)
         {scenes :root/scenes
          {window :local/window
           {canvas :window/canvas} :local/window} :root/local} result

@@ -2,6 +2,7 @@
   (:require [clojure.set :refer [difference]]
             [clojure.string :refer [join]]
             [datascript.core :refer [squuid]]
+            [ogre.tools.events :refer [use-dispatch]]
             [ogre.tools.geom :refer [bounding-box chebyshev euclidean triangle]]
             [ogre.tools.render :refer [icon use-image]]
             [ogre.tools.render.draw :refer [draw]]
@@ -60,7 +61,7 @@
         [:image/checksum]}]}]}])
 
 (defn scene []
-  (let [[result] (use-query scene-query)
+  (let [result (use-query scene-query)
         {{{color :canvas/color {checksum :image/checksum}
            :canvas/image}
           :window/canvas}
@@ -86,7 +87,7 @@
        {:canvas/image [:image/checksum :image/width :image/height]}]}]}])
 
 (defn light-mask []
-  (let [[result] (use-query light-mask-query)
+  (let [result (use-query light-mask-query)
         {type :local/type
          {{visibility :canvas/visibility
            size       :grid/size
@@ -127,7 +128,8 @@
        {:canvas/masks [:entity/key :mask/vecs :mask/enabled?]}]}]}])
 
 (defn canvas-mask []
-  (let [[result dispatch] (use-query canvas-mask-query)
+  (let [dispatch (use-dispatch)
+        result   (use-query canvas-mask-query)
         {type :local/type
          {mode :window/draw-mode
           {filled? :mask/filled?
@@ -172,7 +174,7 @@
       [[:grid/size :default 70]]}]}])
 
 (defn grid []
-  (let [[data] (use-query grid-query)
+  (let [data (use-query grid-query)
         {[_ _ w h] :bounds/self
          {[cx cy] :window/vec
           mode    :window/draw-mode
@@ -261,7 +263,8 @@
          {:window/_selected [:entity/key]}]}]}]}])
 
 (defn shapes []
-  (let [[result dispatch] (use-query shapes-query)
+  (let [dispatch (use-dispatch)
+        result   (use-query shapes-query)
         {:local/keys [type window]} result
         {:window/keys [scale snap-grid canvas]} window
         participant? (or (= type :host) (= type :conn))]
@@ -305,10 +308,10 @@
           [:image/checksum]}]}]}]}])
 
 (defn stamps []
-  (let [[result _] (use-query stamps-query)
-        tokens     (-> result :local/window :window/canvas :canvas/tokens)
-        checksums  (into #{} (comp (map :token/image) (map :image/checksum)) tokens)
-        attrs      {:width "100%" :height "100%" :patternContentUnits "objectBoundingBox"}]
+  (let [result    (use-query stamps-query)
+        tokens    (-> result :local/window :window/canvas :canvas/tokens)
+        checksums (into #{} (comp (map :token/image) (map :image/checksum)) tokens)
+        attrs     {:width "100%" :height "100%" :patternContentUnits "objectBoundingBox"}]
     [:defs
      [:pattern (merge attrs {:id "token-stamp-default" :viewBox "0 0 16 16" :fill "#f2f2eb"})
       [:rect {:x 0 :y 0 :width 16 :height 16 :fill "hsl(200, 20%, 12%)"}]
@@ -385,7 +388,8 @@
          {:window/_selected [:entity/key]}]}]}]}])
 
 (defn tokens []
-  (let [[result dispatch] (use-query tokens-query)
+  (let [dispatch (use-dispatch)
+        result   (use-query tokens-query)
         {:local/keys [type window]} result
         {:window/keys [snap-grid scale canvas]} window
         {:canvas/keys [tokens]} canvas
@@ -451,7 +455,7 @@
                [token-context-menu {:tokens selected :type type}]])]]]))]))
 
 (defn bounds []
-  (let [[result] (use-query [:bounds/host :bounds/view])
+  (let [result (use-query [:bounds/host :bounds/view])
         {[_ _ hw hh] :bounds/host
          [_ _ vw vh] :bounds/view} result
         [ox oy] [(/ (- hw vw) 2) (/ (- hh vh) 2)]]
@@ -473,7 +477,8 @@
       [[:canvas/theme :default :light]]}]}])
 
 (defn canvas []
-  (let [[result dispatch] (use-query canvas-query)
+  (let [dispatch (use-dispatch)
+        result   (use-query canvas-query)
         {type        :local/type
          priv?       :local/privileged?
          [_ _ hw hh] :bounds/host

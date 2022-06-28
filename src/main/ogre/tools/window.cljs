@@ -1,8 +1,9 @@
 (ns ogre.tools.window
   (:require [cognitect.transit :as t]
             [datascript.core :as ds]
+            [ogre.tools.events :refer [use-dispatch subscribe!]]
             [ogre.tools.render :refer [listen!]]
-            [ogre.tools.state :refer [state use-query]]
+            [ogre.tools.state :as state :refer [use-query]]
             [ogre.tools.timing :refer [debounce]]
             [uix.core.alpha :as uix :refer [defcontext]]))
 
@@ -18,27 +19,22 @@
 (defn initialize
   "Registers a DataScript listener in order to manage the view window, the
    player's view of the canvas." []
-  (let [[conn dispatch]       (uix/context state)
-        {:keys [view reset]}  (uix/context context)]
-    (uix/effect!
+  (let [dispatch             (use-dispatch)
+        {:keys [view reset]} (uix/context context)]
+    (subscribe!
      (fn []
-       (ds/listen!
-        conn :initialize
-        (fn [{[event _ _] :tx-meta}]
-          (if (= event :share/initiate)
-            (if (nil? view)
-              (let [url (.. js/window -location -origin)
-                    url (str url "?share=true")
-                    win (.open js/window url "ogre.tools" "width=640,height=640")]
-                (reset win)
-                (dispatch :share/toggle true))
-              (reset)))))
-       (fn [] (ds/unlisten! conn :initialize))) [view]) nil))
+       (if (nil? view)
+         (let [url (.. js/window -location -origin)
+               url (str url "?share=true")
+               win (.open js/window url "ogre.tools" "width=640,height=640")]
+           (reset win)
+           (dispatch :share/toggle true))
+         (reset))) :share/initiate) nil))
 
 (defn dispatcher
   "Registers a DataScript listener in order to forward transactions from the
    host window to the view window." []
-  (let [[conn]         (uix/context state)
+  (let [conn           (uix/context state/context)
         {:keys [view]} (uix/context context)
         writer         (t/writer :json)]
     (uix/effect!
@@ -57,7 +53,7 @@
   "Registers an event handler to listen for application state changes in the
    form of serialized EDN DataScript transactions. Unmarshals and transacts
    those against the local DataScript connection." []
-  (let [[conn] (uix/context state)
+  (let [conn   (uix/context state/context)
         reader (t/reader :json)]
     (listen!
      (fn [event]
@@ -71,7 +67,7 @@
    order to put those dimensions in the application state. Dimensions are
    of the form [x y width height]."
   [{:keys [target type]}]
-  (let [[_ dispatch] (uix/context state)
+  (let [dispatch (use-dispatch)
         selector ".layout-canvas"
         canvas   (uix/state nil)
         handler  (debounce
@@ -122,11 +118,9 @@
 (defn provider
   "Provides a reference to the view window, if any, and registers several
    event handlers needed for them." []
-  (let [[result dispatch]
-        (use-query [:local/type :local/loaded?])
-
-        -window
-        (uix/state nil)
+  (let [dispatch (use-dispatch)
+        result   (use-query [:local/type :local/loaded?])
+        -window  (uix/state nil)
 
         on-set-window
         (fn

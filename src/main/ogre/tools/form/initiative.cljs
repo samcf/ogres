@@ -1,5 +1,6 @@
 (ns ogre.tools.form.initiative
   (:require [clojure.string :refer [join capitalize blank?]]
+            [ogre.tools.events :refer [use-dispatch]]
             [ogre.tools.form.render :refer [form]]
             [ogre.tools.render :refer [button icon use-image use-modal]]
             [ogre.tools.state :refer [use-query]]
@@ -62,7 +63,7 @@
         [:div.initiant-health-label value])]]))
 
 (defn ^{:private true} initiant [context entity]
-  (let [dispatch                    (use-query)
+  (let [dispatch                    (use-dispatch)
         {:keys [entity/key]}        entity
         {:token/keys [label flags]} entity
         {:initiative/keys [suffix]} entity
@@ -113,9 +114,10 @@
          {:token/image [:image/checksum]}]}]}]}])
 
 (defn ^{:private true} initiative []
-  (let [[result dispatch] (use-query query)
-        initiative        (-> result :local/window :window/canvas :canvas/initiative)
-        host?             (= (:local/type result) :host)]
+  (let [dispatch   (use-dispatch)
+        result     (use-query query)
+        initiative (-> result :local/window :window/canvas :canvas/initiative)
+        host?      (= (:local/type result) :host)]
     (if (seq initiative)
       [:div.initiative
        [:section

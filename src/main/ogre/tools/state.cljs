@@ -1,8 +1,7 @@
 (ns ogre.tools.state
   (:require [uix.core.alpha :as uix :refer [defcontext]]
             [datascript.core :as ds :refer [squuid]]
-            [ogre.tools.env :as env]
-            [ogre.tools.txs :as txs]))
+            [ogre.tools.env :as env]))
 
 (def schema
   {:db/ident          {:db/unique :db.unique/identity}
@@ -53,7 +52,7 @@
     [:db/add -4 :window/canvas -2]
     [:db/add -5 :db/ident :session]]))
 
-(defcontext state)
+(defcontext context)
 
 (defn listening? [data]
   (let [select [:local/type :local/paused?]
@@ -61,13 +60,13 @@
     (or (= type :host) (not paused?))))
 
 (defn use-query
-  ([] (let [[_ dispatch] (uix/context state)] dispatch))
-  ([pattern] (use-query pattern [:db/ident :local]))
+  ([pattern]
+   (use-query pattern [:db/ident :local]))
   ([pattern entity]
-   (let [[conn dispatch] (uix/context state)
-         listen-key      (deref (uix/state (squuid)))
-         get-result      (uix/callback #(ds/pull @conn pattern entity) [])
-         prev-state      (uix/state (get-result))]
+   (let [conn       (uix/context context)
+         listen-key (deref (uix/state (squuid)))
+         get-result (uix/callback #(ds/pull @conn pattern entity) [])
+         prev-state (uix/state (get-result))]
      (uix/effect!
       (fn []
         (let [canceled? (atom false)]
@@ -81,20 +80,7 @@
           (fn []
             (reset! canceled? true)
             (ds/unlisten! conn listen-key)))) [])
-     [@prev-state dispatch])))
-
-(def context-query
-  [:entity/key {:local/window [:entity/key {:window/canvas [:entity/key]}]}])
-
-(defn create-dispatch [conn]
-  (fn [event & args]
-    (let [result  (ds/pull @conn context-query [:db/ident :local])
-          {local    :entity/key
-           {window  :entity/key
-            {canvas :entity/key} :window/canvas} :local/window} result
-          context {:data @conn :event event :local local :window window :canvas canvas}
-          changes (apply txs/transact context args)]
-      (ds/transact! conn changes [event args changes]))))
+     @prev-state)))
 
 (defn provider
   "Provides a DataScript in-memory database to the application and causes
@@ -102,4 +88,4 @@
   [child]
   (let [conn (ds/conn-from-db (initial-data))]
     (uix/context-provider
-     [state [conn (create-dispatch conn)]] child)))
+     [context conn] child)))

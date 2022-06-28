@@ -1,10 +1,10 @@
 (ns ogre.tools.form.data
   (:require [ogre.tools.env :as env]
-            [ogre.tools.form.render :refer [form]]
-            [ogre.tools.state :refer [use-query]]))
+            [ogre.tools.events :refer [use-dispatch]]
+            [ogre.tools.form.render :refer [form]]))
 
 (defn ^{:private true} data-form []
-  (let [dispatch (use-query)]
+  (let [dispatch (use-dispatch)]
     [:section
      [:header "Local Data"]
      [:p "This application stores all uploaded images and work on your

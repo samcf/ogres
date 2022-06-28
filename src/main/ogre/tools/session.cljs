@@ -4,9 +4,10 @@
             [datascript.core :as ds]
             [datascript.transit :as dst]
             [ogre.tools.env :as env]
+            [ogre.tools.events :refer [use-dispatch]]
             [ogre.tools.render :refer [listen! use-interval]]
-            [ogre.tools.state :refer [state schema]]
-            [ogre.tools.storage :refer [storage]]
+            [ogre.tools.state :as state :refer [schema]]
+            [ogre.tools.storage :refer [use-store]]
             [uix.core.alpha :as uix]))
 
 (def reader (transit/reader :json {:handlers dst/read-handlers}))
@@ -164,18 +165,19 @@
     (dispatch :image/cache data-url)))
 
 (defn handlers []
-  (let [{:keys [store]} (uix/context storage)
-        [conn dispatch] (uix/context state)
-        socket          (uix/state nil)
-        on-send         (uix/callback
-                         (fn [message]
-                           (if-let [socket @socket]
-                             (if (= (.-readyState socket) 1)
-                               (let [{key :entity/key} (ds/entity @conn [:db/ident :local])
-                                     defaults          {:time (js/Date.now) :src key}]
-                                 (->> (merge defaults message)
-                                      (transit/write writer)
-                                      (.send socket)))))) [])]
+  (let [dispatch (use-dispatch)
+        store    (use-store)
+        conn     (uix/context state/context)
+        socket   (uix/state nil)
+        on-send  (uix/callback
+                  (fn [message]
+                    (if-let [socket @socket]
+                      (if (= (.-readyState socket) 1)
+                        (let [{key :entity/key} (ds/entity @conn [:db/ident :local])
+                              defaults          {:time (js/Date.now) :src key}]
+                          (->> (merge defaults message)
+                               (transit/write writer)
+                               (.send socket)))))) [])]
 
     ;; Register a listener to all DataScript transactions, sending transaction
     ;; data through the WebSocket (if available) or optionally performing

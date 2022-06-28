@@ -1,6 +1,7 @@
 (ns ogre.tools.form.session
   (:require [clojure.string :refer [capitalize]]
             [ogre.tools.env :as env]
+            [ogre.tools.events :refer [use-dispatch]]
             [ogre.tools.form.render :refer [form]]
             [ogre.tools.state :refer [use-query]]))
 
@@ -19,7 +20,8 @@
   (str (.. js/window -location -origin) "?r=" env/VERSION "&join=" room-key))
 
 (defn ^{:private true} session-form []
-  (let [[result dispatch] (use-query query [:db/ident :root])
+  (let [dispatch (use-dispatch)
+        result   (use-query query [:db/ident :root])
         {{state :session/state
           type  :local/type} :root/local
          {room  :session/room

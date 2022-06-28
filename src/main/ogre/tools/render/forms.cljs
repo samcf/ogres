@@ -1,12 +1,13 @@
 (ns ogre.tools.render.forms
   (:require [clojure.string :refer [capitalize]]
             [datascript.core :refer [squuid]]
+            [ogre.tools.events :refer [use-dispatch]]
             [ogre.tools.image :refer [load checksum]]
             [ogre.tools.render :refer [icon use-image]]
             [ogre.tools.render.pattern :refer [pattern]]
             [ogre.tools.render.portal :as portal]
             [ogre.tools.state :refer [use-query]]
-            [ogre.tools.storage :refer [storage]]
+            [ogre.tools.storage :refer [use-store]]
             [uix.core.alpha :as uix]))
 
 (def conditions
@@ -68,11 +69,12 @@
   (render-fn (use-image checksum)))
 
 (defn images-form [{:keys [on-change]}]
-  (let [[result dispatch] (use-query [{:root/stamps [:image/checksum]}] [:db/ident :root])
-        {:keys [store]}   (uix/context storage)
-        thumbnails        (into [] (comp (map :image/checksum) (partition-all 15)) (reverse (:root/stamps result)))
-        page-index        (uix/state 0)
-        upload-ref        (uix/ref)]
+  (let [dispatch   (use-dispatch)
+        result     (use-query [{:root/stamps [:image/checksum]}] [:db/ident :root])
+        store      (use-store)
+        thumbnails (into [] (comp (map :image/checksum) (partition-all 15)) (reverse (:root/stamps result)))
+        page-index (uix/state 0)
+        upload-ref (uix/ref)]
     [:<>
      [file-uploader
       {:ref upload-ref
@@ -196,7 +198,7 @@
            [icon {:name icon-name :size 22}]]])])))
 
 (defn token-context-menu [{:keys [tokens type]}]
-  (let [dispatch (use-query)
+  (let [dispatch (use-dispatch)
         keys     (map :entity/key tokens)]
     [context-menu
      (fn [{:keys [selected on-change]}]
@@ -259,7 +261,7 @@
        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill (str "url(#" id ")")}]])))
 
 (defn shape-context-menu [{:keys [shape]}]
-  (let [dispatch (use-query)]
+  (let [dispatch (use-dispatch)]
     [context-menu
      (fn [{:keys [selected on-change]}]
        [:<>

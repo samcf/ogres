@@ -1,6 +1,9 @@
 (ns ogre.tools.core
-  (:require [ogre.tools.env :as env]
+  (:require [datascript.core :as ds]
+            [ogre.tools.form.core]
+            [ogre.tools.env :as env]
             [ogre.tools.errors :as errors]
+            [ogre.tools.events :as events]
             [ogre.tools.render :refer [css]]
             [ogre.tools.render.canvas :refer [canvas]]
             [ogre.tools.render.panel :refer [container]]
@@ -12,12 +15,12 @@
             [ogre.tools.shortcut :as shortcut]
             [ogre.tools.state :as state :refer [use-query]]
             [ogre.tools.storage :as storage]
+            [ogre.tools.txs :as txs]
             [ogre.tools.window :as window]
             [react-helmet :refer [Helmet]]
             [uix.core.alpha :as uix]
-            [uix.dom.alpha :as uix.dom]
-            ogre.tools.form.core))
-
+            [uix.dom.alpha :as uix.dom]))
+ 
 (uix/add-transform-fn
  (fn [attrs]
    (if (:css attrs)
@@ -31,7 +34,7 @@
    [:local/tooltips? :default true]])
 
 (defn ^{:private true} layout []
-  (let [[result] (use-query query)
+  (let [result (use-query query)
         {:local/keys [loaded? type shortcuts? tooltips?]} result
         attrs {:data-view-type      (name type)
                :data-show-shortcuts shortcuts?
@@ -51,21 +54,43 @@
         [:div.root.layout attrs
          [:div.layout-canvas [canvas]]]))))
 
+(def ^{:private true} context-query
+  [:entity/key {:local/window [:entity/key {:window/canvas [:entity/key]}]}])
+
+(defn ^{:private true} handle-txs
+  "Subscribes to all events and creates DataScript transactions for those
+   registered as event handlers in `ogre.tools.txs/transact`."
+  []
+  (let [conn    (uix/context state/context)
+        result  (use-query context-query)
+        context {:local  (:entity/key result)
+                 :window (:entity/key (:local/window result))
+                 :canvas (:entity/key (:window/canvas (:local/window result)))}]
+    (events/subscribe!
+     (fn [event]
+       (let [context (assoc context :data @conn :event (:topic event))
+             tx-data (apply txs/transact context (:args event))]
+         (if (seq tx-data)
+           (let [tx-meta [(:topic event) (:args event) tx-data]]
+             (ds/transact! conn tx-data tx-meta)))))) nil))
+
 (defn ^{:private true} root [{:keys [path]}]
   [:<>
    [:> Helmet
     [:link {:rel "stylesheet" :href (str path "/reset.css")}]
     [:link {:rel "stylesheet" :href (str path "/ogre.tools.css")}]]
    [errors/boundary
-    [state/provider
-     [storage/provider
-      [:<>
-       [storage/handlers]
-       [window/provider]
-       [shortcut/handlers]
-       [session/handlers]
-       [portal/provider
-        [layout]]]]]]])
+    [events/provider
+     [state/provider
+      [storage/provider
+       [:<>
+        [handle-txs]
+        [storage/handlers]
+        [window/provider]
+        [shortcut/handlers]
+        [session/handlers]
+        [portal/provider
+         [layout]]]]]]]])
 
 (defn ^{:private true} main []
   (let [element (.querySelector js/document "#root")]
