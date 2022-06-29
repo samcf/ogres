@@ -4,9 +4,8 @@
             [datascript.core :as ds]
             [datascript.transit :as dst]
             [ogre.tools.env :as env]
-            [ogre.tools.hooks :refer [subscribe-many! use-dispatch use-store]]
+            [ogre.tools.hooks :refer [listen! subscribe-many! use-dispatch use-interval use-store]]
             [ogre.tools.provider.state :as provider.state]
-            [ogre.tools.render :refer [listen! use-interval]]
             [uix.core.alpha :as uix]))
 
 (def reader (transit/reader :json {:handlers dst/read-handlers}))

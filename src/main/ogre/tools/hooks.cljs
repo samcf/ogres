@@ -3,7 +3,8 @@
             [ogre.tools.provider.image :as provider.image]
             [ogre.tools.provider.portal :as provider.portal]
             [ogre.tools.provider.state :as provider.state]
-            [ogre.tools.provider.storage :as provider.storage]))
+            [ogre.tools.provider.storage :as provider.storage]
+            [uix.core.alpha :as uix]))
 
 (def ^{:doc "Returns a function which, when called with a topic and any number
              of additional arguments, will perform the following work:
@@ -71,3 +72,34 @@
        :arglists '([])}
   use-store
   provider.storage/use-store)
+
+(defn listen!
+  "Creates a DOM event listener on the given DOM object `element` for `event`,
+   calling `f` with the DOM event."
+  ([f event]      (listen! f event []))
+  ([f event deps] (listen! f js/window event deps))
+  ([f element event deps]
+   (uix/effect!
+    (fn [] (if element (.addEventListener element event f #js {:passive false}))
+      (fn [] (if element (.removeEventListener element event f #js {:passive false})))) deps)))
+
+(defn use-interval
+  "Calls the given function `f` with no arguments every `delay` milliseconds."
+  [f delay]
+  (uix/effect!
+   (fn []
+     (let [id (js/window.setInterval f delay)]
+       (fn [] (js/window.clearInterval id))))))
+
+(defn use-modal
+  "Returns a tuple of [state ref], changing `state` to false when there is
+   a click event that does not occur within the element identified by `ref`.
+   Pass `ref` to the element (or modal) you want to close when the user
+   clicks outside of it."
+  []
+  (let [ref (uix/ref) state (uix/state false)]
+    (listen!
+     (fn [event]
+       (if (and @ref (not (.contains @ref (.-target event))))
+         (swap! state not))) (if @state js/document false) "click" [@state])
+    [state ref]))

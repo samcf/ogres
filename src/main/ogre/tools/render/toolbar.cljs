@@ -1,6 +1,6 @@
 (ns ogre.tools.render.toolbar
-  (:require [ogre.tools.hooks :refer [use-dispatch use-query]]
-            [ogre.tools.render :refer [icon listen!]]
+  (:require [ogre.tools.hooks :refer [listen! use-dispatch use-query]]
+            [ogre.tools.render :refer [icon]]
             [uix.core.alpha :as uix]))
 
 (defn ^{:private true} shortcut [key]

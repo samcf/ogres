@@ -39,28 +39,3 @@
 (defn icon [{:keys [name size] :or {size 22}}]
   [:svg {:class "icon" :width size :height size :fill "currentColor"}
    [:use {:href (str env/PATH "/icons.svg" "#icon-" name)}]])
-
-(defn listen!
-  "Manages the registration and cleanup of a DOM event handler."
-  ([handler event dependencies]
-   (listen! handler js/window event dependencies))
-  ([handler element event dependencies]
-   (uix/effect!
-    (fn [] (if element (.addEventListener element event handler #js {:passive false}))
-      (fn [] (if element (.removeEventListener element event handler #js {:passive false})))) dependencies)))
-
-(defn use-interval
-  "Periodically runs the given function `f` every `delay` milliseconds."
-  [f delay]
-  (uix/effect!
-   (fn []
-     (let [id (js/window.setInterval f delay)]
-       (fn [] (js/window.clearInterval id))))))
-
-(defn use-modal []
-  (let [ref (uix/ref) state (uix/state false)]
-    (listen!
-     (fn [event]
-       (if (and @ref (not (.contains @ref (.-target event))))
-         (swap! state not))) (if @state js/document false) "click" [@state])
-    [state ref]))
