@@ -7,6 +7,7 @@
             [ogre.tools.provider.portal :as provider.portal]
             [ogre.tools.provider.state :as provider.state]
             [ogre.tools.provider.storage :as provider.storage]
+            [ogre.tools.provider.window :as provider.window]
             [ogre.tools.render :refer [css]]
             [ogre.tools.render.canvas :refer [canvas]]
             [ogre.tools.render.panel :refer [container]]
@@ -15,7 +16,6 @@
             [ogre.tools.render.workspaces :refer [workspaces]]
             [ogre.tools.session :as session]
             [ogre.tools.shortcut :as shortcut]
-            [ogre.tools.window :as window]
             [react-helmet :refer [Helmet]]
             [uix.core.alpha :as uix]
             [uix.dom.alpha :as uix.dom]))
@@ -64,7 +64,7 @@
       [provider.storage/provider
        [:<>
         [provider.storage/handlers]
-        [window/provider]
+        [provider.window/provider]
         [shortcut/handlers]
         [session/handlers]
         [provider.portal/provider

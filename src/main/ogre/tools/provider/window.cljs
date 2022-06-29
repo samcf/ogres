@@ -1,9 +1,8 @@
-(ns ogre.tools.window
+(ns ogre.tools.provider.window
   (:require [cognitect.transit :as t]
             [datascript.core :as ds]
             [datascript.transit :as dst]
-            [ogre.tools.hooks :refer [subscribe! use-dispatch use-query]]
-            [ogre.tools.render :refer [listen!]]
+            [ogre.tools.hooks :refer [listen! subscribe! use-dispatch use-query]]
             [ogre.tools.provider.state :as provider.state]
             [ogre.tools.timing :refer [debounce]]
             [uix.core.alpha :as uix :refer [defcontext]]))
