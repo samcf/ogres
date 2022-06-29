@@ -3,7 +3,7 @@
             [ogre.tools.form.render :refer [form]]
             [ogre.tools.hooks :refer [use-dispatch use-image use-query use-store]]
             [ogre.tools.image :as image]
-            [ogre.tools.render :refer [button checkbox icon]]
+            [ogre.tools.render :refer [checkbox icon]]
             [uix.core.alpha :as uix]))
 
 (defn ^{:private true} thumbnail [{:keys [checksum selected on-select on-remove]}]
@@ -61,7 +61,7 @@
         (if checksum
           [preview {:checksum checksum}]
           [icon {:name "images" :size 32}])]
-       [button {:on-click #(.click @file-upload)} "Choose File(s)"]
+       [:button.ogre-button {:type "button" :on-click #(.click @file-upload)} "Choose File(s)"]
        [:input
         {:type "text"
          :placeholder "New Canvas"

@@ -1,7 +1,7 @@
 (ns ogre.tools.render
   (:require [clojure.string :refer [join trim]]
-            [datascript.core :as ds :refer [squuid]]
             [ogre.tools.env :as env]
+            [ogre.tools.provider.storage :refer [initialize]]
             [uix.core.alpha :as uix]))
 
 (defn css [& class-names]
@@ -21,7 +21,7 @@
        (join " ")))
 
 (defn checkbox [{:keys [checked on-change]} child]
-  (let [key   (uix/state (squuid))
+  (let [key   (uix/state (random-uuid))
         indtr (= checked :indeterminate)
         input (uix/ref)]
     (uix/effect!
@@ -32,9 +32,6 @@
        :class "ogre-checkbox" :checked (if indtr false checked)
        :on-change (fn [event] (on-change (.. event -target -checked)))}]
      [:label {:for @key} child]]))
-
-(defn button [props children]
-  [:button (merge {:class "ogre-button" :type "button"} props) children])
 
 (defn icon [{:keys [name size] :or {size 22}}]
   [:svg {:class "icon" :width size :height size :fill "currentColor"}

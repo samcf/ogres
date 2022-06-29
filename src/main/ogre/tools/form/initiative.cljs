@@ -2,7 +2,7 @@
   (:require [clojure.string :refer [join capitalize blank?]]
             [ogre.tools.form.render :refer [form]]
             [ogre.tools.hooks :refer [use-dispatch use-image use-modal use-query]]
-            [ogre.tools.render :refer [button icon]]
+            [ogre.tools.render :refer [icon]]
             [uix.core.alpha :as uix]))
 
 (defn ^{:private true} visible? [flags]
@@ -122,9 +122,9 @@
        [:section
         [:header "Initiative"]
         [:fieldset.table
-         [button {:on-click #(dispatch :initiative/roll-all)} "Roll"]
-         [button {:on-click #(dispatch :initiative/reset-rolls)} "Reset"]
-         [button {:on-click #(dispatch :initiative/leave)} "Leave"]]]
+         [:button.ogre-button {:type "button" :on-click #(dispatch :initiative/roll-all)} "Roll"]
+         [:button.ogre-button {:type "button" :on-click #(dispatch :initiative/reset-rolls)} "Reset"]
+         [:button.ogre-button {:type "button" :on-click #(dispatch :initiative/leave)} "Leave"]]]
        [:section
         [:ol
          (for [entity (sort order initiative)
