@@ -1,8 +1,7 @@
 (ns ogre.tools.form.settings
-  (:require [ogre.tools.events :refer [use-dispatch]]
-            [ogre.tools.form.render :refer [form]]
+  (:require [ogre.tools.form.render :refer [form]]
             [ogre.tools.render :refer [checkbox]]
-            [ogre.tools.state :refer [use-query]]))
+            [ogre.tools.state :refer [use-dispatch use-query]]))
 
 (def ^{:private true} query
   [[:local/shortcuts? :default true]

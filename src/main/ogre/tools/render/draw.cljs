@@ -1,9 +1,8 @@
 (ns ogre.tools.render.draw
   (:require [clojure.string :refer [join]]
-            [ogre.tools.events :refer [use-dispatch]]
             [ogre.tools.render.portal :as portal]
             [ogre.tools.geom :refer [chebyshev euclidean triangle]]
-            [ogre.tools.state :refer [use-query]]
+            [ogre.tools.state :refer [use-dispatch use-query]]
             [react-draggable]
             [uix.core.alpha :as uix]))
 

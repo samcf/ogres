@@ -2,9 +2,9 @@
   (:require [cognitect.transit :as t]
             [datascript.core :as ds]
             [datascript.transit :as dst]
-            [ogre.tools.events :refer [use-dispatch subscribe!]]
+            [ogre.tools.events :refer [subscribe!]]
             [ogre.tools.render :refer [listen!]]
-            [ogre.tools.state :as state :refer [use-query]]
+            [ogre.tools.state :as state :refer [use-dispatch use-query]]
             [ogre.tools.timing :refer [debounce]]
             [uix.core.alpha :as uix :refer [defcontext]]))
 

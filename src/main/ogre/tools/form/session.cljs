@@ -1,9 +1,8 @@
 (ns ogre.tools.form.session
   (:require [clojure.string :refer [capitalize]]
             [ogre.tools.env :as env]
-            [ogre.tools.events :refer [use-dispatch]]
             [ogre.tools.form.render :refer [form]]
-            [ogre.tools.state :refer [use-query]]))
+            [ogre.tools.state :refer [use-dispatch use-query]]))
 
 (def ^{:private true} query
   [{:root/local

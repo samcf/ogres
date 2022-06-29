@@ -1,7 +1,6 @@
 (ns ogre.tools.render.workspaces
   (:require [clojure.string :refer [blank? trim]]
-            [ogre.tools.events :refer [use-dispatch]]
-            [ogre.tools.state :refer [use-query]]))
+            [ogre.tools.state :refer [use-dispatch use-query]]))
 
 (def query
   [{:local/window [:entity/key]}

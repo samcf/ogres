@@ -1,7 +1,9 @@
 (ns ogre.tools.state
   (:require [uix.core.alpha :as uix :refer [defcontext]]
             [datascript.core :as ds :refer [squuid]]
-            [ogre.tools.env :as env]))
+            [ogre.tools.env :as env]
+            [ogre.tools.events :refer [use-publish]]
+            [ogre.tools.txs :refer [transact]]))
 
 (def schema
   {:db/ident          {:db/unique :db.unique/identity}
@@ -81,6 +83,28 @@
             (reset! canceled? true)
             (ds/unlisten! conn listen-key)))) [])
      @prev-state)))
+
+(defn use-dispatch
+  "Returns a dispatch function that accepts a topic and topic arguments.
+   Performs the following work:
+   1. Publishes an event on the event bus with the given topic.
+   2. Performs a DataScript transaction if the topic is registered for one.
+   3. Publishes an event of the previous transaction with the report."
+  []
+  (let [conn    (uix/context context)
+        query   [:entity/key {:local/window [:entity/key {:window/canvas [:entity/key]}]}]
+        publish (use-publish)
+        result  (use-query query)
+        context {:local  (:entity/key result)
+                 :window (:entity/key (:local/window result))
+                 :canvas (:entity/key (:window/canvas (:local/window result)))}]
+    (fn [topic & args]
+      (publish {:topic topic :args args})
+      (let [context (assoc context :data @conn :event topic)
+            tx-data (apply transact context args)]
+        (if (seq tx-data)
+          (let [report (ds/transact! conn tx-data)]
+            (publish {:topic :tx/commit :args (list report)})))))))
 
 (defn provider
   "Provides a DataScript in-memory database to the application and causes

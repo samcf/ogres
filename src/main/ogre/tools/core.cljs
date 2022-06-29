@@ -1,6 +1,5 @@
 (ns ogre.tools.core
-  (:require [datascript.core :as ds]
-            [ogre.tools.form.core]
+  (:require [ogre.tools.form.core]
             [ogre.tools.env :as env]
             [ogre.tools.errors :as errors]
             [ogre.tools.events :as events]
@@ -15,7 +14,6 @@
             [ogre.tools.shortcut :as shortcut]
             [ogre.tools.state :as state :refer [use-query]]
             [ogre.tools.storage :as storage]
-            [ogre.tools.txs :as txs]
             [ogre.tools.window :as window]
             [react-helmet :refer [Helmet]]
             [uix.core.alpha :as uix]
@@ -54,27 +52,6 @@
         [:div.root.layout attrs
          [:div.layout-canvas [canvas]]]))))
 
-(def ^{:private true} context-query
-  [:entity/key {:local/window [:entity/key {:window/canvas [:entity/key]}]}])
-
-(defn ^{:private true} handle-txs
-  "Subscribes to all events and creates DataScript transactions for those
-   registered as event handlers in `ogre.tools.txs/transact`."
-  []
-  (let [conn     (uix/context state/context)
-        dispatch (events/use-dispatch)
-        result   (use-query context-query)
-        context  {:local  (:entity/key result)
-                  :window (:entity/key (:local/window result))
-                  :canvas (:entity/key (:window/canvas (:local/window result)))}]
-    (events/subscribe!
-     (fn [event]
-       (let [context (assoc context :data @conn :event (:topic event))
-             tx-data (apply txs/transact context (:args event))]
-         (if (seq tx-data)
-           (let [report (ds/transact! conn tx-data)] 
-             (dispatch :tx/commit report))))) [context]) nil))
-
 (defn ^{:private true} root [{:keys [path]}]
   [:<>
    [:> Helmet
@@ -85,7 +62,6 @@
      [state/provider
       [storage/provider
        [:<>
-        [handle-txs]
         [storage/handlers]
         [window/provider]
         [shortcut/handlers]

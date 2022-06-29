@@ -1,9 +1,8 @@
 (ns ogre.tools.form.initiative
   (:require [clojure.string :refer [join capitalize blank?]]
-            [ogre.tools.events :refer [use-dispatch]]
             [ogre.tools.form.render :refer [form]]
             [ogre.tools.render :refer [button icon use-image use-modal]]
-            [ogre.tools.state :refer [use-query]]
+            [ogre.tools.state :refer [use-dispatch use-query]]
             [uix.core.alpha :as uix]))
 
 (defn ^{:private true} visible? [flags]

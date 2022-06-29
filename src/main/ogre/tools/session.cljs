@@ -4,9 +4,9 @@
             [datascript.core :as ds]
             [datascript.transit :as dst]
             [ogre.tools.env :as env]
-            [ogre.tools.events :refer [use-dispatch subscribe-many!]]
+            [ogre.tools.events :refer [subscribe-many!]]
             [ogre.tools.render :refer [listen! use-interval]]
-            [ogre.tools.state :as state :refer [schema]]
+            [ogre.tools.state :as state :refer [use-dispatch schema]]
             [ogre.tools.storage :refer [use-store]]
             [uix.core.alpha :as uix]))
 

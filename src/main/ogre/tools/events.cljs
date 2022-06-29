@@ -6,7 +6,7 @@
 
 (defn provider
   "Provides an event publication object, write channel, and channel multiplexer
-   for the given children. Refer to `use-dispatch` and `subscribe!` to publish
+   for the given children. Refer to `use-publish` and `subscribe!` to publish
    and subscribe to events, respectively."
   [children]
   (let [ch-src (chan 1)
@@ -15,15 +15,14 @@
     (tap multi ch-pub)
     (uix/context-provider [context [(pub ch-pub :topic) ch-src multi]] children)))
 
-(defn use-dispatch
+(defn use-publish
   "Returns a function that must be called with a topic as the first argument
    and the event arguments as the rest. Components may subscribe to published
    events with subscribe!"
   []
   (let [[_ ch] (uix/context context)]
-    (fn [topic & args]
-      (let [event {:topic topic :args args}]
-        (put! ch event)))))
+    (fn [event]
+      (put! ch event))))
 
 (defn subscribe!
   "Subscribes the given handler to the event bus, optionally given a topic.
