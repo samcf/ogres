@@ -61,18 +61,19 @@
   "Subscribes to all events and creates DataScript transactions for those
    registered as event handlers in `ogre.tools.txs/transact`."
   []
-  (let [conn    (uix/context state/context)
-        result  (use-query context-query)
-        context {:local  (:entity/key result)
-                 :window (:entity/key (:local/window result))
-                 :canvas (:entity/key (:window/canvas (:local/window result)))}]
+  (let [conn     (uix/context state/context)
+        dispatch (events/use-dispatch)
+        result   (use-query context-query)
+        context  {:local  (:entity/key result)
+                  :window (:entity/key (:local/window result))
+                  :canvas (:entity/key (:window/canvas (:local/window result)))}]
     (events/subscribe!
      (fn [event]
        (let [context (assoc context :data @conn :event (:topic event))
              tx-data (apply txs/transact context (:args event))]
          (if (seq tx-data)
-           (let [tx-meta [(:topic event) (:args event) tx-data]]
-             (ds/transact! conn tx-data tx-meta)))))) nil))
+           (let [report (ds/transact! conn tx-data)] 
+             (dispatch :tx/commit report)))))) nil))
 
 (defn ^{:private true} root [{:keys [path]}]
   [:<>

@@ -1,6 +1,6 @@
 (ns ogre.tools.events
   (:require [uix.core.alpha :as uix :refer [defcontext]]
-            [clojure.core.async :refer [chan mult tap untap pub sub unsub go-loop put! <! close!]]))
+            [clojure.core.async :refer [chan mult tap untap pub sub unsub go-loop put! <! close! alts!]]))
 
 (defcontext context)
 
@@ -53,5 +53,27 @@
             (f event)
             (recur)))
         (fn []
-          (close! ch)
-          (unsub pub topic ch))) []))))
+          (unsub pub topic ch)
+          (close! ch))) []))))
+
+(defn subscribe-many!
+  "Subscribes to multiple topics as given by each topic-fn pair in the form
+   of `topic handler-fn`."
+  [& topic-fns]
+  (let [[pub _ _]   (uix/context context)
+        topic-fns   (into {} (partition-all 2) topic-fns)
+        chans       (repeatedly (count topic-fns) #(chan 1))
+        topic-chans (partition 2 (interleave (keys topic-fns) chans))]
+    (uix/effect!
+     (fn []
+       (doseq [[topic ch] topic-chans]
+         (sub pub topic ch))
+       (go-loop []
+         (let [[event _] (alts! chans)]
+           (when event
+             ((topic-fns (:topic event)) event)
+             (recur))))
+       (fn []
+         (doseq [[topic ch] topic-chans]
+           (unsub pub topic ch)
+           (close! ch)))) [topic-fns])))

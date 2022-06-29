@@ -4,7 +4,7 @@
             [datascript.core :as ds]
             [datascript.transit :as dst]
             [ogre.tools.env :as env]
-            [ogre.tools.events :refer [use-dispatch]]
+            [ogre.tools.events :refer [use-dispatch subscribe-many!]]
             [ogre.tools.render :refer [listen! use-interval]]
             [ogre.tools.state :as state :refer [schema]]
             [ogre.tools.storage :refer [use-store]]
@@ -179,43 +179,51 @@
                                (transit/write writer)
                                (.send socket)))))) [])]
 
-    ;; Register a listener to all DataScript transactions, sending transaction
-    ;; data through the WebSocket (if available) or optionally performing
-    ;; some special effect depending on the name of the transaction event.
-    (uix/effect!
+    (subscribe-many!
+     ;; Open a WebSocket connection and attempt to create a new multiplayer
+     ;; lobby with either a new random key or with the key most previously
+     ;; used.
+     :session/request
      (fn []
-       (ds/listen!
-        conn :session
-        (fn [{db-after :db-after [event args tx-data] :tx-meta}]
-          (cond (= event :session/request)
-                (let [host (ds/entity db-after [:db/ident :local])
-                      conn (js/WebSocket.
-                            (if (:session/last-room host)
-                              (str env/SOCKET-URL "?host=" (:session/last-room host))
-                              env/SOCKET-URL))]
-                  (reset! socket conn))
+       (let [host (ds/entity @conn [:db/ident :local])
+             conn (js/WebSocket.
+                   (if (:session/last-room host)
+                     (str env/SOCKET-URL "?host=" (:session/last-room host))
+                     env/SOCKET-URL))]
+         (reset! socket conn)))
 
-                (= event :session/join)
-                (let [search (.. js/window -location -search)
-                      params (js/URLSearchParams. search)
-                      room   (.get params "join")]
-                  (if (not (nil? room))
-                    (let [ws (js/WebSocket. (str env/SOCKET-URL "?join=" room))]
-                      (reset! socket ws))))
+     ;; Open a WebSocket connection and attempt to join an existing multiplayer
+     ;; room with the key given by the query parameter "join".     
+     :session/join
+     (fn []
+       (let [search (.. js/window -location -search)
+             params (js/URLSearchParams. search)
+             room   (.get params "join")]
+         (if (not (nil? room))
+           (let [ws (js/WebSocket. (str env/SOCKET-URL "?join=" room))]
+             (reset! socket ws)))))
 
-                (= event :session/close)
-                (if-let [ws @socket]
-                  (.close ws)
-                  (reset! socket nil))
+     ;; Closes the WebSocket connection.
+     :session/close
+     (fn []
+       (when-let [ws @socket]
+         (.close ws)
+         (reset! socket nil)))
 
-                (= event :image/request)
-                (let [session (ds/entity db-after [:db/ident :session])]
-                  (if-let [host (-> session :session/host :entity/key)]
-                    (on-send {:type :event :dst host :data {:name :image/request :checksum (first args)}})))
+     ;; Creates a request for image data from the host of the connected
+     ;; session. 
+     :image/request
+     (fn [{[checksum] :args}]
+       (let [session (ds/entity @conn [:db/ident :session])]
+         (if-let [host (-> session :session/host :entity/key)]
+           (let [data {:name :image/request :checksum checksum}]
+             (on-send {:type :event :dst host :data data})))))
 
-                (seq tx-data)
-                (on-send {:type :tx :data tx-data}))))
-       (fn [] (ds/unlisten! conn :session))) [])
+     ;; Send all DataScript transactions to all other connections in the
+     ;; multiplayer session.
+     :tx/commit
+     (fn [{[{tx-data :tx-data}] :args}]
+       (on-send {:type :tx :data tx-data})))
 
     ;; Establish a WebSocket connection to the room identified by the "join"
     ;; query parameter in the URL.
@@ -224,7 +232,7 @@
        (let [local (ds/entity @conn [:db/ident :local])]
          (if (= (:local/type local) :conn)
            (dispatch :session/join)))) [])
-    
+
     ;; Periodically attempt to re-establish closed connections.
     (use-interval
      (fn []
