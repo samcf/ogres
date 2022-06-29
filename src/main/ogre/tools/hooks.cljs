@@ -1,5 +1,6 @@
 (ns ogre.tools.hooks
   (:require [ogre.tools.provider.events :as provider.events]
+            [ogre.tools.provider.image :as provider.image]
             [ogre.tools.provider.state :as provider.state]))
 
 (def ^{:doc "Returns a function which, when called with a topic and any number
@@ -38,3 +39,12 @@
        :arglists '([& topic-fn-pairs])}
   subscribe-many!
   provider.events/subscribe-many!)
+
+(def ^{:doc "Returns a URL for the image identified by the given checksum.
+             The URL is only guaranteed to be usable for the window it
+             was created for, and only guaranteed to last for the duration
+             of the user session. Returns nil if the image is loading or
+             cannot be found."
+       :arglists '([checksum])}
+  use-image
+  provider.image/use-image)

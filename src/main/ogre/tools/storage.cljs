@@ -3,8 +3,8 @@
             [datascript.transit :as dt]
             [dexie]
             [ogre.tools.env :as env]
-            [ogre.tools.hooks :refer [subscribe! use-query]]
-            [ogre.tools.provider.state :as state]
+            [ogre.tools.provider.events :refer [subscribe!]]
+            [ogre.tools.provider.state :as state :refer [use-query]]
             [ogre.tools.timing :refer [debounce]]
             [uix.core.alpha :as uix :refer [defcontext]]))
 
