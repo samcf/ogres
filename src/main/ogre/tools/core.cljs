@@ -1,14 +1,13 @@
 (ns ogre.tools.core
   (:require [ogre.tools.form.core]
             [ogre.tools.env :as env]
-            [ogre.tools.errors :as errors]
             [ogre.tools.hooks :refer [use-query create-portal]]
             [ogre.tools.provider.events :as provider.events]
             [ogre.tools.provider.portal :as provider.portal]
             [ogre.tools.provider.state :as provider.state]
             [ogre.tools.provider.storage :as provider.storage]
             [ogre.tools.provider.window :as provider.window]
-            [ogre.tools.render :refer [css]]
+            [ogre.tools.render :refer [css error-boundary]]
             [ogre.tools.render.canvas :refer [canvas]]
             [ogre.tools.render.panel :refer [container]]
             [ogre.tools.render.tokens :refer [tokens]]
@@ -58,7 +57,7 @@
    [:> Helmet
     [:link {:rel "stylesheet" :href (str path "/reset.css")}]
     [:link {:rel "stylesheet" :href (str path "/ogre.tools.css")}]]
-   [errors/boundary
+   [error-boundary
     [provider.events/provider
      [provider.state/provider
       [provider.storage/provider
