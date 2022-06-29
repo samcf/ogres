@@ -1,6 +1,7 @@
 (ns ogre.tools.hooks
   (:require [ogre.tools.provider.events :as provider.events]
             [ogre.tools.provider.image :as provider.image]
+            [ogre.tools.provider.portal :as provider.portal]
             [ogre.tools.provider.state :as provider.state]))
 
 (def ^{:doc "Returns a function which, when called with a topic and any number
@@ -48,3 +49,17 @@
        :arglists '([checksum])}
   use-image
   provider.image/use-image)
+
+(def ^{:doc "Creates a new portal element of name `label` with contents
+             rendered by `render-fn`. This portal can then be rendered
+             into with `use-portal`."
+       :arglists '([render-fn label])}
+  create-portal
+  provider.portal/create)
+
+(def ^{:doc "Renders the given children into the portal named by the value
+             of :label in `props`. When the value given is nil, will
+             render the given children normally."
+       :arglists '([props children])}
+  use-portal
+  provider.portal/use)

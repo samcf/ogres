@@ -3,12 +3,11 @@
             [clojure.string :refer [join]]
             [datascript.core :refer [squuid]]
             [ogre.tools.geom :refer [bounding-box chebyshev euclidean triangle]]
-            [ogre.tools.hooks :refer [use-dispatch use-image use-query]]
+            [ogre.tools.hooks :refer [create-portal use-dispatch use-image use-portal use-query]]
             [ogre.tools.render :refer [icon]]
             [ogre.tools.render.draw :refer [draw]]
             [ogre.tools.render.forms :refer [token-context-menu shape-context-menu]]
             [ogre.tools.render.pattern :refer [pattern]]
-            [ogre.tools.render.portal :as portal]
             [react-draggable]))
 
 (def draw-modes
@@ -274,7 +273,7 @@
                 selected? (contains? selecting (:entity/key window))
                 [ax ay] vecs]]
       ^{:key key}
-      [portal/use {:label (if (and participant? selected?) :selected)}
+      [use-portal {:label (if (and participant? selected?) :selected)}
        [:> react-draggable
         {:scale    scale
          :position #js {:x ax :y ay}
@@ -427,7 +426,7 @@
      (if (seq selected)
        (let [keys         (map :entity/key selected)
              [ax _ bx by] (apply bounding-box (map :token/vec selected))]
-         [portal/use {:label (if (or (= type :host) (= type :conn)) :selected)}
+         [use-portal {:label (if (or (= type :host) (= type :conn)) :selected)}
           [:> react-draggable
            {:position #js {:x 0 :y 0}
             :scale    scale
@@ -515,8 +514,8 @@
         [tokens]
         [light-mask]
         [canvas-mask]
-        [portal/create (fn [ref] [:g {:ref ref :style {:outline "none"}}]) :selected]]]]
-     [portal/create
+        [create-portal (fn [ref] [:g {:ref ref :style {:outline "none"}}]) :selected]]]]
+     [create-portal
       (fn [ref]
         [:g {:ref ref
              :style {:outline "none"}

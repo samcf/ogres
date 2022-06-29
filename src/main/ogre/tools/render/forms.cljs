@@ -1,11 +1,10 @@
 (ns ogre.tools.render.forms
   (:require [clojure.string :refer [capitalize]]
             [datascript.core :refer [squuid]]
-            [ogre.tools.hooks :refer [use-dispatch use-image use-query]]
+            [ogre.tools.hooks :refer [use-dispatch use-image use-portal use-query]]
             [ogre.tools.image :refer [load checksum]]
             [ogre.tools.render :refer [icon]]
             [ogre.tools.render.pattern :refer [pattern]]
-            [ogre.tools.render.portal :as portal]
             [ogre.tools.storage :refer [use-store]]
             [uix.core.alpha :as uix]))
 
@@ -146,7 +145,7 @@
        :placeholder "Press 'Enter' to submit..."
        :on-change #(reset! input-val (.. %1 -target -value))}]
      (if @thumb-open
-       [portal/use {:label :modal}
+       [use-portal {:label :modal}
         [:div.context-menu-form-modal
          [images-form
           {:on-change

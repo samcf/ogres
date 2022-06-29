@@ -2,13 +2,13 @@
   (:require [ogre.tools.form.core]
             [ogre.tools.env :as env]
             [ogre.tools.errors :as errors]
-            [ogre.tools.hooks :refer [use-query]]
+            [ogre.tools.hooks :refer [use-query create-portal]]
             [ogre.tools.provider.events :as provider.events]
+            [ogre.tools.provider.portal :as provider.portal]
             [ogre.tools.provider.state :as provider.state]
             [ogre.tools.render :refer [css]]
             [ogre.tools.render.canvas :refer [canvas]]
             [ogre.tools.render.panel :refer [container]]
-            [ogre.tools.render.portal :as portal]
             [ogre.tools.render.tokens :refer [tokens]]
             [ogre.tools.render.toolbar :refer [toolbar]]
             [ogre.tools.render.workspaces :refer [workspaces]]
@@ -44,7 +44,7 @@
          (if (= type :host)
            [:div.layout-workspaces [workspaces]])
          [:div.layout-canvas [canvas]]
-         [portal/create
+         [create-portal
           (fn [ref]
             [:div.layout-modal {:ref ref}]) :modal]
          [:div.layout-toolbar [toolbar]]
@@ -67,7 +67,7 @@
         [window/provider]
         [shortcut/handlers]
         [session/handlers]
-        [portal/provider
+        [provider.portal/provider
          [layout]]]]]]]])
 
 (defn ^{:private true} main []
