@@ -33,7 +33,7 @@
                win (.open js/window url "ogre.tools" "width=640,height=640")]
            (reset win)
            (dispatch :share/toggle true))
-         (reset))) :share/initiate) nil))
+         (reset))) :share/initiate []) nil))
 
 (defn dispatcher
   "Registers a DataScript listener in order to forward transactions from the
@@ -44,7 +44,7 @@
        (->>
         #js {:detail (t/write writer tx-data)}
         (js/CustomEvent. "AppStateTx")
-        (.dispatchEvent @view))) :tx/commit) nil))
+        (.dispatchEvent @view))) :tx/commit []) nil))
 
 (defn listener
   "Registers an event handler to listen for application state changes in the

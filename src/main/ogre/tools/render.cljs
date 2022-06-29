@@ -104,7 +104,7 @@
              record #js {:checksum hash :data data-url :created-at (.now js/Date)}
              result (create-object-url data-url)]
          (.then result (fn [] (.put (.table store "images") record)))
-         (.then result (fn [url] (swap! cache assoc hash [false url]))))) :image/cache)
+         (.then result (fn [url] (swap! cache assoc hash [false url]))))) :image/cache [])
 
     (uix/effect!
      (fn []

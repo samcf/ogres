@@ -73,7 +73,7 @@
              tx-data (apply txs/transact context (:args event))]
          (if (seq tx-data)
            (let [report (ds/transact! conn tx-data)] 
-             (dispatch :tx/commit report)))))) nil))
+             (dispatch :tx/commit report))))) [context]) nil))
 
 (defn ^{:private true} root [{:keys [path]}]
   [:<>

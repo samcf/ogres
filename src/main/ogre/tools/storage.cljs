@@ -88,7 +88,7 @@
     (subscribe!
      (fn []
        (.delete store)
-       (.reload (.-location js/window))) :storage/reset) nil))
+       (.reload (.-location js/window))) :storage/reset []) nil))
 
 (defn handlers
   "Registers event handlers related to IndexedDB, such as those involved in

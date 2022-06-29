@@ -29,21 +29,23 @@
   "Subscribes the given handler to the event bus, optionally given a topic.
    May be passed a topic and channel for more nuanced control."
   ([f]
-   (let [[_ _ multi] (uix/context context)
-         ch          (chan 1)]
-     (tap multi ch)
+   (subscribe! f []))
+  ([f deps]
+   (let [[_ _ multi] (uix/context context)]
      (uix/effect!
       (fn []
-        (go-loop []
-          (when-some [event (<! ch)]
-            (f event)
-            (recur)))
-        (fn []
-          (close! ch)
-          (untap multi ch))))))
-  ([f topic]
-   (subscribe! f topic (chan 1)))
-  ([f topic ch]
+        (let [ch (chan 1)]
+          (tap multi ch)
+          (go-loop []
+            (if-some [event (<! ch)]
+              (do (f event)
+                  (recur))))
+          (fn []
+            (close! ch)
+            (untap multi ch)))) deps)))
+  ([f topic deps]
+   (subscribe! f topic (chan 1) deps))
+  ([f topic ch deps]
    (let [[pub _] (uix/context context)]
      (uix/effect!
       (fn []
@@ -54,7 +56,7 @@
             (recur)))
         (fn []
           (unsub pub topic ch)
-          (close! ch))) []))))
+          (close! ch))) deps))))
 
 (defn subscribe-many!
   "Subscribes to multiple topics as given by each topic-fn pair in the form
@@ -70,9 +72,9 @@
          (sub pub topic ch))
        (go-loop []
          (let [[event _] (alts! chans)]
-           (when event
-             ((topic-fns (:topic event)) event)
-             (recur))))
+           (if (not (nil? event))
+             (do ((topic-fns (:topic event)) event)
+                 (recur)))))
        (fn []
          (doseq [[topic ch] topic-chans]
            (unsub pub topic ch)
