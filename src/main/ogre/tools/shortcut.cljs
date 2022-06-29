@@ -1,6 +1,7 @@
 (ns ogre.tools.shortcut
   (:require [datascript.core :refer [pull]]
-            [ogre.tools.state :refer [context use-dispatch]]
+            [ogre.tools.hooks :refer [use-dispatch]]
+            [ogre.tools.provider.state :refer [context]]
             [ogre.tools.render :refer [listen!]]
             [uix.core.alpha :as uix]))
 

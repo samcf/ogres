@@ -2,9 +2,9 @@
   (:require [cognitect.transit :as t]
             [datascript.core :as ds]
             [datascript.transit :as dst]
-            [ogre.tools.events :refer [subscribe!]]
+            [ogre.tools.hooks :refer [subscribe! use-dispatch use-query]]
             [ogre.tools.render :refer [listen!]]
-            [ogre.tools.state :as state :refer [use-dispatch use-query]]
+            [ogre.tools.provider.state :as provider.state]
             [ogre.tools.timing :refer [debounce]]
             [uix.core.alpha :as uix :refer [defcontext]]))
 
@@ -50,7 +50,7 @@
   "Registers an event handler to listen for application state changes in the
    form of serialized EDN DataScript transactions. Unmarshals and transacts
    those against the local DataScript connection." []
-  (let [conn (uix/context state/context)]
+  (let [conn (uix/context provider.state/context)]
     (listen!
      (fn [event]
        (->>

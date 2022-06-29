@@ -1,4 +1,4 @@
-(ns ogre.tools.events
+(ns ogre.tools.provider.events
   (:require [uix.core.alpha :as uix :refer [defcontext]]
             [clojure.core.async :refer [chan mult tap untap pub sub unsub go-loop put! <! close! alts!]]))
 

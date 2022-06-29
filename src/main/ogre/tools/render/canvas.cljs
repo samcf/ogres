@@ -3,12 +3,12 @@
             [clojure.string :refer [join]]
             [datascript.core :refer [squuid]]
             [ogre.tools.geom :refer [bounding-box chebyshev euclidean triangle]]
+            [ogre.tools.hooks :refer [use-dispatch use-query]]
             [ogre.tools.render :refer [icon use-image]]
             [ogre.tools.render.draw :refer [draw]]
             [ogre.tools.render.forms :refer [token-context-menu shape-context-menu]]
             [ogre.tools.render.pattern :refer [pattern]]
             [ogre.tools.render.portal :as portal]
-            [ogre.tools.state :refer [use-dispatch use-query]]
             [react-draggable]))
 
 (def draw-modes

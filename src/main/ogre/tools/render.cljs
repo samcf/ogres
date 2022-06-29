@@ -2,10 +2,9 @@
   (:require [clojure.string :refer [join trim]]
             [datascript.core :as ds :refer [squuid]]
             [ogre.tools.env :as env]
-            [ogre.tools.events :refer [subscribe!]]
+            [ogre.tools.hooks :refer [subscribe! use-dispatch]]
             [ogre.tools.image :as image]
             [ogre.tools.storage :refer [use-store]]
-            [ogre.tools.state :refer [use-dispatch]]
             [uix.core.alpha :as uix]))
 
 (defn css [& class-names]

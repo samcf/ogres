@@ -1,7 +1,7 @@
 (ns ogre.tools.form.data
   (:require [ogre.tools.env :as env]
-            [ogre.tools.form.render :refer [form]]
-            [ogre.tools.state :refer [use-dispatch]]))
+            [ogre.tools.hooks :refer [use-dispatch]]
+            [ogre.tools.form.render :refer [form]]))
 
 (defn ^{:private true} data-form []
   (let [dispatch (use-dispatch)]

@@ -1,9 +1,9 @@
 (ns ogre.tools.form.canvas
   (:require [clojure.string :refer [capitalize]]
             [ogre.tools.form.render :refer [form]]
+            [ogre.tools.hooks :refer [use-dispatch use-query]]
             [ogre.tools.image :as image]
             [ogre.tools.render :refer [button checkbox icon use-image]]
-            [ogre.tools.state :refer [use-dispatch use-query]]
             [ogre.tools.storage :refer [use-store]]
             [uix.core.alpha :as uix]))
 

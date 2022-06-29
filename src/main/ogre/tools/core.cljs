@@ -2,7 +2,9 @@
   (:require [ogre.tools.form.core]
             [ogre.tools.env :as env]
             [ogre.tools.errors :as errors]
-            [ogre.tools.events :as events]
+            [ogre.tools.hooks :refer [use-query]]
+            [ogre.tools.provider.events :as provider.events]
+            [ogre.tools.provider.state :as provider.state]
             [ogre.tools.render :refer [css]]
             [ogre.tools.render.canvas :refer [canvas]]
             [ogre.tools.render.panel :refer [container]]
@@ -12,7 +14,6 @@
             [ogre.tools.render.workspaces :refer [workspaces]]
             [ogre.tools.session :as session]
             [ogre.tools.shortcut :as shortcut]
-            [ogre.tools.state :as state :refer [use-query]]
             [ogre.tools.storage :as storage]
             [ogre.tools.window :as window]
             [react-helmet :refer [Helmet]]
@@ -58,8 +59,8 @@
     [:link {:rel "stylesheet" :href (str path "/reset.css")}]
     [:link {:rel "stylesheet" :href (str path "/ogre.tools.css")}]]
    [errors/boundary
-    [events/provider
-     [state/provider
+    [provider.events/provider
+     [provider.state/provider
       [storage/provider
        [:<>
         [storage/handlers]

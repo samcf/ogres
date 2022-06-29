@@ -4,9 +4,9 @@
             [datascript.core :as ds]
             [datascript.transit :as dst]
             [ogre.tools.env :as env]
-            [ogre.tools.events :refer [subscribe-many!]]
+            [ogre.tools.hooks :refer [subscribe-many! use-dispatch]]
+            [ogre.tools.provider.state :as provider.state]
             [ogre.tools.render :refer [listen! use-interval]]
-            [ogre.tools.state :as state :refer [use-dispatch schema]]
             [ogre.tools.storage :refer [use-store]]
             [uix.core.alpha :as uix]))
 
@@ -145,7 +145,7 @@
 (defmethod handle-message :datoms
   [{:keys [conn]} body]
   (-> (:data body)
-      (ds/init-db schema)
+      (ds/init-db provider.state/schema)
       (merge-initial-state (ds/db conn))
       (as-> db (ds/reset-conn! conn db))) [])
 
@@ -167,7 +167,7 @@
 (defn handlers []
   (let [dispatch (use-dispatch)
         store    (use-store)
-        conn     (uix/context state/context)
+        conn     (uix/context provider.state/context)
         socket   (uix/state nil)
         on-send  (uix/callback
                   (fn [message]

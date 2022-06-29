@@ -1,7 +1,7 @@
 (ns ogre.tools.render.panel
-  (:require [ogre.tools.render :refer [icon]]
-            [ogre.tools.form.render :refer [form]]
-            [ogre.tools.state :refer [use-dispatch use-query]]))
+  (:require [ogre.tools.hooks :refer [use-dispatch use-query]]
+            [ogre.tools.render :refer [icon]]
+            [ogre.tools.form.render :refer [form]]))
 
 (def ^{:private true} panel-icon
   {:canvas     "images"
