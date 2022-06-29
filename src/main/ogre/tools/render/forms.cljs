@@ -1,11 +1,10 @@
 (ns ogre.tools.render.forms
   (:require [clojure.string :refer [capitalize]]
             [datascript.core :refer [squuid]]
-            [ogre.tools.hooks :refer [use-dispatch use-image use-portal use-query]]
+            [ogre.tools.hooks :refer [use-dispatch use-image use-portal use-query use-store]]
             [ogre.tools.image :refer [load checksum]]
             [ogre.tools.render :refer [icon]]
             [ogre.tools.render.pattern :refer [pattern]]
-            [ogre.tools.storage :refer [use-store]]
             [uix.core.alpha :as uix]))
 
 (def conditions

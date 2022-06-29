@@ -1,10 +1,9 @@
 (ns ogre.tools.form.canvas
   (:require [clojure.string :refer [capitalize]]
             [ogre.tools.form.render :refer [form]]
-            [ogre.tools.hooks :refer [use-dispatch use-image use-query]]
+            [ogre.tools.hooks :refer [use-dispatch use-image use-query use-store]]
             [ogre.tools.image :as image]
             [ogre.tools.render :refer [button checkbox icon]]
-            [ogre.tools.storage :refer [use-store]]
             [uix.core.alpha :as uix]))
 
 (defn ^{:private true} thumbnail [{:keys [checksum selected on-select on-remove]}]

@@ -2,7 +2,8 @@
   (:require [ogre.tools.provider.events :as provider.events]
             [ogre.tools.provider.image :as provider.image]
             [ogre.tools.provider.portal :as provider.portal]
-            [ogre.tools.provider.state :as provider.state]))
+            [ogre.tools.provider.state :as provider.state]
+            [ogre.tools.provider.storage :as provider.storage]))
 
 (def ^{:doc "Returns a function which, when called with a topic and any number
              of additional arguments, will perform the following work:
@@ -63,3 +64,10 @@
        :arglists '([props children])}
   use-portal
   provider.portal/use)
+
+(def ^{:doc "Returns an instance of a Dexie object. This object is used to
+             query and write to the browser's IndexedDB. See
+             https://dexie.org/docs/Dexie/Dexie for more information."
+       :arglists '([])}
+  use-store
+  provider.storage/use-store)

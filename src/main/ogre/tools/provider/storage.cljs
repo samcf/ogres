@@ -1,4 +1,4 @@
-(ns ogre.tools.storage
+(ns ogre.tools.provider.storage
   (:require [datascript.core :as ds]
             [datascript.transit :as dt]
             [dexie]

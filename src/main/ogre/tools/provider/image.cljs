@@ -3,7 +3,7 @@
             [ogre.tools.image :as image]
             [ogre.tools.provider.events :refer [subscribe!]]
             [ogre.tools.provider.state :refer [use-dispatch]]
-            [ogre.tools.storage :refer [use-store]]
+            [ogre.tools.provider.storage :refer [use-store]]
             [uix.core.alpha :as uix]))
 
 (def cache (atom {}))

@@ -1,5 +1,5 @@
 (ns ogre.tools.errors
-  (:require [ogre.tools.storage :refer [initialize]]
+  (:require [ogre.tools.provider.storage :refer [initialize]]
             [uix.core.alpha :as uix]))
 
 (def boundary
