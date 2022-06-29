@@ -54,6 +54,8 @@
 
 (defmulti transact (fn [{:keys [event]}] event))
 
+(defmethod transact :default [] [])
+
 (defmethod transact :workspace/create
   [{:keys [data local]}]
   (let [session (ds/entity data [:db/ident :session])]
@@ -392,8 +394,6 @@
           (for [[id key] (sequence (indexed 2) keys)]
             {:db/id id :entity/key key :token/image -1})))
 
-(transact {:event :token/change-stamp} [\a \b \c] "foo")
-
 (defmethod transact :token/remove-stamp
   [_ keys]
   (->> (for [[id key] (sequence (indexed) keys)]
@@ -558,8 +558,6 @@
               [:db/retract [:entity/key key] :initiative/health]
               [:db/retract [:entity/key key] :initiative/suffix]]))))
 
-(defmethod transact :storage/reset [] [])
-
 (defmethod transact :interface/toggle-shortcuts
   [{:keys [local]} display?]
   [{:db/id -1 :entity/key local :local/shortcuts? display?}])
@@ -637,7 +635,3 @@
   [{:keys [local]}]
   [{:db/id -1 :entity/key local :session/state :disconnected}
    [:db/retractEntity [:db/ident :session]]])
-
-(defmethod transact :image/request [] [])
-
-(defmethod transact :image/cache [] [])

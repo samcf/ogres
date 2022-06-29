@@ -1,12 +1,17 @@
 (ns ogre.tools.window
   (:require [cognitect.transit :as t]
             [datascript.core :as ds]
+            [datascript.transit :as dst]
+            [ogre.tools.events :refer [subscribe!]]
             [ogre.tools.render :refer [listen!]]
-            [ogre.tools.state :refer [state use-query]]
+            [ogre.tools.state :as state :refer [use-dispatch use-query]]
             [ogre.tools.timing :refer [debounce]]
             [uix.core.alpha :as uix :refer [defcontext]]))
 
 (defcontext context)
+
+(def reader (t/reader :json {:handlers dst/read-handlers}))
+(def writer (t/writer :json {:handlers dst/write-handlers}))
 
 (defn bounds->vector
   [bounds]
@@ -18,47 +23,34 @@
 (defn initialize
   "Registers a DataScript listener in order to manage the view window, the
    player's view of the canvas." []
-  (let [[conn dispatch]       (uix/context state)
-        {:keys [view reset]}  (uix/context context)]
-    (uix/effect!
+  (let [dispatch             (use-dispatch)
+        {:keys [view reset]} (uix/context context)]
+    (subscribe!
      (fn []
-       (ds/listen!
-        conn :initialize
-        (fn [{[event _ _] :tx-meta}]
-          (if (= event :share/initiate)
-            (if (nil? view)
-              (let [url (.. js/window -location -origin)
-                    url (str url "?share=true")
-                    win (.open js/window url "ogre.tools" "width=640,height=640")]
-                (reset win)
-                (dispatch :share/toggle true))
-              (reset)))))
-       (fn [] (ds/unlisten! conn :initialize))) [view]) nil))
+       (if (nil? @view)
+         (let [url (.. js/window -location -origin)
+               url (str url "?share=true")
+               win (.open js/window url "ogre.tools" "width=640,height=640")]
+           (reset win)
+           (dispatch :share/toggle true))
+         (reset))) :share/initiate []) nil))
 
 (defn dispatcher
   "Registers a DataScript listener in order to forward transactions from the
    host window to the view window." []
-  (let [[conn]         (uix/context state)
-        {:keys [view]} (uix/context context)
-        writer         (t/writer :json)]
-    (uix/effect!
-     (fn []
-       (ds/listen!
-        conn :dispatcher
-        (fn [{[_ _ tx] :tx-meta}]
-          (if view
-            (->>
-             #js {:detail (t/write writer tx)}
-             (js/CustomEvent. "AppStateTx")
-             (.dispatchEvent view)))))
-       (fn [] (ds/unlisten! conn :dispatcher))) [view]) nil))
+  (let [{:keys [view]} (uix/context context)]
+    (subscribe!
+     (fn [{[{tx-data :tx-data}] :args}]
+       (->>
+        #js {:detail (t/write writer tx-data)}
+        (js/CustomEvent. "AppStateTx")
+        (.dispatchEvent @view))) :tx/commit []) nil))
 
 (defn listener
   "Registers an event handler to listen for application state changes in the
    form of serialized EDN DataScript transactions. Unmarshals and transacts
    those against the local DataScript connection." []
-  (let [[conn] (uix/context state)
-        reader (t/reader :json)]
+  (let [conn (uix/context state/context)]
     (listen!
      (fn [event]
        (->>
@@ -71,12 +63,11 @@
    order to put those dimensions in the application state. Dimensions are
    of the form [x y width height]."
   [{:keys [target type]}]
-  (let [[_ dispatch] (uix/context state)
-        selector ".layout-canvas"
+  (let [dispatch (use-dispatch)
         canvas   (uix/state nil)
         handler  (debounce
                   (fn []
-                    (if-let [element (.. target -document (querySelector selector))]
+                    (if-let [element (.. target -document (querySelector ".layout-canvas"))]
                       (->> (.getBoundingClientRect element)
                            (bounds->vector)
                            (dispatch :bounds/change type)))) 100)
@@ -87,12 +78,9 @@
     (uix/effect!
      (fn []
        (if (= type :host)
-         (.dispatchEvent target (js/Event. "resize")))) [])
-
-    (uix/effect!
-     (fn []
+         (.dispatchEvent target (js/Event. "resize")))
        ((fn f []
-          (let [element (.querySelector (.-document target) selector)]
+          (let [element (.querySelector (.-document target) ".layout-canvas")]
             (if element
               (reset! canvas element)
               (.requestAnimationFrame js/window f)))))) [])
@@ -112,8 +100,8 @@
        (.setTimeout
         js/window
         (fn []
-          (when (.-closed view)
-            (reset))) 200)) view "visibilitychange" [view])
+          (when (.-closed @view)
+            (reset))) 200)) @view "visibilitychange" [@view])
 
     (listen!
      (fn []
@@ -122,11 +110,9 @@
 (defn provider
   "Provides a reference to the view window, if any, and registers several
    event handlers needed for them." []
-  (let [[result dispatch]
-        (use-query [:local/type :local/loaded?])
-
-        -window
-        (uix/state nil)
+  (let [dispatch (use-dispatch)
+        result   (use-query [:local/type :local/loaded?])
+        -window  (uix/state nil)
 
         on-set-window
         (fn
@@ -139,14 +125,15 @@
            (reset! -window element)))]
     (if (:local/loaded? result)
       (uix/context-provider
-       [context {:view @-window :reset on-set-window}]
+       [context {:view -window :reset on-set-window}]
        (case (:local/type result)
          :host [:<>
                 [initialize]
-                [dispatcher]
                 [bounds {:target js/window :type :host}]
                 (if-let [target @-window]
-                  [bounds {:target target :type :view}])
+                  [:<>
+                   [dispatcher]
+                   [bounds {:target target :type :view}]])
                 [closers]]
          :view [listener]
          :conn [bounds {:target js/window :type :conn}])))))

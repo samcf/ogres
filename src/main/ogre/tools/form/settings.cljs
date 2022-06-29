@@ -1,7 +1,7 @@
 (ns ogre.tools.form.settings
   (:require [ogre.tools.form.render :refer [form]]
             [ogre.tools.render :refer [checkbox]]
-            [ogre.tools.state :refer [use-query]]))
+            [ogre.tools.state :refer [use-dispatch use-query]]))
 
 (def ^{:private true} query
   [[:local/shortcuts? :default true]
@@ -11,7 +11,8 @@
      [:window/snap-grid :default true]]}])
 
 (defn ^{:private true} settings-form []
-  (let [[result dispatch] (use-query query)
+  (let [dispatch (use-dispatch)
+        result   (use-query query)
         {:local/keys [shortcuts? tooltips? window]} result
         {:window/keys [show-grid snap-grid]} window]
     [:section

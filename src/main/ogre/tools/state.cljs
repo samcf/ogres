@@ -2,7 +2,8 @@
   (:require [uix.core.alpha :as uix :refer [defcontext]]
             [datascript.core :as ds :refer [squuid]]
             [ogre.tools.env :as env]
-            [ogre.tools.txs :as txs]))
+            [ogre.tools.events :refer [use-publish]]
+            [ogre.tools.txs :refer [transact]]))
 
 (def schema
   {:db/ident          {:db/unique :db.unique/identity}
@@ -53,7 +54,7 @@
     [:db/add -4 :window/canvas -2]
     [:db/add -5 :db/ident :session]]))
 
-(defcontext state)
+(defcontext context)
 
 (defn listening? [data]
   (let [select [:local/type :local/paused?]
@@ -61,13 +62,13 @@
     (or (= type :host) (not paused?))))
 
 (defn use-query
-  ([] (let [[_ dispatch] (uix/context state)] dispatch))
-  ([pattern] (use-query pattern [:db/ident :local]))
+  ([pattern]
+   (use-query pattern [:db/ident :local]))
   ([pattern entity]
-   (let [[conn dispatch] (uix/context state)
-         listen-key      (deref (uix/state (squuid)))
-         get-result      (uix/callback #(ds/pull @conn pattern entity) [])
-         prev-state      (uix/state (get-result))]
+   (let [conn       (uix/context context)
+         listen-key (deref (uix/state (squuid)))
+         get-result (uix/callback #(ds/pull @conn pattern entity) [])
+         prev-state (uix/state (get-result))]
      (uix/effect!
       (fn []
         (let [canceled? (atom false)]
@@ -81,20 +82,29 @@
           (fn []
             (reset! canceled? true)
             (ds/unlisten! conn listen-key)))) [])
-     [@prev-state dispatch])))
+     @prev-state)))
 
-(def context-query
-  [:entity/key {:local/window [:entity/key {:window/canvas [:entity/key]}]}])
-
-(defn create-dispatch [conn]
-  (fn [event & args]
-    (let [result  (ds/pull @conn context-query [:db/ident :local])
-          {local    :entity/key
-           {window  :entity/key
-            {canvas :entity/key} :window/canvas} :local/window} result
-          context {:data @conn :event event :local local :window window :canvas canvas}
-          changes (apply txs/transact context args)]
-      (ds/transact! conn changes [event args changes]))))
+(defn use-dispatch
+  "Returns a dispatch function that accepts a topic and topic arguments.
+   Performs the following work:
+   1. Publishes an event on the event bus with the given topic.
+   2. Performs a DataScript transaction if the topic is registered for one.
+   3. Publishes an event of the previous transaction with the report."
+  []
+  (let [conn    (uix/context context)
+        query   [:entity/key {:local/window [:entity/key {:window/canvas [:entity/key]}]}]
+        publish (use-publish)
+        result  (use-query query)
+        context {:local  (:entity/key result)
+                 :window (:entity/key (:local/window result))
+                 :canvas (:entity/key (:window/canvas (:local/window result)))}]
+    (fn [topic & args]
+      (publish {:topic topic :args args})
+      (let [context (assoc context :data @conn :event topic)
+            tx-data (apply transact context args)]
+        (if (seq tx-data)
+          (let [report (ds/transact! conn tx-data)]
+            (publish {:topic :tx/commit :args (list report)})))))))
 
 (defn provider
   "Provides a DataScript in-memory database to the application and causes
@@ -102,4 +112,4 @@
   [child]
   (let [conn (ds/conn-from-db (initial-data))]
     (uix/context-provider
-     [state [conn (create-dispatch conn)]] child)))
+     [context conn] child)))

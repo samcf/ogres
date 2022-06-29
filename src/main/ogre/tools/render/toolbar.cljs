@@ -1,6 +1,6 @@
 (ns ogre.tools.render.toolbar
   (:require [ogre.tools.render :refer [icon listen!]]
-            [ogre.tools.state :refer [use-query]]
+            [ogre.tools.state :refer [use-dispatch use-query]]
             [uix.core.alpha :as uix]))
 
 (defn ^{:private true} shortcut [key]
@@ -38,9 +38,10 @@
      [:window/scale :default 1]]}])
 
 (defn toolbar []
-  (let [[data dispatch] (use-query query)
-        container       (uix/ref)
-        tooltip-key     (uix/state nil)
+  (let [dispatch    (use-dispatch)
+        data        (use-query query)
+        container   (uix/ref)
+        tooltip-key (uix/state nil)
 
         {type      :local/type
          tooltips? :local/tooltips?

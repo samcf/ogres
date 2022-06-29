@@ -2,9 +2,10 @@
   (:require [clojure.string :refer [join trim]]
             [datascript.core :as ds :refer [squuid]]
             [ogre.tools.env :as env]
+            [ogre.tools.events :refer [subscribe!]]
             [ogre.tools.image :as image]
-            [ogre.tools.storage :refer [storage]]
-            [ogre.tools.state :refer [state]]
+            [ogre.tools.storage :refer [use-store]]
+            [ogre.tools.state :refer [use-dispatch]]
             [uix.core.alpha :as uix]))
 
 (defn css [& class-names]
@@ -78,8 +79,8 @@
                     (js/URL.createObjectURL))))))
 
 (defn use-image [checksum]
-  (let [[conn dispatch]  (uix/context state)
-        {:keys [store]}  (uix/context storage)
+  (let [dispatch         (use-dispatch)
+        store            (use-store)
         sentinel         (uix/state 0)
         watch-key        (deref (uix/state (squuid)))
         [loading cached] (get @cache checksum [false nil])]
@@ -98,18 +99,13 @@
                 (if cached (swap! sentinel inc)))))))
        (fn [] (remove-watch cache watch-key))) [checksum cached])
 
-    (uix/effect!
-     (fn []
-       (ds/listen!
-        conn :image-caching
-        (fn [{[event [data-url] _] :tx-meta}]
-          (if (= event :image/cache)
-            (let [hash   (image/checksum data-url)
-                  record #js {:checksum hash :data data-url :created-at (.now js/Date)}
-                  result (create-object-url data-url)]
-              (.then result (fn [] (.put (.table store "images") record)))
-              (.then result (fn [url] (swap! cache assoc hash [false url])))))))
-       (fn [] (ds/unlisten! conn :image-caching))) [])
+    (subscribe!
+     (fn [{[data-url] :args}]
+       (let [hash   (image/checksum data-url)
+             record #js {:checksum hash :data data-url :created-at (.now js/Date)}
+             result (create-object-url data-url)]
+         (.then result (fn [] (.put (.table store "images") record)))
+         (.then result (fn [url] (swap! cache assoc hash [false url]))))) :image/cache [])
 
     (uix/effect!
      (fn []

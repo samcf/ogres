@@ -1,13 +1,14 @@
 (ns ogre.tools.render.workspaces
   (:require [clojure.string :refer [blank? trim]]
-            [ogre.tools.state :refer [use-query]]))
+            [ogre.tools.state :refer [use-dispatch use-query]]))
 
 (def query
   [{:local/window [:entity/key]}
    {:local/windows [:entity/key :window/label]}])
 
 (defn workspaces []
-  (let [[result dispatch] (use-query query)
+  (let [dispatch (use-dispatch)
+        result   (use-query query)
         {current :local/window
          windows :local/windows} result]
     [:div.workspaces

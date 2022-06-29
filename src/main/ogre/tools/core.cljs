@@ -1,6 +1,8 @@
 (ns ogre.tools.core
-  (:require [ogre.tools.env :as env]
+  (:require [ogre.tools.form.core]
+            [ogre.tools.env :as env]
             [ogre.tools.errors :as errors]
+            [ogre.tools.events :as events]
             [ogre.tools.render :refer [css]]
             [ogre.tools.render.canvas :refer [canvas]]
             [ogre.tools.render.panel :refer [container]]
@@ -15,9 +17,8 @@
             [ogre.tools.window :as window]
             [react-helmet :refer [Helmet]]
             [uix.core.alpha :as uix]
-            [uix.dom.alpha :as uix.dom]
-            ogre.tools.form.core))
-
+            [uix.dom.alpha :as uix.dom]))
+ 
 (uix/add-transform-fn
  (fn [attrs]
    (if (:css attrs)
@@ -31,7 +32,7 @@
    [:local/tooltips? :default true]])
 
 (defn ^{:private true} layout []
-  (let [[result] (use-query query)
+  (let [result (use-query query)
         {:local/keys [loaded? type shortcuts? tooltips?]} result
         attrs {:data-view-type      (name type)
                :data-show-shortcuts shortcuts?
@@ -57,15 +58,16 @@
     [:link {:rel "stylesheet" :href (str path "/reset.css")}]
     [:link {:rel "stylesheet" :href (str path "/ogre.tools.css")}]]
    [errors/boundary
-    [state/provider
-     [storage/provider
-      [:<>
-       [storage/handlers]
-       [window/provider]
-       [shortcut/handlers]
-       [session/handlers]
-       [portal/provider
-        [layout]]]]]]])
+    [events/provider
+     [state/provider
+      [storage/provider
+       [:<>
+        [storage/handlers]
+        [window/provider]
+        [shortcut/handlers]
+        [session/handlers]
+        [portal/provider
+         [layout]]]]]]]])
 
 (defn ^{:private true} main []
   (let [element (.querySelector js/document "#root")]

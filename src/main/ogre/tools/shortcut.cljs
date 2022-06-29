@@ -1,13 +1,13 @@
 (ns ogre.tools.shortcut
   (:require [datascript.core :refer [pull]]
-            [ogre.tools.state :refer [state]]
+            [ogre.tools.state :refer [context use-dispatch]]
             [ogre.tools.render :refer [listen!]]
             [uix.core.alpha :as uix]))
 
 (defn linear [dx dy rx ry]
   (fn [n] (+ (* (/ (- n dx) (- dy dx)) (- ry rx)) rx)))
 
-(def events
+(def shortcuts
   {["keydown" "Shift"]
    (fn [[_ dispatch]]
      (dispatch :window/modifier-start :shift))
@@ -108,10 +108,12 @@
                       (= (.-type target) "number")))))))
 
 (defn handlers []
-  (let [context (uix/context state)]
+  (let [dispatch (use-dispatch)
+        conn     (uix/context context)]
     (doseq [type ["keydown" "keyup" "wheel"]]
       (listen!
        (fn [event]
          (if (allow-event? event)
-           (if-let [f (events (event-key type event))]
-             (f context event)))) type []))))
+           (if-let [f (shortcuts (event-key type event))]
+             (let [context [conn dispatch]]
+               (f context event))))) type [dispatch]))))

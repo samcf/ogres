@@ -2,7 +2,7 @@
   (:require [clojure.string :refer [join]]
             [ogre.tools.render.portal :as portal]
             [ogre.tools.geom :refer [chebyshev euclidean triangle]]
-            [ogre.tools.state :refer [use-query]]
+            [ogre.tools.state :refer [use-dispatch use-query]]
             [react-draggable]
             [uix.core.alpha :as uix]))
 
@@ -63,7 +63,7 @@
       [[:grid/size :default 70]]}]}])
 
 (defn polygon [{:keys [on-create]}]
-  (let [[result] (use-query query)
+  (let [result (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
@@ -111,7 +111,8 @@
 (defmethod draw :default [] nil)
 
 (defmethod draw :select []
-  (let [[result dispatch] (use-query query)
+  (let [dispatch (use-dispatch)
+        result   (use-query query)
         {[ox oy]  :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale} :local/window} result]
@@ -128,7 +129,8 @@
           [:path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}]]))]))
 
 (defmethod draw :grid []
-  (let [[result dispatch] (use-query query)
+  (let [dispatch (use-dispatch)
+        result   (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale} :local/window} result]
@@ -154,7 +156,7 @@
                (str "px"))]]))]))
 
 (defmethod draw :ruler []
-  (let [[result] (use-query query)
+  (let [result (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
@@ -180,7 +182,8 @@
              (str "ft."))]])]))
 
 (defmethod draw :circle []
-  (let [[result dispatch] (use-query query)
+  (let [dispatch (use-dispatch)
+        result   (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
@@ -207,7 +210,8 @@
            (-> radius (px->ft (* size scale)) (str "ft. radius"))]]))]))
 
 (defmethod draw :rect []
-  (let [[result dispatch] (use-query query)
+  (let [dispatch (use-dispatch)
+        result   (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
@@ -233,7 +237,8 @@
              (str w "ft. x " h "ft."))]]))]))
 
 (defmethod draw :line []
-  (let [[result dispatch] (use-query query)
+  (let [dispatch (use-dispatch)
+        result   (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
@@ -258,7 +263,8 @@
                (str "ft."))]]))]))
 
 (defmethod draw :cone []
-  (let [[result dispatch] (use-query query)
+  (let [dispatch (use-dispatch)
+        result   (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
@@ -281,14 +287,14 @@
                (str "ft."))]]))]))
 
 (defmethod draw :poly []
-  (let [dispatch (use-query)]
+  (let [dispatch (use-dispatch)]
     [polygon
      {:on-create
       (fn [_ xs]
         (dispatch :shape/create :poly xs))}]))
 
 (defmethod draw :mask []
-  (let [dispatch (use-query)]
+  (let [dispatch (use-dispatch)]
     [polygon
      {:on-create
       (fn [event xs]

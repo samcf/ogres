@@ -1,7 +1,7 @@
 (ns ogre.tools.render.panel
   (:require [ogre.tools.render :refer [icon]]
             [ogre.tools.form.render :refer [form]]
-            [ogre.tools.state :refer [use-query]]))
+            [ogre.tools.state :refer [use-dispatch use-query]]))
 
 (def ^{:private true} panel-icon
   {:canvas     "images"
@@ -29,7 +29,8 @@
    [:panel/collapsed? :default false]])
 
 (defn container []
-  (let [[result dispatch] (use-query query)
+  (let [dispatch (use-dispatch)
+        result   (use-query query)
         {:keys [local/type panel/current panel/collapsed?]} result
         forms    (panel-forms type)
         selected (or current (:form (first forms)))]
