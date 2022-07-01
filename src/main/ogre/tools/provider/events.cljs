@@ -1,6 +1,6 @@
 (ns ogre.tools.provider.events
   (:require [uix.core.alpha :as uix :refer [defcontext]]
-            [clojure.core.async :refer [chan mult tap untap pub sub unsub go-loop put! <! close! alts!]]))
+            [clojure.core.async :refer [chan mult tap untap pub sub unsub go-loop timeout put! <! close! alts!]]))
 
 (defcontext context)
 
@@ -43,14 +43,17 @@
             (close! ch)
             (untap multi ch)))) deps)))
   ([f topic deps]
-   (subscribe! f topic (chan 1) deps))
-  ([f topic ch deps]
-   (let [[pub _] (uix/context context)]
+   (subscribe! f topic {:chan (chan 1)} deps))
+  ([f topic opts deps]
+   (let [{ch :chan} opts
+         [pub _]    (uix/context context)]
      (uix/effect!
       (fn []
         (sub pub topic ch)
         (go-loop []
           (when-some [event (<! ch)]
+            (if (> (:rate-limit opts) 0)
+              (<! (timeout (:rate-limit opts))))
             (f event)
             (recur)))
         (fn []

@@ -1,10 +1,11 @@
 (ns ogre.tools.session
   (:require [clojure.set :refer [difference]]
             [cognitect.transit :as transit]
+            [clojure.core.async :refer [chan sliding-buffer]]
             [datascript.core :as ds]
             [datascript.transit :as dst]
             [ogre.tools.env :as env]
-            [ogre.tools.hooks :refer [listen! subscribe-many! use-dispatch use-interval use-store]]
+            [ogre.tools.hooks :refer [listen! subscribe! subscribe-many! use-dispatch use-publish use-interval use-store]]
             [ogre.tools.provider.state :as provider.state]
             [uix.core.alpha :as uix]))
 
@@ -85,7 +86,7 @@
 ;; of important events. The embedded :data map will always contain a member
 ;; called :name to distinguish different kinds of events.
 (defmethod handle-message :event
-  [{:keys [conn store]} {:keys [data] :as message} on-send]
+  [{:keys [conn store publish]} {:keys [data] :as message} on-send]
   (case (:name data)
     :session/created
     (ds/transact!
@@ -134,7 +135,11 @@
     (-> (.get (.table store "images") (:checksum data))
         (.then (fn [r] (.-data r)))
         (.then (fn [data-url]
-                 (on-send {:type :image :dst (:src message) :data data-url}))))))
+                 (on-send {:type :image :dst (:src message) :data data-url}))))
+    
+    :cursor/moved
+    (let [{src :src {[x y] :coord} :data} message]
+      (publish {:topic :cursor/moved :args [src x y]}))))
 
 ;; Handles messages that include a complete copy of the host's initial state as
 ;; a set of DataScript datoms. This message is generally received right after
@@ -163,10 +168,12 @@
     (dispatch :image/cache data-url)))
 
 (defn handlers []
-  (let [dispatch (use-dispatch)
+  (let [publish  (use-publish)
+        dispatch (use-dispatch)
         store    (use-store)
         conn     (uix/context provider.state/context)
         socket   (uix/state nil)
+        cursor   (deref (uix/state (chan (sliding-buffer 1))))
         on-send  (uix/callback
                   (fn [message]
                     (if-let [socket @socket]
@@ -230,6 +237,12 @@
        (let [local (ds/entity @conn [:db/ident :local])]
          (if (= (:local/type local) :conn)
            (dispatch :session/join)))) [])
+    
+    (let [opts {:chan cursor :rate-limit 80}]
+      (subscribe!
+       (fn [{[x y] :args}]
+         (let [data {:name :cursor/moved :coord [x y]}]
+           (on-send {:type :event :data data}))) :cursor/move opts []))
 
     ;; Periodically attempt to re-establish closed connections.
     (use-interval
@@ -241,7 +254,7 @@
 
     (doseq [type ["open" "close" "message" "error"]]
       (listen!
-       (let [context {:conn conn :dispatch dispatch :store store}]
+       (let [context {:conn conn :dispatch dispatch :publish publish :store store}]
          (fn [event]
            (case type
              "open"    (handle-open context event)

@@ -2,12 +2,13 @@
   (:require [clojure.set :refer [difference]]
             [clojure.string :refer [join]]
             [ogre.tools.geom :refer [bounding-box chebyshev euclidean triangle]]
-            [ogre.tools.hooks :refer [create-portal use-dispatch use-image use-portal use-query]]
+            [ogre.tools.hooks :refer [create-portal subscribe! use-cursor use-dispatch use-image use-portal use-publish use-query]]
             [ogre.tools.render :refer [icon]]
             [ogre.tools.render.draw :refer [draw]]
             [ogre.tools.render.forms :refer [token-context-menu shape-context-menu]]
             [ogre.tools.render.pattern :refer [pattern]]
-            [react-draggable]))
+            [react-draggable]
+            [uix.core.alpha :as uix]))
 
 (def draw-modes
   #{:grid :ruler :circle :rect :cone :line :poly :mask})
@@ -28,6 +29,13 @@
    [:frightened "black-cat"]
    [:incapacitated "emoji-dizzy"]
    [:unconscious "skull"]])
+
+(defn key-by
+  "Returns a map of the given `coll` whose keys are the result of calling `f`
+   with each element in the collection and whose values are the element
+   itself."
+  [f coll]
+  (into {} (map (juxt f identity) coll)))
 
 (defn separate
   "Split coll into two sequences, one that matches pred and one that doesn't."
@@ -459,9 +467,42 @@
     [:g.canvas-bounds {:transform (str "translate(" ox " , " oy ")")}
      [:rect {:x 0 :y 0 :width vw :height vh :rx 8}]]))
 
+(defn cursor [{[x y] :coord color :color}]
+  (let [position (uix/state nil)
+        callback (uix/callback
+                  (fn [point]
+                    (let [x (aget point 0)
+                          y (aget point 1)]
+                      (reset! position [x y]))) [])
+        update   (use-cursor callback)
+        [ax ay]  @position]
+    (uix/layout-effect!
+     (fn [] (update x y)) [x y])
+    (if (not (nil? @position))
+      [:g.canvas-cursor {:transform (str "translate(" (- ax 4) ", " (- ay 4) ")") :color color}
+       [icon {:name "cursor-fill-rotated" :size 32}]])))
+
+(def cursors-query
+  [{:root/session
+    [{:session/conns [{:local/window [:entity/key]} :local/color :entity/key]}]}])
+
+(defn cursors []
+  (let [coords (uix/state {})
+        result (use-query cursors-query [:db/ident :root])
+        conns  (key-by :entity/key (:session/conns (:root/session result)))]
+    (subscribe!
+     (fn [{[uuid x y] :args}]
+       (swap! coords assoc uuid [x y])) :cursor/moved [])
+    [:g.canvas-cursors
+     (for [[uuid [x y]] @coords
+           :let  [color (get-in conns [uuid :local/color])]
+           :when (contains? conns uuid)]
+       ^{:key uuid} [cursor {:coord [x y] :color color}])]))
+
 (def canvas-query
   [:local/type
    [:local/privileged? :default false]
+   [:bounds/self :default [0 0 0 0]]
    [:bounds/host :default [0 0 0 0]]
    [:bounds/view :default [0 0 0 0]]
    {:local/window
@@ -474,20 +515,22 @@
       [[:canvas/theme :default :light]]}]}])
 
 (defn canvas []
-  (let [dispatch (use-dispatch)
+  (let [publish  (use-publish)
+        dispatch (use-dispatch)
         result   (use-query canvas-query)
         {type        :local/type
          priv?       :local/privileged?
          [_ _ hw hh] :bounds/host
          [_ _ vw vh] :bounds/view
+         [sx sy _ _] :bounds/self
          {key     :entity/key
           scale   :window/scale
           mode    :window/draw-mode
           modif   :window/modifier
           [cx cy] :window/vec
           {theme :canvas/theme} :window/canvas} :local/window} result
-        cx (if (= type :host) cx (->> (- hw vw) (max 0) (* (/ -1 2 scale)) (+ cx)))
-        cy (if (= type :host) cy (->> (- hh vh) (max 0) (* (/ -1 2 scale)) (+ cy)))]
+        cx (if (= type :view) (->> (- hw vw) (max 0) (* (/ -1 2 scale)) (+ cx)) cx)
+        cy (if (= type :view) (->> (- hh vh) (max 0) (* (/ -1 2 scale)) (+ cy)) cy)]
     [:svg.canvas {:key key :css {(str "theme--" (name theme)) true :is-host (= type :host) :is-priv priv?}}
      [:> react-draggable
       {:position #js {:x 0 :y 0}
@@ -500,7 +543,11 @@
              (let [tx (+ cx (* ox (/ scale)))
                    ty (+ cy (* oy (/ scale)))]
                (dispatch :window/translate tx ty)))))}
-      [:g {:style {:will-change "transform"}}
+      [:g {:style         {:will-change "transform"}
+           :on-mouse-move (fn [event]
+                            (let [x (- (/ (- (.-clientX event) sx) scale) cx)
+                                  y (- (/ (- (.-clientY event) sy) scale) cy)]
+                              (publish {:topic :cursor/move :args [x y]})))}
        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
        (if (and (= mode :select) (= modif :shift))
          [draw {:mode :select}])
@@ -513,6 +560,7 @@
         [tokens]
         [light-mask]
         [canvas-mask]
+        [cursors]
         [create-portal (fn [ref] [:g {:ref ref :style {:outline "none"}}]) :selected]]]]
      [create-portal
       (fn [ref]

@@ -4,6 +4,7 @@
             [ogre.tools.provider.portal :as provider.portal]
             [ogre.tools.provider.state :as provider.state]
             [ogre.tools.provider.storage :as provider.storage]
+            [perfect-cursors :refer [PerfectCursor]]
             [uix.core.alpha :as uix]))
 
 (def ^{:doc "Returns a function which, when called with a topic and any number
@@ -109,3 +110,17 @@
        (if (and @ref (not (.contains @ref (.-target event))))
          (swap! state not))) (if @state js/document false) "click" [@state])
     [state ref]))
+
+(defn use-cursor
+  "Returns a function which should be called with updates to an element's
+   position from some external source, such as a WebSocket event. Accepts a
+   callback function which is called with an interpolated position; use this
+   new position to update the element's actual rendered position."
+  [callback]
+  (let [cursor (uix/state (PerfectCursor. callback))]
+    (uix/layout-effect!
+     (fn []
+       (fn [] (.dispose @cursor))) [])
+    (uix/callback
+     (fn [x y]
+       (.addPoint @cursor #js [x y])))))
