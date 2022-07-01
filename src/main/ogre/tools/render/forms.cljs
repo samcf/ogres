@@ -1,6 +1,5 @@
 (ns ogre.tools.render.forms
   (:require [clojure.string :refer [capitalize]]
-            [datascript.core :refer [squuid]]
             [ogre.tools.hooks :refer [use-dispatch use-image use-image-uploader use-portal use-query use-store]]
             [ogre.tools.render :refer [icon]]
             [ogre.tools.render.pattern :refer [pattern]]
@@ -42,7 +41,7 @@
 (defn checkbox [{:keys [checked on-change]} render-fn]
   (let [input (uix/ref)
         indtr (= checked :indeterminate)
-        key   (deref (uix/state (squuid)))]
+        key   (deref (uix/state (random-uuid)))]
     (uix/effect!
      (fn [] (set! (.-indeterminate @input) indtr)) [indtr])
     (render-fn

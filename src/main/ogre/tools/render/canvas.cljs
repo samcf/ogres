@@ -1,7 +1,6 @@
 (ns ogre.tools.render.canvas
   (:require [clojure.set :refer [difference]]
             [clojure.string :refer [join]]
-            [datascript.core :refer [squuid]]
             [ogre.tools.geom :refer [bounding-box chebyshev euclidean triangle]]
             [ogre.tools.hooks :refer [create-portal use-dispatch use-image use-portal use-query]]
             [ogre.tools.render :refer [icon]]
@@ -284,7 +283,7 @@
              (if (> (euclidean ax ay ox oy) 0)
                (dispatch :shape/translate key ox oy (not= snap-grid (.-metaKey event)))
                (dispatch :element/select key true))))}
-        (let [id (squuid)]
+        (let [id (random-uuid)]
           [:g
            {:css {:canvas-shape true :selected selected? (str "canvas-shape-" (name kind)) true}}
            [:defs [pattern {:id id :name (:shape/pattern entity) :color color}]]
