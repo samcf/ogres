@@ -1,8 +1,6 @@
 (ns ogre.tools.provider.image
   (:import goog.crypt.Md5)
-  (:require [datascript.core :as ds :refer [squuid]]
-            [ogre.tools.provider.events :refer [subscribe!]]
-            [ogre.tools.provider.state :refer [use-dispatch]]
+  (:require [ogre.tools.provider.events :refer [use-publish subscribe!]]
             [ogre.tools.provider.storage :refer [use-store]]
             [uix.core.alpha :as uix]))
 
@@ -37,7 +35,7 @@
        (set! (.-src image) url)))))
 
 (defn use-image-uploader []
-  (let [store (use-store)]
+  (let [publish (use-publish)]
     (fn [file]
       (-> (js/Promise.resolve {})
           (.then (fn [data]
@@ -45,11 +43,11 @@
                           (fn [data-url]
                             (js/Promise.resolve (assoc data :data-url data-url))))))
           (.then (fn [data]
-                   (js/Promise.resolve (assoc data :checksum (create-checksum (:data-url data))))))
+                   (js/Promise.resolve
+                    (assoc data :checksum (create-checksum (:data-url data))))))
           (.then (fn [data]
-                   (let [{:keys [data-url checksum]} data
-                         record #js {:checksum checksum :data data-url :created-at (js/Date.now)}]
-                     (.put (.table store "images") record)
+                   (let [{:keys [checksum data-url]} data]
+                     (publish {:topic :storage/cache-image :args [checksum data-url]})
                      (js/Promise.resolve data))))
           (.then (fn [data]
                    (.then (create-image-element (:data-url data))
@@ -57,10 +55,10 @@
                             (js/Promise.resolve (assoc data :width (.-width element) :height (.-height element)))))))))))
 
 (defn use-image [checksum]
-  (let [dispatch         (use-dispatch)
+  (let [publish          (use-publish)
         store            (use-store)
         sentinel         (uix/state 0)
-        watch-key        (deref (uix/state (squuid)))
+        watch-key        (deref (uix/state (random-uuid)))
         [loading cached] (get @cache checksum [false nil])]
 
     (if (not (or loading cached))
@@ -79,11 +77,10 @@
 
     (subscribe!
      (fn [{[data-url] :args}]
-       (let [hash   (create-checksum data-url)
-             record #js {:checksum hash :data data-url :created-at (.now js/Date)}
-             result (create-object-url data-url)]
-         (.then result (fn [] (.put (.table store "images") record)))
-         (.then result (fn [url] (swap! cache assoc hash [false url]))))) :image/cache [])
+       (let [checksum (create-checksum data-url)]
+         (publish {:topic :storage/cache-image :args [checksum data-url]})
+         (-> (create-object-url data-url)
+             (.then #(swap! cache assoc checksum [false %1]))))) :image/cache [])
 
     (uix/effect!
      (fn []
@@ -92,7 +89,7 @@
              (.get checksum)
              (.then (fn [rec] (create-object-url (.-data rec))))
              (.then (fn [url] (swap! cache assoc checksum [false url])))
-             (.catch (fn [] (dispatch :image/request checksum))))))
+             (.catch (fn [] (publish {:topic :image/request :args [checksum]}))))))
      [checksum])
 
     cached))
