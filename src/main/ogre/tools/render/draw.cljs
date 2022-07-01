@@ -1,8 +1,7 @@
 (ns ogre.tools.render.draw
   (:require [clojure.string :refer [join]]
-            [ogre.tools.render.portal :as portal]
+            [ogre.tools.hooks :refer [use-dispatch use-portal use-query]]
             [ogre.tools.geom :refer [chebyshev euclidean triangle]]
-            [ogre.tools.state :refer [use-dispatch use-query]]
             [react-draggable]
             [uix.core.alpha :as uix]))
 
@@ -125,7 +124,7 @@
         (dispatch :selection/from-rect xs))}
      (fn [_ xs]
        (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)]
-         [portal/use {:label :multiselect}
+         [use-portal {:label :multiselect}
           [:path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}]]))]))
 
 (defmethod draw :grid []

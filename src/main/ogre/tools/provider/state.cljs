@@ -1,8 +1,8 @@
-(ns ogre.tools.state
+(ns ogre.tools.provider.state
   (:require [uix.core.alpha :as uix :refer [defcontext]]
             [datascript.core :as ds :refer [squuid]]
             [ogre.tools.env :as env]
-            [ogre.tools.events :refer [use-publish]]
+            [ogre.tools.provider.events :refer [use-publish]]
             [ogre.tools.txs :refer [transact]]))
 
 (def schema
@@ -84,13 +84,7 @@
             (ds/unlisten! conn listen-key)))) [])
      @prev-state)))
 
-(defn use-dispatch
-  "Returns a dispatch function that accepts a topic and topic arguments.
-   Performs the following work:
-   1. Publishes an event on the event bus with the given topic.
-   2. Performs a DataScript transaction if the topic is registered for one.
-   3. Publishes an event of the previous transaction with the report."
-  []
+(defn use-dispatch []
   (let [conn    (uix/context context)
         query   [:entity/key {:local/window [:entity/key {:window/canvas [:entity/key]}]}]
         publish (use-publish)

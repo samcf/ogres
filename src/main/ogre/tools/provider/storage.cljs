@@ -1,10 +1,10 @@
-(ns ogre.tools.storage
+(ns ogre.tools.provider.storage
   (:require [datascript.core :as ds]
             [datascript.transit :as dt]
             [dexie]
             [ogre.tools.env :as env]
-            [ogre.tools.events :refer [subscribe!]]
-            [ogre.tools.state :as state :refer [use-query]]
+            [ogre.tools.provider.events :refer [subscribe!]]
+            [ogre.tools.provider.state :as state :refer [use-query]]
             [ogre.tools.timing :refer [debounce]]
             [uix.core.alpha :as uix :refer [defcontext]]))
 
@@ -83,6 +83,13 @@
             (fn []
               (ds/transact! conn tx-data))))) []) nil))
 
+(defn image-cache-handler []
+  (let [store (use-store)]
+    (subscribe!
+     (fn [{[checksum data-url] :args}]
+       (let [record #js {:checksum checksum :data data-url :created-at (js/Date.now)}]
+         (.put (.table store "images") record))) :storage/cache-image []) nil))
+
 (defn reset-handler []
   (let [store (use-store)]
     (subscribe!
@@ -95,6 +102,6 @@
    saving and loading the application state." []
   (let [{type :local/type} (use-query [:local/type])]
     (case type
-      :host [:<> [unmarshaller] [marshaller] [reset-handler]]
-      :view [unmarshaller]
-      :conn [:<>])))
+      :host [:<> [unmarshaller] [marshaller] [image-cache-handler] [reset-handler]]
+      :view [:<> [unmarshaller] [image-cache-handler]]
+      :conn [:<> [image-cache-handler]])))

@@ -1,20 +1,20 @@
 (ns ogre.tools.core
   (:require [ogre.tools.form.core]
             [ogre.tools.env :as env]
-            [ogre.tools.errors :as errors]
-            [ogre.tools.events :as events]
-            [ogre.tools.render :refer [css]]
+            [ogre.tools.hooks :refer [use-query create-portal]]
+            [ogre.tools.provider.events :as provider.events]
+            [ogre.tools.provider.portal :as provider.portal]
+            [ogre.tools.provider.state :as provider.state]
+            [ogre.tools.provider.storage :as provider.storage]
+            [ogre.tools.provider.window :as provider.window]
+            [ogre.tools.render :refer [css error-boundary]]
             [ogre.tools.render.canvas :refer [canvas]]
             [ogre.tools.render.panel :refer [container]]
-            [ogre.tools.render.portal :as portal]
             [ogre.tools.render.tokens :refer [tokens]]
             [ogre.tools.render.toolbar :refer [toolbar]]
             [ogre.tools.render.workspaces :refer [workspaces]]
             [ogre.tools.session :as session]
             [ogre.tools.shortcut :as shortcut]
-            [ogre.tools.state :as state :refer [use-query]]
-            [ogre.tools.storage :as storage]
-            [ogre.tools.window :as window]
             [react-helmet :refer [Helmet]]
             [uix.core.alpha :as uix]
             [uix.dom.alpha :as uix.dom]))
@@ -43,7 +43,7 @@
          (if (= type :host)
            [:div.layout-workspaces [workspaces]])
          [:div.layout-canvas [canvas]]
-         [portal/create
+         [create-portal
           (fn [ref]
             [:div.layout-modal {:ref ref}]) :modal]
          [:div.layout-toolbar [toolbar]]
@@ -57,16 +57,16 @@
    [:> Helmet
     [:link {:rel "stylesheet" :href (str path "/reset.css")}]
     [:link {:rel "stylesheet" :href (str path "/ogre.tools.css")}]]
-   [errors/boundary
-    [events/provider
-     [state/provider
-      [storage/provider
+   [error-boundary
+    [provider.events/provider
+     [provider.state/provider
+      [provider.storage/provider
        [:<>
-        [storage/handlers]
-        [window/provider]
+        [provider.storage/handlers]
+        [provider.window/provider]
         [shortcut/handlers]
         [session/handlers]
-        [portal/provider
+        [provider.portal/provider
          [layout]]]]]]]])
 
 (defn ^{:private true} main []

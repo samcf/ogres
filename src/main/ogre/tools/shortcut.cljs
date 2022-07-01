@@ -1,7 +1,7 @@
 (ns ogre.tools.shortcut
   (:require [datascript.core :refer [pull]]
-            [ogre.tools.state :refer [context use-dispatch]]
-            [ogre.tools.render :refer [listen!]]
+            [ogre.tools.hooks :refer [listen! use-dispatch]]
+            [ogre.tools.provider.state :refer [context]]
             [uix.core.alpha :as uix]))
 
 (defn linear [dx dy rx ry]

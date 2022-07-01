@@ -1,5 +1,5 @@
 (ns ogre.tools.render.tokens
-  (:require [ogre.tools.state :refer [use-dispatch use-query]]
+  (:require [ogre.tools.hooks :refer [use-dispatch use-query]]
             [react-draggable]))
 
 (defn round [x n]

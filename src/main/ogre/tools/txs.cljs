@@ -251,13 +251,12 @@
 
 (defmethod transact :canvas/change-scene
   [{:keys [data canvas]} checksum]
-  (let [{:image/keys [width height filename]} (ds/entity data [:image/checksum checksum])]
+  (let [{:image/keys [width height]} (ds/entity data [:image/checksum checksum])]
     [[:db/add -1 :entity/key canvas]
      [:db/add -1 :canvas/image -2]
      [:db/add -2 :image/checksum checksum]
      [:db/add -2 :image/width width]
-     [:db/add -2 :image/height height]
-     [:db/add -2 :image/filename filename]]))
+     [:db/add -2 :image/height height]]))
 
 (defmethod transact :canvas/change-grid-size
   [{:keys [canvas]} size]
@@ -322,9 +321,8 @@
     [:db/retractEntity [:entity/key key]]))
 
 (defmethod transact :scene/create
-  [{:keys [canvas]} checksum filename width height]
+  [{:keys [canvas]} checksum width height]
   [[:db/add -1 :image/checksum checksum]
-   [:db/add -1 :image/filename filename]
    [:db/add -1 :image/width width]
    [:db/add -1 :image/height height]
    [:db/add [:db/ident :root] :root/scenes -1]
@@ -576,10 +574,9 @@
     [{:db/id -1 :entity/key local :panel/collapsed? (not (:panel/collapsed? entity))}]))
 
 (defmethod transact :stamp/create
-  [_ checksum filename width height]
+  [_ checksum width height]
   [{:db/id          -1
     :image/checksum checksum
-    :image/filename filename
     :image/width    width
     :image/height   height}
    {:db/id [:db/ident :root] :root/stamps -1}])

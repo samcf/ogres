@@ -1,4 +1,4 @@
-(ns ogre.tools.render.portal
+(ns ogre.tools.provider.portal
   (:refer-clojure :exclude [use])
   (:require [uix.core.alpha :as uix :refer [defcontext]]
             [uix.dom.alpha :refer [create-portal]]))

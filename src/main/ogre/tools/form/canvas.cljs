@@ -1,10 +1,8 @@
 (ns ogre.tools.form.canvas
   (:require [clojure.string :refer [capitalize]]
             [ogre.tools.form.render :refer [form]]
-            [ogre.tools.image :as image]
-            [ogre.tools.render :refer [button checkbox icon use-image]]
-            [ogre.tools.state :refer [use-dispatch use-query]]
-            [ogre.tools.storage :refer [use-store]]
+            [ogre.tools.hooks :refer [use-dispatch use-image use-image-uploader use-query use-store]]
+            [ogre.tools.render :refer [checkbox icon]]
             [uix.core.alpha :as uix]))
 
 (defn ^{:private true} thumbnail [{:keys [checksum selected on-select on-remove]}]
@@ -44,6 +42,7 @@
 (defn ^{:private true} canvas []
   (let [dispatch    (use-dispatch)
         result      (use-query query [:db/ident :root])
+        upload      (use-image-uploader)
         store       (use-store)
         show-images (uix/state false)
         file-upload (uix/ref)
@@ -62,7 +61,7 @@
         (if checksum
           [preview {:checksum checksum}]
           [icon {:name "images" :size 32}])]
-       [button {:on-click #(.click @file-upload)} "Choose File(s)"]
+       [:button.ogre-button {:type "button" :on-click #(.click @file-upload)} "Choose File(s)"]
        [:input
         {:type "text"
          :placeholder "New Canvas"
@@ -93,15 +92,9 @@
         :style {:display "none"}
         :on-change
         #(doseq [file (.. % -target -files)]
-           (-> (image/load file)
-               (.then
-                (fn [[file data-url element]]
-                  (let [checks (image/checksum data-url)
-                        record #js {:checksum checks :data data-url :created-at (.now js/Date)}
-                        args   [checks (.-name file) (.-width element) (.-height element)]]
-                    (-> (.put (.-images store) record)
-                        (.then
-                         (fn [] (apply dispatch :scene/create args)))))))))}]]
+           (.then (upload file)
+                  (fn [{:keys [checksum width height]}]
+                    (dispatch :scene/create checksum width height))))}]]
      [:section
       [:legend "Options"]
       [:fieldset.setting

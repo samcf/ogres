@@ -2,7 +2,7 @@
   (:require [clojure.string :refer [capitalize]]
             [ogre.tools.env :as env]
             [ogre.tools.form.render :refer [form]]
-            [ogre.tools.state :refer [use-dispatch use-query]]))
+            [ogre.tools.hooks :refer [use-dispatch use-query]]))
 
 (def ^{:private true} query
   [{:root/local

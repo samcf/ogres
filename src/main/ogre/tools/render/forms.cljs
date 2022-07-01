@@ -1,12 +1,8 @@
 (ns ogre.tools.render.forms
   (:require [clojure.string :refer [capitalize]]
-            [datascript.core :refer [squuid]]
-            [ogre.tools.image :refer [load checksum]]
-            [ogre.tools.render :refer [icon use-image]]
+            [ogre.tools.hooks :refer [use-dispatch use-image use-image-uploader use-portal use-query use-store]]
+            [ogre.tools.render :refer [icon]]
             [ogre.tools.render.pattern :refer [pattern]]
-            [ogre.tools.render.portal :as portal]
-            [ogre.tools.state :refer [use-dispatch use-query]]
-            [ogre.tools.storage :refer [use-store]]
             [uix.core.alpha :as uix]))
 
 (def conditions
@@ -45,7 +41,7 @@
 (defn checkbox [{:keys [checked on-change]} render-fn]
   (let [input (uix/ref)
         indtr (= checked :indeterminate)
-        key   (deref (uix/state (squuid)))]
+        key   (deref (uix/state (random-uuid)))]
     (uix/effect!
      (fn [] (set! (.-indeterminate @input) indtr)) [indtr])
     (render-fn
@@ -56,13 +52,14 @@
          (on-change (.. event -target -checked)))}] key)))
 
 (defn file-uploader [props]
-  [:input
-   {:type "file" :ref (:ref props) :accept "image/*" :multiple true
-    :style {:display "none"}
-    :on-change
-    (fn [event]
-      (doseq [file (.. event -target -files)]
-        (.then (load file) (:on-upload props))))}])
+  (let [upload (use-image-uploader)]
+    [:input
+     {:type "file" :ref (:ref props) :accept "image/*" :multiple true
+      :style {:display "none"}
+      :on-change
+      (fn [event]
+        (doseq [file (.. event -target -files)]
+          (.then (upload file) (:on-upload props))))}]))
 
 (defn thumbnail [checksum render-fn]
   (render-fn (use-image checksum)))
@@ -78,12 +75,9 @@
      [file-uploader
       {:ref upload-ref
        :on-upload
-       (fn [[file data-url image]]
-         (let [checksum (checksum data-url)]
-           (.then
-            (.put (.-images store) #js {:checksum checksum :data data-url :created-at (.now js/Date)})
-            (fn [] (dispatch :stamp/create checksum (.-name file) (.-width image) (.-height image)))
-            (reset! page-index 0))))}]
+       (fn [{:keys [checksum width height]}]
+         (dispatch :stamp/create checksum width height)
+         (reset! page-index 0))}]
      [:div.images-form
       (concat
        [[:button.button
@@ -146,7 +140,7 @@
        :placeholder "Press 'Enter' to submit..."
        :on-change #(reset! input-val (.. %1 -target -value))}]
      (if @thumb-open
-       [portal/use {:label :modal}
+       [use-portal {:label :modal}
         [:div.context-menu-form-modal
          [images-form
           {:on-change
