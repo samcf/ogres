@@ -1,8 +1,7 @@
 (ns ogre.tools.render.forms
   (:require [clojure.string :refer [capitalize]]
             [datascript.core :refer [squuid]]
-            [ogre.tools.hooks :refer [use-dispatch use-image use-portal use-query use-store]]
-            [ogre.tools.image :refer [load checksum]]
+            [ogre.tools.hooks :refer [use-dispatch use-image use-image-uploader use-portal use-query use-store]]
             [ogre.tools.render :refer [icon]]
             [ogre.tools.render.pattern :refer [pattern]]
             [uix.core.alpha :as uix]))
@@ -54,13 +53,14 @@
          (on-change (.. event -target -checked)))}] key)))
 
 (defn file-uploader [props]
-  [:input
-   {:type "file" :ref (:ref props) :accept "image/*" :multiple true
-    :style {:display "none"}
-    :on-change
-    (fn [event]
-      (doseq [file (.. event -target -files)]
-        (.then (load file) (:on-upload props))))}])
+  (let [upload (use-image-uploader)]
+    [:input
+     {:type "file" :ref (:ref props) :accept "image/*" :multiple true
+      :style {:display "none"}
+      :on-change
+      (fn [event]
+        (doseq [file (.. event -target -files)]
+          (.then (upload file) (:on-upload props))))}]))
 
 (defn thumbnail [checksum render-fn]
   (render-fn (use-image checksum)))
@@ -76,12 +76,9 @@
      [file-uploader
       {:ref upload-ref
        :on-upload
-       (fn [[file data-url image]]
-         (let [checksum (checksum data-url)]
-           (.then
-            (.put (.-images store) #js {:checksum checksum :data data-url :created-at (.now js/Date)})
-            (fn [] (dispatch :stamp/create checksum (.-name file) (.-width image) (.-height image)))
-            (reset! page-index 0))))}]
+       (fn [{:keys [checksum width height]}]
+         (dispatch :stamp/create checksum width height)
+         (reset! page-index 0))}]
      [:div.images-form
       (concat
        [[:button.button

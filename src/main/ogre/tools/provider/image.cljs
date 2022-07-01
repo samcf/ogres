@@ -1,6 +1,6 @@
 (ns ogre.tools.provider.image
+  (:import goog.crypt.Md5)
   (:require [datascript.core :as ds :refer [squuid]]
-            [ogre.tools.image :as image]
             [ogre.tools.provider.events :refer [subscribe!]]
             [ogre.tools.provider.state :refer [use-dispatch]]
             [ogre.tools.provider.storage :refer [use-store]]
@@ -8,12 +8,53 @@
 
 (def cache (atom {}))
 
+(defn create-checksum [bytes]
+  (let [hash (Md5.)]
+    (.update hash bytes)
+    (reduce
+     (fn [s b]
+       (str s (.slice (str "0" (.toString b 16)) -2))) "" (.digest hash))))
+
+(defn create-data-url [file]
+  (-> (js/Promise.
+       (fn [resolve]
+         (let [reader (js/FileReader.)]
+           (.readAsDataURL reader file)
+           (.addEventListener reader "load" resolve))))
+      (.then (fn [event] (js/Promise.resolve (.. event -target -result))))))
+
 (defn create-object-url [data-url]
   (-> (.fetch js/window data-url)
       (.then (fn [r] (.blob r)))
-      (.then (fn [b]
-               (->> (js/File. #js [b] "image" #js {:type (.-type b)})
-                    (js/URL.createObjectURL))))))
+      (.then (fn [b] (->> (js/File. #js [b] "image" #js {:type (.-type b)})
+                          (js/URL.createObjectURL))))))
+
+(defn create-image-element [url]
+  (js/Promise.
+   (fn [resolve]
+     (let [image (js/Image.)]
+       (.addEventListener image "load" (fn [] (this-as element (resolve element))))
+       (set! (.-src image) url)))))
+
+(defn use-image-uploader []
+  (let [store (use-store)]
+    (fn [file]
+      (-> (js/Promise.resolve {})
+          (.then (fn [data]
+                   (.then (create-data-url file)
+                          (fn [data-url]
+                            (js/Promise.resolve (assoc data :data-url data-url))))))
+          (.then (fn [data]
+                   (js/Promise.resolve (assoc data :checksum (create-checksum (:data-url data))))))
+          (.then (fn [data]
+                   (let [{:keys [data-url checksum]} data
+                         record #js {:checksum checksum :data data-url :created-at (js/Date.now)}]
+                     (.put (.table store "images") record)
+                     (js/Promise.resolve data))))
+          (.then (fn [data]
+                   (.then (create-image-element (:data-url data))
+                          (fn [element]
+                            (js/Promise.resolve (assoc data :width (.-width element) :height (.-height element)))))))))))
 
 (defn use-image [checksum]
   (let [dispatch         (use-dispatch)
@@ -38,7 +79,7 @@
 
     (subscribe!
      (fn [{[data-url] :args}]
-       (let [hash   (image/checksum data-url)
+       (let [hash   (create-checksum data-url)
              record #js {:checksum hash :data data-url :created-at (.now js/Date)}
              result (create-object-url data-url)]
          (.then result (fn [] (.put (.table store "images") record)))

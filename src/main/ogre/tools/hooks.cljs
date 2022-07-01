@@ -52,6 +52,12 @@
   use-image
   provider.image/use-image)
 
+(def ^{:doc "Returns a function which accepts an HTML File object as its
+             only argument and returns a Promise whose resolved value
+             is a map with image properties."}
+  use-image-uploader
+  provider.image/use-image-uploader)
+
 (def ^{:doc "Creates a new portal element of name `label` with contents
              rendered by `render-fn`. This portal can then be rendered
              into with `use-portal`."
