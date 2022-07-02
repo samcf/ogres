@@ -239,14 +239,14 @@
                   (= (:session/state local) :disconnected))
            (dispatch :session/join)))) 5000)
 
-    (doseq [type ["open" "close" "message" "error"]]
-      (listen!
-       (let [context {:conn conn :dispatch dispatch :store store}]
+    (let [context {:conn conn :dispatch dispatch :store store}]
+      (doseq [type ["open" "close" "message" "error"]]
+        (listen!
          (fn [event]
            (case type
              "open"    (handle-open context event)
              "close"   (handle-close context event)
              "error"   (js/console.log "error" event)
              "message" (let [data (transit/read reader (.-data event))]
-                         (handle-message context data on-send)))))
-       @socket type [@socket])) nil))
+                         (handle-message context data on-send))))
+         @socket type [context @socket]))) nil))
