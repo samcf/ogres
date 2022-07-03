@@ -69,8 +69,6 @@
         [provider.portal/provider
          [layout]]]]]]]])
 
-(defn ^{:private true} main []
+(defn main []
   (let [element (.querySelector js/document "#root")]
     (uix.dom/render [root {:path env/PATH}] element)))
-
-(main)
