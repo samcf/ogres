@@ -68,6 +68,10 @@ a:visited {
     color: var(--theme-text-link);
 }
 
+#root {
+    visibility: visible !important;
+}
+
 .ogre-button {
     align-items: center;
     background-color: var(--theme-paper-light);

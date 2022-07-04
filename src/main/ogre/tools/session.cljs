@@ -183,6 +183,13 @@
                           (->> (merge defaults message)
                                (transit/write writer)
                                (.send socket)))))) [])]
+    
+    (uix/effect!
+     (fn []
+       (fn []
+         (if-let [ws @socket]
+           (.close ws)
+           (reset! socket nil)))) [])
 
     (subscribe-many!
      ;; Open a WebSocket connection and attempt to create a new multiplayer
