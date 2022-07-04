@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "dexie": "^3.0.3",
+    "perfect-cursors": "^1.0.5",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-draggable": "^4.4.3",

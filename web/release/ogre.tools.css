@@ -456,6 +456,13 @@ legend {
     stroke: var(--canvas-text-outline);
 }
 
+/* Canvas Cursors */
+.canvas-cursor {
+    filter: drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.60));
+    stroke: var(--theme-background-d);
+    stroke-width: 1px;
+}
+
 /* Canvas Tokens */
 .canvas-token.flag--hidden circle,
 .canvas-token.flag--invisible circle {
