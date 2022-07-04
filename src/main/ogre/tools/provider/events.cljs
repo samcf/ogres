@@ -2,18 +2,23 @@
   (:require [uix.core.alpha :as uix :refer [defcontext]]
             [clojure.core.async :refer [chan mult tap untap pub sub unsub go-loop put! <! close! alts!]]))
 
-(defcontext context)
+(defn create-initial-value []
+  (let [ch-src (chan 1)
+        ch-pub (chan 1)
+        multi  (mult ch-src)]
+    (tap multi ch-pub)
+    [(pub ch-pub :topic) ch-src multi]))
+
+(defcontext context (create-initial-value))
+
+(defonce context-value (create-initial-value))
 
 (defn provider
   "Provides an event publication object, write channel, and channel multiplexer
    for the given children. Refer to `use-publish` and `subscribe!` to publish
    and subscribe to events, respectively."
   [children]
-  (let [ch-src (chan 1)
-        ch-pub (chan 1)
-        multi  (mult ch-src)]
-    (tap multi ch-pub)
-    (uix/context-provider [context [(pub ch-pub :topic) ch-src multi]] children)))
+  (uix/context-provider [context context-value] children))
 
 (defn use-publish
   "Returns a function that must be called with a topic as the first argument

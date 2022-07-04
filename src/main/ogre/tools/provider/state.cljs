@@ -54,7 +54,15 @@
     [:db/add -4 :window/canvas -2]
     [:db/add -5 :db/ident :session]]))
 
-(defcontext context)
+(defcontext context (ds/conn-from-db (initial-data)))
+
+(defonce context-value (ds/conn-from-db (initial-data)))
+
+(defn provider
+  "Provides a DataScript in-memory database to the application and causes
+   re-renders when transactions are performed."
+  [child]
+  (uix/context-provider [context context-value] child))
 
 (defn listening? [data]
   (let [select [:local/type :local/paused?]
@@ -99,11 +107,3 @@
         (if (seq tx-data)
           (let [report (ds/transact! conn tx-data)]
             (publish {:topic :tx/commit :args (list report)})))))))
-
-(defn provider
-  "Provides a DataScript in-memory database to the application and causes
-   re-renders when transactions are performed."
-  [child]
-  (let [conn (ds/conn-from-db (initial-data))]
-    (uix/context-provider
-     [context conn] child)))
