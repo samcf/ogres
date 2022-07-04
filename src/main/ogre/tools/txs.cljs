@@ -173,14 +173,22 @@
   [[:db/add -1 :entity/key window]
    [:db/add -1 :window/vec [(round x 1) (round y 1)]]])
 
+(defn mode-allowed? [mode type]
+  (not (and (contains? #{:mask :mask-toggle :mask-remove} mode)
+            (not= type :host))))
+
 (defmethod transact :window/change-mode
-  [{:keys [data window]} mode]
-  (let [entity (ds/entity data [:entity/key window])]
-    [[:db/add -1 :entity/key window]
-     [:db/add -1 :window/draw-mode mode]
-     (if (= mode (:window/draw-mode entity))
-       [:db/add -1 :window/draw-mode :select]
-       [:db/retract [:entity/key window] :window/selected])]))
+  [{:keys [data local window]} mode]
+  (let [{curr :window/draw-mode} (ds/entity data [:entity/key window])
+        {type :local/type}       (ds/entity data [:entity/key local])
+        allowed? (mode-allowed? mode type)]
+    (if allowed?
+      [[:db/add -1 :entity/key window]
+       [:db/add -1 :window/draw-mode mode]
+       (if (= mode curr)
+         [:db/add -1 :window/draw-mode :select]
+         [:db/retract [:entity/key window] :window/selected])]
+      [])))
 
 (defmethod transact :window/modifier-start
   [{:keys [window]} modifier]
