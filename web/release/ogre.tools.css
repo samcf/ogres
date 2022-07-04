@@ -16,7 +16,7 @@
     --font-stack-mono: Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
 }
 
-html, body, #root {
+html, body, #root, .root {
     height: 100%;
 }
 
@@ -66,10 +66,6 @@ a,
 a:link,
 a:visited {
     color: var(--theme-text-link);
-}
-
-#root {
-    visibility: visible !important;
 }
 
 .ogre-button {
@@ -221,6 +217,7 @@ legend {
     display: grid;
     height: 100%;
     padding: 16px;
+    visibility: visible !important;
     grid-template-columns: 1fr min-content;
     grid-template-rows: min-content 1fr;
     grid-template-areas:

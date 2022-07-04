@@ -13,21 +13,21 @@
    [:local/tooltips? :default true]])
 
 (defn layout []
-  (let [result (use-query query)
-        {:local/keys [loaded? type shortcuts? tooltips?]} result
-        attrs {:data-view-type      (name type)
-               :data-show-shortcuts shortcuts?
-               :data-show-tooltips  tooltips?}]
-    (if loaded?
-      (if (= type :view)
-        [:div.root.layout attrs [:div.layout-canvas [canvas]]]
-        [:div.root.layout attrs
-         (if (= type :host)
-           [:div.layout-workspaces [workspaces]])
-         [:div.layout-canvas [canvas]]
-         [create-portal
-          (fn [ref]
-            [:div.layout-modal {:ref ref}]) :modal]
-         [:div.layout-toolbar [toolbar]]
-         [:div.layout-tokens [tokens]]
-         [:div.layout-panel [container]]]))))
+  (let [{:local/keys [loaded? type shortcuts? tooltips?]} (use-query query)]
+    [:div.root {:data-view-type      (name type)
+                :data-show-shortcuts shortcuts?
+                :data-show-tooltips  tooltips?}
+     (if loaded?
+       (if (= type :view)
+         [:div.layout {:style {:visibility "hidden"}}
+          [:div.layout-canvas [canvas]]]
+         [:div.layout {:style {:visibility "hidden"}}
+          (if (= type :host)
+            [:div.layout-workspaces [workspaces]])
+          [:div.layout-canvas [canvas]]
+          [create-portal
+           (fn [ref]
+             [:div.layout-modal {:ref ref}]) :modal]
+          [:div.layout-toolbar [toolbar]]
+          [:div.layout-tokens [tokens]]
+          [:div.layout-panel [container]]]))]))
