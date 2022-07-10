@@ -42,7 +42,7 @@
 (defn ^{:private true} canvas []
   (let [dispatch    (use-dispatch)
         result      (use-query query [:db/ident :root])
-        upload      (use-image-uploader)
+        upload      (use-image-uploader {:type :scene})
         store       (use-store)
         show-images (uix/state false)
         file-upload (uix/ref)
@@ -90,11 +90,9 @@
         :accept "image/*"
         :multiple true
         :style {:display "none"}
-        :on-change
-        #(doseq [file (.. % -target -files)]
-           (.then (upload file)
-                  (fn [{:keys [checksum width height]}]
-                    (dispatch :scene/create checksum width height))))}]]
+        :on-change (fn [event]
+                     (doseq [file (.. event -target -files)]
+                       (upload file)))}]]
      [:section
       [:legend "Options"]
       [:fieldset.setting
