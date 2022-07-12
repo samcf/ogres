@@ -52,7 +52,7 @@
          (on-change (.. event -target -checked)))}] key)))
 
 (defn file-uploader [props]
-  (let [upload (use-image-uploader)]
+  (let [upload (use-image-uploader {:type :token})]
     [:input
      {:type "file" :ref (:ref props) :accept "image/*" :multiple true
       :style {:display "none"}
@@ -74,10 +74,7 @@
     [:<>
      [file-uploader
       {:ref upload-ref
-       :on-upload
-       (fn [{:keys [checksum width height]}]
-         (dispatch :stamp/create checksum width height)
-         (reset! page-index 0))}]
+       :on-upload #(reset! page-index 0)}]
      [:div.images-form
       (concat
        [[:button.button

@@ -1,6 +1,7 @@
 (ns ogre.tools.provider.image
   (:import goog.crypt.Md5)
   (:require [ogre.tools.provider.events :refer [use-publish subscribe!]]
+            [ogre.tools.provider.state :refer [use-dispatch]]
             [ogre.tools.provider.storage :refer [use-store]]
             [uix.core.alpha :as uix]))
 
@@ -27,6 +28,34 @@
       (.then (fn [b] (->> (js/File. #js [b] "image" #js {:type (.-type b)})
                           (js/URL.createObjectURL))))))
 
+(defmulti process-image :type)
+
+(defmethod process-image :token
+  [{:keys [image]}]
+  (let [canvas (js/document.createElement "canvas")
+        ctx    (.getContext canvas "2d")
+        sw     (.-width image)
+        sh     (.-height image)
+        sl     (min sw sh)
+        sx     (if (> sw sh) (- (/ sw 2) (/ sl 2)) 0)
+        dw     256
+        dh     256]
+    (set! (.-width canvas) dw)
+    (set! (.-height canvas) dh)
+    (.drawImage ctx image sx 0 sl sl 0 0 dw dh)
+    canvas))
+
+(defmethod process-image :scene
+  [{:keys [image]}]
+  (let [canvas (js/document.createElement "canvas")
+        ctx    (.getContext canvas "2d")
+        sw     (.-width image)
+        sh     (.-height image)]
+    (set! (.-width canvas) sw)
+    (set! (.-height canvas) sh)
+    (.drawImage ctx image 0 0)
+    canvas))
+
 (defn create-image-element [url]
   (js/Promise.
    (fn [resolve]
@@ -34,25 +63,33 @@
        (.addEventListener image "load" (fn [] (this-as element (resolve element))))
        (set! (.-src image) url)))))
 
-(defn use-image-uploader []
-  (let [publish (use-publish)]
-    (fn [file]
-      (-> (js/Promise.resolve {})
-          (.then (fn [data]
-                   (.then (create-data-url file)
-                          (fn [data-url]
-                            (js/Promise.resolve (assoc data :data-url data-url))))))
-          (.then (fn [data]
-                   (js/Promise.resolve
-                    (assoc data :checksum (create-checksum (:data-url data))))))
-          (.then (fn [data]
-                   (let [{:keys [checksum data-url]} data]
-                     (publish {:topic :storage/cache-image :args [checksum data-url]})
-                     (js/Promise.resolve data))))
-          (.then (fn [data]
-                   (.then (create-image-element (:data-url data))
-                          (fn [element]
-                            (js/Promise.resolve (assoc data :width (.-width element) :height (.-height element)))))))))))
+(defn use-image-uploader [{:keys [type]}]
+  (let [dispatch (use-dispatch)
+        store    (use-store)]
+    (uix/callback
+     (fn [file]
+       (-> (create-data-url file)
+           (.then create-image-element)
+           (.then (fn [image]
+                    (let [canvas   (process-image {:type type :image image})
+                          data-url (.toDataURL canvas "image/jpeg" 0.70)
+                          data     {:data-url data-url
+                                    :checksum (create-checksum data-url)
+                                    :width    (.-width canvas)
+                                    :height   (.-height canvas)}]
+                      (js/Promise.resolve data))))
+           (.then (fn [{:keys [checksum data-url] :as data}]
+                    (let [record #js {:checksum checksum :data data-url :created-at (js/Date.now)}]
+                      (-> (.table store "images")
+                          (.put record)
+                          (.then (fn [] (js/Promise.resolve data)))))))
+           (.then (fn [{:keys [checksum width height] :as data}]
+                    (case type
+                      :token (dispatch :stamp/create checksum width height)
+                      :scene (dispatch :scene/create checksum width height)
+                      :else  nil)
+                    (js/Promise.resolve data)))))
+     [type])))
 
 (defn use-image [checksum]
   (let [publish          (use-publish)
