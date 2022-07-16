@@ -32,18 +32,51 @@
 
 (defmethod process-image :token
   [{:keys [image]}]
-  (let [canvas (js/document.createElement "canvas")
-        ctx    (.getContext canvas "2d")
-        sw     (.-width image)
-        sh     (.-height image)
-        sl     (min sw sh)
-        sx     (if (> sw sh) (- (/ sw 2) (/ sl 2)) 0)
-        dw     256
-        dh     256]
-    (set! (.-width canvas) dw)
-    (set! (.-height canvas) dh)
-    (.drawImage ctx image sx 0 sl sl 0 0 dw dh)
-    canvas))
+  (let [sw  (.-width image)
+        sh  (.-height image)
+        len (min sw sh)
+        sx  (if (> sw sh) (- (/ sw 2) (/ len 2)) 0)
+
+        ;; Sampling canvas which will be an intermediate canvas that will
+        ;; be used to iteratively downsample the source image.
+        src (js/document.createElement "canvas")
+        srx (.getContext src "2d")
+
+        ;; Destination canvas that will contain the resulting downsampled
+        ;; image.
+        dst (js/document.createElement "canvas")
+        dsx (.getContext dst "2d")
+        dsl 256
+
+        ;; Number of iterations to downsample the source image.
+        steps (js/Math.max 0 (js/Math.floor (/ (js/Math.log (/ len dsl)) (js/Math.log 2))))]
+
+    ;; Initialize the destination canvas with the fixed dimensions that will
+    ;; be used for the resulting image.
+    (set! (.-width dst) dsl)
+    (set! (.-height dst) dsl)
+
+    ;; Initialize the sampling canvas with the dimensions of the source
+    ;; image which has been cropped to a square with the length of its
+    ;; smallest dimension.
+    (set! (.-width src) len)
+    (set! (.-height src) len)
+    (.drawImage srx image sx 0 len len 0 0 len len)
+
+    ;; Iteratively downsample the sample canvas by halves to minimize
+    ;; noise, then draw the sample canvas onto the destination canvas
+    ;; and return it.
+    (loop [length len iter steps]
+      (if (> iter 0)
+        (let [halved (/ length 2)]
+          (.drawImage srx src 0 0 length length 0 0 halved halved)
+          (recur halved (dec iter))) length))
+
+    ;; Finally draw the sampling canvas onto the destination canvas with
+    ;; the appropriate dimensions.
+    (let [length (/ len (js/Math.pow 2 steps))]
+      (.drawImage dsx src 0 0 length length 0 0 dsl dsl)
+      dst)))
 
 (defmethod process-image :scene
   [{:keys [image]}]
