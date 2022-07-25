@@ -7,7 +7,7 @@
             [ogre.tools.provider.state :as provider.state]
             [ogre.tools.provider.storage :as provider.storage]
             [ogre.tools.provider.window :as provider.window]
-            [ogre.tools.render :refer [css]]
+            [ogre.tools.render :refer [css error-boundary]]
             [ogre.tools.session :as session]
             [ogre.tools.shortcut :as shortcut]
             [react-helmet :refer [Helmet]]
@@ -34,7 +34,8 @@
         [provider.window/provider]
         [shortcut/handlers]
         [session/handlers]
-        [layout]]]]]]])
+        [error-boundary
+         [layout]]]]]]]])
 
 (defn main []
   (let [element (.querySelector js/document "#root")]
