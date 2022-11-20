@@ -185,7 +185,6 @@
          ::server/type :jetty
          ::server/host "0.0.0.0"
          ::server/port port
-         ::server/allowed-origins (constantly true)
          ::server/container-options
          {:context-configurator
           (fn [context]

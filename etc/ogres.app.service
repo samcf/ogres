@@ -1,0 +1,13 @@
+[Unit]
+Description=manages multiplayer sessions for the ogres.app web application
+After=syslog.target network.target
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/usr/bin/java -cp /srv/ogres.server/OgreServer.jar clojure.main -m ogre.server.core 8080
+ExecStop=/bin/kill -15 $MAINPID
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target
