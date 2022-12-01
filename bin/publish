@@ -21,9 +21,9 @@ mkdir -p "$tmp"/release/latest
 cp -r "$tmp"/release/"$vrs"/. "$tmp"/release/latest
 
 cd "$tmp"
-# git add --all
-# git commit -m "Publish version $vrs as the latest release."
-# git push origin gh-pages
+git add --all
+git commit -m "Publish version $vrs as the latest release."
+git push origin gh-pages
 
 rsync -rv . "$dst":/srv/ogres.app/ --exclude=.git
 
