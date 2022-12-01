@@ -1,28 +1,31 @@
 #!/bin/sh
 set -o errexit -o nounset
 
-# Publishes the given release as the latest version of the ogre.tools
+# Publishes the given release as the latest version of the ogres.app
 # application by copying the contents of that release into the `latest`
 # directory, replacing the previous published release altogether. This
 # is only used for the client application.
 #
 # Example
-# $ sh bin/publish v0.1.10-alpha
+# $ sh bin/publish v0.1.11 user@192.0.2.235
 
 src="$PWD"
-dst=$(mktemp -d -t ogre.tools)
+tmp=$(mktemp -d -t ogres.app)
 vrs=$1
+dst=$2
 
-git clone --single-branch --branch gh-pages git@github.com:samcf/ogre.tools.git "$dst"
+git clone --single-branch --branch gh-pages git@github.com:samcf/ogres.app.git "$tmp"
 
-rm -rf "$dst"/release/latest
-mkdir -p "$dst"/release/latest
-cp -r "$dst"/release/"$vrs"/. "$dst"/release/latest
+rm -rf "$tmp"/release/latest
+mkdir -p "$tmp"/release/latest
+cp -r "$tmp"/release/"$vrs"/. "$tmp"/release/latest
 
-cd "$dst"
+cd "$tmp"
 git add --all
 git commit -m "Publish version $vrs as the latest release."
 git push origin gh-pages
 
+rsync -rv . "$dst":/srv/ogres.app/ --exclude=.git
+
 cd "$src"
-rm -rf "$dst"
+rm -rf "$tmp"

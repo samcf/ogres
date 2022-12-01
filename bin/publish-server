@@ -11,5 +11,5 @@ src="OgreServer.jar"
 dst=$1
 
 clojure -A:uberjar -m hf.depstar.uberjar "$src"
-rsync -av -e ssh "$src" "$dst":/root/"$src"
-ssh "$dst" systemctl restart ogre.server.service
+scp "$src" "$dst":/srv/ogres.server
+ssh "$dst" systemctl restart ogres.app.service

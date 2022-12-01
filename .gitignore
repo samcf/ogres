@@ -24,4 +24,4 @@ pom.xml.asc
 
 manifest.edn
 cljs-runtime
-ogre.tools.js
+ogres.app.js
