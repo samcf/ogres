@@ -10,13 +10,13 @@ set -o errexit -o nounset
 # $ sh bin/release v0.1.10-alpha
 
 src="$PWD"
-dst=$(mktemp -d -t ogre.tools)
+dst=$(mktemp -d -t ogres.app)
 vrs=$1
 url="wss://ogres.app/ws"
 
-npx shadow-cljs release app --config-merge "{:closure-defines {ogre.tools.env/VERSION \"$vrs\" ogre.tools.env/PATH \"/release/$vrs\" ogre.tools.env/SOCKET-URL \"$url\"}}"
+npx shadow-cljs release app --config-merge "{:closure-defines {ogres.app.env/VERSION \"$vrs\" ogres.app.env/PATH \"/release/$vrs\" ogres.app.env/SOCKET-URL \"$url\"}}"
 
-git clone --single-branch --branch gh-pages git@github.com:samcf/ogre.tools.git "$dst"
+git clone --single-branch --branch gh-pages git@github.com:samcf/ogres.app.git "$dst"
 mkdir -p "$dst"/release/"$vrs"
 cp -r web/release/. "$dst"/release/"$vrs"
 
