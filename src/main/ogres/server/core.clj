@@ -100,20 +100,17 @@
 (defn on-text
   [uuid]
   (fn [body]
-    (let [sess @sessions
-          room (uuid->room sess uuid)]
-      (if (nil? room)
-        (close! (get-in sess [:conns uuid :chan]))
-        (let [text (ByteArrayInputStream. (.getBytes body))
-              read (transit/reader text :json {:handlers read-handlers})
-              data (transit/read read)
-              chans (if (uuid? (:dst data))
-                      [(get-in sess [:conns (:dst data) :chan])]
-                      (->> (disj (:conns room) uuid)
-                           (select-keys (:conns sess))
-                           (into [] conns-chans-xf)))]
+    (let [state @sessions]
+      (if-let [room (uuid->room state uuid)]
+        (let [recip (-> (ByteArrayInputStream. (.getBytes body))
+                        (transit/reader :json {:handlers read-handlers})
+                        (transit/read)
+                        (:dst))
+              uuids (if (uuid? recip) #{recip} (disj (:conns room) uuid))
+              chans (sequence (comp (map (:conns state)) (map :chan) (filter identity)) uuids)]
           (doseq [chan chans]
-            (>!! chan body)))))))
+            (>!! chan body)))
+        (close! (get-in state [:conns uuid :chan]))))))
 
 (defn on-close
   [uuid]
