@@ -10,7 +10,7 @@
            org.clojure/core.async                {:mvn/version "1.5.648"}
            org.slf4j/slf4j-simple                {:mvn/version "1.7.28"}
            thheller/shadow-cljs                  {:mvn/version "2.15.2"}
-           uix.core/uix.core                     {:git/url "https://github.com/roman01la/uix.git" :deps/root "core" :sha"0da33eef38a7122be226b9b9a8ae0b5431b6b5d3"}
-           uix.dom/uix.dom                       {:git/url "https://github.com/roman01la/uix.git" :deps/root "dom" :sha "0da33eef38a7122be226b9b9a8ae0b5431b6b5d3"}}
+           uix.core/uix.core                     {:git/url "https://github.com/roman01la/uix.git" :deps/root "core" :sha"843abbe4c4b331fbb0d7d197ecd038b466b48e43"}
+           uix.dom/uix.dom                       {:git/url "https://github.com/roman01la/uix.git" :deps/root "dom" :sha "843abbe4c4b331fbb0d7d197ecd038b466b48e43"}}
  :aliases {:server/dev {:exec-fn ogres.server.core/run-development}
            :uberjar    {:extra-deps {com.github.seancorfield/depstar {:mvn/version "2.1.303"}}}}}
