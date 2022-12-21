@@ -345,18 +345,18 @@
        [:circle.canvas-token-shape
         {:cx 0 :cy 0 :r radius :fill (str "url(#" pattern ")")}])
      (let [icons (into {} conditions)
-           degrs [125 95 65 -125 -95 -65]
+           degrs [115 70 -115 -70]
            exclu #{:player :hidden :unconscious}]
        (for [[index flag]
-             (into [] (comp (take 6) (map-indexed vector))
+             (into [] (comp (take 4) (map-indexed vector))
                    (difference (:token/flags data) exclu))]
          (let [rn (* (/ js/Math.PI 180) (nth degrs index 0))
                cx (* (js/Math.sin rn) radius)
                cy (* (js/Math.cos rn) radius)]
            [:g.canvas-token-flags {:key flag :transform (str "translate(" cx ", " cy ")")}
-            [:circle {:cx 0 :cy 0 :r 8}]
-            [:g {:transform (str "translate(" -6 ", " -6 ")")}
-             [icon {:name (icons flag) :size 12}]]])))
+            [:circle {:cx 0 :cy 0 :r 12}]
+            [:g {:transform (str "translate(" -8 ", " -8 ")")}
+             [icon {:name (icons flag) :size 16}]]])))
      (let [token-label (label data)]
        (if (seq token-label)
          [:foreignObject.context-menu-object
