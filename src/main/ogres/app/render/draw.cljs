@@ -1,5 +1,6 @@
 (ns ogres.app.render.draw
   (:require [clojure.string :refer [join]]
+            [ogres.app.const :refer [grid-size]]
             [ogres.app.hooks :refer [use-dispatch use-portal use-query]]
             [ogres.app.geom :refer [chebyshev euclidean triangle]]
             [react-draggable]
@@ -57,17 +58,14 @@
    {:local/window
     [[:window/scale :default 1]
      [:window/vec :default [0 0]]
-     [:window/snap-grid :default false]
-     {:window/canvas
-      [[:grid/size :default 70]]}]}])
+     [:window/snap-grid :default false]]}])
 
 (defn polygon [{:keys [on-create]}]
   (let [result (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
-          align   :window/snap-grid
-          {size :grid/size} :window/canvas} :local/window} result
+          align   :window/snap-grid} :local/window} result
         pairs   (uix/state [])
         mouse   (uix/state [])
         [ax ay] @pairs
@@ -84,7 +82,7 @@
        (fn [event]
          (let [dst [(.-clientX event) (.-clientY event)]]
            (if (not= align (.-metaKey event))
-             (reset! mouse (xs-xfs dst (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)) (r-xf size) (+-xf tx ty) (*-xf scale) cat))
+             (reset! mouse (xs-xfs dst (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)) (r-xf grid-size) (+-xf tx ty) (*-xf scale) cat))
              (reset! mouse (xs-xfs dst (+-xf (- ox) (- oy)) cat)))))
        :on-click
        (fn [event]
@@ -159,8 +157,7 @@
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
-          align   :window/snap-grid
-          {size :grid/size} :window/canvas} :local/window} result]
+          align   :window/snap-grid} :local/window} result]
     [drawable
      {:on-release identity
       :transform
@@ -169,7 +166,7 @@
           (xs-xfs
            xs
            (+-xf (- ox) (- oy)) (*-xf (/ scale))
-           (+-xf (- tx) (- ty)) (r-xf (/ size 2))
+           (+-xf (- tx) (- ty)) (r-xf (/ grid-size 2))
            (+-xf tx ty) (*-xf scale) cat)
           (xs-xfs xs (+-xf (- ox) (- oy)) cat)))}
      (fn [_ [ax ay bx by]]
@@ -177,7 +174,7 @@
         [:line {:x1 ax :y1 ay :x2 bx :y2 by}]
         [text {:x (- bx 48) :y (- by 8) :fill "white"}
          (-> (chebyshev ax ay bx by)
-             (px->ft (* size scale))
+             (px->ft (* grid-size scale))
              (str "ft."))]])]))
 
 (defmethod draw :circle []
@@ -186,15 +183,14 @@
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
-          align   :window/snap-grid
-          {size :grid/size} :window/canvas} :local/window} result]
+          align   :window/snap-grid} :local/window} result]
     [drawable
      {:transform
       (fn [event xs]
         (let [[ax ay bx by] (xs-xfs xs (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)) cat)]
           (if (not= align (.-metaKey event))
-            (let [[ax ay] (xs-xfs [ax ay] (r-xf (/ size 2)) cat)
-                  [bx by] (xs-xfs [bx by] (r-xf size) cat)]
+            (let [[ax ay] (xs-xfs [ax ay] (r-xf (/ grid-size 2)) cat)
+                  [bx by] (xs-xfs [bx by] (r-xf grid-size) cat)]
               [ax ay bx by])
             [ax ay bx by])))
       :on-release
@@ -206,7 +202,7 @@
          [:g
           [:circle {:cx ax :cy ay :r radius}]
           [text {:x ax :y ay :fill "white"}
-           (-> radius (px->ft (* size scale)) (str "ft. radius"))]]))]))
+           (-> radius (px->ft (* grid-size scale)) (str "ft. radius"))]]))]))
 
 (defmethod draw :rect []
   (let [dispatch (use-dispatch)
@@ -214,14 +210,13 @@
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
-          align   :window/snap-grid
-          {size :grid/size} :window/canvas} :local/window} result]
+          align   :window/snap-grid} :local/window} result]
     [drawable
      {:transform
       (fn [event xs]
         (let [xf (comp (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)))]
           (if (not= align (.-metaKey event))
-            (xs-xfs xs xf (r-xf (/ size 2)) cat)
+            (xs-xfs xs xf (r-xf (/ grid-size 2)) cat)
             (xs-xfs xs xf cat))))
       :on-release
       (fn [_ xs]
@@ -231,8 +226,8 @@
          [:g
           [:path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}]
           [text {:x (+ ax 8) :y (- ay 8) :fill "white"}
-           (let [w (px->ft (js/Math.abs (- bx ax)) (* size scale))
-                 h (px->ft (js/Math.abs (- by ay)) (* size scale))]
+           (let [w (px->ft (js/Math.abs (- bx ax)) (* grid-size scale))
+                 h (px->ft (js/Math.abs (- by ay)) (* grid-size scale))]
              (str w "ft. x " h "ft."))]]))]))
 
 (defmethod draw :line []
@@ -241,14 +236,13 @@
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
-          align   :window/snap-grid
-          {size :grid/size} :window/canvas} :local/window} result]
+          align   :window/snap-grid} :local/window} result]
     [drawable
      {:transform
       (fn [event xs]
         (let [xf (comp (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)))]
           (if (not= align (.-metaKey event))
-            (xs-xfs xs xf (r-xf (/ size 2)) cat)
+            (xs-xfs xs xf (r-xf (/ grid-size 2)) cat)
             (xs-xfs xs xf cat))))
       :on-release
       (fn [_ xs]
@@ -258,7 +252,7 @@
          [:g [:line {:x1 ax :y1 ay :x2 bx :y2 by}]
           [text {:x (+ ax 8) :y (- ay 8) :fill "white"}
            (-> (chebyshev ax ay bx by)
-               (px->ft (* size scale))
+               (px->ft (* grid-size scale))
                (str "ft."))]]))]))
 
 (defmethod draw :cone []
@@ -266,8 +260,7 @@
         result   (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
-          scale   :window/scale
-          {size :grid/size} :window/canvas} :local/window} result]
+          scale   :window/scale} :local/window} result]
     [drawable
      {:transform
       (fn [_ xs]
@@ -282,7 +275,7 @@
           [:polygon {:points (join " " (triangle ax ay bx by))}]
           [text {:x (+ bx 16) :y (+ by 16) :fill "white"}
            (-> (euclidean ax ay bx by)
-               (px->ft (* size scale))
+               (px->ft (* grid-size scale))
                (str "ft."))]]))]))
 
 (defmethod draw :poly []

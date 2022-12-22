@@ -2,6 +2,7 @@
   (:require [datascript.core :as ds :refer [squuid]]
             [clojure.set :refer [union]]
             [clojure.string :refer [trim]]
+            [ogres.app.const :refer [grid-size]]
             [ogres.app.geom :refer [normalize within?]]))
 
 (def suffix-max-xf
@@ -352,9 +353,8 @@
    [:db/add -3 :canvas/tokens -1]])
 
 (defmethod transact :token/translate
-  [{:keys [data canvas]} token x y align?]
-  (let [{size :grid/size} (ds/pull data [[:grid/size :default 70]] [:entity/key canvas])
-        radius            (if align? (/ size 2) 1)]
+  [_ token x y align?]
+  (let [radius (if align? (/ grid-size 2) 1)]
     [[:db/add -1 :entity/key token]
      [:db/add -1 :token/vec [(round x radius) (round y radius)]]]))
 
@@ -366,11 +366,10 @@
       {:db/id id :entity/key key :token/flags ((if add? conj disj) flags flag)})))
 
 (defmethod transact :token/translate-all
-  [{:keys [data canvas]} keys x y align?]
-  (let [{size :grid/size} (ds/pull data [[:grid/size :default 70]] [:entity/key canvas])
-        lookup            (map (fn [key] [:entity/key key]) keys)
-        tokens            (ds/pull-many data [:entity/key :token/vec] lookup)
-        radius            (if align? (/ size 2) 1)]
+  [{:keys [data]} keys x y align?]
+  (let [lookup (map (fn [key] [:entity/key key]) keys)
+        tokens (ds/pull-many data [:entity/key :token/vec] lookup)
+        radius (if align? (/ grid-size 2) 1)]
     (for [[id {key :entity/key [tx ty] :token/vec}] (sequence (indexed) tokens)]
       {:db/id id :entity/key key :token/vec [(round (+ x tx) radius) (round (+ y ty) radius)]})))
 
@@ -422,10 +421,9 @@
   (comp (partition-all 2) (drop 1) (map (fn [[ax ay]] [(+ ax x) (+ ay y)])) cat))
 
 (defmethod transact :shape/translate
-  [{:keys [data canvas]} key x y align?]
+  [{:keys [data]} key x y align?]
   (let [{[ax ay] :shape/vecs vecs :shape/vecs} (ds/pull data [:shape/vecs] [:entity/key key])
-        {size :grid/size} (ds/pull data [[:grid/size :default 70]] [:entity/key canvas])
-        r (if align? (/ size 2) 1)
+        r (if align? (/ grid-size 2) 1)
         x (round x r)
         y (round y r)]
     [[:db/add -1 :entity/key key]

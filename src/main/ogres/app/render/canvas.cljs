@@ -1,6 +1,7 @@
 (ns ogres.app.render.canvas
   (:require [clojure.set :refer [difference]]
             [clojure.string :refer [join]]
+            [ogres.app.const :refer [grid-size]]
             [ogres.app.geom :refer [bounding-box chebyshev euclidean triangle]]
             [ogres.app.hooks :refer [create-portal subscribe! use-cursor use-dispatch use-image use-portal use-publish use-query]]
             [ogres.app.render :refer [icon]]
@@ -18,17 +19,20 @@
    :dusk     [0.3 0.3 0.0 0.0 0.0 0.0 0.3 0.3 0.0 0.0 0.0 0.0 0.8 0.0 0.0 0.0 0.0 0.0 1.0 0.0]
    :midnight [0.0 0.0 0.0 0.0 0.0 0.0 0.1 0.0 0.0 0.0 0.1 0.1 0.1 0.0 0.0 0.0 0.0 0.0 1.0 0.0]})
 
-(def conditions
-  [[:player "people-fill"]
-   [:blinded "eye-slash-fill"]
-   [:charmed "arrow-through-heart-fill"]
-   [:exhausted "moon-stars-fill"]
-   [:invisible "incognito"]
-   [:grappled "fist"]
-   [:prone "falling"]
-   [:frightened "black-cat"]
-   [:incapacitated "emoji-dizzy"]
-   [:unconscious "skull"]])
+(def condition->icon
+  {:blinded       "eye-slash-fill"
+   :charmed       "arrow-through-heart-fill"
+   :exhausted     "moon-stars-fill"
+   :frightened    "black-cat"
+   :grappled      "fist"
+   :incapacitated "emoji-dizzy"
+   :invisible     "incognito"
+   :player        "people-fill"
+   :prone         "falling"
+   :unconscious   "skull"})
+
+(def excluded-conditions
+  #{:player :hidden :unconscious})
 
 (defn key-by
   "Returns a map of the given `coll` whose keys are the result of calling `f`
@@ -47,8 +51,6 @@
 (defn stop-propagation [event]
   (.stopPropagation event))
 
-(defn ft->px [ft size] (* (/ ft 5) size))
-
 (defn visible? [flags]
   (or (contains? flags :player)
       (not (contains? flags :hidden))))
@@ -61,18 +63,19 @@
 (def scene-query
   [{:local/window
     [{:window/canvas
-      [[:canvas/color :default :none]
-       {:canvas/image
-        [:image/checksum]}]}]}])
+      [[:grid/size :default 70]
+       [:canvas/color :default :none]
+       {:canvas/image [:image/checksum]}]}]}])
 
 (defn scene []
   (let [result (use-query scene-query)
-        {{{color :canvas/color {checksum :image/checksum}
-           :canvas/image}
+        {{{size  :grid/size
+           color :canvas/color
+           {checksum :image/checksum} :canvas/image}
           :window/canvas}
          :local/window} result
         url (use-image checksum)]
-    [:g.canvas-image
+    [:g.canvas-image {:transform (str "scale(" (/ grid-size size) ")")}
      [:defs {:key color}
       [:filter {:id "atmosphere"}
        [:feColorMatrix {:type "matrix" :values (join " " (atmosphere color))}]]]
@@ -97,12 +100,14 @@
          {{visibility :canvas/visibility
            size       :grid/size
            tokens     :canvas/tokens
-           {checksum :image/checksum
-            width    :image/width
-            height   :image/height}
+           {checksum  :image/checksum
+            width     :image/width
+            height    :image/height}
            :canvas/image}
           :window/canvas}
-         :local/window} result]
+         :local/window} result
+        width  (* width  (/ grid-size size))
+        height (* height (/ grid-size size))]
     (if (and checksum (not= visibility :revealed))
       [:g.canvas-mask {:css {:is-dimmed (= visibility :dimmed)}}
        [:defs
@@ -114,8 +119,9 @@
         [:mask {:id "light-mask"}
          [:rect {:x 0 :y 0 :width width :height height :fill "white" :fill-opacity "100%"}]
          (for [{key :entity/key flags :token/flags [x y] :token/vec radius :token/light} tokens
-               :when (and (> radius 0) (or (= type :host) (visible? flags)))]
-           [:circle {:key key :cx x :cy y :r (+ (ft->px radius size) (/ size 2)) :fill "url(#mask-gradient)"}])]]
+               :when (and (> radius 0) (or (= type :host) (visible? flags)))
+               :let  [radius (-> grid-size (* radius) (/ 5) (+ grid-size))]]
+           [:circle {:key key :cx x :cy y :r radius :fill "url(#mask-gradient)"}])]]
        [:rect.canvas-mask-background
         {:x 0 :y 0 :width width :height height :mask "url(#light-mask)"}]
        (if (= visibility :hidden)
@@ -128,7 +134,8 @@
    {:local/window
     [[:window/draw-mode :default :select]
      {:window/canvas
-      [[:mask/filled? :default false]
+      [[:grid/size :default 70]
+       [:mask/filled? :default false]
        {:canvas/image [:image/width :image/height]}
        {:canvas/masks [:entity/key :mask/vecs :mask/enabled?]}]}]}])
 
@@ -137,14 +144,17 @@
         result   (use-query canvas-mask-query)
         {type :local/type
          {mode :window/draw-mode
-          {filled? :mask/filled?
+          {size    :grid/size
+           filled? :mask/filled?
            masks   :canvas/masks
            {width  :image/width
             height :image/height}
            :canvas/image}
           :window/canvas}
          :local/window} result
-        modes #{:mask :mask-toggle :mask-remove}]
+        modes #{:mask :mask-toggle :mask-remove}
+        width  (* width  (/ grid-size size))
+        height (* height (/ grid-size size))]
     [:g.canvas-mask
      [:defs
       [pattern {:id "mask-pattern" :name :lines}]
@@ -174,9 +184,7 @@
     [[:window/vec :default [0 0]]
      [:window/scale :default 1]
      [:window/draw-mode :default :select]
-     [:window/show-grid :default true]
-     {:window/canvas
-      [[:grid/size :default 70]]}]}])
+     [:window/show-grid :default true]]}])
 
 (defn grid []
   (let [data (use-query grid-query)
@@ -184,8 +192,7 @@
          {[cx cy] :window/vec
           mode    :window/draw-mode
           scale   :window/scale
-          show    :window/show-grid
-          {size :grid/size} :window/canvas} :local/window} data]
+          show    :window/show-grid} :local/window} data]
     (if (or show (= mode :grid))
       (let [w (/ w scale)
             h (/ h scale)
@@ -197,9 +204,9 @@
              (- (* w -3) cx)]]
         [:g {:class "canvas-grid"}
          [:defs
-          [:pattern {:id "grid" :width size :height size :patternUnits "userSpaceOnUse"}
+          [:pattern {:id "grid" :width grid-size :height grid-size :patternUnits "userSpaceOnUse"}
            [:path
-            {:d (join " " ["M" 0 0 "H" size "V" size])}]]]
+            {:d (join " " ["M" 0 0 "H" grid-size "V" grid-size])}]]]
          [:path {:d (join " " ["M" sx sy "H" ax "V" ay "H" bx "Z"]) :fill "url(#grid)"}]]))))
 
 (defmulti shape (fn [props] (:shape/kind (:element props))))
@@ -329,40 +336,36 @@
        [:pattern (merge attrs {:key checksum :id (str "token-stamp-" checksum)})
         [stamp {:checksum checksum}]])]))
 
-(defn token [{:keys [data size]}]
-  (let [radius (-> data :token/size (ft->px size) (/ 2) (- 2) (max 16))]
-    [:<>
-     (if (> (:aura/radius data) 0)
-       [:circle.canvas-token-aura
-        {:cx 0 :cy 0 :r (+ (ft->px (:aura/radius data) size) (/ size 2))}])
-     [:circle.canvas-token-ring
-      {:cx 0 :cy 0 :style {:r radius :fill "transparent"}}]
-     (let [checksum (:image/checksum (:token/image data))
-           pattern  (cond
-                      ((:token/flags data) :unconscious) "token-stamp-deceased"
-                      (string? checksum)   (str "token-stamp-" checksum)
-                      :else                "token-stamp-default")]
-       [:circle.canvas-token-shape
-        {:cx 0 :cy 0 :r radius :fill (str "url(#" pattern ")")}])
-     (let [icons (into {} conditions)
-           degrs [115 70 -115 -70]
-           exclu #{:player :hidden :unconscious}]
-       (for [[index flag]
-             (into [] (comp (take 4) (map-indexed vector))
-                   (difference (:token/flags data) exclu))]
-         (let [rn (* (/ js/Math.PI 180) (nth degrs index 0))
-               cx (* (js/Math.sin rn) radius)
-               cy (* (js/Math.cos rn) radius)]
-           [:g.canvas-token-flags {:key flag :transform (str "translate(" cx ", " cy ")")}
-            [:circle {:cx 0 :cy 0 :r 12}]
-            [:g {:transform (str "translate(" -8 ", " -8 ")")}
-             [icon {:name (icons flag) :size 16}]]])))
-     (let [token-label (label data)]
-       (if (seq token-label)
-         [:foreignObject.context-menu-object
-          {:x -200 :y (- radius 8) :width 400 :height 32}
-          [:div.canvas-token-label
-           [:span token-label]]]))]))
+(defn token [data]
+  [:<>
+   (let [radius (* grid-size (/ (:aura/radius data) 5))]
+     (if (> radius 0)
+       [:circle.canvas-token-aura {:cx 0 :cy 0 :r (+ radius (/ grid-size 2))}]))
+   (let [radii (- (/ grid-size 2) 2)
+         flags (:token/flags data)
+         scale (/ (:token/size data) 5)
+         hashs (:image/checksum (:token/image data))
+         pttrn (cond (flags :unconscious) (str "token-stamp-deceased")
+                     (string? hashs)      (str "token-stamp-" hashs)
+                     :else                (str "token-stamp-default"))]
+     [:g.canvas-token-container   {:transform (str "scale(" scale ")")}
+      [:circle.canvas-token-ring  {:cx 0 :cy 0 :style {:r radii :fill "transparent"}}]
+      [:circle.canvas-token-shape {:cx 0 :cy 0 :r radii :fill (str "url(#" pttrn ")")}]
+      (for [[dg flag] (->> excluded-conditions
+                           (difference flags)
+                           (take 4)
+                           (mapv vector [115 70 -115 -70]))
+            :let [rn (* (/ js/Math.PI 180) dg)
+                  cx (* (js/Math.sin rn) radii)
+                  cy (* (js/Math.cos rn) radii)]]
+        [:g.canvas-token-flags {:key flag :transform (str "translate(" cx ", " cy ")")}
+         [:circle {:cx 0 :cy 0 :r 12}]
+         [:g {:transform (str "translate(" -8 ", " -8 ")")}
+          [icon {:name (condition->icon flag) :size 16}]]])
+      (if (seq (label data))
+        [:foreignObject.context-menu-object {:x -200 :y (- radii 8) :width 400 :height 32}
+         [:div.canvas-token-label
+          [:span (label data)]]])])])
 
 (defn token-comparator [a b]
   (let [[ax ay] (:token/vec a)
@@ -378,8 +381,7 @@
      [:window/snap-grid :default false]
      [:window/scale :default 1]
      {:window/canvas
-      [[:grid/size :default 70]
-       {:canvas/tokens
+      [{:canvas/tokens
         [:entity/key
          [:initiative/suffix :default nil]
          [:token/vec :default [0 0]]
@@ -398,7 +400,6 @@
         {:local/keys [type window]} result
         {:window/keys [snap-grid scale canvas]} window
         {:canvas/keys [tokens]} canvas
-        size (:grid/size canvas)
 
         flags-xf
         (comp (map name)
@@ -429,7 +430,7 @@
                (dispatch :element/select key (not (.-shiftKey event)))
                (dispatch :token/translate key bx by (not= (.-metaKey event) snap-grid)))))}
         [:g.canvas-token {:css (css data)}
-         [token {:data data :size size}]]])
+         [token data]]])
      (if (seq selected)
        (let [keys         (map :entity/key selected)
              [ax _ bx by] (apply bounding-box (map :token/vec selected))]
@@ -449,7 +450,7 @@
             (for [data selected :let [{key :entity/key [x y] :token/vec} data]]
               [:g.canvas-token
                {:key key :css (css data) :data-key key :transform (str "translate(" x "," y ")")}
-               [token {:data data :size size}]])
+               [token data]])
             (if (or (= type :host) (= type :conn))
               [:foreignObject
                {:x (- (+ (* ax scale) (/ (* (- bx ax) scale) 2)) (/ 400 2))
