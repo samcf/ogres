@@ -11,6 +11,8 @@
 
 (def reader (transit/reader :json {:handlers dst/read-handlers}))
 (def writer (transit/writer :json {:handlers dst/write-handlers}))
+(def ^{:private true} interval-heartbeat 20000)
+(def ^{:private true} interval-reconnect 5000)
 
 (def ^{:private true} session-color-options
   #{"#f44336" "#2196f3" "#8bc34a" "#673ab7" "#ff9800" "#009688" "#3f51b5" "#9c27b0" "#ff5722"})
@@ -183,7 +185,7 @@
                           (->> (merge defaults message)
                                (transit/write writer)
                                (.send socket)))))) [])]
-    
+
     (uix/effect!
      (fn []
        (fn []
@@ -215,6 +217,10 @@
            (let [ws (js/WebSocket. (str env/SOCKET-URL "?join=" room))]
              (reset! socket ws)))))
 
+     :session/heartbeat
+     (fn []
+       (on-send {:type :heartbeat}))
+
      ;; Closes the WebSocket connection.
      :session/close
      (fn []
@@ -244,7 +250,7 @@
        (let [local (ds/entity @conn [:db/ident :local])]
          (if (= (:local/type local) :conn)
            (dispatch :session/join)))) [])
-    
+
     (let [opts {:chan cursor :rate-limit 80}]
       (subscribe!
        (fn [{[x y] :args}]
@@ -257,7 +263,17 @@
        (let [local (ds/entity @conn [:db/ident :local])]
          (if (and (= (:local/type local) :conn)
                   (= (:session/state local) :disconnected))
-           (dispatch :session/join)))) 5000)
+           (dispatch :session/join)))) interval-reconnect)
+
+    ;; Periodically send heartbeat messages to keep the session connections
+    ;; alive. This heartbeat will be sent to the server and then distributed
+    ;; to the other connections in the room.
+    (use-interval
+     (fn []
+       (let [local (ds/entity @conn [:db/ident :local])]
+         (if (and (= (:local/type local) :host)
+                  (= (:session/state local) :connected))
+           (dispatch :session/heartbeat)))), interval-heartbeat)
 
     (let [context {:conn conn :publish publish :dispatch dispatch :store store}]
       (doseq [type ["open" "close" "message" "error"]]
