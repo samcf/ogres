@@ -8,7 +8,7 @@
    [:local/tooltips? :default true]
    {:local/window
     [[:window/show-grid :default true]
-     [:window/snap-grid :default true]]}])
+     [:window/snap-grid :default false]]}])
 
 (defn ^{:private true} settings-form []
   (let [dispatch (use-dispatch)
