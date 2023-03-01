@@ -1,20 +1,43 @@
 (ns ogres.app.form.help
-  (:require [ogres.app.form.render :refer [form]]))
+  (:require [ogres.app.env :refer [VERSION]]
+            [ogres.app.form.render :refer [form]]
+            [ogres.app.hooks :refer [use-dispatch use-query]]
+            [ogres.app.render :refer [checkbox]]))
 
-(def links
-  [["https://reddit.com/r/ogretools/" "Project subreddit"]
-   ["https://github.com/samcf/ogres.app" "Project source code"]
-   ["mailto:mail@samcf.me" "Personal email"]])
+(def ^{:private true} query
+  [[:local/shortcuts? :default true]
+   [:local/tooltips? :default true]])
 
 (defn ^{:private true} help []
-  [:section
-   [:header "Support and Contact"]
-   [:p "ogres.app is a free and open-source virtual tabletop that helps you
-        run your Dungeons & Dragons 5th Edition games. Please feel free to
-        use any of the resources below to ask for help or make a suggestion."]
-   [:ul
-    (for [[url title] links]
-      [:li {:key url} [:a {:href url :target "_blank" :title title} url]])]])
+  (let [dispatch (use-dispatch)
+        result   (use-query query)
+        {:local/keys [shortcuts? tooltips?]} result]
+    [:section
+     [:fieldset.setting
+      [:label "Show Shortcuts"]
+      (for [display? [false true] :let [checked? (= display? shortcuts?)]]
+        ^{:key display?}
+        [checkbox
+         {:checked checked?
+          :on-change
+          (fn []
+            (if (not checked?)
+              (dispatch :interface/toggle-shortcuts display?)))}
+         (if display? "Yes" "No")])]
+     [:fieldset.setting
+      [:label "Show Tooltips"]
+      (for [display? [false true] :let [checked? (= display? tooltips?)]]
+        ^{:key display?}
+        [checkbox
+         {:checked checked?
+          :on-change
+          (fn []
+            (if (not checked?)
+              (dispatch :interface/toggle-tooltips display?)))}
+         (if display? "Yes" "No")])]
+     [:button.ogre-button {:on-click #(dispatch :storage/reset) :style {:margin-top 8}}
+      "Restore Factory Defaults"]
+     [:span "Current version: " [:strong VERSION]]]))
 
 (defmethod form :help []
   help)

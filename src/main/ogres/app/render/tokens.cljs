@@ -9,10 +9,10 @@
   [:bounds/self
    {:local/window
     [[:window/scale :default 1]
-     [:window/snap-grid :default false]
      [:window/vec :default [0 0]]
      {:window/canvas
-      [[:grid/size :default 70]]}]}])
+      [[:canvas/snap-grid :default false]
+       [:canvas/grid-size :default 70]]}]}])
 
 (defn tokens []
   (let [dispatch (use-dispatch)
@@ -20,8 +20,9 @@
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
-          align   :window/snap-grid
-          {size :grid/size} :window/canvas} :local/window} result]
+          {align :canvas/snap-grid
+           size  :canvas/grid-size} :window/canvas}
+         :local/window} result]
     [:<>
      [:svg [:circle {:cx 32 :cy 32 :r 33 :fill "url(#token-stamp-default)"}]]
      [:> react-draggable

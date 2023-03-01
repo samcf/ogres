@@ -28,7 +28,6 @@
     [:div
      (if (= type :host)
        [:section
-        [:header "Invite Friends"]
         [:fieldset.session-controls
          [:button.ogre-button
           {:type "button" :on-click #(dispatch :session/request) :style {:flex 2}

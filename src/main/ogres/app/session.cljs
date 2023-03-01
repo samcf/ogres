@@ -60,8 +60,6 @@
                [:db/add -2 :entity/key (:entity/key prev-local)]
                [:db/add -2 :db/ident :local]
                [:db/add -2 :bounds/self (or (:bounds/self prev-local) [0 0 0 0])]
-               [:db/add -2 :panel/current (or (:panel/current prev-local) :session)]
-               [:db/add -2 :panel/collapsed? (or (:panel/collapsed? prev-local) false)]
 
                ;; Replace host as the local user, swap places in session
                ;; connections.

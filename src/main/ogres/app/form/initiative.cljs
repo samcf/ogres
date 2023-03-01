@@ -87,8 +87,7 @@
         [:div.initiant-label label])
       [:div.initiant-flags
        (if (seq flags)
-         [:em (join ", " (mapv (comp capitalize name) flags))]
-         [:em "No Conditions"])]]
+         [:em (join ", " (mapv (comp capitalize name) flags))])]]
      (if (or (= (:local/type context) :host)
              (contains? flags :player))
        [health-form
@@ -120,7 +119,6 @@
     (if (seq initiative)
       [:div.initiative
        [:section
-        [:header "Initiative"]
         [:fieldset.table
          [:button.ogre-button {:type "button" :on-click #(dispatch :initiative/roll-all)} "Roll"]
          [:button.ogre-button {:type "button" :on-click #(dispatch :initiative/reset-rolls)} "Reset"]
@@ -132,9 +130,7 @@
            ^{:key (:entity/key entity)} [initiant result entity])]]]
       [:div.initiative
        [:section
-        [:header "Initiative"]
         [:div.prompt
-         [icon {:name "hourglass-split" :size 48}]
          [:br] "Begin initiative by selecting"
          [:br] "one or more tokens and clicking"
          [:br] "the hourglass icon."]]])))

@@ -1,51 +1,41 @@
 (ns ogres.app.render.panel
   (:require [ogres.app.hooks :refer [use-dispatch use-query]]
             [ogres.app.render :refer [icon]]
-            [ogres.app.form.render :refer [form]]))
-
-(def ^{:private true} panel-icon
-  {:canvas     "images"
-   :initiative "hourglass-split"
-   :session    "people-fill"
-   :help       "question-diamond"
-   :settings   "wrench-adjustable-circle"
-   :data       "sd-card"})
+            [ogres.app.form.render :refer [header form]]))
 
 (def ^{:private true} panel-forms
-  {:host [{:form :canvas}
-          {:form :session}
-          {:form :initiative}
-          {:form :settings}
-          {:form :data}
-          {:form :help}]
-   :conn [{:form :session}
-          {:form :initiative}
-          {:form :settings}
-          {:form :help}]})
+  {:host [{:key :session    :label "Invite Friends" :figr "people-fill"}
+          {:key :scenes     :label "Maps"           :figr "images"}
+          {:key :tokens     :label "Tokens"         :figr "person-circle"}
+          {:key :canvas     :label "Options"        :figr "wrench-adjustable-circle"}
+          {:key :initiative :label "Initiative"     :figr "hourglass-split"}
+          {:key :help       :label "Help"           :figr "question-diamond"}]
+   :conn [{:key :session    :label "Online Session" :figr "people-fill"}
+          {:key :initiative :label "Initiative"     :figr "hourglass-split"}
+          {:key :help       :label "Help"           :figr "question-diamond"}]})
 
 (def ^{:private true} query
-  [:local/type
-   [:panel/current :default :canvas]
-   [:panel/collapsed? :default false]])
+  [[:local/type :default :conn]
+   [:panel/expanded :default #{}]])
 
 (defn container []
   (let [dispatch (use-dispatch)
-        result   (use-query query)
-        {:keys [local/type panel/current panel/collapsed?]} result
-        forms    (panel-forms type)
-        selected (or current (:form (first forms)))]
+        result (use-query query)
+        {:keys [local/type panel/expanded]} result
+        forms (panel-forms type)]
     [:section.panel
-     {:css {:panel--collapsed collapsed? :panel--expanded (not collapsed?)}}
-     [:nav.panel-tabs
-      (for [{:keys [form]} forms]
-        [:div.panel-tab
-         {:key form
-          :css {:selected (and (not collapsed?) (= form selected))}
-          :on-click #(dispatch :interface/change-panel form)}
-         [icon {:name (panel-icon form)}]])
-      [:div.panel-tab
-       {:on-click #(dispatch :interface/toggle-panel)}
-       [icon {:name (if collapsed? "chevron-double-left" "chevron-double-right")}]]]
-     (if (not collapsed?)
-       [:div.panel-content {:css (str "panel-content-" (name selected))}
-        [(form {:form selected})]])]))
+     [:div.panel-forms
+      (for [{:keys [key label figr]} forms :let [expanded (contains? expanded key)]]
+        [:div.panel-form
+         {:key key
+          :css {(str "panel-form-" (name key)) true
+                "panel-form--expanded"         expanded
+                "panel-form--collapsed"        (not expanded)}}
+         [:div.panel-header
+          {:on-click #(dispatch :interface/toggle-panel key)}
+          [:<>
+           [icon {:name figr}]
+           [:div.panel-header-label label]
+           [(header {:form key})]]]
+         (if expanded
+           [:div.panel-content [(form {:form key})]])])]]))

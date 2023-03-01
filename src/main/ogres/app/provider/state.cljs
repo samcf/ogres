@@ -50,6 +50,7 @@
     [:db/add -3 :local/window -4]
     [:db/add -3 :local/windows -4]
     [:db/add -3 :local/type (local-type)]
+    [:db/add -3 :panel/expanded #{:scenes :tokens}]
     [:db/add -4 :entity/key (squuid)]
     [:db/add -4 :window/canvas -2]
     [:db/add -5 :db/ident :session]]))

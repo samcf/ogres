@@ -8,6 +8,13 @@
 (def suffix-max-xf
   (map (fn [[label tokens]] [label (apply max (map :initiative/suffix tokens))])))
 
+(defn toggle
+  "Appends x to the given set if not already present, otherwise removes it."
+  [set x]
+  (if (contains? set x)
+    (disj set x)
+    (conj set x)))
+
 (defn indexed
   "Returns a transducer which decorates each element with a decreasing
    negative index suitable for use as temporary ids in a DataScript
@@ -201,16 +208,6 @@
   [[:db/add -1 :entity/key window]
    [:db/retract [:entity/key window] :window/modifier]])
 
-(defmethod transact :window/change-grid-show
-  [{:keys [window]} value]
-  [[:db/add -1 :entity/key window]
-   [:db/add -1 :window/show-grid value]])
-
-(defmethod transact :window/change-grid-snap
-  [{:keys [window]} value]
-  [[:db/add -1 :entity/key window]
-   [:db/add -1 :window/snap-grid value]])
-
 (defmethod transact :zoom/change
   ([context]
    (transact context 1))
@@ -270,7 +267,7 @@
 (defmethod transact :canvas/change-grid-size
   [{:keys [canvas]} size]
   [[:db/add -1 :entity/key canvas]
-   [:db/add -1 :grid/size size]])
+   [:db/add -1 :canvas/grid-size size]])
 
 (defmethod transact :canvas/draw-grid-size
   [{:keys [data window canvas]} _ _ size]
@@ -283,30 +280,40 @@
         size (js/Math.round (/ size scale))]
     (if (nil? scene)
       [[:db/add -1 :entity/key canvas]
-       [:db/add -1 :grid/size size]
+       [:db/add -1 :canvas/grid-size size]
        [:db/add -2 :entity/key window]
        [:db/add -2 :window/draw-mode :select]]
       (let [pattern [size (+ size 1) (- size 1) (+ size 2) (- size 2) (+ size 3) (- size 3) (+ size 4) (- size 4)]
             next    (reduce (fn [_ n] (when (zero? (mod width n)) (reduced n))) pattern)]
         [[:db/add -1 :entity/key canvas]
-         [:db/add -1 :grid/size (or next size)]
+         [:db/add -1 :canvas/grid-size (or next size)]
          [:db/add -2 :entity/key window]
          [:db/add -2 :window/draw-mode :select]]))))
 
-(defmethod transact :canvas/change-theme
-  [{:keys [canvas]} theme]
-  [[:db/add -1 :entity/key canvas]
-   [:db/add -1 :canvas/theme theme]])
-
-(defmethod transact :canvas/change-visibility
+(defmethod transact :canvas/toggle-show-grid
   [{:keys [canvas]} value]
   [[:db/add -1 :entity/key canvas]
-   [:db/add -1 :canvas/visibility value]])
+   [:db/add -1 :canvas/show-grid value]])
 
-(defmethod transact :canvas/change-color
+(defmethod transact :canvas/toggle-snap-grid
   [{:keys [canvas]} value]
   [[:db/add -1 :entity/key canvas]
-   [:db/add -1 :canvas/color value]])
+   [:db/add -1 :canvas/snap-grid value]])
+
+(defmethod transact :canvas/toggle-dark-mode
+  [{:keys [canvas]} enabled]
+  [[:db/add -1 :entity/key canvas]
+   [:db/add -1 :canvas/dark-mode enabled]])
+
+(defmethod transact :canvas/change-lighting
+  [{:keys [canvas]} value]
+  [[:db/add -1 :entity/key canvas]
+   [:db/add -1 :canvas/lighting value]])
+
+(defmethod transact :canvas/change-time-of-day
+  [{:keys [canvas]} value]
+  [[:db/add -1 :entity/key canvas]
+   [:db/add -1 :canvas/timeofday value]])
 
 (defmethod transact :element/update
   [_ keys attr value]
@@ -570,14 +577,10 @@
   [{:keys [local]} display?]
   [{:db/id -1 :entity/key local :local/tooltips? display?}])
 
-(defmethod transact :interface/change-panel
-  [{:keys [local]} panel]
-  [{:db/id -1 :entity/key local :panel/current panel :panel/collapsed? false}])
-
 (defmethod transact :interface/toggle-panel
-  [{:keys [data local]}]
+  [{:keys [data local]} panel]
   (let [entity (ds/entity data [:entity/key local])]
-    [{:db/id -1 :entity/key local :panel/collapsed? (not (:panel/collapsed? entity))}]))
+    [{:db/id -1 :entity/key local :panel/expanded (toggle (:panel/expanded entity) panel)}]))
 
 (defmethod transact :stamp/create
   [_ checksum width height]
