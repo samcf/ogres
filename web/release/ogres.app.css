@@ -1241,6 +1241,42 @@ legend {
     background-color: #fbfbf9;
 }
 
+/* Pagination */
+.pagination {
+    font-family: var(--font-stack-sans-serif);
+    align-items: center;
+    display: flex;
+    gap: 4px;
+}
+
+.pagination li {
+    align-items: center;
+    box-sizing: border-box;
+    cursor: default;
+    display: flex;
+    height: 32px;
+    justify-content: center;
+    pointer-events: none;
+    width: 32px;
+}
+
+.pagination .selected {
+    background-color: #d7d7d0;
+    border-radius: 50%;
+    color: var(--theme-paper-dark);
+}
+
+.pagination .selectable {
+    background-color: var(--theme-paper-light);
+    border-radius: 50%;
+    cursor: pointer;
+    pointer-events: all;
+}
+
+.pagination .selectable:hover {
+    background-color: #e3e3db;
+    border-radius: 50%;
+}
 /* Initiative */
 .initiative section:first-child {
     padding: 0 12px;
