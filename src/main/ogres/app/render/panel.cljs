@@ -34,7 +34,7 @@
          [:div.panel-header
           {:on-click #(dispatch :interface/toggle-panel key)}
           [:<>
-           [icon {:name figr}]
+           [icon {:name figr :size 20}]
            [:div.panel-header-label label]
            [(header {:form key})]]]
          (if expanded
