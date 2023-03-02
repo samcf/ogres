@@ -337,15 +337,13 @@
     [:db/retractEntity [:entity/key key]]))
 
 (defmethod transact :scene/create
-  [{:keys [canvas]} checksum width height]
+  [_ checksum width height]
   [[:db/add -1 :image/checksum checksum]
    [:db/add -1 :image/width width]
    [:db/add -1 :image/height height]
-   [:db/add [:db/ident :root] :root/scenes -1]
-   [:db/add -2 :entity/key canvas]
-   [:db/add -2 :canvas/image -1]])
+   [:db/add [:db/ident :root] :root/scenes -1]])
 
-(defmethod transact :map/remove
+(defmethod transact :scene/remove
   [_ checksum]
   [[:db/retractEntity [:image/checksum checksum]]])
 
