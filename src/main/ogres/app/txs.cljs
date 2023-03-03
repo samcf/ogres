@@ -348,14 +348,16 @@
   [[:db/retractEntity [:image/checksum checksum]]])
 
 (defmethod transact :token/create
-  [{:keys [window canvas]} x y]
+  [{:keys [window canvas]} x y checksum]
   [[:db/add -1 :entity/key (squuid)]
    [:db/add -1 :token/vec [x y]]
+   [:db/add -1 :token/image -4]
    [:db/add -2 :entity/key window]
    [:db/add -2 :window/selected -1]
    [:db/add -2 :window/draw-mode :select]
    [:db/add -3 :entity/key canvas]
-   [:db/add -3 :canvas/tokens -1]])
+   [:db/add -3 :canvas/tokens -1]
+   [:db/add -4 :image/checksum checksum]])
 
 (defmethod transact :token/translate
   [_ token x y align?]

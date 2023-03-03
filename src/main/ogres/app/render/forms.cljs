@@ -1,6 +1,6 @@
 (ns ogres.app.render.forms
   (:require [clojure.string :refer [capitalize]]
-            [ogres.app.hooks :refer [use-dispatch use-image use-image-uploader use-portal use-query use-store]]
+            [ogres.app.hooks :refer [use-dispatch]]
             [ogres.app.render :refer [icon]]
             [ogres.app.render.pattern :refer [pattern]]
             [uix.core.alpha :as uix]))
@@ -51,71 +51,16 @@
        (fn [event]
          (on-change (.. event -target -checked)))}] key)))
 
-(defn file-uploader [props]
-  (let [upload (use-image-uploader {:type :token})]
-    [:input
-     {:type "file" :ref (:ref props) :accept "image/*" :multiple true
-      :style {:display "none"}
-      :on-change
-      (fn [event]
-        (doseq [file (.. event -target -files)]
-          (.then (upload file) (:on-upload props))))}]))
-
-(defn thumbnail [checksum render-fn]
-  (render-fn (use-image checksum)))
-
-(defn images-form [{:keys [on-change]}]
-  (let [dispatch   (use-dispatch)
-        result     (use-query [{:root/stamps [:image/checksum]}] [:db/ident :root])
-        store      (use-store)
-        thumbnails (into [] (comp (map :image/checksum) (partition-all 15)) (reverse (:root/stamps result)))
-        page-index (uix/state 0)
-        upload-ref (uix/ref)]
-    [:<>
-     [file-uploader
-      {:ref upload-ref
-       :on-upload #(reset! page-index 0)}]
-     [:div.images-form
-      (concat
-       [[:button.button
-         {:key "prev" :type "button" :disabled (= @page-index 0)
-          :on-click #(swap! page-index dec)}
-         [icon {:name "chevron-double-left"}]]
-        [:button.button
-         {:key "upload" :type "button" :on-click #(.click @upload-ref)}
-         [icon {:name "arrow-up-circle-fill"}]
-         [:span "Upload new images"]]
-        [:button.button
-         {:key "next" :type "button"
-          :disabled (>= @page-index (- (count thumbnails) 1))
-          :on-click #(swap! page-index inc)}
-         [icon {:name "chevron-double-right"}]]]
-       (for [checksum (nth thumbnails @page-index [])]
-         ^{:key checksum}
-         [thumbnail checksum
-          (fn [url]
-            [:figure
-             {:style {:background-image (str "url(" url ")")} :on-click #(on-change checksum)}
-             [:div
-              {:title "Remove"
-               :on-click
-               (fn [event]
-                 (.stopPropagation event)
-                 (dispatch :stamp/remove checksum)
-                 (.delete (.-images store) checksum))}
-              (js/String.fromCharCode 215)]])]))]]))
-
 (defmulti token-form :name)
 
 (defmethod token-form :default [] nil)
 
 (defmethod token-form :label [props]
-  (let [thumb-open (uix/state false)
-        input-ref  (uix/ref)
-        input-val  (uix/state
-                    (fn []
-                      (let [vs ((:values props) :token/label)]
-                        (if (= (count vs) 1) (first vs) ""))))]
+  (let [input-ref (uix/ref)
+        input-val (uix/state
+                   (fn []
+                     (let [vs ((:values props) :token/label)]
+                       (if (= (count vs) 1) (first vs) ""))))]
     (uix/effect! #(.select @input-ref) [])
     [:form
      {:on-submit
@@ -123,26 +68,13 @@
         (.preventDefault event)
         ((:on-change props) :token/change-label @input-val)
         ((:on-close props)))}
-     [:button.button
-      {:type         "button"
-       :disabled     (not (:upload? props))
-       :data-tooltip "Select or upload an image"
-       :on-click     #(swap! thumb-open not)}
-      [icon {:name "person-circle" :size 22}]]
      [:input
       {:type "text"
        :ref input-ref
        :value @input-val
        :auto-focus true
        :placeholder "Press 'Enter' to submit..."
-       :on-change #(reset! input-val (.. %1 -target -value))}]
-     (if @thumb-open
-       [use-portal {:label :modal}
-        [:div.context-menu-form-modal
-         [images-form
-          {:on-change
-           (fn [checksum]
-             ((:on-change props) :token/change-stamp checksum))}]]])]))
+       :on-change #(reset! input-val (.. %1 -target -value))}]]))
 
 (defmethod token-form :details [props]
   (for [[label tx-name attr min def]
