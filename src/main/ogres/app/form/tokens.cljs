@@ -4,7 +4,7 @@
             [ogres.app.render :refer [icon pagination]]
             [uix.core.alpha :as uix]
             [uix.dom.alpha :refer [create-portal]]
-            ["@dnd-kit/core" :refer [DndContext DragOverlay useDraggable]]))
+            ["@dnd-kit/core" :refer [DragOverlay useDndMonitor useDraggable]]))
 
 (def ^:private query
   [{:root/stamps [:image/checksum]}
@@ -57,17 +57,18 @@
 (defn- tokens [props _]
   (let [lookup (key-by :image/checksum (:data props))
         active (uix/state nil)]
-    [:> DndContext
-     {:on-drag-start
-      (fn [event]
-        (reset! active (.. event -active -id)))
-      :on-drag-end
-      (fn [event]
-        (let [checksum (.. event -active -id)
-              target   (.. event -activatorEvent -target)
-              delta    (.-delta event)]
-          ((:on-drop-token props) checksum target delta)
-          (reset! active nil)))}
+    (useDndMonitor
+     #js {"onDragStart"
+          (fn [event]
+            (reset! active (.. event -active -id)))
+          "onDragEnd"
+          (fn [event]
+            (let [checksum (.. event -active -id)
+                  target   (.. event -activatorEvent -target)
+                  delta    (.-delta event)]
+              ((:on-drop-token props) checksum target delta)
+              (reset! active nil)))})
+    [:<>
      (for [{:keys [image/checksum] :as data} (:data props)]
        ^{:key checksum} [token {:data data}])
      [create-portal

@@ -12,7 +12,8 @@
             [ogres.app.shortcut :as shortcut]
             [react-helmet :refer [Helmet]]
             [uix.core.alpha :as uix]
-            [uix.dom.alpha :as uix.dom])) 
+            [uix.dom.alpha :as uix.dom]
+            ["@dnd-kit/core" :refer [DndContext]])) 
 
 (uix/add-transform-fn
  (fn [attrs]
@@ -35,7 +36,8 @@
         [shortcut/handlers]
         [session/handlers]
         [error-boundary
-         [layout]]]]]]]])
+         [:> DndContext
+          [layout]]]]]]]]])
 
 (defn main []
   (let [element (.querySelector js/document "#root")]
