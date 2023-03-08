@@ -4,7 +4,13 @@
             [ogres.app.render :refer [icon pagination]]
             [uix.core.alpha :as uix]
             [uix.dom.alpha :refer [create-portal]]
-            ["@dnd-kit/core" :refer [DragOverlay useDndMonitor useDraggable]]))
+            ["@dnd-kit/core"
+             :refer  [DragOverlay useDndMonitor useDraggable]
+             :rename {DragOverlay   drag-overlay
+                      useDndMonitor use-dnd-monitor
+                      useDraggable  use-draggable}]))
+
+(def ^:private per-page 20)
 
 (def ^:private query
   [{:root/stamps [:image/checksum]}
@@ -41,7 +47,7 @@
 (defn- token [props _]
   (let [checksum (:image/checksum (:data props))
         data-url (use-image checksum)
-        drag-opt (useDraggable #js {"id" checksum})]
+        drag-opt (use-draggable #js {"id" checksum})]
     [:figure.tokens-template
      {:ref   (.-setNodeRef drag-opt)
       :style {:background-image (str "url(" data-url ")")}
@@ -57,7 +63,7 @@
 (defn- tokens [props _]
   (let [lookup (key-by :image/checksum (:data props))
         active (uix/state nil)]
-    (useDndMonitor
+    (use-dnd-monitor
      #js {"onDragStart"
           (fn [event]
             (reset! active (.. event -active -id)))
@@ -72,42 +78,43 @@
      (for [{:keys [image/checksum] :as data} (:data props)]
        ^{:key checksum} [token {:data data}])
      [create-portal
-      [:> DragOverlay
-       {:drop-animation nil}
+      [:> drag-overlay {:drop-animation nil}
        (if-let [checksum (deref active)]
          [overlay {:data (lookup checksum)}])]
       (.-body js/document)]]))
 
 (defn- form []
   (let [dispatch (use-dispatch)
-        page (uix/state 1)
-        rslt (use-query query [:db/ident :root])
-        data (vec (:root/stamps rslt))
-        {{[bx by bw bh] :bounds/self
-          {[cx cy] :window/vec
-           scale   :window/scale}
-          :local/window}
-         :root/local} rslt]
+        result   (use-query query [:db/ident :root])
+        data     (vec (:root/stamps result))
+        page     (uix/state 1)
+        pages    (int (js/Math.ceil (/ (count data) per-page)))
+        drop-handler
+        (uix/callback
+         (fn [checksum element delta]
+           (let [{{[bx by bw bh] :bounds/self
+                   {[cx cy] :window/vec
+                    scale :window/scale} :local/window} :root/local} result
+                 rect    (.getBoundingClientRect element)
+                 [tw th] [(.-width rect) (.-height rect)]
+                 [tx ty] [(.-x rect) (.-y rect)]
+                 [dx dy] [(.-x delta) (.-y delta)]
+                 [mx my] [(- (+ tx dx (/ tw 2)) bx) (- (+ ty dy (/ th 2)) by)]
+                 [sx sy] [(- (* mx (/ scale)) cx) (- (* my (/ scale)) cy)]]
+             (cond (and (<= bx mx (+ bx bw)) (<= by my (+ by bh)))
+                   (dispatch :token/create sx sy checksum)
+                   #_(and (zero? dx) (zero? dy))
+                   #_(println "token clicked")
+                   #_:else
+                   #_(println "token dropped outside canvas")))) [result])]
     (if (seq data)
-      (let [src (-> (deref page) (dec) (* 20))
-            dst (-> (+ src 20) (min (count data)))]
+      (let [src (* (dec (min @page pages)) per-page)
+            dst (min (+ src per-page) (count data))]
         [:section.tokens
-         [tokens
-          {:data (subvec data src dst)
-           :on-drop-token
-           (fn [checksum element delta]
-             (let [rect    (.getBoundingClientRect element)
-                   [tw th] [(.-width rect) (.-height rect)]
-                   [tx ty] [(.-x rect) (.-y rect)]
-                   [dx dy] [(.-x delta) (.-y delta)]
-                   [mx my] [(- (+ tx dx (/ tw 2)) bx) (- (+ ty dy (/ th 2)) by)]
-                   [sx sy] [(- (* mx (/ scale)) cx) (- (* my (/ scale)) cy)]]
-               (if (and (<= bx mx (+ bx bw))
-                        (<= by my (+ by bh)))
-                 (dispatch :token/create sx sy checksum))))}]
+         [tokens {:data (subvec data src dst) :on-drop-token drop-handler}]
          [pagination
-          {:pages (int (js/Math.ceil (/ (count data) 20)))
-           :value (deref page)
+          {:pages pages
+           :value (min @page pages)
            :on-change (partial reset! page)}]])
       [:section.tokens
        [:div.prompt

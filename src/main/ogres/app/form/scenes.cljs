@@ -28,15 +28,16 @@
      "Upload"]))
 
 (defn- form []
-  (let [page-num (uix/state 1)
-        dispatch (use-dispatch)
+  (let [dispatch (use-dispatch)
         result   (use-query query [:db/ident :root])
-        scenes   (vec (:root/scenes result))]
-    (if (seq scenes)
-      (let [src (* (dec @page-num) 6)
-            dst (min (+ src 6) (count scenes))]
+        data     (vec (:root/scenes result))
+        page     (uix/state 1)
+        pages    (int (js/Math.ceil (/ (count data) 6)))]
+    (if (seq data)
+      (let [src (* (dec (min @page pages)) 6)
+            dst (min (+ src 6) (count data))]
         [:section.scenes
-         (for [{:image/keys [checksum]} (subvec scenes src dst)]
+         (for [{:image/keys [checksum]} (subvec data src dst)]
            ^{:key checksum}
            [thumbnail checksum
             (fn [url]
@@ -49,9 +50,9 @@
                  :on-click #(dispatch :scene/remove checksum)}
                 [icon {:name "x-circle" :size 20}]]])])
          [pagination
-          {:value     @page-num
-           :pages     (int (js/Math.ceil (/ (count scenes) 6)))
-           :on-change (partial reset! page-num)}]])
+          {:pages pages
+           :value (min @page pages)
+           :on-change (partial reset! page)}]])
       [:section.scenes
        [:div.prompt
         [:br] "Upload one or more images from your"
