@@ -1329,15 +1329,22 @@ legend {
 }
 
 .scenes figure {
-    align-items: start;
     aspect-ratio: 1 / 1;
+    border-radius: 4px;
+}
+
+.scenes figure.scenes-scene {
+    align-items: start;
     background-color: var(--theme-paper-accent);
     background-size: cover;
-    border-radius: 4px;
     box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.80);
     cursor: pointer;
     display: flex;
     justify-content: end;
+}
+
+.scenes figure.scenes-placeholder {
+    border: 1px dashed hsl(0, 0%, 60%);
 }
 
 .scenes figure > button {
@@ -1361,11 +1368,11 @@ legend {
     background: rgba(0, 0, 0, 0.90);
 }
 
-.scenes figure:hover {
+.scenes figure.scenes-scene:hover {
     filter: brightness(1.2);
 }
 
-.scenes figure:hover > button {
+.scenes figure.scenes-scene:hover > button {
     visibility: visible;
 }
 

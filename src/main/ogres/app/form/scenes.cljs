@@ -4,6 +4,8 @@
             [ogres.app.render :refer [icon pagination]]
             [uix.core.alpha :as uix]))
 
+(def ^:private per-page 6)
+
 (def ^:private header-query
   '[{(:root/scenes :limit 1) [:image/checksum]}])
 
@@ -46,23 +48,25 @@
         result   (use-query query [:db/ident :root])
         data     (vec (:root/scenes result))
         page     (uix/state 1)
-        pages    (int (js/Math.ceil (/ (count data) 6)))]
+        pages    (int (js/Math.ceil (/ (count data) per-page)))]
     (if (seq data)
-      (let [src (* (dec (min @page pages)) 6)
-            dst (min (+ src 6) (count data))]
+      (let [src (* (dec (min @page pages)) per-page)
+            dst (min (+ src per-page) (count data))]
         [:section.scenes
-         (for [{:image/keys [checksum]} (subvec data src dst)]
-           ^{:key checksum}
-           [thumbnail checksum
-            (fn [url]
-              [:figure
-               {:style {:background-image (str "url(" url ")")}
-                :on-click #(dispatch :canvas/change-scene checksum)}
-               [:button
-                {:type "button"
-                 :title "Remove"
-                 :on-click #(dispatch :scene/remove checksum)}
-                [icon {:name "x-circle" :size 20}]]])])
+         (for [data (->> (repeat per-page :placeholder) (into (subvec data src dst)) (take per-page))]
+           (if-let [checksum (:image/checksum data)]
+             ^{:key checksum}
+             [thumbnail checksum
+              (fn [url]
+                [:figure.scenes-scene
+                 {:style {:background-image (str "url(" url ")")}
+                  :on-click #(dispatch :canvas/change-scene checksum)}
+                 [:button
+                  {:type "button"
+                   :title "Remove"
+                   :on-click #(dispatch :scene/remove checksum)}
+                  [icon {:name "x-circle" :size 20}]]])]
+             [:figure.scenes-placeholder]))
          [pagination
           {:pages pages
            :value (min @page pages)
