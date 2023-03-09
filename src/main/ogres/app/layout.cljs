@@ -1,5 +1,5 @@
 (ns ogres.app.layout
-  (:require [ogres.app.hooks :refer [use-query create-portal]]
+  (:require [ogres.app.hooks :refer [use-query]]
             [ogres.app.render.canvas :refer [canvas]]
             [ogres.app.render.panel :refer [container]]
             [ogres.app.render.toolbar :refer [toolbar]]
@@ -24,8 +24,5 @@
           (if (= type :host)
             [:div.layout-workspaces [workspaces]])
           [:div.layout-canvas [canvas]]
-          [create-portal
-           (fn [ref]
-             [:div.layout-modal {:ref ref}]) :modal]
           [:div.layout-toolbar [toolbar]]
           [:div.layout-panel [container]]]))]))
