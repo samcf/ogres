@@ -58,7 +58,7 @@
        :on-click (fn [event]
                    (.stopPropagation event)
                    (dispatch :stamp/remove-all))}
-      [icon {:name "x-circle" :size 16}]]]))
+      [icon {:name "trash3-fill" :size 16}]]]))
 
 (defn- tokens [props _]
   (let [{:keys [data on-create on-remove]

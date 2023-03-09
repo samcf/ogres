@@ -41,7 +41,7 @@
        :on-click (fn [event]
                    (.stopPropagation event)
                    (dispatch :scene/remove-all))}
-      [icon {:name "x-circle" :size 16}]]]))
+      [icon {:name "trash3-fill" :size 16}]]]))
 
 (defn- form []
   (let [dispatch (use-dispatch)
@@ -65,7 +65,7 @@
                   {:type "button"
                    :title "Remove"
                    :on-click #(dispatch :scene/remove checksum)}
-                  [icon {:name "x-circle" :size 20}]]])]
+                  [icon {:name "trash3-fill" :size 16}]]])]
              [:figure.scenes-placeholder]))
          [pagination
           {:pages pages
