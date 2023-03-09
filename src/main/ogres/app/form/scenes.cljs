@@ -20,7 +20,8 @@
         input    (uix/ref)]
     [:<>
      [:button.upload
-      {:type "button"
+      {:type     "button"
+       :title    "Upload map image"
        :on-click (fn [event]
                    (.stopPropagation event)
                    (.click (deref input)))}
