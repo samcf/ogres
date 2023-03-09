@@ -347,6 +347,9 @@
   [_ checksum]
   [[:db/retractEntity [:image/checksum checksum]]])
 
+(defmethod transact :scene/remove-all [_]
+  [[:db/retract [:db/ident :root] :root/scenes]])
+
 (defmethod transact :token/create
   [{:keys [window canvas]} x y checksum]
   [[:db/add -1 :entity/key (squuid)]
@@ -592,6 +595,9 @@
 
 (defmethod transact :stamp/remove [_ checksum]
   [[:db/retractEntity [:image/checksum checksum]]])
+
+(defmethod transact :stamp/remove-all []
+  [[:db/retract [:db/ident :root] :root/stamps]])
 
 (defmethod transact :mask/fill
   [{:keys [canvas]}]

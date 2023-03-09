@@ -13,6 +13,9 @@
 
 (def ^:private per-page 19)
 
+(def ^:private header-query
+  '[{(:root/stamps :limit 1) [:image/checksum]}])
+
 (def ^:private query
   [{:root/stamps [:image/checksum]}
    {:root/local
@@ -30,21 +33,32 @@
    (use-draggable #js {"id" checksum})))
 
 (defn- header []
-  (let [input  (uix/ref)
-        upload (use-image-uploader {:type :token})]
-    [:button.upload-button
-     {:type "button"
-      :on-click (fn [event]
-                  (.stopPropagation event)
-                  (.click (deref input)))}
-     [:input
-      {:type "file" :hidden true :accept "image/*" :multiple true :ref input
-       :on-click  (fn [event] (.stopPropagation event))
-       :on-change (fn [event]
-                    (doseq [file (.. event -target -files)]
-                      (upload file)))}]
-     [icon {:name "camera-fill" :size 18}]
-     "Upload"]))
+  (let [dispatch (use-dispatch)
+        result   (use-query header-query [:db/ident :root])
+        upload   (use-image-uploader {:type :token})
+        input    (uix/ref)]
+    [:<>
+     [:button.upload
+      {:type     "button"
+       :title    "Upload token image"
+       :on-click (fn [event]
+                   (.stopPropagation event)
+                   (.click (deref input)))}
+      [:input
+       {:type "file" :hidden true :accept "image/*" :multiple true :ref input
+        :on-click  (fn [event] (.stopPropagation event))
+        :on-change (fn [event]
+                     (doseq [file (.. event -target -files)]
+                       (upload file)))}]
+      [icon {:name "camera-fill" :size 16}] "Upload"]
+     [:button.remove
+      {:type     "button"
+       :title    "Remove all"
+       :disabled (empty? (:root/stamps result))
+       :on-click (fn [event]
+                   (.stopPropagation event)
+                   (dispatch :stamp/remove-all))}
+      [icon {:name "x-circle" :size 16}]]]))
 
 (defn- tokens [props _]
   (let [{:keys [data on-create on-remove]

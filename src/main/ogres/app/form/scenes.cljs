@@ -4,6 +4,9 @@
             [ogres.app.render :refer [icon pagination]]
             [uix.core.alpha :as uix]))
 
+(def ^:private header-query
+  '[{(:root/scenes :limit 1) [:image/checksum]}])
+
 (def ^:private query
   [{:root/scenes [:image/checksum]}])
 
@@ -11,21 +14,31 @@
   (render-fn (use-image checksum)))
 
 (defn- header []
-  (let [input  (uix/ref)
-        upload (use-image-uploader {:type :scene})]
-    [:button.upload-button
-     {:type "button"
-      :on-click (fn [event]
-                  (.stopPropagation event)
-                  (.click (deref input)))}
-     [:input
-      {:type "file" :hidden true :accept "image/*" :multiple true :ref input
-       :on-click  (fn [event] (.stopPropagation event))
-       :on-change (fn [event]
-                    (doseq [file (.. event -target -files)]
-                      (upload file)))}]
-     [icon {:name "camera-fill" :size 18}]
-     "Upload"]))
+  (let [dispatch (use-dispatch)
+        result   (use-query header-query [:db/ident :root])
+        upload   (use-image-uploader {:type :scene})
+        input    (uix/ref)]
+    [:<>
+     [:button.upload
+      {:type "button"
+       :on-click (fn [event]
+                   (.stopPropagation event)
+                   (.click (deref input)))}
+      [:input
+       {:type "file" :hidden true :accept "image/*" :multiple true :ref input
+        :on-click  (fn [event] (.stopPropagation event))
+        :on-change (fn [event]
+                     (doseq [file (.. event -target -files)]
+                       (upload file)))}]
+      [icon {:name "camera-fill" :size 16}] "Upload"]
+     [:button.remove
+      {:type     "button"
+       :title    "Remove all"
+       :disabled (empty? (:root/scenes result))
+       :on-click (fn [event]
+                   (.stopPropagation event)
+                   (dispatch :scene/remove-all))}
+      [icon {:name "x-circle" :size 16}]]]))
 
 (defn- form []
   (let [dispatch (use-dispatch)
