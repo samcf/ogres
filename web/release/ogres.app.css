@@ -19,7 +19,8 @@
       Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji,
       Segoe UI Emoji, Segoe UI Symbol;
 
-    --font-stack-mono: Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
+    --font-stack-mono:
+      Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
 }
 
 html, body, #root, .root {
