@@ -5,7 +5,7 @@
             [uix.core.alpha :as uix]
             [uix.dom.alpha :refer [create-portal]]
             ["@dnd-kit/core"
-             :refer  [DragOverlay useDndMonitor useDraggable]
+             :refer  [DragOverlay useDndMonitor useDraggable useDroppable]
              :rename {DragOverlay   drag-overlay
                       useDndMonitor use-dnd-monitor
                       useDraggable  use-draggable
@@ -69,7 +69,8 @@
         option (use-droppable #js {"id" "tokens-trash"})
         tokens (->> (repeat per-page :placeholder)
                     (into data)
-                    (take per-page))]
+                    (take per-page)
+                    (map-indexed vector))]
     (use-dnd-monitor
      #js {"onDragStart"
           (fn [event]
@@ -91,7 +92,7 @@
                 (reset! active nil)
                 (reset! delete nil))))})
     [:<>
-     (for [data tokens]
+     (for [[idx data] tokens]
        (if-let [checksum (:image/checksum data)]
          ^{:key checksum}
          [token checksum
@@ -101,9 +102,11 @@
               :style {:background-image (str "url(" url ")")}
               :on-pointer-down (.. options -listeners -onPointerDown)
               :on-key-down     (.. options -listeners -onKeyDown)}])]
-         [:figure.tokens-placeholder]))
+         [:figure.tokens-placeholder
+          {:key idx}]))
      [:figure.tokens-trashcan
-      {:ref (.-setNodeRef option) :css {:is-deleting @delete}}
+      {:ref (.-setNodeRef option)
+       :css {:is-deleting @delete}}
       [icon {:name "trash3-fill" :size 26}]]
      [create-portal
       [:> drag-overlay {:drop-animation nil}

@@ -51,9 +51,13 @@
         pages    (int (js/Math.ceil (/ (count data) per-page)))]
     (if (seq data)
       (let [src (* (dec (min @page pages)) per-page)
-            dst (min (+ src per-page) (count data))]
+            dst (min (+ src per-page) (count data))
+            seq (->> (repeat per-page :placeholder)
+                     (into (subvec data src dst))
+                     (take per-page)
+                     (map-indexed vector))]
         [:section.scenes
-         (for [data (->> (repeat per-page :placeholder) (into (subvec data src dst)) (take per-page))]
+         (for [[idx data] seq]
            (if-let [checksum (:image/checksum data)]
              ^{:key checksum}
              [thumbnail checksum
@@ -66,7 +70,8 @@
                    :title "Remove"
                    :on-click #(dispatch :scene/remove checksum)}
                   [icon {:name "trash3-fill" :size 16}]]])]
-             [:figure.scenes-placeholder]))
+             [:figure.scenes-placeholder
+              {:key idx}]))
          [pagination
           {:pages pages
            :value (min @page pages)
