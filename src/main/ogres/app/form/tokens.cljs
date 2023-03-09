@@ -8,9 +8,10 @@
              :refer  [DragOverlay useDndMonitor useDraggable]
              :rename {DragOverlay   drag-overlay
                       useDndMonitor use-dnd-monitor
-                      useDraggable  use-draggable}]))
+                      useDraggable  use-draggable
+                      useDroppable  use-droppable}]))
 
-(def ^:private per-page 20)
+(def ^:private per-page 19)
 
 (def ^:private query
   [{:root/stamps [:image/checksum]}
@@ -20,12 +21,13 @@
       [[:window/scale :default 1]
        [:window/vec :default [0 0]]]}]}])
 
-(defn- key-by
-  "Returns a map of the given `coll` whose keys are the result of calling `f`
-   with each element in the collection and whose values are the element
-   itself."
-  [f coll]
-  (into {} (map (juxt f identity)) coll))
+(defn- image [checksum render-fn]
+  (render-fn (use-image checksum)))
+
+(defn- token [checksum render-fn]
+  (render-fn
+   (use-image checksum)
+   (use-draggable #js {"id" checksum})))
 
 (defn- header []
   (let [input  (uix/ref)
@@ -44,74 +46,92 @@
      [icon {:name "camera-fill" :size 18}]
      "Upload"]))
 
-(defn- token [props _]
-  (let [checksum (:image/checksum (:data props))
-        data-url (use-image checksum)
-        drag-opt (use-draggable #js {"id" checksum})]
-    [:figure.tokens-template
-     {:ref   (.-setNodeRef drag-opt)
-      :style {:background-image (str "url(" data-url ")")}
-      :on-pointer-down (.. drag-opt -listeners -onPointerDown)
-      :on-key-down     (.. drag-opt -listeners -onKeyDown)}]))
-
-(defn- overlay [props _]
-  (let [checksum (:image/checksum (:data props))
-        data-url (use-image checksum)]
-    [:figure.tokens-template
-     {:style {:background-image (str "url(" data-url ")")}}]))
-
 (defn- tokens [props _]
-  (let [lookup (key-by :image/checksum (:data props))
-        active (uix/state nil)]
+  (let [{:keys [data on-create on-remove]
+         :or   {on-create identity
+                on-remove identity}} props
+        active (uix/state nil)
+        delete (uix/state false)
+        option (use-droppable #js {"id" "tokens-trash"})
+        tokens (->> (repeat per-page :placeholder)
+                    (into data)
+                    (take per-page))]
     (use-dnd-monitor
      #js {"onDragStart"
           (fn [event]
             (reset! active (.. event -active -id)))
+          "onDragMove"
+          (fn [event]
+            (if (.-over event)
+              (reset! delete true)
+              (reset! delete false)))
           "onDragEnd"
           (fn [event]
-            (let [checksum (.. event -active -id)
-                  target   (.. event -activatorEvent -target)
-                  delta    (.-delta event)]
-              ((:on-drop-token props) checksum target delta)
-              (reset! active nil)))})
+            (if (.-over event)
+              (do (on-remove @active)
+                  (reset! active nil)
+                  (reset! delete nil))
+              (let [target (.. event -activatorEvent -target)
+                    delta  (.-delta event)]
+                (on-create @active target delta)
+                (reset! active nil)
+                (reset! delete nil))))})
     [:<>
-     (for [{:keys [image/checksum] :as data} (:data props)]
-       ^{:key checksum} [token {:data data}])
+     (for [data tokens]
+       (if-let [checksum (:image/checksum data)]
+         ^{:key checksum}
+         [token checksum
+          (fn [url ^js/object options]
+            [:figure.tokens-template
+             {:ref   (.-setNodeRef options)
+              :style {:background-image (str "url(" url ")")}
+              :on-pointer-down (.. options -listeners -onPointerDown)
+              :on-key-down     (.. options -listeners -onKeyDown)}])]
+         [:figure.tokens-placeholder]))
+     [:figure.tokens-trashcan
+      {:ref (.-setNodeRef option) :css {:is-deleting @delete}}
+      [icon {:name "trash3-fill" :size 26}]]
      [create-portal
       [:> drag-overlay {:drop-animation nil}
        (if-let [checksum (deref active)]
-         [overlay {:data (lookup checksum)}])]
+         [image checksum
+          (fn [url]
+            [:figure.tokens-template
+             {:css   {:is-deleting @delete}
+              :style {:background-image (str "url(" url ")")}}])])]
       (.-body js/document)]]))
 
 (defn- form []
-  (let [dispatch (use-dispatch)
-        result   (use-query query [:db/ident :root])
-        data     (vec (:root/stamps result))
-        page     (uix/state 1)
-        pages    (int (js/Math.ceil (/ (count data) per-page)))
-        drop-handler
-        (uix/callback
-         (fn [checksum element delta]
-           (let [{{[bx by bw bh] :bounds/self
-                   {[cx cy] :window/vec
-                    scale :window/scale} :local/window} :root/local} result
-                 rect    (.getBoundingClientRect element)
-                 [tw th] [(.-width rect) (.-height rect)]
-                 [tx ty] [(.-x rect) (.-y rect)]
-                 [dx dy] [(.-x delta) (.-y delta)]
-                 [mx my] [(- (+ tx dx (/ tw 2)) bx) (- (+ ty dy (/ th 2)) by)]
-                 [sx sy] [(- (* mx (/ scale)) cx) (- (* my (/ scale)) cy)]]
-             (cond (and (<= bx mx (+ bx bw)) (<= by my (+ by bh)))
-                   (dispatch :token/create sx sy checksum)
-                   #_(and (zero? dx) (zero? dy))
-                   #_(println "token clicked")
-                   #_:else
-                   #_(println "token dropped outside canvas")))) [result])]
+  (let [dispatch  (use-dispatch)
+        result    (use-query query [:db/ident :root])
+        data      (vec (:root/stamps result))
+        page      (uix/state 1)
+        pages     (int (js/Math.ceil (/ (count data) per-page)))
+        on-create (uix/callback
+                   (fn [checksum element delta]
+                     (let [{{[bx by bw bh] :bounds/self
+                             {[cx cy] :window/vec
+                              scale :window/scale} :local/window} :root/local} result
+                           rect    (.getBoundingClientRect element)
+                           [tw th] [(.-width rect) (.-height rect)]
+                           [tx ty] [(.-x rect) (.-y rect)]
+                           [dx dy] [(.-x delta) (.-y delta)]
+                           [mx my] [(- (+ tx dx (/ tw 2)) bx) (- (+ ty dy (/ th 2)) by)]
+                           [sx sy] [(- (* mx (/ scale)) cx) (- (* my (/ scale)) cy)]]
+                       (if (and (<= bx mx (+ bx bw)) (<= by my (+ by bh)))
+                         (dispatch :token/create sx sy checksum))))
+                   [result])
+        on-remove (uix/callback
+                   (partial dispatch :stamp/remove)
+                   [])]
     (if (seq data)
       (let [src (* (dec (min @page pages)) per-page)
             dst (min (+ src per-page) (count data))]
         [:section.tokens
-         [tokens {:data (subvec data src dst) :on-drop-token drop-handler}]
+         [tokens
+          {:data      (subvec data src dst)
+           :on-create on-create
+           :on-remove on-remove}]
          [pagination
           {:pages pages
            :value (min @page pages)
