@@ -330,12 +330,11 @@
         checksums (into #{} (comp (map :token/image) (map :image/checksum)) tokens)
         attrs     {:width "100%" :height "100%" :patternContentUnits "objectBoundingBox"}]
     [:defs
-     [:pattern (merge attrs {:id "token-stamp-default" :viewBox "0 0 16 16" :fill "#f2f2eb"})
-      [:rect {:x 0 :y 0 :width 16 :height 16 :fill "hsl(200, 20%, 12%)"}]
-      [:path {:d "M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"}]
-      [:path {:d "M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z" :fill-rule "evenodd"}]]
+     [:pattern (merge attrs {:id "token-stamp-default" :viewBox "-2 -2 16 16" :fill "#f2f2eb"})
+      [:rect {:x -2 :y -2 :width 16 :height 16 :fill "hsl(208deg 21% 20%)"}]
+      [icon {:name "dnd" :size 12}]]
      [:pattern (merge attrs {:id "token-stamp-deceased" :viewBox "-2 -2 16 16" :fill "#f2f2eb"})
-      [:rect {:x -2 :y -2 :width 16 :height 16 :fill "hsl(200, 20%, 12%)"}]
+      [:rect {:x -2 :y -2 :width 16 :height 16 :fill "hsl(208deg 21% 20%)"}]
       [icon {:name "skull" :size 12}]]
      (for [checksum checksums]
        [:pattern (merge attrs {:key checksum :id (str "token-stamp-" checksum)})

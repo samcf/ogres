@@ -1395,6 +1395,24 @@ legend {
     justify-content: space-between;
 }
 
+.tokens-default {
+    align-items: center;
+    aspect-ratio: 1 / 1;
+    background-color: hsl(208deg 21% 20%);
+    border-radius: 50%;
+    box-shadow: 2px 2px 1px rgba(0, 0, 0, 0.40);
+    cursor: grab;
+    display: flex;
+    justify-content: center;
+}
+
+.tokens-default svg {
+    fill: var(--theme-paper-light);
+    height: 75%;
+    pointer-events: none;
+    width: 75%;
+}
+
 .tokens-template {
     aspect-ratio: 1 / 1;
     background-color: var(--theme-paper-accent);
