@@ -148,7 +148,7 @@
         [:button
          {:type "button" :data-tooltip "Remove"
           :on-click #(dispatch :element/remove keys)}
-         [icon {:name "trash" :size 22}]]])
+         [icon {:name "trash3-fill" :size 22}]]])
      (fn [{:keys [selected on-change]}]
        [token-form
         {:name      selected
@@ -202,7 +202,7 @@
         [:button
          {:type "button" :data-tooltip "Remove" :style {:margin-left "auto"}
           :on-click #(dispatch :element/remove [(:entity/key shape)])}
-         [icon {:name "trash"}]]])
+         [icon {:name "trash3-fill"}]]])
      (fn [{:keys [selected]}]
        [shape-form
         {:name      selected
