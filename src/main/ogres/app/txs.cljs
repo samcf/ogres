@@ -5,17 +5,13 @@
             [ogres.app.const :refer [grid-size]]
             [ogres.app.geom :refer [normalize within?]]))
 
-(def suffix-max-xf
+(def ^:private suffix-max-xf
   (map (fn [[label tokens]] [label (apply max (map :initiative/suffix tokens))])))
 
-(defn toggle
-  "Appends x to the given set if not already present, otherwise removes it."
-  [set x]
-  (if (contains? set x)
-    (disj set x)
-    (conj set x)))
+(def ^:private zoom-scales
+  [0.15 0.30 0.50 0.75 0.90 1 1.25 1.50 2 3 4])
 
-(defn indexed
+(defn- indexed
   "Returns a transducer which decorates each element with a decreasing
    negative index suitable for use as temporary ids in a DataScript
    transaction. Optionally receives an offset integer to begin counting and
@@ -27,7 +23,7 @@
   ([offset step]
    (map-indexed (fn [idx val] [(-> (* idx step) (+ offset) (* -1)) val]))))
 
-(defn suffixes
+(defn- suffixes
   "Returns a map of `{entity key => suffix}` for the given token entities.
    Each suffix represents a unique and stable identity for a token within
    the group of tokens by which it shares a label. Suffixes are intended to
@@ -48,17 +44,21 @@
                    (assoc result (:entity/key token) (+ (offset label) (index label) 1)))))
         result))))
 
-(defn round [x n]
+(defn- round [x n]
   (* (js/Math.round (/ x n)) n))
 
-(def zoom-scales
-  [0.15 0.30 0.50 0.75 0.90 1 1.25 1.50 2 3 4])
-
-(defn to-precision [n p]
+(defn- to-precision [n p]
   (js/Number (.toFixed (js/Number.parseFloat n) p)))
 
-(defn constrain [n min max]
+(defn- constrain [n min max]
   (clojure.core/max (clojure.core/min n max) min))
+
+(defn- mode-allowed? [mode type]
+  (not (and (contains? #{:mask :mask-toggle :mask-remove} mode)
+            (not= type :host))))
+
+(defn- trans-xf [x y]
+  (comp (partition-all 2) (drop 1) (map (fn [[ax ay]] [(+ ax x) (+ ay y)])) cat))
 
 (defmulti transact (fn [{:keys [event]}] event))
 
@@ -180,10 +180,6 @@
   [{:keys [window]} x y]
   [[:db/add -1 :entity/key window]
    [:db/add -1 :window/vec [(round x 1) (round y 1)]]])
-
-(defn mode-allowed? [mode type]
-  (not (and (contains? #{:mask :mask-toggle :mask-remove} mode)
-            (not= type :host))))
 
 (defmethod transact :window/change-mode
   [{:keys [data local window]} mode]
@@ -426,9 +422,6 @@
    [:db/add -3 :entity/key window]
    [:db/add -3 :window/draw-mode :select]
    [:db/add -3 :window/selected -1]])
-
-(defn trans-xf [x y]
-  (comp (partition-all 2) (drop 1) (map (fn [[ax ay]] [(+ ax x) (+ ay y)])) cat))
 
 (defmethod transact :shape/translate
   [{:keys [data]} key x y align?]
