@@ -9,18 +9,9 @@
     --theme-text: hsl(0, 0%, 92%);
     --theme-text-link: hsl(6, 73%, 60%);
 
-    --font-stack-sans-serif:
-      -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui,
-      helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial,
-      sans-serif;
-
-    --font-stack-serif:
-      Iowan Old Style, Apple Garamond, Baskerville, Times New Roman,
-      Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji,
-      Segoe UI Emoji, Segoe UI Symbol;
-
-    --font-stack-mono:
-      Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
+    --font-stack-system: system-ui, sans-serif;
+    --font-stack-transitional: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, serif;
+    --font-stack-mono: 'Nimbus Mono PS', 'Courier New', 'Cutive Mono', monospace;
 }
 
 html, body, #root, .root {
@@ -30,7 +21,7 @@ html, body, #root, .root {
 body {
     background-color: hsl(208deg 21% 20%);
     color: white;
-    font-family: var(--font-stack-serif);
+    font-family: var(--font-stack-transitional);
     font-size: 16px;
     line-height: 1.5;
     overflow-y: hidden;
@@ -63,7 +54,7 @@ input[type="number"] {
     border-radius: 2px;
     border: 1px solid black;
     box-sizing: border-box;
-    font-family: var(--font-stack-serif);
+    font-family: var(--font-stack-transitional);
     outline-color: var(--theme-paper-dark);
     padding: 4px 8px;
     width: 100%;
@@ -83,7 +74,7 @@ a:visited {
     box-sizing: border-box;
     color: var(--theme-paper-dark);
     display: flex;
-    font-family: var(--font-stack-serif);
+    font-family: var(--font-stack-transitional);
     font-size: 0.90em;
     padding: 2px 6px;
     text-align: left;
@@ -342,7 +333,7 @@ legend {
     background: none;
     border: 1px solid transparent;
     color: hsl(0, 0%, 70%);
-    font-family: var(--font-stack-serif);
+    font-family: var(--font-stack-transitional);
     height: 40px;
     min-width: 40px;
     position: relative;
@@ -1230,7 +1221,7 @@ legend {
 
 /* Pagination */
 .pagination {
-    font-family: var(--font-stack-sans-serif);
+    font-family: var(--font-stack-system);
     align-items: center;
     display: flex;
     gap: 4px;
