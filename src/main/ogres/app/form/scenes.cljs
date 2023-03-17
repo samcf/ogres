@@ -78,7 +78,7 @@
            :on-change (partial reset! page)}]])
       [:section.scenes
        [:div.prompt
-        [:br] "Upload one or more images from your"
+        "Upload one or more images from your"
         [:br] "computer to use as a map. Its best"
         [:br] "to use files below 2MB for an optimal"
         [:br] "multiplayer experience."]])))

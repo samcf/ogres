@@ -131,7 +131,7 @@
       [:div.initiative
        [:section
         [:div.prompt
-         [:br] "Begin initiative by selecting"
+         "Begin initiative by selecting"
          [:br] "one or more tokens and clicking"
          [:br] "the hourglass icon."]]])))
 
