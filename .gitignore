@@ -12,6 +12,7 @@ pom.xml.asc
 .calva
 .clj-kondo/.cache
 .cpcache
+.joyride
 .lsp
 .shadow-cljs
 .idea
