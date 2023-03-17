@@ -574,9 +574,8 @@
   [{:db/id -1 :entity/key local :local/tooltips? display?}])
 
 (defmethod transact :interface/toggle-panel
-  [{:keys [data local]} panel]
-  (let [entity (ds/entity data [:entity/key local])]
-    [{:db/id -1 :entity/key local :panel/expanded (toggle (:panel/expanded entity) panel)}]))
+  [{:keys [local]} panel]
+  [{:db/id -1 :entity/key local :panel/expanded #{panel}}])
 
 (defmethod transact :stamp/create
   [_ checksum width height]
