@@ -3,7 +3,7 @@
             [datascript.transit :as dt]
             [dexie]
             [ogres.app.env :as env]
-            [ogres.app.provider.events :refer [subscribe!]]
+            [ogres.app.provider.events :refer [subscribe! subscribe-many!]]
             [ogres.app.provider.state :as state :refer [use-query]]
             [ogres.app.timing :refer [debounce]]
             [uix.core.alpha :as uix :refer [defcontext]]))
@@ -97,11 +97,21 @@
        (.delete store)
        (.reload (.-location js/window))) :storage/reset []) nil))
 
+(defn remove-handler []
+  (let [store (use-store)
+        table (.table store "images")]
+    (subscribe-many!
+     :stamp/remove     #(->> % :args first (.delete table))
+     :scene/remove     #(->> % :args first (.delete table))
+     :stamp/remove-all #(->> % :args first clj->js (.bulkDelete table))
+     :scene/remove-all #(->> % :args first clj->js (.bulkDelete table)))
+    nil))
+
 (defn handlers
   "Registers event handlers related to IndexedDB, such as those involved in
    saving and loading the application state." []
   (let [{type :local/type} (use-query [:local/type])]
     (case type
-      :host [:<> [unmarshaller] [marshaller] [image-cache-handler] [reset-handler]]
+      :host [:<> [unmarshaller] [marshaller] [image-cache-handler] [remove-handler] [reset-handler]]
       :view [:<> [unmarshaller] [image-cache-handler]]
-      :conn [:<> [image-cache-handler]])))
+      :conn [:<> [image-cache-handler] [remove-handler]])))

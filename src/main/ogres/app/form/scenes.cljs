@@ -7,7 +7,7 @@
 (def ^:private per-page 6)
 
 (def ^:private header-query
-  '[{(:root/scenes :limit 1) [:image/checksum]}])
+  [{:root/scenes [:image/checksum]}])
 
 (def ^:private query
   [{:root/scenes [:image/checksum]}])
@@ -18,6 +18,7 @@
 (defn- header []
   (let [dispatch (use-dispatch)
         result   (use-query header-query [:db/ident :root])
+        scenes   (sequence (map :image/checksum) (:root/scenes result))
         upload   (use-image-uploader {:type :scene})
         input    (uix/ref)]
     [:<>
@@ -37,10 +38,10 @@
      [:button.remove
       {:type     "button"
        :title    "Remove all"
-       :disabled (empty? (:root/scenes result))
+       :disabled (empty? scenes)
        :on-click (fn [event]
                    (.stopPropagation event)
-                   (dispatch :scene/remove-all))}
+                   (dispatch :scene/remove-all scenes))}
       [icon {:name "trash3-fill" :size 16}]]]))
 
 (defn- form []

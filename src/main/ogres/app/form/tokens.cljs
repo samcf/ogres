@@ -14,7 +14,7 @@
 (def ^:private per-page 19)
 
 (def ^:private header-query
-  '[{(:root/stamps :limit 1) [:image/checksum]}])
+  [{:root/stamps [:image/checksum]}])
 
 (def ^:private query
   [{:root/stamps [:image/checksum]}
@@ -38,6 +38,7 @@
 (defn- header []
   (let [dispatch (use-dispatch)
         result   (use-query header-query [:db/ident :root])
+        stamps   (sequence (map :image/checksum) (:root/stamps result))
         upload   (use-image-uploader {:type :token})
         input    (uix/ref)]
     [:<>
@@ -57,10 +58,10 @@
      [:button.remove
       {:type     "button"
        :title    "Remove all"
-       :disabled (empty? (:root/stamps result))
+       :disabled (empty? stamps)
        :on-click (fn [event]
                    (.stopPropagation event)
-                   (dispatch :stamp/remove-all))}
+                   (dispatch :stamp/remove-all stamps))}
       [icon {:name "trash3-fill" :size 16}]]]))
 
 (defn- tokens [props _]
