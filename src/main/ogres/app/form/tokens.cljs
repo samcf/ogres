@@ -48,9 +48,11 @@
        :on-click #(.click (deref input))}
       [:input
        {:type "file" :hidden true :accept "image/*" :multiple true :ref input
-        :on-change (fn [event]
-                     (doseq [file (.. event -target -files)]
-                       (upload file)))}]
+        :on-change
+        (fn [event]
+          (doseq [file (.. event -target -files)]
+            (upload file))
+          (set! (.. event -target -value) ""))}]
       [icon {:name "camera-fill" :size 16}] "Upload"]
      [:button.remove
       {:type     "button"
