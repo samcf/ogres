@@ -25,12 +25,9 @@
      [:button.upload
       {:type     "button"
        :title    "Upload map image"
-       :on-click (fn [event]
-                   (.stopPropagation event)
-                   (.click (deref input)))}
+       :on-click #(.click (deref input))}
       [:input
        {:type "file" :hidden true :accept "image/*" :multiple true :ref input
-        :on-click  (fn [event] (.stopPropagation event))
         :on-change (fn [event]
                      (doseq [file (.. event -target -files)]
                        (upload file)))}]
@@ -39,9 +36,7 @@
       {:type     "button"
        :title    "Remove all"
        :disabled (empty? scenes)
-       :on-click (fn [event]
-                   (.stopPropagation event)
-                   (dispatch :scene/remove-all scenes))}
+       :on-click #(dispatch :scene/remove-all scenes)}
       [icon {:name "trash3-fill" :size 16}]]]))
 
 (defn- form []

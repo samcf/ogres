@@ -45,12 +45,9 @@
      [:button.upload
       {:type     "button"
        :title    "Upload token image"
-       :on-click (fn [event]
-                   (.stopPropagation event)
-                   (.click (deref input)))}
+       :on-click #(.click (deref input))}
       [:input
        {:type "file" :hidden true :accept "image/*" :multiple true :ref input
-        :on-click  (fn [event] (.stopPropagation event))
         :on-change (fn [event]
                      (doseq [file (.. event -target -files)]
                        (upload file)))}]
@@ -59,9 +56,7 @@
       {:type     "button"
        :title    "Remove all"
        :disabled (empty? stamps)
-       :on-click (fn [event]
-                   (.stopPropagation event)
-                   (dispatch :stamp/remove-all stamps))}
+       :on-click #(dispatch :stamp/remove-all stamps)}
       [icon {:name "trash3-fill" :size 16}]]]))
 
 (defn- tokens [props _]
