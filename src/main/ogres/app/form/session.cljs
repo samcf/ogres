@@ -1,10 +1,16 @@
 (ns ogres.app.form.session
-  (:require [clojure.string :refer [capitalize]]
-            [ogres.app.env :as env]
-            [ogres.app.form.render :refer [form]]
-            [ogres.app.hooks :refer [use-dispatch use-query]]))
+  (:require [ogres.app.env :as env]
+            [ogres.app.form.render :as render]
+            [ogres.app.hooks :refer [use-dispatch use-query]]
+            [ogres.app.render :refer [icon]]))
 
-(def ^{:private true} query
+(def ^:private query-header
+  [{:root/local
+    [[:local/type :default :conn]
+     [:session/state :default :initial]]}
+   {:root/session [:session/room]}])
+
+(def ^:private query-form
   [{:root/local
     [:entity/key
      :local/type
@@ -13,58 +19,80 @@
    {:root/session
     [:session/room
      {:session/conns [:entity/key :local/color :local/type]}
-     {:session/host [:entity/key]}]}])
+     {:session/host [:entity/key :local/color]}]}])
 
-(defn ^{:private true} session-url [room-key]
+(defn- session-url [room-key]
   (str (.. js/window -location -origin) "?r=" env/VERSION "&join=" room-key))
 
-(defn ^{:private true} session-form []
+(defn- header []
   (let [dispatch (use-dispatch)
-        result   (use-query query [:db/ident :root])
-        {{state :session/state
-          type  :local/type} :root/local
-         {room  :session/room
-          conns :session/conns} :root/session} result]
-    [:div
-     (if (= type :host)
-       [:section
-        [:fieldset.session-controls
-         [:button.ogre-button
-          {:type "button" :on-click #(dispatch :session/request) :style {:flex 2}
-           :disabled (#{:connecting :connected} state)}
-          "Start New Session"]
-         [:button.ogre-button
-          {:type "button" :on-click #(dispatch :session/close) :style {:flex 1}
-           :disabled (#{:initial :disconnected} state)}
-          "Disconnect"]]
-        (if (= state :connected)
-          [:fieldset.session-share
-           [:input {:type "text" :value (session-url room) :readOnly true :on-click (fn [event] (.select (.-target event)))}]
-           [:label "Invite players to join this game by sharing this link
-                    with them. When you disconnect or close the browser tab,
-                    the entire session will be closed."]])]
-       [:section
-        [:header "Session"]
-        [:div.session-status
-         {:css (str "session-status--" (name state))} (capitalize (name state))]])
-     (if (= state :connected)
-       [:section
-        [:header "Players"]
-        [:fieldset.session-players
-         (let [{:keys [local/color]} (:root/local result)]
-           [:div.session-player
-            [:div.session-player-color {:style {:background-color color}}]
-            [:div.session-player-label "You"]])
-         (if (seq conns)
-           (for [{:local/keys [color type] :as conn} conns]
-             [:div.session-player {:key (:entity/key conn)}
-              [:div.session-player-color {:style {:background-color color}}]
-              [:div.session-player-label
-               (case type
-                 :conn "Player"
-                 :host "Host"
-                 nil)]])
-           [:span "No one else is here, yet."])]])]))
+        result   (use-query query-header [:db/ident :root])
+        {{state :session/state type :local/type} :root/local
+         {room-key :session/room} :root/session} result]
+    [:<>
+     [:button.connect
+      {:type "button"
+       :title "Create room"
+       :on-click #(dispatch :session/request)
+       :disabled (or (= state :connecting) (= state :connected) (not= type :host))}
+      [icon {:name "globe-americas" :size 16}]
+      (case [type state]
+        [:host :initial]      "Create Room"
+        [:host :connected]    "Connected"
+        [:host :disconnected] "Recreate Room"
+        [:host :connecting]   "Connecting"
+        [:conn :initial]      "No Such Room"
+        [:conn :connected]    "Connected"
+        [:conn :disconnected] "Reconnecting"
+        [:conn :connecting]   "Reconnecting")]
+     [:button.copy-url
+      {:type "button"
+       :title "Copy the room URL"
+       :disabled (not= state :connected)
+       :on-click #(.. js/window -navigator -clipboard (writeText (session-url room-key)))}
+      [icon {:name "clipboard" :size 18}] "Copy"]
+     [:button.disconnect
+      {:type "button"
+       :title "Disconnect"
+       :disabled (or (not= state :connected) (not= type :host))
+       :on-click #(dispatch :session/close)}
+      [icon {:name "wifi-off" :size 16}]]]))
 
-(defmethod form :session []
-  session-form)
+(defn- form []
+  (let [result (use-query query-form [:db/ident :root])
+        {{host  :session/host
+          conns :session/conns} :root/session
+         local :root/local} result
+        state (:session/state local)]
+    (if (or (= state :connected) (= state :disconnected) (= state :connecting))
+      [:section.session
+       [:section
+        [:header "Host"]
+        [:div.session-players
+         (if host
+           [:div.session-player
+            [:div.session-player-color {:style {:background-color (:local/color host)}}]
+            [:div.session-player-label "Host"
+             (if (= (:entity/key host) (:entity/key local))
+               [:span " (You)"])]]
+           [:div.prompt "Not connected."])]]
+       [:section
+        [:header (str "Players" " [" (count conns) "]")]
+        [:div.session-players
+         (if (seq conns)
+           (let [xf (filter (fn [entity] (= (:local/type entity) :conn)))]
+             (for [conn (->> (conj conns local) (sequence xf) (sort-by :entity/key))]
+               [:div.session-player {:key (:entity/key conn)}
+                [:div.session-player-color {:style {:background-color (:local/color conn)}}]
+                [:div.session-player-label "Friend"
+                 (if (= (:entity/key conn) (:entity/key local))
+                   [:span " (You)"])]]))
+           [:div.prompt "No one else is here."])]]]
+      [:section.session
+       [:div.prompt
+        "Invite your friends to this virtual tabletop"
+        [:br] "by clicking the 'Create Room' button above"
+        [:br] "and sharing the URL with them."]])))
+
+(defmethod render/header :session [] header)
+(defmethod render/form :session [] form)

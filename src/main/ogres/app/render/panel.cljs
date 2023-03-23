@@ -4,15 +4,15 @@
             [ogres.app.form.render :refer [header form]]))
 
 (def ^{:private true} panel-forms
-  {:host [{:key :session    :label "Invite Friends" :figr "people-fill"}
-          {:key :scenes     :label "Maps"           :figr "images"}
-          {:key :tokens     :label "Tokens"         :figr "person-circle"}
-          {:key :canvas     :label "Options"        :figr "wrench-adjustable-circle"}
-          {:key :initiative :label "Initiative"     :figr "hourglass-split"}
-          {:key :help       :label "Help"           :figr "question-diamond"}]
-   :conn [{:key :session    :label "Online Session" :figr "people-fill"}
-          {:key :initiative :label "Initiative"     :figr "hourglass-split"}
-          {:key :help       :label "Help"           :figr "question-diamond"}]})
+  {:host [{:key :session    :label "Friends"    :figr "people-fill"}
+          {:key :scenes     :label "Maps"       :figr "images"}
+          {:key :tokens     :label "Tokens"     :figr "person-circle"}
+          {:key :canvas     :label "Options"    :figr "wrench-adjustable-circle"}
+          {:key :initiative :label "Initiative" :figr "hourglass-split"}
+          {:key :help       :label "Help"       :figr "question-diamond"}]
+   :conn [{:key :session    :label "Friends"    :figr "people-fill"}
+          {:key :initiative :label "Initiative" :figr "hourglass-split"}
+          {:key :help       :label "Help"       :figr "question-diamond"}]})
 
 (def ^{:private true} query
   [[:local/type :default :conn]
