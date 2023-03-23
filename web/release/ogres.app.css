@@ -162,51 +162,95 @@ a:visited {
     text-align: center;
 }
 
-fieldset + fieldset {
-    margin-top: 4px;
-}
-
-fieldset.setting {
-    align-items: center;
-    display: flex;
-    font-size: 13px;
-}
-
-fieldset.setting label {
-    flex: 1;
-}
-
-fieldset.setting div {
-    width: 74px;
-}
-
-fieldset.setting div + div {
-    margin-left: 4px;
-}
-
-fieldset.setting + fieldset.setting {
-    margin-top: 4px;
-    padding-top: 4px;
-    border-top: 1px dotted var(--theme-paper-accent);
-}
-
-fieldset.table {
-    display: grid;
-    grid-gap: 4px;
-    grid-template-columns: repeat(3, 1fr);
-}
-
-fieldset.group {
-    display: flex;
-    gap: 4px;
-}
-
 section + section {
     margin-top: 8px;
 }
 
 legend {
     font-weight: bold;
+}
+
+/* Canvas Options */
+.options {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.options section + section {
+    border-top: 1px dotted var(--theme-paper-dark);
+    padding-top: 8px;
+}
+
+.options label {
+    text-transform: uppercase;
+    user-select: none;
+}
+
+.options input[type="checkbox"],
+.options input[type="radio"] {
+    display: none;
+}
+
+.options input[type="checkbox"] + label,
+.options input[type="radio"] + label {
+    align-items: center;
+    aspect-ratio: 1 / 1;
+    background-color: hsl(0, 0%, 90%);
+    border-radius: 50%;
+    box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.20);
+    color: hsl(0, 0%, 60%);
+    display: flex;
+    justify-content: center;
+    position: relative;
+    width: 32px;
+}
+
+.options input[type="checkbox"]:checked:disabled + label,
+.options input[type="radio"]:checked:disabled + label {
+    background-color: hsl(0, 0%, 40%);
+}
+
+.options input[type="checkbox"]:disabled + [data-tooltip]:after,
+.options input[type="radio"]:disabled + [data-tooltip]:after {
+    display: none;
+}
+
+.options input[type="checkbox"]:not(:disabled) + label,
+.options input[type="radio"]:not(:disabled) + label {
+    cursor: pointer;
+}
+
+.options input[type="checkbox"]:not(:disabled, :checked) + label:hover,
+.options input[type="radio"]:not(:disabled, :checked) + label:hover {
+    color: hsl(0, 0%, 40%);
+}
+
+.options input[type="checkbox"]:checked + label,
+.options input[type="radio"]:checked + label {
+    background-color: var(--color-primary-a);
+    color: white;
+}
+
+.options-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.options-grid input[type="checkbox"] + [data-tooltip]:hover:after,
+.options-grid input[type="radio"] + [data-tooltip]:hover:after {
+    left: 0px;
+}
+
+.options-effects {
+    display: grid;
+    grid-template-areas: ". . .";
+}
+
+.options-group {
+    display: flex;
+    gap: 4px;
 }
 
 /* Layout */
@@ -616,7 +660,7 @@ legend {
     position: relative;
 }
 
-.context-menu [data-tooltip]:not(:disabled):hover:after {
+[data-tooltip]:not(:disabled):hover:after {
     content: attr(data-tooltip);
     position: absolute;
     top: -24px;

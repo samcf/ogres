@@ -517,7 +517,7 @@
      [:window/scale :default 1]
      [:window/draw-mode :default :select]
      {:window/canvas
-      [[:canvas/dark-mode :default :light]]}]}])
+      [[:canvas/dark-mode :default false]]}]}])
 
 (defn canvas []
   (let [publish  (use-publish)
@@ -536,7 +536,12 @@
           {dark-mode :canvas/dark-mode} :window/canvas} :local/window} result
         cx (if (= type :view) (->> (- hw vw) (max 0) (* (/ -1 2 scale)) (+ cx)) cx)
         cy (if (= type :view) (->> (- hh vh) (max 0) (* (/ -1 2 scale)) (+ cy)) cy)]
-    [:svg.canvas {:key key :css {(str "theme--" (name dark-mode)) true :is-host (= type :host) :is-priv priv?}}
+    [:svg.canvas
+     {:key key
+      :css {:theme--light (not dark-mode)
+            :theme--dark  dark-mode
+            :is-host (= type :host)
+            :is-priv priv?}}
      [:> react-draggable
       {:position #js {:x 0 :y 0}
        :on-stop
