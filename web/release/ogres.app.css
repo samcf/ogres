@@ -1084,10 +1084,7 @@ legend {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    height: 0vh;
     min-height: 100%;
-    overflow-x: hidden;
-    overflow-y: auto;
     width: 380px;
 }
 
@@ -1113,7 +1110,7 @@ legend {
 }
 
 .panel-form-initiative .panel-content {
-    padding: 8px 0;
+    padding: 0;
 }
 
 .panel-header {
@@ -1474,27 +1471,93 @@ legend {
 }
 
 /* Initiative */
-.initiative section:first-child {
-    padding: 0 12px;
+.initiative {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    min-height: 100%;
+}
+
+.initiative-list {
+    flex: 1 0 auto;
+    height: 0vh;
+    min-height: 100%;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 0;
+}
+
+.initiative-actions {
+    border-top: 1px solid var(--theme-background-d);
+    bottom: 0;
+    display: grid;
+    gap: 4px;
+    grid-template-columns: 1fr min-content min-content;
+    padding: 8px;
+    position: sticky;
+}
+
+.initiative-actions button {
+    align-items: center;
+    background-color: hsl(0, 0%, 90%);
+    border-radius: 4px;
+    border: 1px solid hsl(0, 0%, 60%);
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.20);
+    color: hsl(0, 0%, 40%);
+    cursor: pointer;
+    display: flex;
+    font-family: var(--font-stack-transitional);
+    font-size: 12px;
+    gap: 4px;
+    height: 32px;
+    justify-content: flex-start;
+    line-height: 1;
+    min-width: 32px;
+    padding: 8px 10px;
+    position: relative;
+    text-transform: uppercase;
+    user-select: none;
+}
+
+.initiative-actions button:hover {
+    color: hsl(0, 0%, 20%);
+}
+
+.initiative-actions button:active {
+    box-shadow: none;
+}
+
+.initiative-actions button:nth-child(1) {
+    background-color: var(--color-primary-a);
+    border-color: var(--color-primary-a);
+    color: hsl(0, 0%, 94%);
+}
+
+.initiative-actions button:nth-child(1):hover {
+    color: hsl(0, 0%, 100%);
 }
 
 .initiant {
-    border-bottom: 1px dotted var(--theme-paper-accent);
     box-sizing: border-box;
     display: grid;
     grid-gap: 4px;
     grid-template-areas: "a b c";
     grid-template-columns: 48px 1fr max-content;
-    margin: 4px 0;
-    padding: 0 12px 4px 12px;
+    padding: 0 8px 0 8px;
     position: relative;
+}
+
+.initiant + .initiant {
+    border-top: 1px dotted var(--theme-paper-dark);
+    padding-top: 8px;
 }
 
 .initiant-image,
 .initiant-pattern {
     aspect-ratio: 1;
     background-size: cover;
-    border: 1px solid var(--theme-background-d);
     cursor: pointer;
     grid-area: a;
     border-radius: 3px;
@@ -1558,7 +1621,8 @@ legend {
 }
 
 .initiant-label {
-    font-weight: bold;
+    font-size: 14px;
+    font-weight: 700;
     line-height: 1;
 }
 
