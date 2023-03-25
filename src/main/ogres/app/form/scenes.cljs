@@ -15,32 +15,6 @@
 (defn- thumbnail [checksum render-fn]
   (render-fn (use-image checksum)))
 
-(defn- header []
-  (let [dispatch (use-dispatch)
-        result   (use-query header-query [:db/ident :root])
-        scenes   (sequence (map :image/checksum) (:root/scenes result))
-        upload   (use-image-uploader {:type :scene})
-        input    (uix/ref)]
-    [:<>
-     [:button.upload
-      {:type     "button"
-       :title    "Upload map image"
-       :on-click #(.click (deref input))}
-      [:input
-       {:type "file" :hidden true :accept "image/*" :multiple true :ref input
-        :on-change
-        (fn [event]
-          (doseq [file (.. event -target -files)]
-            (upload file))
-          (set! (.. event -target -value) ""))}]
-      [icon {:name "camera-fill" :size 16}] "Upload"]
-     [:button.remove
-      {:type     "button"
-       :title    "Remove all"
-       :disabled (empty? scenes)
-       :on-click #(dispatch :scene/remove-all scenes)}
-      [icon {:name "trash3-fill" :size 16}]]]))
-
 (defn- form []
   (let [dispatch (use-dispatch)
         result   (use-query query [:db/ident :root])
@@ -81,5 +55,31 @@
         [:br] "to use files below 2MB for an optimal"
         [:br] "multiplayer experience."]])))
 
-(defmethod render/header :scenes [] header)
+(defn- footer []
+  (let [dispatch (use-dispatch)
+        result   (use-query header-query [:db/ident :root])
+        scenes   (sequence (map :image/checksum) (:root/scenes result))
+        upload   (use-image-uploader {:type :scene})
+        input    (uix/ref)]
+    [:<>
+     [:button.button.button-neutral
+      {:type     "button"
+       :title    "Upload map image"
+       :on-click #(.click (deref input))}
+      [:input
+       {:type "file" :hidden true :accept "image/*" :multiple true :ref input
+        :on-change
+        (fn [event]
+          (doseq [file (.. event -target -files)]
+            (upload file))
+          (set! (.. event -target -value) ""))}]
+      [icon {:name "camera-fill" :size 16}] "Select Files"]
+     [:button.button.button-danger
+      {:type     "button"
+       :title    "Remove all"
+       :disabled (empty? scenes)
+       :on-click #(dispatch :scene/remove-all scenes)}
+      [icon {:name "trash3-fill" :size 16}]]]))
+
 (defmethod render/form :scenes [] form)
+(defmethod render/footer :scenes [] footer)

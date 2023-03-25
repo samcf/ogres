@@ -1,7 +1,7 @@
 (ns ogres.app.render.panel
   (:require [ogres.app.hooks :refer [use-dispatch use-query]]
             [ogres.app.render :refer [icon]]
-            [ogres.app.form.render :refer [header form]]))
+            [ogres.app.form.render :refer [header form footer]]))
 
 (def ^{:private true} panel-forms
   {:host [{:key :session    :label "Friends"    :figr "people-fill"}
@@ -36,6 +36,12 @@
           [:<>
            [icon {:name figr :size 20}]
            [:div.panel-header-label label]
-           [(header {:form key})]]]
+           (if-let [render-fn (header {:form key})]
+             [render-fn])]]
          (if expanded
-           [:div.panel-content [(form {:form key})]])])]]))
+           [:div.panel-content
+            [:div.panel-container
+             [:div.panel-container-content [(form {:form key})]]
+             (if-let [render-fn (footer {:form key})]
+               [:div.panel-container-footer
+                [render-fn]])]])])]]))

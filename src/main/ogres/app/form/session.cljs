@@ -24,40 +24,6 @@
 (defn- session-url [room-key]
   (str (.. js/window -location -origin) "?r=" env/VERSION "&join=" room-key))
 
-(defn- header []
-  (let [dispatch (use-dispatch)
-        result   (use-query query-header [:db/ident :root])
-        {{state :session/state type :local/type} :root/local
-         {room-key :session/room} :root/session} result]
-    [:<>
-     [:button.connect
-      {:type "button"
-       :title "Create room"
-       :on-click #(dispatch :session/request)
-       :disabled (or (= state :connecting) (= state :connected) (not= type :host))}
-      [icon {:name "globe-americas" :size 16}]
-      (case [type state]
-        [:host :initial]      "Create Room"
-        [:host :connected]    "Connected"
-        [:host :disconnected] "Recreate Room"
-        [:host :connecting]   "Connecting"
-        [:conn :initial]      "No Such Room"
-        [:conn :connected]    "Connected"
-        [:conn :disconnected] "Reconnecting"
-        [:conn :connecting]   "Reconnecting")]
-     [:button.copy-url
-      {:type "button"
-       :title "Copy the room URL"
-       :disabled (not= state :connected)
-       :on-click #(.. js/window -navigator -clipboard (writeText (session-url room-key)))}
-      [icon {:name "clipboard" :size 18}] "Copy"]
-     [:button.disconnect
-      {:type "button"
-       :title "Disconnect"
-       :disabled (or (not= state :connected) (not= type :host))
-       :on-click #(dispatch :session/close)}
-      [icon {:name "wifi-off" :size 16}]]]))
-
 (defn- form []
   (let [result (use-query query-form [:db/ident :root])
         {{host  :session/host
@@ -94,5 +60,40 @@
         [:br] "by clicking the 'Create Room' button above"
         [:br] "and sharing the URL with them."]])))
 
-(defmethod render/header :session [] header)
+(defn- footer []
+  (let [dispatch (use-dispatch)
+        result   (use-query query-header [:db/ident :root])
+        {{state :session/state type :local/type} :root/local
+         {room-key :session/room} :root/session} result]
+    [:<>
+     [:button.button.button-primary
+      {:type "button"
+       :title "Create room"
+       :on-click #(dispatch :session/request)
+       :disabled (or (= state :connecting) (= state :connected) (not= type :host))}
+      [icon {:name "globe-americas" :size 16}]
+      (case [type state]
+        [:host :initial]      "Create Room"
+        [:host :connected]    "Connected"
+        [:host :disconnected] "Recreate Room"
+        [:host :connecting]   "Connecting"
+        [:conn :initial]      "No Such Room"
+        [:conn :connected]    "Connected"
+        [:conn :disconnected] "Reconnecting"
+        [:conn :connecting]   "Reconnecting")]
+     [:button.button.button-neutral
+      {:type "button"
+       :title "Copy the room URL"
+       :disabled (not= state :connected)
+       :on-click #(.. js/window -navigator -clipboard (writeText (session-url room-key)))}
+      [icon {:name "clipboard" :size 18}] "Copy"]
+     [:button.button.button-danger
+      {:type "button"
+       :title "Disconnect"
+       :disabled (or (not= state :connected) (not= type :host))
+       :on-click #(dispatch :session/close)}
+      [icon {:name "wifi-off" :size 16}]
+      "Quit"]]))
+
 (defmethod render/form :session [] form)
+(defmethod render/footer :session [] footer)
