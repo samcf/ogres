@@ -56,6 +56,6 @@
       [:header "Resources"]
       [:ul
        (for [[url title label] resource-links]
-         [:li [:a {:href url :title title :target "_blank"} label]])]]]))
+         [:li {:key url} [:a {:href url :title title :target "_blank"} label]])]]]))
 
 (defmethod render/form :help [] form)
