@@ -111,6 +111,12 @@
          :window/_selected
          {:token/image [:image/checksum]}]}]}]}])
 
+(def ^:private query-footer
+  [{:local/window
+    [{:window/canvas
+      [{:canvas/initiative
+        [:entity/key]}]}]}])
+
 (defn- form []
   (let [result     (use-query query)
         initiative (-> result :local/window :window/canvas :canvas/initiative)
@@ -129,13 +135,23 @@
          [:br] "the hourglass icon."]]])))
 
 (defn- footer []
-  (let [dispatch (use-dispatch)]
+  (let [dispatch (use-dispatch)
+        result   (use-query query-footer)
+        {{{tokens :canvas/initiative}
+          :window/canvas}
+         :local/window} result]
     [:<>
-     [:button.button.button-neutral {:on-click #(dispatch :initiative/roll-all)}
+     [:button.button.button-neutral
+      {:disabled (empty? tokens)
+       :on-click #(dispatch :initiative/roll-all)}
       [icon {:name "dice-5-fill" :size 16}] "Randomize"]
-     [:button.button.button-neutral {:on-click #(dispatch :initiative/reset-rolls)}
+     [:button.button.button-neutral
+      {:disabled (empty? tokens)
+       :on-click #(dispatch :initiative/reset-rolls)}
       [icon {:name "arrow-counterclockwise" :size 16}] "Reset"]
-     [:button.button.button-danger {:on-click #(dispatch :initiative/leave)}
+     [:button.button.button-danger
+      {:disabled (empty? tokens)
+       :on-click #(dispatch :initiative/leave)}
       [icon {:name "x-circle-fill" :size 16}] "Leave"]]))
 
 (defmethod render/footer :initiative [] footer)
