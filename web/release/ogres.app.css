@@ -120,11 +120,6 @@ legend {
     gap: 4px;
 }
 
-.options section + section {
-    border-top: 1px dotted var(--theme-paper-dark);
-    padding-top: 8px;
-}
-
 .options label {
     text-transform: uppercase;
     user-select: none;
@@ -175,7 +170,7 @@ legend {
     color: white;
 }
 
-.options-grid {
+.options-grid form {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 12px;
@@ -186,9 +181,9 @@ legend {
     left: 0px;
 }
 
-.options-effects {
+.options-effects form {
     display: grid;
-    grid-template-areas: ". . .";
+    grid-template-columns: repeat(2, 1fr);
 }
 
 .options-group {
