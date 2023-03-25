@@ -112,8 +112,7 @@
          {:token/image [:image/checksum]}]}]}]}])
 
 (defn- form []
-  (let [dispatch   (use-dispatch)
-        result     (use-query query)
+  (let [result     (use-query query)
         initiative (-> result :local/window :window/canvas :canvas/initiative)
         host?      (= (:local/type result) :host)]
     (if (seq initiative)
@@ -121,14 +120,7 @@
        [:div.initiative-list
         (for [entity (sort order initiative)
               :when (or host? (visible? (:token/flags entity)))]
-          ^{:key (:entity/key entity)} [initiant result entity])]
-       [:div.initiative-actions
-        [:button {:on-click #(dispatch :initiative/roll-all)}
-         [icon {:name "dice-5-fill" :size 16}] "Randomize"]
-        [:button {:on-click #(dispatch :initiative/reset-rolls)}
-         [icon {:name "arrow-counterclockwise" :size 16}] "Reset"]
-        [:button {:on-click #(dispatch :initiative/leave)}
-         [icon {:name "x-circle-fill" :size 16}] "Leave"]]]
+          ^{:key (:entity/key entity)} [initiant result entity])]]
       [:div.initiative
        [:section
         [:div.prompt
@@ -136,4 +128,15 @@
          [:br] "one or more tokens and clicking"
          [:br] "the hourglass icon."]]])))
 
+(defn- footer []
+  (let [dispatch (use-dispatch)]
+    [:<>
+     [:button.button.button-neutral {:on-click #(dispatch :initiative/roll-all)}
+      [icon {:name "dice-5-fill" :size 16}] "Randomize"]
+     [:button.button.button-neutral {:on-click #(dispatch :initiative/reset-rolls)}
+      [icon {:name "arrow-counterclockwise" :size 16}] "Reset"]
+     [:button.button.button-danger {:on-click #(dispatch :initiative/leave)}
+      [icon {:name "x-circle-fill" :size 16}] "Leave"]]))
+
+(defmethod render/footer :initiative [] footer)
 (defmethod render/form :initiative [] form)

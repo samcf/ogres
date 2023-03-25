@@ -45,7 +45,9 @@
            don't clear your browser's cache, all your changes will stick
            around even if you close the browser or restart your computer."]
       [:br]
-      [:button.button {:on-click #(dispatch :storage/reset) :style {:margin-bottom 8}}
+      [:button.button.button-danger
+       {:on-click #(dispatch :storage/reset)
+        :style {:margin-bottom 8}}
        "Delete Local Data"]
       [:p "Click this button to delete all application data, restoring this
            application to its original empty state. All your work and images

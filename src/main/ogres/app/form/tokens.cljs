@@ -35,32 +35,6 @@
 (defn- draggable [id render-fn]
   (render-fn (use-draggable #js {"id" id})))
 
-(defn- header []
-  (let [dispatch (use-dispatch)
-        result   (use-query header-query [:db/ident :root])
-        stamps   (sequence (map :image/checksum) (:root/stamps result))
-        upload   (use-image-uploader {:type :token})
-        input    (uix/ref)]
-    [:<>
-     [:button.upload
-      {:type     "button"
-       :title    "Upload token image"
-       :on-click #(.click (deref input))}
-      [:input
-       {:type "file" :hidden true :accept "image/*" :multiple true :ref input
-        :on-change
-        (fn [event]
-          (doseq [file (.. event -target -files)]
-            (upload file))
-          (set! (.. event -target -value) ""))}]
-      [icon {:name "camera-fill" :size 16}] "Upload"]
-     [:button.remove
-      {:type     "button"
-       :title    "Remove all"
-       :disabled (empty? stamps)
-       :on-click #(dispatch :stamp/remove-all stamps)}
-      [icon {:name "trash3-fill" :size 16}]]]))
-
 (defn- tokens [props _]
   (let [{:keys [data on-create on-remove]
          :or   {on-create identity
@@ -155,7 +129,7 @@
                          (dispatch :token/create sx sy checksum)))) [result])]
     [:section.tokens
      [tokens
-      {:data (->> (repeat :placeholder) (concat (subvec data start end)) (take per-page)) 
+      {:data (->> (repeat :placeholder) (concat (subvec data start end)) (take per-page))
        :on-create on-create
        :on-remove on-remove}]
      [pagination
@@ -163,5 +137,31 @@
        :value (max @page 1)
        :on-change (partial reset! page)}]]))
 
-(defmethod render/header :tokens [] header)
+(defn- footer []
+  (let [dispatch (use-dispatch)
+        result   (use-query header-query [:db/ident :root])
+        stamps   (sequence (map :image/checksum) (:root/stamps result))
+        upload   (use-image-uploader {:type :token})
+        input    (uix/ref)]
+    [:<>
+     [:button.button.button-neutral
+      {:type     "button"
+       :title    "Upload token image"
+       :on-click #(.click (deref input))}
+      [:input
+       {:type "file" :hidden true :accept "image/*" :multiple true :ref input
+        :on-change
+        (fn [event]
+          (doseq [file (.. event -target -files)]
+            (upload file))
+          (set! (.. event -target -value) ""))}]
+      [icon {:name "camera-fill" :size 16}] "Select Files"]
+     [:button.button.button-danger
+      {:type     "button"
+       :title    "Remove all"
+       :disabled (empty? stamps)
+       :on-click #(dispatch :stamp/remove-all stamps)}
+      [icon {:name "trash3-fill" :size 16}]]]))
+
 (defmethod render/form :tokens [] form)
+(defmethod render/footer :tokens [] footer)
