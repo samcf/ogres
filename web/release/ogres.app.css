@@ -35,6 +35,10 @@ strong {
     font-weight: bold;
 }
 
+code {
+    font-family: var(--font-stack-mono);
+}
+
 p + p {
     margin-top: 8px;
 }
@@ -45,6 +49,29 @@ ul {
 
 ul li {
     list-style: square;
+}
+
+header {
+    display: flex;
+    align-items: center;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+header:before,
+header:after {
+    content: '';
+    border-top: 1px dotted var(--theme-paper-dark);
+}
+
+header:before {
+    margin: 0 8px 0 0;
+    flex: 0 0 20px;
+}
+
+header:after {
+    margin: 0 0 0 8px;
+    flex: 1 0 20px;
 }
 
 input[type="text"],
@@ -64,90 +91,6 @@ a,
 a:link,
 a:visited {
     color: var(--theme-text-link);
-}
-
-.ogre-button {
-    align-items: center;
-    background-color: var(--theme-paper-light);
-    border-radius: 2px;
-    border: 1px solid hsl(0, 10%, 55%);
-    box-sizing: border-box;
-    color: var(--theme-paper-dark);
-    display: flex;
-    font-family: var(--font-stack-transitional);
-    font-size: 0.90em;
-    padding: 2px 6px;
-    text-align: left;
-    width: 100%;
-}
-
-.ogre-button:disabled {
-    color: hsl(0, 10%, 55%);
-    font-style: italic;
-}
-
-.ogre-button:not(:disabled):hover {
-    background-color: var(--color-primary-a);
-    color: hsl(0, 0%, 100%);
-}
-
-.ogre-button:not(:disabled) {
-    cursor: pointer;
-}
-
-.ogre-checkbox {
-    position: absolute;
-    clip: rect(0,0,0,0);
-    pointer-events: none;
-}
-
-.ogre-checkbox + label {
-    border-radius: 2px;
-    border: 1px solid hsl(0, 10%, 55%);
-    box-sizing: border-box;
-    cursor: pointer;
-    display: block;
-    font-size: 0.90em;
-    padding: 2px 6px;
-    width: 100%;
-}
-
-.ogre-checkbox:checked + label {
-    background-color: var(--color-primary-a);
-    color: white;
-}
-
-.ogre-checkbox:indeterminate + label {
-    background-color: rgba(121, 189, 143, 0.30);
-    color: #444;
-}
-
-.button {
-    align-items: center;
-    background-color: hsl(208deg 21% 20%);
-    border-radius: 4px;
-    border: none;
-    color: var(--theme-text);
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-}
-
-.button.selected {
-    color: var(--theme-text-link);
-}
-
-.button:not(:disabled) {
-    cursor: pointer;
-}
-
-.button:disabled {
-    color: rgba(120, 120, 120);
-}
-
-.button:not(:disabled):not(.selected):hover {
-    background-color: var(--theme-text);
-    color: var(--theme-background-d);
 }
 
 .prompt {
@@ -660,6 +603,33 @@ legend {
     position: relative;
 }
 
+.context-menu .button {
+    align-items: center;
+    border-radius: 4px;
+    border: none;
+    color: var(--theme-text);
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.context-menu .button.selected {
+    color: var(--theme-text-link);
+}
+
+.context-menu .button:not(:disabled) {
+    cursor: pointer;
+}
+
+.context-menu .button:disabled {
+    color: rgba(120, 120, 120);
+}
+
+.context-menu .button:not(:disabled):not(.selected):hover {
+    background-color: var(--theme-text);
+    color: var(--theme-background-d);
+}
+
 [data-tooltip]:not(:disabled):hover:after {
     content: attr(data-tooltip);
     position: absolute;
@@ -993,10 +963,6 @@ legend {
 }
 
 /* Forms */
-.form-canvas-profile {
-
-}
-
 .form-canvas-profile button:nth-child(1) {
     align-items: center;
     aspect-ratio: 1;
@@ -1021,15 +987,6 @@ legend {
     grid-area: c;
 }
 
-.form-canvas-grid fieldset.group .ogre-checkbox + label {
-    align-items: center;
-    display: flex;
-    height: 100%;
-    justify-content: center;
-    padding: 0 3px 1px 0;
-    width: 30px;
-}
-
 .form-token-profile {
     display: grid;
     grid-gap: 4px;
@@ -1045,16 +1002,6 @@ legend {
     grid-template-columns: repeat(5, 1fr);
 }
 
-.form-shape-colors .ogre-checkbox + label,
-.form-shape-colors .ogre-checkbox:checked + label {
-    background-color: none;
-    padding: 0;
-}
-
-.form-shape-colors .ogre-checkbox + label > div {
-    height: 32px;
-}
-
 .form-shape-patterns {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -1063,14 +1010,6 @@ legend {
 
 .form-shape-patterns svg {
     display: block;
-}
-
-.form-shape-patterns .ogre-checkbox + label {
-    padding: 0;
-}
-
-.form-shape-patterns .ogre-checkbox:checked + label #template-pattern-solid > rect {
-    fill: var(--color-primary-a);
 }
 
 /* Control Panel */
@@ -1225,39 +1164,36 @@ legend {
     padding: 8px;
 }
 
-.thumbnails {
-    display: grid;
-    grid-gap: 4px;
-    grid-template-columns: repeat(4, 1fr);
-    overflow: auto;
-}
-
-.thumbnails > div {
-    background-size: cover;
-    border-radius: 3px;
-    cursor: pointer;
-    aspect-ratio: 1;
-    position: relative;
-}
-
-.thumbnails > div > div {
+/* Panel Buttons */
+.panel-content .button {
     align-items: center;
-    border-radius: 0 0 0 3px;
-    color: white;
+    background-color: hsl(0, 0%, 90%);
+    border-radius: 4px;
+    border: 1px solid hsl(0, 0%, 60%);
+    box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.20);
+    color: hsl(0, 0%, 40%);
     cursor: pointer;
     display: flex;
-    height: 20px;
-    justify-content: center;
+    font-family: var(--font-stack-transitional);
+    font-size: 12px;
+    gap: 4px;
+    height: 32px;
+    justify-content: flex-start;
     line-height: 1;
-    position: absolute;
-    right: 0;
-    text-align: center;
-    top: 0;
-    width: 20px;
+    min-width: 32px;
+    padding: 8px 10px;
+    position: relative;
+    text-transform: uppercase;
+    user-select: none;
 }
 
-.thumbnails > div > div:hover {
-    background-color: rgba(0, 0, 0, 0.80);
+.panel-content .button:not(disabled):hover {
+    color: hsl(0, 0%, 10%);
+    border-color: hsl(0, 0%, 40%);
+}
+
+.panel-content .button:not(disabled):active {
+    box-shadow: none;
 }
 
 /* Initiative Form */
@@ -1691,32 +1627,31 @@ legend {
     transform: translateX(-100%);
 }
 
+/* Help */
+.help p,
+.help li,
+.help label {
+    font-size: 13px;
+}
+
+.help fieldset {
+    display: flex;
+    align-items: center;
+}
+
+.help fieldset label {
+    text-transform: capitalize;
+    line-height: 1;
+    user-select: none;
+}
+
+.help fieldset + fieldset {
+    margin-top: 4px;
+}
+
 /* Session Form */
 .session section + section {
     margin-top: 8px;
-}
-
-.session header {
-    display: flex;
-    align-items: center;
-    text-transform: uppercase;
-    margin-bottom: 8px;
-}
-
-.session header:before,
-.session header:after {
-    content: '';
-    border-top: 1px dotted var(--theme-paper-dark);
-}
-
-.session header:before {
-    margin: 0 8px 0 0;
-    flex: 0 0 20px;
-}
-
-.session header:after {
-    margin: 0 0 0 8px;
-    flex: 1 0 20px;
 }
 
 .session-players {
