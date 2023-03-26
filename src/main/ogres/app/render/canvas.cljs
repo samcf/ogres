@@ -553,12 +553,13 @@
              (let [tx (+ cx (* ox (/ scale)))
                    ty (+ cy (* oy (/ scale)))]
                (dispatch :window/translate tx ty)))))}
-      [:g {:style         {:will-change "transform"}
-           :on-mouse-move (fn [event]
-                            (if (= (.. event -currentTarget (getAttribute "transform")) "translate(0,0)")
-                              (let [x (- (/ (- (.-clientX event) sx) scale) cx)
-                                    y (- (/ (- (.-clientY event) sy) scale) cy)]
-                                (publish {:topic :cursor/move :args [x y]}))))}
+      [:g {:style {:will-change "transform"}
+           :on-mouse-move
+           (fn [event]
+             (if (= (.. event -currentTarget (getAttribute "transform")) "translate(0,0)")
+               (let [x (- (/ (- (.-clientX event) sx) scale) cx)
+                     y (- (/ (- (.-clientY event) sy) scale) cy)]
+                 (publish {:topic :cursor/move :args [x y]}))))}
        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
        (if (and (= mode :select) (= modif :shift))
          [draw {:mode :select}])
