@@ -1165,7 +1165,6 @@ legend {
 }
 
 .panel-content {
-    background-color: var(--theme-paper-light);
     border-radius: 0 0 3px 3px;
     box-sizing: border-box;
     color: var(--theme-paper-dark);
@@ -1181,6 +1180,7 @@ legend {
 }
 
 .panel-container-content {
+    background-color: var(--theme-paper-light);
     flex: 1 0 auto;
     height: 0vh;
     min-height: 100%;
@@ -1189,11 +1189,16 @@ legend {
 }
 
 .panel-container-footer {
+    background-color: var(--theme-paper-light);
+    border-radius: 0 0 3px 3px;
     border-top: 1px solid var(--theme-background-d);
     bottom: 0;
     padding: 8px;
     position: sticky;
-    background-color: var(--theme-paper-light);
+}
+
+.panel-container-content:last-child {
+    border-radius: 0 0 3px 3px;
 }
 
 /* Initiative Form */
