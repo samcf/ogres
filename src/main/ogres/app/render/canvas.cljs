@@ -485,7 +485,7 @@
      (fn [] (update x y)) [x y])
     (if (not (nil? @position))
       [:g.canvas-cursor {:transform (str "translate(" (- ax 4) ", " (- ay 4) ")") :color color}
-       [icon {:name "cursor-fill-rotated" :size 32}]])))
+       [icon {:name "cursor-fill" :size 32}]])))
 
 (def cursors-query
   [{:root/session

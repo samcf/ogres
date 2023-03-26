@@ -520,6 +520,11 @@ legend {
     stroke-width: 1px;
 }
 
+.canvas-cursor svg use {
+    transform: rotate(270deg);
+    transform-origin: 50% 50%;
+}
+
 /* Canvas Tokens */
 .canvas-token.flag--hidden circle,
 .canvas-token.flag--invisible circle {
