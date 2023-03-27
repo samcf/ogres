@@ -103,7 +103,7 @@
               [:figure.tokens-template
                {:css   {:is-deleting @delete}
                 :style {:background-image (str "url(" url ")")}}])]))]
-      (.-body js/document)]]))
+      (.querySelector js/document "#root")]]))
 
 (defn- form []
   (let [dispatch  (use-dispatch)
