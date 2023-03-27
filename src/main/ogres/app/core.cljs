@@ -13,7 +13,8 @@
             [react-helmet :refer [Helmet]]
             [uix.core.alpha :as uix]
             [uix.dom.alpha :as uix.dom]
-            ["@dnd-kit/core" :refer [DndContext]])) 
+            ["@dnd-kit/core" :refer [DndContext]
+             :rename {DndContext dnd-context}])) 
 
 (uix/add-transform-fn
  (fn [attrs]
@@ -36,7 +37,7 @@
         [shortcut/handlers]
         [session/handlers]
         [error-boundary
-         [:> DndContext
+         [:> dnd-context
           [layout]]]]]]]]])
 
 (defn main []
