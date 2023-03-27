@@ -7,24 +7,28 @@ set -o errexit -o nounset
 # there are no backwards-incompatible changes.
 #
 # Example
-# $ sh bin/release v0.1.10-alpha
+# $ sh bin/release v0.1.10-alpha user@192.0.2.235
 
 src="$PWD"
-dst=$(mktemp -d -t ogres.app)
+tmp=$(mktemp -d -t ogres.app)
 vrs=$1
+dst=$2
 url="wss://ogres.app/ws"
 
 npx shadow-cljs release app --config-merge "{:closure-defines {ogres.app.env/VERSION \"$vrs\" ogres.app.env/PATH \"/release/$vrs\" ogres.app.env/SOCKET-URL \"$url\"}}"
 
-git clone --single-branch --branch gh-pages git@github.com:samcf/ogres.app.git "$dst"
-mkdir -p "$dst"/release/"$vrs"
-cp -r web/release/. "$dst"/release/"$vrs"
+git clone --single-branch --branch gh-pages git@github.com:samcf/ogres.git "$tmp"
+mkdir -p "$tmp"/release/"$vrs"
+cp -r web/release/. "$tmp"/release/"$vrs"
 
-cd "$dst"/release/"$vrs"
+cd "$tmp"/release/"$vrs"
 rm -rf cljs-runtime manifest.edn
 git add --all
 git commit -m "Release candidate version $vrs."
 git push origin gh-pages
 
+cd "$tmp"
+rsync -rv . "$dst":/srv/ogres.app/ --exclude=.git
+
 cd "$src"
-rm -rf "$dst"
+rm -rf "$tmp"

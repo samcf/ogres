@@ -14,7 +14,7 @@ tmp=$(mktemp -d -t ogres.app)
 vrs=$1
 dst=$2
 
-git clone --single-branch --branch gh-pages git@github.com:samcf/ogres.app.git "$tmp"
+git clone --single-branch --branch gh-pages git@github.com:samcf/ogres.git "$tmp"
 
 rm -rf "$tmp"/release/latest
 mkdir -p "$tmp"/release/latest
