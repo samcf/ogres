@@ -32,10 +32,6 @@
    (fn [[_ dispatch]]
      (dispatch :window/change-mode :select))
 
-   ["keydown" \g]
-   (fn [[_ dispatch]]
-     (dispatch :window/change-mode :grid))
-
    ["keydown" \r]
    (fn [[_ dispatch]]
      (dispatch :window/change-mode :ruler))
@@ -71,10 +67,6 @@
    ["keydown" \x]
    (fn [[_ dispatch]]
      (dispatch :window/change-mode :mask-remove))
-
-   ["keydown" \ ]
-   (fn [[_ dispatch]]
-     (dispatch :interface/toggle-panel))
 
    ["wheel"]
    (fn [[conn dispatch] event]
