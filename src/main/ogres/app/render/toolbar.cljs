@@ -98,7 +98,7 @@
          :on-mouse-enter (tooltip-fn :zoom/in)}
         [icon {:name "zoom-in"}]]]
       [:div.toolbar-group
-       [:button (mode-attrs :select) [icon {:name "cursor"}] [shortcut "S"]]
+       [:button (mode-attrs :select) [icon {:name "cursor-fill"}] [shortcut "S"]]
        [:button (mode-attrs :ruler) [icon {:name "rulers"}] [shortcut "R"]]
        [:button (mode-attrs :circle) [icon {:name "circle"}] [shortcut "1"]]
        [:button (mode-attrs :rect) [icon {:name "square"}] [shortcut "2"]]
