@@ -1180,7 +1180,10 @@ legend {
 }
 
 .panel-container-content {
+<<<<<<< HEAD
     background-color: var(--theme-paper-light);
+=======
+>>>>>>> d80a8c619e50933f27a5ffd3ac7b68aeb9bf9235
     flex: 1 0 auto;
     height: 0vh;
     min-height: 100%;
