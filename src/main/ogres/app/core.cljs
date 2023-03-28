@@ -2,17 +2,19 @@
   (:require [ogres.app.env :as env]
             [ogres.app.form.core]
             [ogres.app.layout :refer [layout]]
-            [ogres.app.provider.events :as provider.events]
-            [ogres.app.provider.portal :as provider.portal]
-            [ogres.app.provider.state :as provider.state]
-            [ogres.app.provider.storage :as provider.storage]
-            [ogres.app.provider.window :as provider.window]
+            [ogres.app.provider.events :as events]
+            [ogres.app.provider.portal :as portal]
+            [ogres.app.provider.state :as state]
+            [ogres.app.provider.storage :as storage]
+            [ogres.app.provider.window :as window]
             [ogres.app.render :refer [css error-boundary]]
             [ogres.app.session :as session]
             [ogres.app.shortcut :as shortcut]
             [react-helmet :refer [Helmet]]
             [uix.core.alpha :as uix]
-            [uix.dom.alpha :as uix.dom])) 
+            [uix.dom.alpha :as uix.dom]
+            ["@dnd-kit/core" :refer [DndContext]
+             :rename {DndContext dnd-context}])) 
 
 (uix/add-transform-fn
  (fn [attrs]
@@ -25,17 +27,18 @@
    [:> Helmet
     [:link {:rel "stylesheet" :href (str env/PATH "/reset.css")}]
     [:link {:rel "stylesheet" :href (str env/PATH "/ogres.app.css")}]]
-   [provider.events/provider
-    [provider.state/provider
-     [provider.storage/provider
-      [provider.portal/provider
+   [events/provider
+    [state/provider
+     [storage/provider
+      [portal/provider
        [:<>
-        [provider.storage/handlers]
-        [provider.window/provider]
+        [storage/handlers]
+        [window/provider]
         [shortcut/handlers]
         [session/handlers]
         [error-boundary
-         [layout]]]]]]]])
+         [:> dnd-context
+          [layout]]]]]]]]])
 
 (defn main []
   (let [element (.querySelector js/document "#root")]

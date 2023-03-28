@@ -1,20 +1,20 @@
 (ns ogres.app.form.initiative
   (:require [clojure.string :refer [join capitalize blank?]]
-            [ogres.app.form.render :refer [form]]
+            [ogres.app.form.render :as render]
             [ogres.app.hooks :refer [use-dispatch use-image use-modal use-query]]
             [ogres.app.render :refer [icon]]
             [uix.core.alpha :as uix]))
 
-(defn ^{:private true} visible? [flags]
+(defn- visible? [flags]
   (or (contains? flags :player)
       (not (contains? flags :hidden))))
 
-(defn ^{:private true} order [a b]
+(defn- order [a b]
   (compare
    [(:initiative/roll b) (contains? (:token/flags a) :player) (:token/label a)]
    [(:initiative/roll a) (contains? (:token/flags b) :player) (:token/label b)]))
 
-(defn ^{:private true} roll-form [{:keys [value on-change]}]
+(defn- roll-form [{:keys [value on-change]}]
   (let [input (uix/ref) [editing? form] (use-modal)]
     [:div.initiant-roll
      [:div.initiant-roll-label
@@ -36,7 +36,7 @@
           :placeholder "Roll" :default-value value}]
         [:button {:type "submit"} "✓"]])]))
 
-(defn ^{:private true} health-form [{:keys [value on-change]}]
+(defn- health-form [{:keys [value on-change]}]
   (let [input (uix/ref) [editing? form] (use-modal)]
     [:div.initiant-health {:css {:active (or (number? value) @editing?)}}
      (if @editing?
@@ -61,20 +61,20 @@
       (if (number? value)
         [:div.initiant-health-label value])]]))
 
-(defn ^{:private true} initiant [context entity]
+(defn- initiant [context entity]
   (let [dispatch                    (use-dispatch)
         {:keys [entity/key]}        entity
         {:token/keys [label flags]} entity
         {:initiative/keys [suffix]} entity
         url                         (use-image (-> entity :token/image :image/checksum))]
-    [:li.initiant
+    [:div.initiant
      (if url
        [:div.initiant-image
         {:style {:background-image (str "url(" url ")")}
          :on-click #(dispatch :element/select key true)}]
        [:div.initiant-pattern
         {:on-click #(dispatch :element/select key true)}
-        [icon {:name "person-circle" :size 36}]])
+        [icon {:name "dnd" :size 36}]])
      [roll-form
       {:value (:initiative/roll entity)
        :on-change
@@ -87,8 +87,7 @@
         [:div.initiant-label label])
       [:div.initiant-flags
        (if (seq flags)
-         [:em (join ", " (mapv (comp capitalize name) flags))]
-         [:em "No Conditions"])]]
+         [:em (join ", " (mapv (comp capitalize name) flags))])]]
      (if (or (= (:local/type context) :host)
              (contains? flags :player))
        [health-form
@@ -97,7 +96,7 @@
          (fn [f v]
            (dispatch :initiative/change-health key f v))}])]))
 
-(def ^{:private true} query
+(def ^:private query
   [:local/type
    {:local/window
     [{:window/canvas
@@ -112,31 +111,48 @@
          :window/_selected
          {:token/image [:image/checksum]}]}]}]}])
 
-(defn ^{:private true} initiative []
-  (let [dispatch   (use-dispatch)
-        result     (use-query query)
+(def ^:private query-footer
+  [{:local/window
+    [{:window/canvas
+      [{:canvas/initiative
+        [:entity/key]}]}]}])
+
+(defn- form []
+  (let [result     (use-query query)
         initiative (-> result :local/window :window/canvas :canvas/initiative)
         host?      (= (:local/type result) :host)]
     (if (seq initiative)
       [:div.initiative
-       [:section
-        [:header "Initiative"]
-        [:fieldset.table
-         [:button.ogre-button {:type "button" :on-click #(dispatch :initiative/roll-all)} "Roll"]
-         [:button.ogre-button {:type "button" :on-click #(dispatch :initiative/reset-rolls)} "Reset"]
-         [:button.ogre-button {:type "button" :on-click #(dispatch :initiative/leave)} "Leave"]]]
-       [:section
-        [:ol
-         (for [entity (sort order initiative)
-               :when (or host? (visible? (:token/flags entity)))]
-           ^{:key (:entity/key entity)} [initiant result entity])]]]
+       [:div.initiative-list
+        (for [entity (sort order initiative)
+              :when (or host? (visible? (:token/flags entity)))]
+          ^{:key (:entity/key entity)} [initiant result entity])]]
       [:div.initiative
        [:section
-        [:header "Initiative"]
         [:div.prompt
-         [icon {:name "hourglass-split" :size 48}]
-         [:br] "Begin initiative by selecting"
+         "Begin initiative by selecting"
          [:br] "one or more tokens and clicking"
          [:br] "the hourglass icon."]]])))
 
-(defmethod form :initiative [] initiative)
+(defn- footer []
+  (let [dispatch (use-dispatch)
+        result   (use-query query-footer)
+        {{{tokens :canvas/initiative}
+          :window/canvas}
+         :local/window} result]
+    [:<>
+     [:button.button.button-neutral
+      {:disabled (empty? tokens)
+       :on-click #(dispatch :initiative/roll-all)}
+      [icon {:name "dice-5-fill" :size 16}] "Randomize"]
+     [:button.button.button-neutral
+      {:disabled (empty? tokens)
+       :on-click #(dispatch :initiative/reset-rolls)}
+      [icon {:name "arrow-counterclockwise" :size 16}] "Reset"]
+     [:button.button.button-danger
+      {:disabled (empty? tokens)
+       :on-click #(dispatch :initiative/leave)}
+      [icon {:name "x-circle-fill" :size 16}] "Leave"]]))
+
+(defmethod render/footer :initiative [] footer)
+(defmethod render/form :initiative [] form)

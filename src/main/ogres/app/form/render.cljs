@@ -2,3 +2,9 @@
 
 (defmulti form :form)
 (defmethod form :default [] (constantly nil))
+
+(defmulti header :form)
+(defmethod header :default [] (constantly nil))
+
+(defmulti footer :form)
+(defmethod footer :default [] nil)

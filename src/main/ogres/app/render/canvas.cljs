@@ -63,30 +63,30 @@
 (def scene-query
   [{:local/window
     [{:window/canvas
-      [[:grid/size :default 70]
-       [:canvas/color :default :none]
+      [[:canvas/grid-size :default 70]
+       [:canvas/timeofday :default :none]
        {:canvas/image [:image/checksum]}]}]}])
 
 (defn scene []
   (let [result (use-query scene-query)
-        {{{size  :grid/size
-           color :canvas/color
-           {checksum :image/checksum} :canvas/image}
+        {{{size        :canvas/grid-size
+           time-of-day :canvas/timeofday
+           {checksum   :image/checksum} :canvas/image}
           :window/canvas}
          :local/window} result
         url (use-image checksum)]
     [:g.canvas-image {:transform (str "scale(" (/ grid-size size) ")")}
-     [:defs {:key color}
+     [:defs {:key time-of-day}
       [:filter {:id "atmosphere"}
-       [:feColorMatrix {:type "matrix" :values (join " " (atmosphere color))}]]]
+       [:feColorMatrix {:type "matrix" :values (join " " (atmosphere time-of-day))}]]]
      [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere)"}}]]))
 
 (def light-mask-query
   [:local/type
    {:local/window
     [{:window/canvas
-      [[:grid/size :default 70]
-       [:canvas/visibility :default :revealed]
+      [[:canvas/grid-size :default 70]
+       [:canvas/lighting :default :revealed]
        {:canvas/tokens
         [:entity/key
          [:token/flags :default #{}]
@@ -97,8 +97,8 @@
 (defn light-mask []
   (let [result (use-query light-mask-query)
         {type :local/type
-         {{visibility :canvas/visibility
-           size       :grid/size
+         {{visibility :canvas/lighting
+           size       :canvas/grid-size
            tokens     :canvas/tokens
            {checksum  :image/checksum
             width     :image/width
@@ -134,7 +134,7 @@
    {:local/window
     [[:window/draw-mode :default :select]
      {:window/canvas
-      [[:grid/size :default 70]
+      [[:canvas/grid-size :default 70]
        [:mask/filled? :default false]
        {:canvas/image [:image/width :image/height]}
        {:canvas/masks [:entity/key :mask/vecs :mask/enabled?]}]}]}])
@@ -144,7 +144,7 @@
         result   (use-query canvas-mask-query)
         {type :local/type
          {mode :window/draw-mode
-          {size    :grid/size
+          {size    :canvas/grid-size
            filled? :mask/filled?
            masks   :canvas/masks
            {width  :image/width
@@ -184,7 +184,8 @@
     [[:window/vec :default [0 0]]
      [:window/scale :default 1]
      [:window/draw-mode :default :select]
-     [:window/show-grid :default true]]}])
+     {:window/canvas
+      [[:canvas/show-grid :default true]]}]}])
 
 (defn grid []
   (let [data (use-query grid-query)
@@ -192,8 +193,8 @@
          {[cx cy] :window/vec
           mode    :window/draw-mode
           scale   :window/scale
-          show    :window/show-grid} :local/window} data]
-    (if (or show (= mode :grid))
+          canvas  :window/canvas} :local/window} data]
+    (if (or (:canvas/show-grid canvas) (= mode :grid))
       (let [w (/ w scale)
             h (/ h scale)
             [sx sy ax ay bx]
@@ -263,9 +264,9 @@
    {:local/window
     [:entity/key
      [:window/scale :default 1]
-     [:window/snap-grid :default false]
      {:window/canvas
-      [{:canvas/shapes
+      [[:canvas/snap-grid :default false]
+       {:canvas/shapes
         [:entity/key
          :shape/kind
          :shape/vecs
@@ -277,8 +278,12 @@
 (defn shapes []
   (let [dispatch (use-dispatch)
         result   (use-query shapes-query)
-        {:local/keys [type window]} result
-        {:window/keys [scale snap-grid canvas]} window
+        {type    :local/type
+         window  :local/window
+         {scale  :window/scale
+          canvas :window/canvas
+          {snap-grid :canvas/snap-grid} :window/canvas}
+         :local/window} result
         participant? (or (= type :host) (= type :conn))]
     (for [entity (:canvas/shapes canvas)
           :let [key (:entity/key entity)
@@ -325,12 +330,11 @@
         checksums (into #{} (comp (map :token/image) (map :image/checksum)) tokens)
         attrs     {:width "100%" :height "100%" :patternContentUnits "objectBoundingBox"}]
     [:defs
-     [:pattern (merge attrs {:id "token-stamp-default" :viewBox "0 0 16 16" :fill "#f2f2eb"})
-      [:rect {:x 0 :y 0 :width 16 :height 16 :fill "hsl(200, 20%, 12%)"}]
-      [:path {:d "M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"}]
-      [:path {:d "M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z" :fill-rule "evenodd"}]]
+     [:pattern (merge attrs {:id "token-stamp-default" :viewBox "-2 -2 16 16" :fill "#f2f2eb"})
+      [:rect {:x -2 :y -2 :width 16 :height 16 :fill "hsl(208deg 21% 20%)"}]
+      [icon {:name "dnd" :size 12}]]
      [:pattern (merge attrs {:id "token-stamp-deceased" :viewBox "-2 -2 16 16" :fill "#f2f2eb"})
-      [:rect {:x -2 :y -2 :width 16 :height 16 :fill "hsl(200, 20%, 12%)"}]
+      [:rect {:x -2 :y -2 :width 16 :height 16 :fill "hsl(208deg 21% 20%)"}]
       [icon {:name "skull" :size 12}]]
      (for [checksum checksums]
        [:pattern (merge attrs {:key checksum :id (str "token-stamp-" checksum)})
@@ -378,10 +382,10 @@
    {:local/window
     [:entity/key
      :window/selected
-     [:window/snap-grid :default false]
      [:window/scale :default 1]
      {:window/canvas
-      [{:canvas/tokens
+      [[:canvas/snap-grid :default false]
+       {:canvas/tokens
         [:entity/key
          [:initiative/suffix :default nil]
          [:token/vec :default [0 0]]
@@ -398,8 +402,8 @@
   (let [dispatch (use-dispatch)
         result   (use-query tokens-query)
         {:local/keys [type window]} result
-        {:window/keys [snap-grid scale canvas]} window
-        {:canvas/keys [tokens]} canvas
+        {:window/keys [scale canvas]} window
+        {:canvas/keys [snap-grid tokens]} canvas
 
         flags-xf
         (comp (map name)
@@ -481,7 +485,7 @@
      (fn [] (update x y)) [x y])
     (if (not (nil? @position))
       [:g.canvas-cursor {:transform (str "translate(" (- ax 4) ", " (- ay 4) ")") :color color}
-       [icon {:name "cursor-fill-rotated" :size 32}]])))
+       [icon {:name "cursor-fill" :size 32}]])))
 
 (def cursors-query
   [{:root/session
@@ -513,7 +517,7 @@
      [:window/scale :default 1]
      [:window/draw-mode :default :select]
      {:window/canvas
-      [[:canvas/theme :default :light]]}]}])
+      [[:canvas/dark-mode :default false]]}]}])
 
 (defn canvas []
   (let [publish  (use-publish)
@@ -529,10 +533,15 @@
           mode    :window/draw-mode
           modif   :window/modifier
           [cx cy] :window/vec
-          {theme :canvas/theme} :window/canvas} :local/window} result
+          {dark-mode :canvas/dark-mode} :window/canvas} :local/window} result
         cx (if (= type :view) (->> (- hw vw) (max 0) (* (/ -1 2 scale)) (+ cx)) cx)
         cy (if (= type :view) (->> (- hh vh) (max 0) (* (/ -1 2 scale)) (+ cy)) cy)]
-    [:svg.canvas {:key key :css {(str "theme--" (name theme)) true :is-host (= type :host) :is-priv priv?}}
+    [:svg.canvas
+     {:key key
+      :css {:theme--light (not dark-mode)
+            :theme--dark  dark-mode
+            :is-host (= type :host)
+            :is-priv priv?}}
      [:> react-draggable
       {:position #js {:x 0 :y 0}
        :on-stop
@@ -544,12 +553,13 @@
              (let [tx (+ cx (* ox (/ scale)))
                    ty (+ cy (* oy (/ scale)))]
                (dispatch :window/translate tx ty)))))}
-      [:g {:style         {:will-change "transform"}
-           :on-mouse-move (fn [event]
-                            (if (= (.. event -currentTarget (getAttribute "transform")) "translate(0,0)")
-                              (let [x (- (/ (- (.-clientX event) sx) scale) cx)
-                                    y (- (/ (- (.-clientY event) sy) scale) cy)]
-                                (publish {:topic :cursor/move :args [x y]}))))}
+      [:g {:style {:will-change "transform"}
+           :on-mouse-move
+           (fn [event]
+             (if (= (.. event -currentTarget (getAttribute "transform")) "translate(0,0)")
+               (let [x (- (/ (- (.-clientX event) sx) scale) cx)
+                     y (- (/ (- (.-clientY event) sy) scale) cy)]
+                 (publish {:topic :cursor/move :args [x y]}))))}
        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
        (if (and (= mode :select) (= modif :shift))
          [draw {:mode :select}])

@@ -46,10 +46,11 @@
     [:db/add -3 :db/ident :local]
     [:db/add -3 :entity/key (squuid)]
     [:db/add -3 :local/loaded? false]
-    [:db/add -3 :local/color "#ffeb3b"]
+    [:db/add -3 :local/color "#03a9f4"]
     [:db/add -3 :local/window -4]
     [:db/add -3 :local/windows -4]
     [:db/add -3 :local/type (local-type)]
+    [:db/add -3 :panel/expanded #{:tokens}]
     [:db/add -4 :entity/key (squuid)]
     [:db/add -4 :window/canvas -2]
     [:db/add -5 :db/ident :session]]))

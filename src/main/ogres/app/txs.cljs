@@ -5,10 +5,13 @@
             [ogres.app.const :refer [grid-size]]
             [ogres.app.geom :refer [normalize within?]]))
 
-(def suffix-max-xf
+(def ^:private suffix-max-xf
   (map (fn [[label tokens]] [label (apply max (map :initiative/suffix tokens))])))
 
-(defn indexed
+(def ^:private zoom-scales
+  [0.15 0.30 0.50 0.75 0.90 1 1.25 1.50 2 3 4])
+
+(defn- indexed
   "Returns a transducer which decorates each element with a decreasing
    negative index suitable for use as temporary ids in a DataScript
    transaction. Optionally receives an offset integer to begin counting and
@@ -20,7 +23,7 @@
   ([offset step]
    (map-indexed (fn [idx val] [(-> (* idx step) (+ offset) (* -1)) val]))))
 
-(defn suffixes
+(defn- suffixes
   "Returns a map of `{entity key => suffix}` for the given token entities.
    Each suffix represents a unique and stable identity for a token within
    the group of tokens by which it shares a label. Suffixes are intended to
@@ -41,17 +44,21 @@
                    (assoc result (:entity/key token) (+ (offset label) (index label) 1)))))
         result))))
 
-(defn round [x n]
+(defn- round [x n]
   (* (js/Math.round (/ x n)) n))
 
-(def zoom-scales
-  [0.15 0.30 0.50 0.75 0.90 1 1.25 1.50 2 3 4])
-
-(defn to-precision [n p]
+(defn- to-precision [n p]
   (js/Number (.toFixed (js/Number.parseFloat n) p)))
 
-(defn constrain [n min max]
+(defn- constrain [n min max]
   (clojure.core/max (clojure.core/min n max) min))
+
+(defn- mode-allowed? [mode type]
+  (not (and (contains? #{:mask :mask-toggle :mask-remove} mode)
+            (not= type :host))))
+
+(defn- trans-xf [x y]
+  (comp (partition-all 2) (drop 1) (map (fn [[ax ay]] [(+ ax x) (+ ay y)])) cat))
 
 (defmulti transact (fn [{:keys [event]}] event))
 
@@ -174,10 +181,6 @@
   [[:db/add -1 :entity/key window]
    [:db/add -1 :window/vec [(round x 1) (round y 1)]]])
 
-(defn mode-allowed? [mode type]
-  (not (and (contains? #{:mask :mask-toggle :mask-remove} mode)
-            (not= type :host))))
-
 (defmethod transact :window/change-mode
   [{:keys [data local window]} mode]
   (let [{curr :window/draw-mode} (ds/entity data [:entity/key window])
@@ -200,16 +203,6 @@
   [{:keys [window]}]
   [[:db/add -1 :entity/key window]
    [:db/retract [:entity/key window] :window/modifier]])
-
-(defmethod transact :window/change-grid-show
-  [{:keys [window]} value]
-  [[:db/add -1 :entity/key window]
-   [:db/add -1 :window/show-grid value]])
-
-(defmethod transact :window/change-grid-snap
-  [{:keys [window]} value]
-  [[:db/add -1 :entity/key window]
-   [:db/add -1 :window/snap-grid value]])
 
 (defmethod transact :zoom/change
   ([context]
@@ -270,7 +263,7 @@
 (defmethod transact :canvas/change-grid-size
   [{:keys [canvas]} size]
   [[:db/add -1 :entity/key canvas]
-   [:db/add -1 :grid/size size]])
+   [:db/add -1 :canvas/grid-size size]])
 
 (defmethod transact :canvas/draw-grid-size
   [{:keys [data window canvas]} _ _ size]
@@ -283,30 +276,40 @@
         size (js/Math.round (/ size scale))]
     (if (nil? scene)
       [[:db/add -1 :entity/key canvas]
-       [:db/add -1 :grid/size size]
+       [:db/add -1 :canvas/grid-size size]
        [:db/add -2 :entity/key window]
        [:db/add -2 :window/draw-mode :select]]
       (let [pattern [size (+ size 1) (- size 1) (+ size 2) (- size 2) (+ size 3) (- size 3) (+ size 4) (- size 4)]
             next    (reduce (fn [_ n] (when (zero? (mod width n)) (reduced n))) pattern)]
         [[:db/add -1 :entity/key canvas]
-         [:db/add -1 :grid/size (or next size)]
+         [:db/add -1 :canvas/grid-size (or next size)]
          [:db/add -2 :entity/key window]
          [:db/add -2 :window/draw-mode :select]]))))
 
-(defmethod transact :canvas/change-theme
-  [{:keys [canvas]} theme]
-  [[:db/add -1 :entity/key canvas]
-   [:db/add -1 :canvas/theme theme]])
-
-(defmethod transact :canvas/change-visibility
+(defmethod transact :canvas/toggle-show-grid
   [{:keys [canvas]} value]
   [[:db/add -1 :entity/key canvas]
-   [:db/add -1 :canvas/visibility value]])
+   [:db/add -1 :canvas/show-grid value]])
 
-(defmethod transact :canvas/change-color
+(defmethod transact :canvas/toggle-snap-grid
   [{:keys [canvas]} value]
   [[:db/add -1 :entity/key canvas]
-   [:db/add -1 :canvas/color value]])
+   [:db/add -1 :canvas/snap-grid value]])
+
+(defmethod transact :canvas/toggle-dark-mode
+  [{:keys [canvas]} enabled]
+  [[:db/add -1 :entity/key canvas]
+   [:db/add -1 :canvas/dark-mode enabled]])
+
+(defmethod transact :canvas/change-lighting
+  [{:keys [canvas]} value]
+  [[:db/add -1 :entity/key canvas]
+   [:db/add -1 :canvas/lighting value]])
+
+(defmethod transact :canvas/change-time-of-day
+  [{:keys [canvas]} value]
+  [[:db/add -1 :entity/key canvas]
+   [:db/add -1 :canvas/timeofday value]])
 
 (defmethod transact :element/update
   [_ keys attr value]
@@ -330,27 +333,30 @@
     [:db/retractEntity [:entity/key key]]))
 
 (defmethod transact :scene/create
-  [{:keys [canvas]} checksum width height]
+  [_ checksum width height]
   [[:db/add -1 :image/checksum checksum]
    [:db/add -1 :image/width width]
    [:db/add -1 :image/height height]
-   [:db/add [:db/ident :root] :root/scenes -1]
-   [:db/add -2 :entity/key canvas]
-   [:db/add -2 :canvas/image -1]])
+   [:db/add [:db/ident :root] :root/scenes -1]])
 
-(defmethod transact :map/remove
+(defmethod transact :scene/remove
   [_ checksum]
   [[:db/retractEntity [:image/checksum checksum]]])
 
+(defmethod transact :scene/remove-all [_]
+  [[:db/retract [:db/ident :root] :root/scenes]])
+
 (defmethod transact :token/create
-  [{:keys [window canvas]} x y]
+  [{:keys [window canvas]} x y checksum]
   [[:db/add -1 :entity/key (squuid)]
    [:db/add -1 :token/vec [x y]]
+   [:db/add -1 :token/image -4]
    [:db/add -2 :entity/key window]
    [:db/add -2 :window/selected -1]
    [:db/add -2 :window/draw-mode :select]
    [:db/add -3 :entity/key canvas]
-   [:db/add -3 :canvas/tokens -1]])
+   [:db/add -3 :canvas/tokens -1]
+   [:db/add -4 :image/checksum checksum]])
 
 (defmethod transact :token/translate
   [_ token x y align?]
@@ -416,9 +422,6 @@
    [:db/add -3 :entity/key window]
    [:db/add -3 :window/draw-mode :select]
    [:db/add -3 :window/selected -1]])
-
-(defn trans-xf [x y]
-  (comp (partition-all 2) (drop 1) (map (fn [[ax ay]] [(+ ax x) (+ ay y)])) cat))
 
 (defmethod transact :shape/translate
   [{:keys [data]} key x y align?]
@@ -570,14 +573,9 @@
   [{:keys [local]} display?]
   [{:db/id -1 :entity/key local :local/tooltips? display?}])
 
-(defmethod transact :interface/change-panel
-  [{:keys [local]} panel]
-  [{:db/id -1 :entity/key local :panel/current panel :panel/collapsed? false}])
-
 (defmethod transact :interface/toggle-panel
-  [{:keys [data local]}]
-  (let [entity (ds/entity data [:entity/key local])]
-    [{:db/id -1 :entity/key local :panel/collapsed? (not (:panel/collapsed? entity))}]))
+  [{:keys [local]} panel]
+  [{:db/id -1 :entity/key local :panel/expanded #{panel}}])
 
 (defmethod transact :stamp/create
   [_ checksum width height]
@@ -589,6 +587,9 @@
 
 (defmethod transact :stamp/remove [_ checksum]
   [[:db/retractEntity [:image/checksum checksum]]])
+
+(defmethod transact :stamp/remove-all []
+  [[:db/retract [:db/ident :root] :root/stamps]])
 
 (defmethod transact :mask/fill
   [{:keys [canvas]}]

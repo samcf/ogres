@@ -58,14 +58,16 @@
    {:local/window
     [[:window/scale :default 1]
      [:window/vec :default [0 0]]
-     [:window/snap-grid :default false]]}])
+     {:window/canvas
+      [[:canvas/snap-grid :default false]]}]}])
 
 (defn polygon [{:keys [on-create]}]
   (let [result (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
-          align   :window/snap-grid} :local/window} result
+          {align :canvas/snap-grid} :window/canvas}
+         :local/window} result
         pairs   (uix/state [])
         mouse   (uix/state [])
         [ax ay] @pairs
@@ -101,7 +103,8 @@
      (for [[x y] (partition 2 @pairs)]
        [:circle {:key [x y] :cx x :cy y :r 3 :style {:pointer-events "none" :fill "white"}}])
      [:polygon
-      {:points (join " " (if closed? @pairs (into @pairs @mouse))) :style {:pointer-events "none"}}]]))
+      {:points (join " " (if closed? @pairs (into @pairs @mouse)))
+       :style  {:pointer-events "none"}}]]))
 
 (defmulti draw :mode)
 
@@ -157,7 +160,8 @@
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
-          align   :window/snap-grid} :local/window} result]
+          {align :canvas/snap-grid} :window/canvas}
+         :local/window} result]
     [drawable
      {:on-release identity
       :transform
@@ -183,7 +187,8 @@
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
-          align   :window/snap-grid} :local/window} result]
+          {align :canvas/snap-grid} :window/canvas}
+         :local/window} result]
     [drawable
      {:transform
       (fn [event xs]
@@ -210,7 +215,8 @@
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
-          align   :window/snap-grid} :local/window} result]
+          {align :canvas/snap-grid} :window/canvas}
+         :local/window} result]
     [drawable
      {:transform
       (fn [event xs]
@@ -236,7 +242,8 @@
         {[ox oy] :bounds/self
          {[tx ty] :window/vec
           scale   :window/scale
-          align   :window/snap-grid} :local/window} result]
+          {align :canvas/snap-grid} :window/canvas}
+         :local/window} result]
     [drawable
      {:transform
       (fn [event xs]
