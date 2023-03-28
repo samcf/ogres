@@ -1139,7 +1139,6 @@ legend {
     gap: 4px;
     height: 32px;
     opacity: 1;
-    padding: 0 4px 0 8px;
     transition: opacity 80ms ease-in-out;
     user-select: none;
 }
@@ -1152,7 +1151,7 @@ legend {
 .panel-form--collapsed .panel-header:hover { opacity: 0.94; }
 
 .panel-header > svg {
-    margin-top: 6px;
+    margin: 6px 0 0 8px;
 }
 
 .panel-header svg {
@@ -1624,6 +1623,21 @@ legend {
 
 .session section + section {
     margin-top: 8px;
+}
+
+.session-status {
+    background-color: var(--color-primary-a);
+    border-radius: 4px;
+    color: white;
+    font-size: 12px;
+    line-height: 1;
+    margin: 6px 6px 6px auto;
+    padding: 4px 8px;
+    text-transform: uppercase;
+}
+
+.session-status.disconnected {
+    background-color: hsl(6, 73%, 60%);
 }
 
 .session-players {
