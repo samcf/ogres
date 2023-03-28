@@ -8,6 +8,13 @@
   [{:root/local
     [[:local/type :default :conn]
      [:session/state :default :initial]]}
+   {:root/session
+    [{:session/conns [:entity/key]}]}])
+
+(def ^:private query-footer
+  [{:root/local
+    [[:local/type :default :conn]
+     [:session/state :default :initial]]}
    {:root/session [:session/room]}])
 
 (def ^:private query-form
@@ -23,6 +30,22 @@
 
 (defn- session-url [room-key]
   (str (.. js/window -location -origin) "?r=" env/VERSION "&join=" room-key))
+
+(defn- header []
+  (let [result (use-query query-header [:db/ident :root])
+        {{type  :local/type
+          state :session/state} :root/local
+         {conns :session/conns} :root/session} result]
+    (case [type state]
+      ([:host :connecting] [:conn :connecting])
+      [:.session-status {:css {state true}} "Status: Connecting"]
+      ([:conn :connected] [:host :connected])
+      [:.session-status {:css {state true}} "Status: Connected [" (inc (count conns)) "]"]
+      [:host :disconnected]
+      [:.session-status {:css {state true}} "Status: Disconnected"]
+      [:conn :disconnected]
+      [:.session-status {:css {state true}} "Status: Reconnecting..."]
+      nil)))
 
 (defn- form []
   (let [result (use-query query-form [:db/ident :root])
@@ -62,7 +85,7 @@
 
 (defn- footer []
   (let [dispatch (use-dispatch)
-        result   (use-query query-header [:db/ident :root])
+        result   (use-query query-footer [:db/ident :root])
         {{state :session/state type :local/type} :root/local
          {room-key :session/room} :root/session} result]
     [:<>
@@ -95,5 +118,6 @@
       [icon {:name "wifi-off" :size 16}]
       "Quit"]]))
 
+(defmethod render/header :session [] header)
 (defmethod render/form :session [] form)
 (defmethod render/footer :session [] footer)
