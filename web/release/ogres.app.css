@@ -1356,6 +1356,30 @@ legend {
     justify-content: space-between;
 }
 
+.tokens.host.public {
+    grid-template-rows: repeat(2, 1fr) min-content;
+}
+
+.tokens.host.public nav {
+    grid-row: 3 / 3;
+}
+
+.tokens.host.private {
+    grid-template-rows: repeat(4, 1fr) min-content;
+}
+
+.tokens.host.private nav {
+    grid-row: 5 / 5;
+}
+
+.tokens.conn.public {
+    grid-template-rows: repeat(5, 1fr) min-content;
+}
+
+.tokens.conn nav {
+    grid-row: 7 / 7;
+}
+
 .tokens-default {
     align-items: center;
     aspect-ratio: 1 / 1;
@@ -1412,7 +1436,6 @@ legend {
 
 .tokens nav {
     grid-column: 1 / 6;
-    grid-row: 5 / 5;
     justify-self: center;
 }
 

@@ -11,15 +11,15 @@
                       useDraggable  use-draggable
                       useDroppable  use-droppable}]))
 
-(def ^:private per-page 19)
+(def ^:private query-footer
+  [{:root/local [:local/type]}
+   {:root/stamps [:image/checksum]}])
 
-(def ^:private header-query
-  [{:root/stamps [:image/checksum]}])
-
-(def ^:private query
-  [{:root/stamps [:image/checksum]}
+(def ^:private query-form
+  [{:root/stamps [:image/checksum :image/scope]}
    {:root/local
-    [[:bounds/self :default [0 0 0 0]]
+    [[:local/type :default :conn]
+     [:bounds/self :default [0 0 0 0]]
      {:local/window
       [[:window/scale :default 1]
        [:window/vec :default [0 0]]]}]}])
@@ -27,21 +27,20 @@
 (defn- image [checksum render-fn]
   (render-fn (use-image checksum)))
 
+(defn- draggable [id render-fn]
+  (render-fn (use-draggable #js {"id" id})))
+
 (defn- token [checksum render-fn]
   (render-fn
    (use-image checksum)
    (use-draggable #js {"id" checksum})))
 
-(defn- draggable [id render-fn]
-  (render-fn (use-draggable #js {"id" id})))
-
-(defn- tokens [props _]
-  (let [{:keys [data on-create on-remove]
+(defn- drag-handler [props _]
+  (let [{:keys [on-create on-remove]
          :or   {on-create identity
                 on-remove identity}} props
-        active (uix/state nil)
         delete (uix/state false)
-        option (use-droppable #js {"id" "tokens-trash"})]
+        active (uix/state nil)]
     (use-dnd-monitor
      #js {"onDragStart"
           (fn [event]
@@ -62,8 +61,23 @@
                 (on-create @active target delta)
                 (reset! active nil)
                 (reset! delete nil))))})
+    [create-portal
+     [:> drag-overlay {:drop-animation nil}
+      (if (= (deref active) "default")
+        [:figure.tokens-default
+         [icon {:name "dnd"}]]
+        (if (string? (deref active))
+          [image (deref active)
+           (fn [url]
+             [:figure.tokens-template
+              {:css   {:is-deleting @delete}
+               :style {:background-image (str "url(" url ")")}}])]))]
+     (.querySelector js/document "#root")]))
+
+(defn- tokens [props _]
+  (let [option (use-droppable #js {"id" (random-uuid)})]
     [:<>
-     (for [[idx data] (sequence (map-indexed vector) data)]
+     (for [[idx data] (sequence (map-indexed vector) (:data props))]
        (cond (map? data)
              (let [checksum (:image/checksum data)]
                ^{:key checksum}
@@ -74,7 +88,6 @@
                     :style {:background-image (str "url(" url ")")}
                     :on-pointer-down (.. options -listeners -onPointerDown)
                     :on-key-down     (.. options -listeners -onKeyDown)}])])
-
              (= data :default)
              ^{:key idx}
              [draggable "default"
@@ -84,35 +97,41 @@
                   :on-pointer-down (.. options -listeners -onPointerDown)
                   :on-key-down     (.. options -listeners -onKeyDown)}
                  [icon {:name "dnd"}]])]
-
              (= data :placeholder)
              [:figure.tokens-placeholder
               {:key idx}]))
      [:figure.tokens-trashcan
-      {:ref (.-setNodeRef option)
-       :css {:is-deleting @delete}}
-      [icon {:name "trash3-fill" :size 26}]]
-     [create-portal
-      [:> drag-overlay {:drop-animation nil}
-       (if (= (deref active) "default")
-         [:figure.tokens-default
-          [icon {:name "dnd"}]]
-         (if (string? (deref active))
-           [image (deref active)
-            (fn [url]
-              [:figure.tokens-template
-               {:css   {:is-deleting @delete}
-                :style {:background-image (str "url(" url ")")}}])]))]
-      (.querySelector js/document "#root")]]))
+      {:ref (.-setNodeRef option)}
+      [icon {:name "trash3-fill" :size 26}]]]))
+
+(defn- paginated [props _]
+  (let [{:keys [data limit] :or {data [] limit 10}} props
+        page  (uix/state 1)
+        limit (dec limit)
+        pages (-> (count data) (/ limit) (js/Math.ceil))
+        start (-> (min @page pages) (dec) (* limit) (max 0))
+        stop  (-> (+ start limit) (min (count data)))
+        data  (->> (repeat :placeholder)
+                   (concat (subvec data start stop))
+                   (take limit))]
+    [:<>
+     [tokens {:data data}]
+     [pagination
+      {:pages (max pages 1)
+       :value (max (min pages @page) 1)
+       :on-change (partial reset! page)}]]))
+
+(defn- xf-scope [scope]
+  (filter (fn [entity] (= (:image/scope entity) scope))))
 
 (defn- form []
   (let [dispatch  (use-dispatch)
-        result    (use-query query [:db/ident :root])
-        data      (into [:default] (vec (:root/stamps result)))
-        page      (uix/state 1)
-        pages     (int (js/Math.ceil (/ (count data) per-page)))
-        start     (-> (min @page pages) (dec) (* per-page) (max 0))
-        end       (-> (+ start per-page) (min (count data)))
+        result    (use-query query-form [:db/ident :root])
+        {data :root/stamps
+         {type :local/type} :root/local} result
+        data-pub  (into [:default] (xf-scope :public) data)
+        data-prv  (into [] (xf-scope :private) data)
+        on-scope  (uix/callback (fn []) [])
         on-remove (uix/callback (partial dispatch :stamp/remove) [])
         on-create (uix/callback
                    (fn [checksum element delta]
@@ -127,20 +146,28 @@
                            [sx sy] [(- (* mx (/ scale)) cx) (- (* my (/ scale)) cy)]]
                        (if (and (<= bx mx (+ bx bw)) (<= by my (+ by bh)))
                          (dispatch :token/create sx sy checksum)))) [result])]
-    [:section.tokens
-     [tokens
-      {:data (->> (repeat :placeholder) (concat (subvec data start end)) (take per-page))
-       :on-create on-create
-       :on-remove on-remove}]
-     [pagination
-      {:pages (max pages 1)
-       :value (max @page 1)
-       :on-change (partial reset! page)}]]))
+    [:<>
+     (if (= type :host)
+       [:<>
+        [:header "Public [" (count data-pub) "]"]
+        [:section.tokens.host.public
+         [paginated {:data data-pub :limit 10}]]
+        [:header "Private [" (count data-prv) "]"]
+        [:section.tokens.host.private
+         [paginated {:data data-prv :limit 20}]]]
+       [:section.tokens.conn.public
+        [paginated {:data data-pub :limit 30}]])
+     [drag-handler
+      {:on-create on-create
+       :on-remove on-remove
+       :on-scope  on-scope}]]))
 
 (defn- footer []
   (let [dispatch (use-dispatch)
-        result   (use-query header-query [:db/ident :root])
-        stamps   (sequence (map :image/checksum) (:root/stamps result))
+        result   (use-query query-footer [:db/ident :root])
+        {{type :local/type} :root/local
+         images :root/stamps} result
+        images   (sequence (map :image/checksum) images)
         upload   (use-image-uploader {:type :token})
         input    (uix/ref)]
     [:<>
@@ -159,8 +186,8 @@
      [:button.button.button-danger
       {:type     "button"
        :title    "Remove all"
-       :disabled (empty? stamps)
-       :on-click #(dispatch :stamp/remove-all stamps)}
+       :disabled (or (= type :conn) (empty? images))
+       :on-click #(dispatch :stamp/remove-all images)}
       [icon {:name "trash3-fill" :size 16}]]]))
 
 (defmethod render/form :tokens [] form)

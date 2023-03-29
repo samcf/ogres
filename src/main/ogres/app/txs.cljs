@@ -578,11 +578,12 @@
   [{:db/id -1 :entity/key local :panel/expanded #{panel}}])
 
 (defmethod transact :stamp/create
-  [_ checksum width height]
+  [_ checksum width height scope]
   [{:db/id          -1
     :image/checksum checksum
     :image/width    width
-    :image/height   height}
+    :image/height   height
+    :image/scope    scope}
    {:db/id [:db/ident :root] :root/stamps -1}])
 
 (defmethod transact :stamp/remove [_ checksum]

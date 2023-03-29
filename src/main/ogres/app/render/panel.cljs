@@ -15,6 +15,7 @@
           {:key :initiative :label "Initiative" :icon "hourglass-split"}
           {:key :help       :label "Help"       :icon "question-diamond"}]
    :conn [{:key :session    :label "Friends"    :icon "people-fill"}
+          {:key :tokens     :label "Tokens"     :icon "person-circle"}
           {:key :initiative :label "Initiative" :icon "hourglass-split"}
           {:key :help       :label "Help"       :icon "question-diamond"}]})
 

@@ -1,7 +1,6 @@
 (ns ogres.app.provider.image
   (:import goog.crypt.Md5)
   (:require [ogres.app.provider.events :refer [use-publish subscribe!]]
-            [ogres.app.provider.state :refer [use-dispatch]]
             [ogres.app.provider.storage :refer [use-store]]
             [uix.core.alpha :as uix]))
 
@@ -97,8 +96,8 @@
        (set! (.-src image) url)))))
 
 (defn use-image-uploader [{:keys [type]}]
-  (let [dispatch (use-dispatch)
-        store    (use-store)]
+  (let [publish (use-publish)
+        store   (use-store)]
     (uix/callback
      (fn [file]
        (-> (create-data-url file)
@@ -116,12 +115,8 @@
                       (-> (.table store "images")
                           (.put record)
                           (.then (fn [] (js/Promise.resolve data)))))))
-           (.then (fn [{:keys [checksum width height] :as data}]
-                    (case type
-                      :token (dispatch :stamp/create checksum width height)
-                      :scene (dispatch :scene/create checksum width height)
-                      :else  nil)
-                    (js/Promise.resolve data)))))
+           (.then (fn [data]
+                    (publish {:topic :image/create :args [type data]})))))
      [type])))
 
 (defn use-image [checksum]
@@ -146,11 +141,9 @@
        (fn [] (remove-watch cache watch-key))) [checksum cached])
 
     (subscribe!
-     (fn [{[data-url] :args}]
-       (let [checksum (create-checksum data-url)]
-         (publish {:topic :storage/cache-image :args [checksum data-url]})
-         (-> (create-object-url data-url)
-             (.then #(swap! cache assoc checksum [false %1]))))) :image/cache [])
+     (fn [{[checksum data-url] :args}]
+       (-> (create-object-url data-url)
+           (.then #(swap! cache assoc checksum [false %1])))) :image/cache [])
 
     (uix/effect!
      (fn []

@@ -6,6 +6,7 @@
             [datascript.transit :as dst]
             [ogres.app.env :as env]
             [ogres.app.hooks :refer [listen! subscribe! subscribe-many! use-dispatch use-publish use-interval use-store]]
+            [ogres.app.provider.image :refer [create-checksum create-image-element]]
             [ogres.app.provider.state :as provider.state]
             [uix.core.alpha :as uix]))
 
@@ -164,9 +165,27 @@
 ;; generally received from the host after sending a request for it via its
 ;; checksum.
 (defmethod handle-message :image
-  [{:keys [dispatch]} message]
-  (let [data-url (:data message)]
-    (dispatch :image/cache data-url)))
+  [{:keys [conn dispatch publish store]} message]
+  (let [data-url (:data message)
+        checksum (create-checksum data-url)
+        record   #js {:checksum checksum :data data-url :created-at (js/Date.now)}
+        entity   (ds/entity (ds/db conn) [:db/ident :local])]
+    (if (= (:local/type entity) :host)
+      ;; The host has received an image from another connection. This is
+      ;; inferred as another connection in the session uploading a token
+      ;; image. Put the image into local storage, update state, and publish
+      ;; the relevant event to trigger an update to the image cache.
+      (-> (.put (.table store "images") record)
+          (.then #(create-image-element data-url))
+          (.then (fn [image]
+                   (let [w (.-width image) h (.-height image)]
+                     (dispatch :stamp/create checksum w h :public)
+                     (publish {:topic :image/cache :args [checksum data-url]})))))
+      ;; This connection has received image data from the host - put it in
+      ;; local storage and publish the relevant event to trigger an update
+      ;; to the image cache.
+      (-> (.put (.table store "images") record)
+          (.then #(publish {:topic :image/cache :args [checksum data-url]}))))))
 
 (defn handlers []
   (let [publish  (use-publish)
@@ -226,6 +245,18 @@
        (when-let [ws @socket]
          (.close ws)
          (reset! socket nil)))
+
+     ;; Handles image uploads by either host or player connections. 
+     :image/create
+     (fn [{[type {:keys [data-url checksum width height]}] :args}]
+       (let [{{kind :local/type} :root/local
+              {host :session/host} :root/session}
+             (ds/entity (ds/db conn) [:db/ident :root])]
+         (case [kind type]
+           [:host :token] (dispatch :stamp/create checksum width height :private)
+           [:host :scene] (dispatch :scene/create checksum width height :private)
+           ([:conn :token] [:conn :scene])
+           (on-send {:type :image :dst (:entity/key host) :data data-url}))))
 
      ;; Creates a request for image data from the host of the connected
      ;; session. 
