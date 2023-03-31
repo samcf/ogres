@@ -19,7 +19,7 @@
     [:section.help
      [:section
       [:header "Interface preferences"]
-      [:fieldset
+      [:fieldset.checkbox
        [:input
         {:id        "show-shortcuts"
          :type      "checkbox"
@@ -28,7 +28,7 @@
                       (let [checked (.. event -target -checked)]
                         (dispatch :interface/toggle-shortcuts checked)))}]
        [:label {:for "show-shortcuts"} "Show shortcuts"]]
-      [:fieldset
+      [:fieldset.checkbox
        [:input
         {:id        "show-tooltips"
          :type      "checkbox"
