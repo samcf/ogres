@@ -48,7 +48,8 @@
                     (fn [{:keys [db-after]}]
                       (if (:local/loaded? (ds/entity db-after [:db/ident :local]))
                         (-> db-after
-                            (ds/db-with [[:db/retractEntity [:db/ident :session]]])
+                            (ds/db-with [[:db/retract [:db/ident :session] :session/host]
+                                         [:db/retract [:db/ident :session] :session/conns]])
                             (ds/filter (fn [_ [_ attr _ _]] (not (contains? ignored-attrs attr))))
                             (ds/datoms :eavt)
                             (dt/write-transit-str)

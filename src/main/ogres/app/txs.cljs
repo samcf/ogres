@@ -634,9 +634,11 @@
 (defmethod transact :session/close
   [{:keys [local]}]
   [{:db/id -1 :entity/key local :session/state :disconnected}
-   [:db/retractEntity [:db/ident :session]]])
+   [:db/retract [:db/ident :session] :session/host]
+   [:db/retract [:db/ident :session] :session/conns]])
 
 (defmethod transact :session/disconnected
   [{:keys [local]}]
   [{:db/id -1 :entity/key local :session/state :disconnected}
-   [:db/retractEntity [:db/ident :session]]])
+   [:db/retract [:db/ident :session] :session/host]
+   [:db/retract [:db/ident :session] :session/conns]])
