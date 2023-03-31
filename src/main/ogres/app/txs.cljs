@@ -634,9 +634,19 @@
 (defmethod transact :session/close
   [{:keys [local]}]
   [{:db/id -1 :entity/key local :session/state :disconnected}
-   [:db/retractEntity [:db/ident :session]]])
+   [:db/retract [:db/ident :session] :session/host]
+   [:db/retract [:db/ident :session] :session/conns]])
 
 (defmethod transact :session/disconnected
   [{:keys [local]}]
   [{:db/id -1 :entity/key local :session/state :disconnected}
-   [:db/retractEntity [:db/ident :session]]])
+   [:db/retract [:db/ident :session] :session/host]
+   [:db/retract [:db/ident :session] :session/conns]])
+
+(defmethod transact :session/toggle-share-cursors
+  [_ enabled]
+  [{:db/id -1 :db/ident :session :session/share-cursors enabled}])
+
+(defmethod transact :session/toggle-share-my-cursor
+  [{:keys [local]} enabled]
+  [{:db/id -1 :entity/key local :session/share-cursor enabled}])

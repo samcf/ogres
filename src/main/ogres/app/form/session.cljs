@@ -22,11 +22,13 @@
     [:entity/key
      :local/type
      :local/color
-     [:session/state :default :initial]]}
+     [:session/state :default :initial]
+     [:session/share-cursor :default true]]}
    {:root/session
     [:session/room
      {:session/conns [:entity/key :local/color :local/type]}
-     {:session/host [:entity/key :local/color]}]}])
+     {:session/host [:entity/key :local/color]}
+     [:session/share-cursors :default true]]}])
 
 (defn- session-url [room-key]
   (str (.. js/window -location -origin) "?r=" env/VERSION "&join=" room-key))
@@ -48,13 +50,42 @@
       nil)))
 
 (defn- form []
-  (let [result (use-query query-form [:db/ident :root])
-        {{host  :session/host
-          conns :session/conns} :root/session
-         local :root/local} result
-        state (:session/state local)]
+  (let [dispatch (use-dispatch)
+        result   (use-query query-form [:db/ident :root])
+        {{host          :session/host
+          conns         :session/conns
+          share-cursors :session/share-cursors} :root/session
+         {share-cursor :session/share-cursor
+          state        :session/state
+          type         :local/type
+          key          :entity/key} :root/local
+         local :root/local} result]
     (if (or (= state :connected) (= state :disconnected) (= state :connecting))
       [:section.session
+       [:section
+        [:header "Options"]
+        [:fieldset.checkbox
+         [:input
+          {:id "share-cursors"
+           :type "checkbox"
+           :checked share-cursors
+           :disabled (not= type :host)
+           :on-change
+           (fn [event]
+             (let [checked (.. event -target -checked)]
+               (dispatch :session/toggle-share-cursors checked)))}]
+         [:label {:for "share-cursors"} "Share cursors"]]
+        [:fieldset.checkbox
+         [:input
+          {:id "share-my-cursor"
+           :type "checkbox"
+           :checked share-cursor
+           :disabled false
+           :on-change
+           (fn [event]
+             (let [checked (.. event -target -checked)]
+               (dispatch :session/toggle-share-my-cursor checked)))}]
+         [:label {:for "share-my-cursor"} "Share my cursor"]]]
        [:section
         [:header "Host"]
         [:div.session-players
@@ -62,7 +93,7 @@
            [:div.session-player
             [:div.session-player-color {:style {:background-color (:local/color host)}}]
             [:div.session-player-label "Host"
-             (if (= (:entity/key host) (:entity/key local))
+             (if (= (:entity/key host) key)
                [:span " (You)"])]]
            [:div.prompt "Not connected."])]]
        [:section
@@ -74,7 +105,7 @@
                [:div.session-player {:key (:entity/key conn)}
                 [:div.session-player-color {:style {:background-color (:local/color conn)}}]
                 [:div.session-player-label "Friend"
-                 (if (= (:entity/key conn) (:entity/key local))
+                 (if (= (:entity/key conn) key)
                    [:span " (You)"])]]))
            [:div.prompt "No one else is here."])]]]
       [:section.session

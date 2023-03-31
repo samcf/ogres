@@ -11,15 +11,15 @@
             [react-draggable]
             [uix.core.alpha :as uix]))
 
-(def draw-modes
+(def ^:private draw-modes
   #{:grid :ruler :circle :rect :cone :line :poly :mask})
 
-(def atmosphere
+(def ^:private color-matrix
   {:none     [1.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0]
    :dusk     [0.3 0.3 0.0 0.0 0.0 0.0 0.3 0.3 0.0 0.0 0.0 0.0 0.8 0.0 0.0 0.0 0.0 0.0 1.0 0.0]
    :midnight [0.0 0.0 0.0 0.0 0.0 0.0 0.1 0.0 0.0 0.0 0.1 0.1 0.1 0.0 0.0 0.0 0.0 0.0 1.0 0.0]})
 
-(def condition->icon
+(def ^:private condition->icon
   {:blinded       "eye-slash-fill"
    :charmed       "arrow-through-heart-fill"
    :exhausted     "moon-stars-fill"
@@ -31,44 +31,41 @@
    :prone         "falling"
    :unconscious   "skull"})
 
-(def excluded-conditions
-  #{:player :hidden :unconscious})
-
-(defn key-by
+(defn- key-by
   "Returns a map of the given `coll` whose keys are the result of calling `f`
    with each element in the collection and whose values are the element
    itself."
   [f coll]
   (into {} (map (juxt f identity) coll)))
 
-(defn separate
+(defn- separate
   "Split coll into two sequences, one that matches pred and one that doesn't."
   [pred coll]
   (let [pcoll (map (juxt identity pred) coll)]
     (vec (for [f [filter remove]]
            (map first (f second pcoll))))))
 
-(defn stop-propagation [event]
+(defn- stop-propagation [event]
   (.stopPropagation event))
 
-(defn visible? [flags]
+(defn- visible? [flags]
   (or (contains? flags :player)
       (not (contains? flags :hidden))))
 
-(defn label [{:keys [token/label initiative/suffix]}]
+(defn- label [{:keys [token/label initiative/suffix]}]
   (cond-> ""
     (string? label) (str label)
     (number? suffix) (str " " (char (+ suffix 64)))))
 
-(def scene-query
+(def ^:private query-scene
   [{:local/window
     [{:window/canvas
       [[:canvas/grid-size :default 70]
        [:canvas/timeofday :default :none]
        {:canvas/image [:image/checksum]}]}]}])
 
-(defn scene []
-  (let [result (use-query scene-query)
+(defn- render-scene []
+  (let [result (use-query query-scene)
         {{{size        :canvas/grid-size
            time-of-day :canvas/timeofday
            {checksum   :image/checksum} :canvas/image}
@@ -78,10 +75,10 @@
     [:g.canvas-image {:transform (str "scale(" (/ grid-size size) ")")}
      [:defs {:key time-of-day}
       [:filter {:id "atmosphere"}
-       [:feColorMatrix {:type "matrix" :values (join " " (atmosphere time-of-day))}]]]
+       [:feColorMatrix {:type "matrix" :values (join " " (color-matrix time-of-day))}]]]
      [:image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere)"}}]]))
 
-(def light-mask-query
+(def ^:private query-mask-vis
   [:local/type
    {:local/window
     [{:window/canvas
@@ -94,8 +91,8 @@
          [:token/vec :default [0 0]]]}
        {:canvas/image [:image/checksum :image/width :image/height]}]}]}])
 
-(defn light-mask []
-  (let [result (use-query light-mask-query)
+(defn- render-mask-vis []
+  (let [result (use-query query-mask-vis)
         {type :local/type
          {{visibility :canvas/lighting
            size       :canvas/grid-size
@@ -129,7 +126,7 @@
           {:x 0 :y 0 :width width :height height
            :fill "url(#mask-pattern)" :mask "url(#light-mask)"}])])))
 
-(def canvas-mask-query
+(def ^:private query-mask-fog
   [:local/type
    {:local/window
     [[:window/draw-mode :default :select]
@@ -139,9 +136,9 @@
        {:canvas/image [:image/width :image/height]}
        {:canvas/masks [:entity/key :mask/vecs :mask/enabled?]}]}]}])
 
-(defn canvas-mask []
+(defn- render-mask-fog []
   (let [dispatch (use-dispatch)
-        result   (use-query canvas-mask-query)
+        result   (use-query query-mask-fog)
         {type :local/type
          {mode :window/draw-mode
           {size    :canvas/grid-size
@@ -178,7 +175,7 @@
                :mask-toggle (dispatch :mask/toggle key (not enabled?))
                :mask-remove (dispatch :mask/remove key)))}]))]))
 
-(def grid-query
+(def ^:private query-grid
   [[:bounds/self :default [0 0 0 0]]
    {:local/window
     [[:window/vec :default [0 0]]
@@ -187,8 +184,8 @@
      {:window/canvas
       [[:canvas/show-grid :default true]]}]}])
 
-(defn grid []
-  (let [data (use-query grid-query)
+(defn- render-grid []
+  (let [data (use-query query-grid)
         {[_ _ w h] :bounds/self
          {[cx cy] :window/vec
           mode    :window/draw-mode
@@ -210,7 +207,12 @@
             {:d (join " " ["M" 0 0 "H" grid-size "V" grid-size])}]]]
          [:path {:d (join " " ["M" sx sy "H" ax "V" ay "H" bx "Z"]) :fill "url(#grid)"}]]))))
 
-(defmulti shape (fn [props] (:shape/kind (:element props))))
+(defn- poly-xf [x y]
+  (comp (partition-all 2)
+        (mapcat (fn [[ax ay]] [(- ax x) (- ay y)]))))
+
+(defmulti ^:private shape
+  (fn [props] (:shape/kind (:element props))))
 
 (defmethod shape :circle [props]
   (let [{:keys [element attrs]} props
@@ -248,10 +250,6 @@
       {:points (join " " (triangle 0 0 (- bx ax) (- by ay)))
        :fill-opacity opacity :stroke color})]))
 
-(defn poly-xf [x y]
-  (comp (partition-all 2)
-        (mapcat (fn [[ax ay]] [(- ax x) (- ay y)]))))
-
 (defmethod shape :poly [props]
   (let [{:keys [element attrs]} props
         {:keys [shape/vecs shape/color shape/opacity]} element
@@ -259,7 +257,7 @@
         pairs   (into [] (poly-xf ax ay) vecs)]
     [:polygon (assoc attrs :points (join " " pairs) :fill-opacity opacity :stroke color)]))
 
-(def shapes-query
+(def ^:private query-shapes
   [:local/type
    {:local/window
     [:entity/key
@@ -275,9 +273,9 @@
          [:shape/pattern :default :solid]
          {:window/_selected [:entity/key]}]}]}]}])
 
-(defn shapes []
+(defn- render-shapes []
   (let [dispatch (use-dispatch)
-        result   (use-query shapes-query)
+        result   (use-query query-shapes)
         {type    :local/type
          window  :local/window
          {scale  :window/scale
@@ -313,19 +311,19 @@
               [shape-context-menu
                {:shape entity}]])])]])))
 
-(defn stamp [{:keys [checksum]}]
+(defn- render-stamp [{:keys [checksum]}]
   (let [url (use-image checksum)]
     [:image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"}]))
 
-(def stamps-query
+(def ^:private query-stamps
   [{:local/window
     [{:window/canvas
       [{:canvas/tokens
         [{:token/image
           [:image/checksum]}]}]}]}])
 
-(defn stamps []
-  (let [result    (use-query stamps-query)
+(defn- render-stamps []
+  (let [result    (use-query query-stamps)
         tokens    (-> result :local/window :window/canvas :canvas/tokens)
         checksums (into #{} (comp (map :token/image) (map :image/checksum)) tokens)
         attrs     {:width "100%" :height "100%" :patternContentUnits "objectBoundingBox"}]
@@ -338,9 +336,9 @@
       [icon {:name "skull" :size 12}]]
      (for [checksum checksums]
        [:pattern (merge attrs {:key checksum :id (str "token-stamp-" checksum)})
-        [stamp {:checksum checksum}]])]))
+        [render-stamp {:checksum checksum}]])]))
 
-(defn token [data]
+(defn- render-token [data]
   [:<>
    (let [radius (* grid-size (/ (:aura/radius data) 5))]
      (if (> radius 0)
@@ -355,11 +353,11 @@
      [:g.canvas-token-container   {:transform (str "scale(" scale ")")}
       [:circle.canvas-token-ring  {:cx 0 :cy 0 :style {:r radii :fill "transparent"}}]
       [:circle.canvas-token-shape {:cx 0 :cy 0 :r radii :fill (str "url(#" pttrn ")")}]
-      (for [[dg flag] (->> excluded-conditions
-                           (difference flags)
-                           (take 4)
-                           (mapv vector [115 70 -115 -70]))
-            :let [rn (* (/ js/Math.PI 180) dg)
+      (for [[deg flag] (->> #{:player :hidden :unconscious}
+                            (difference flags)
+                            (take 4)
+                            (mapv vector [115 70 -115 -70]))
+            :let [rn (* (/ js/Math.PI 180) deg)
                   cx (* (js/Math.sin rn) radii)
                   cy (* (js/Math.cos rn) radii)]]
         [:g.canvas-token-flags {:key flag :transform (str "translate(" cx ", " cy ")")}
@@ -371,13 +369,13 @@
          [:div.canvas-token-label
           [:span (label data)]]])])])
 
-(defn token-comparator [a b]
+(defn- token-comparator [a b]
   (let [[ax ay] (:token/vec a)
         [bx by] (:token/vec b)]
     (compare [(:token/size b) by bx]
              [(:token/size a) ay ax])))
 
-(def tokens-query
+(def ^:private query-tokens
   [:local/type
    {:local/window
     [:entity/key
@@ -398,9 +396,9 @@
          {:canvas/_initiative [:entity/key]}
          {:window/_selected [:entity/key]}]}]}]}])
 
-(defn tokens []
+(defn- render-tokens []
   (let [dispatch (use-dispatch)
-        result   (use-query tokens-query)
+        result   (use-query query-tokens)
         {:local/keys [type window]} result
         {:window/keys [scale canvas]} window
         {:canvas/keys [snap-grid tokens]} canvas
@@ -434,7 +432,7 @@
                (dispatch :element/select key (not (.-shiftKey event)))
                (dispatch :token/translate key bx by (not= (.-metaKey event) snap-grid)))))}
         [:g.canvas-token {:css (css data)}
-         [token data]]])
+         [render-token data]]])
      (if (seq selected)
        (let [keys         (map :entity/key selected)
              [ax _ bx by] (apply bounding-box (map :token/vec selected))]
@@ -454,7 +452,7 @@
             (for [data selected :let [{key :entity/key [x y] :token/vec} data]]
               [:g.canvas-token
                {:key key :css (css data) :data-key key :transform (str "translate(" x "," y ")")}
-               [token data]])
+               [render-token data]])
             (if (or (= type :host) (= type :conn))
               [:foreignObject
                {:x (- (+ (* ax scale) (/ (* (- bx ax) scale) 2)) (/ 400 2))
@@ -464,7 +462,7 @@
                 :style {:pointer-events "none"}}
                [token-context-menu {:tokens selected :type type}]])]]]))]))
 
-(defn bounds []
+(defn- render-bounds []
   (let [result (use-query [:bounds/host :bounds/view])
         {[_ _ hw hh] :bounds/host
          [_ _ vw vh] :bounds/view} result
@@ -472,7 +470,7 @@
     [:g.canvas-bounds {:transform (str "translate(" ox " , " oy ")")}
      [:rect {:x 0 :y 0 :width vw :height vh :rx 8}]]))
 
-(defn cursor [{[x y] :coord color :color}]
+(defn- render-cursor [{[x y] :coord color :color}]
   (let [position (uix/state nil)
         callback (uix/callback
                   (fn [point]
@@ -487,24 +485,32 @@
       [:g.canvas-cursor {:transform (str "translate(" (- ax 4) ", " (- ay 4) ")") :color color}
        [icon {:name "cursor-fill" :size 32}]])))
 
-(def cursors-query
-  [{:root/session
-    [{:session/conns [{:local/window [:entity/key]} :local/color :entity/key]}]}])
+(def ^:private query-cursors
+  [[:session/share-cursors :default true]
+   {:session/conns
+    [:entity/key
+     [:session/share-cursor :default true]
+     [:local/color :default "royalBlue"]]}])
 
-(defn cursors []
+(defn- render-cursors []
   (let [coords (uix/state {})
-        result (use-query cursors-query [:db/ident :root])
-        conns  (key-by :entity/key (:session/conns (:root/session result)))]
+        result (use-query query-cursors [:db/ident :session])
+        {conns :session/conns
+         share :session/share-cursors} result
+        conns  (key-by :entity/key conns)]
     (subscribe!
      (fn [{[uuid x y] :args}]
-       (swap! coords assoc uuid [x y])) :cursor/moved [])
-    [:g.canvas-cursors
-     (for [[uuid [x y]] @coords
-           :let  [color (get-in conns [uuid :local/color])]
-           :when (contains? conns uuid)]
-       ^{:key uuid} [cursor {:coord [x y] :color color}])]))
+       (if share (swap! coords assoc uuid [x y]))) :cursor/moved [share])
+    (if share
+      [:g.canvas-cursors
+       (for [[uuid [x y]] @coords
+             :let  [local (conns uuid)
+                    color (:local/color local)
+                    share (:session/share-cursor local)]
+             :when (and local share)]
+         ^{:key uuid} [render-cursor {:coord [x y] :color color}])])))
 
-(def canvas-query
+(def ^:private query-canvas
   [:local/type
    [:local/privileged? :default false]
    [:bounds/self :default [0 0 0 0]]
@@ -519,10 +525,10 @@
      {:window/canvas
       [[:canvas/dark-mode :default false]]}]}])
 
-(defn canvas []
-  (let [publish  (use-publish)
-        dispatch (use-dispatch)
-        result   (use-query canvas-query)
+(defn render-canvas []
+  (let [dispatch (use-dispatch)
+        publish  (use-publish)
+        result   (use-query query-canvas)
         {type        :local/type
          priv?       :local/privileged?
          [_ _ hw hh] :bounds/host
@@ -533,54 +539,53 @@
           mode    :window/draw-mode
           modif   :window/modifier
           [cx cy] :window/vec
-          {dark-mode :canvas/dark-mode} :window/canvas} :local/window} result
+          {dark-mode :canvas/dark-mode}
+          :window/canvas}
+         :local/window} result
         cx (if (= type :view) (->> (- hw vw) (max 0) (* (/ -1 2 scale)) (+ cx)) cx)
-        cy (if (= type :view) (->> (- hh vh) (max 0) (* (/ -1 2 scale)) (+ cy)) cy)]
-    [:svg.canvas
-     {:key key
-      :css {:theme--light (not dark-mode)
-            :theme--dark  dark-mode
-            :is-host (= type :host)
-            :is-priv priv?}}
-     [:> react-draggable
-      {:position #js {:x 0 :y 0}
-       :on-stop
-       (fn [_ data]
-         (let [ox (.-x data)
-               oy (.-y data)]
-           (if (and (= ox 0) (= oy 0))
-             (dispatch :selection/clear)
-             (let [tx (+ cx (* ox (/ scale)))
-                   ty (+ cy (* oy (/ scale)))]
-               (dispatch :window/translate tx ty)))))}
-      [:g {:style {:will-change "transform"}
-           :on-mouse-move
-           (fn [event]
-             (if (= (.. event -currentTarget (getAttribute "transform")) "translate(0,0)")
+        cy (if (= type :view) (->> (- hh vh) (max 0) (* (/ -1 2 scale)) (+ cy)) cy)
+        on-translate
+        (uix/callback
+         (fn [_ data]
+           (let [ox (.-x data)
+                 oy (.-y data)]
+             (if (and (= ox 0) (= oy 0))
+               (dispatch :selection/clear)
+               (let [tx (+ cx (* ox (/ scale)))
+                     ty (+ cy (* oy (/ scale)))]
+                 (dispatch :window/translate tx ty)))))
+         [dispatch cx cy scale])
+        on-cursor-move
+        (uix/callback
+         (fn [event]
+           (let [transform (.. event -currentTarget (getAttribute "transform"))]
+             (if (= transform "translate(0,0)")
                (let [x (- (/ (- (.-clientX event) sx) scale) cx)
                      y (- (/ (- (.-clientY event) sy) scale) cy)]
-                 (publish {:topic :cursor/move :args [x y]}))))}
+                 (publish {:topic :cursor/move :args [x y]})))))
+         [sx sy cx cy scale])]
+    [:svg.canvas {:key key :css {:theme--light (not dark-mode) :theme--dark dark-mode :is-host (= type :host) :is-priv priv?}}
+     [:> react-draggable {:position #js {:x 0 :y 0} :on-stop on-translate}
+      [:g {:style {:will-change "transform"} :on-mouse-move on-cursor-move}
        [:rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"}]
        (if (and (= mode :select) (= modif :shift))
          [draw {:mode :select}])
-       [:g.canvas-board
-        {:transform (str "scale(" scale ") translate(" cx ", " cy ")")}
-        [stamps]
-        [scene]
-        [grid]
-        [shapes]
-        [tokens]
-        [light-mask]
-        [canvas-mask]
-        [cursors]
-        [create-portal (fn [ref] [:g {:ref ref :style {:outline "none"}}]) :selected]]]]
+       [:g.canvas-board {:transform (str "scale(" scale ") translate(" cx ", " cy ")")}
+        [render-stamps]
+        [render-scene]
+        [render-grid]
+        [render-shapes]
+        [render-tokens]
+        [render-mask-vis]
+        [render-mask-fog]
+        [render-cursors]
+        [create-portal
+         (fn [ref]
+           [:g {:ref ref :style {:outline "none"}}]) :selected]]]]
      [create-portal
       (fn [ref]
-        [:g {:ref ref
-             :style {:outline "none"}
-             :class "canvas-drawable canvas-drawable-select"}]) :multiselect]
+        [:g {:ref ref :style {:outline "none"} :class "canvas-drawable canvas-drawable-select"}]) :multiselect]
      (if (contains? draw-modes mode)
        [:g {:class (str "canvas-drawable canvas-drawable-" (name mode))}
         ^{:key mode} [draw {:mode mode :node nil}]])
-     (if priv?
-       [bounds])]))
+     (if priv? [render-bounds])]))

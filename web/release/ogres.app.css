@@ -88,6 +88,25 @@ input[type="number"] {
     width: 100%;
 }
 
+fieldset.checkbox {
+    display: flex;
+    align-items: center;
+}
+
+fieldset.checkbox label {
+    text-transform: capitalize;
+    line-height: 1;
+    font-size: 13px;
+}
+
+fieldset.checkbox + fieldset {
+    margin-top: 4px;
+}
+
+input[type="checkbox"]:disabled + label {
+    color: hsl(0, 0%, 60%);
+}
+
 a,
 a:link,
 a:visited {
@@ -1617,20 +1636,6 @@ legend {
 .help li,
 .help label {
     font-size: 13px;
-}
-
-.help fieldset {
-    display: flex;
-    align-items: center;
-}
-
-.help fieldset label {
-    text-transform: capitalize;
-    line-height: 1;
-}
-
-.help fieldset + fieldset {
-    margin-top: 4px;
 }
 
 /* Session Form */
