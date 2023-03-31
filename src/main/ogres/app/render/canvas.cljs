@@ -486,21 +486,29 @@
        [icon {:name "cursor-fill" :size 32}]])))
 
 (def ^:private query-cursors
-  [{:root/session
-    [{:session/conns [{:local/window [:entity/key]} :local/color :entity/key]}]}])
+  [[:session/share-cursors :default true]
+   {:session/conns
+    [:entity/key
+     [:session/share-cursor :default true]
+     [:local/color :default "royalBlue"]]}])
 
 (defn- render-cursors []
   (let [coords (uix/state {})
-        result (use-query query-cursors [:db/ident :root])
-        conns  (key-by :entity/key (:session/conns (:root/session result)))]
+        result (use-query query-cursors [:db/ident :session])
+        {conns :session/conns
+         share :session/share-cursors} result
+        conns  (key-by :entity/key conns)]
     (subscribe!
      (fn [{[uuid x y] :args}]
-       (swap! coords assoc uuid [x y])) :cursor/moved [])
-    [:g.canvas-cursors
-     (for [[uuid [x y]] @coords
-           :let  [color (get-in conns [uuid :local/color])]
-           :when (contains? conns uuid)]
-       ^{:key uuid} [render-cursor {:coord [x y] :color color}])]))
+       (if share (swap! coords assoc uuid [x y]))) :cursor/moved [share])
+    (if share
+      [:g.canvas-cursors
+       (for [[uuid [x y]] @coords
+             :let  [local (conns uuid)
+                    color (:local/color local)
+                    share (:session/share-cursor local)]
+             :when (and local share)]
+         ^{:key uuid} [render-cursor {:coord [x y] :color color}])])))
 
 (def ^:private query-canvas
   [:local/type
