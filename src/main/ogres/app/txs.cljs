@@ -23,6 +23,14 @@
   ([offset step]
    (map-indexed (fn [idx val] [(-> (* idx step) (+ offset) (* -1)) val]))))
 
+(defn- suffix-token-key
+  "Returns a grouping key for the given token that will match other similarly
+   identifiable tokens."
+  [token]
+  (let [{label :token/label
+         {checksum :image/checksum} :token/image} token]
+    [label checksum]))
+
 (defn- suffixes
   "Returns a map of `{entity key => suffix}` for the given token entities.
    Each suffix represents a unique and stable identity for a token within
@@ -30,18 +38,19 @@
    help decorate tokens that may otherwise be difficult to distinguish
    when they share the same image and label."
   [tokens]
-  (let [groups (group-by :token/label tokens)
+  (let [groups (group-by suffix-token-key tokens)
         offset (into {} suffix-max-xf groups)]
     (loop [tokens tokens index {} result {}]
       (if (seq tokens)
-        (let [token (first tokens) {label :token/label} token]
-          (if (or (= (count (groups label)) 1)
+        (let [token (first tokens)
+              group (suffix-token-key token)]
+          (if (or (= (count (groups group)) 1)
                   (:initiative/suffix token)
                   (contains? (:token/flags token) :player))
             (recur (rest tokens) index result)
             (recur (rest tokens)
-                   (update index label inc)
-                   (assoc result (:entity/key token) (+ (offset label) (index label) 1)))))
+                   (update index group inc)
+                   (assoc result (:entity/key token) (+ (offset group) (index group) 1)))))
         result))))
 
 (defn- round [x n]
@@ -486,12 +495,15 @@
 
 (defmethod transact :initiative/toggle
   [{:keys [data canvas]} keys adding?]
-  (let [tokens   (map (fn [key] [:entity/key key]) keys)
-        select-t [:entity/key :token/label :initiative/suffix [:token/flags :default #{}]]
-        select-r [{:canvas/initiative select-t}]
-        result   (ds/pull data select-r [:entity/key canvas])
-        change   (into #{} (ds/pull-many data select-t tokens))
-        exists   (into #{} (:canvas/initiative result))]
+  (let [tokens (map (fn [key] [:entity/key key]) keys)
+        select [{:token/image [:image/checksum]}
+                [:token/flags :default #{}]
+                :entity/key
+                :token/label
+                :initiative/suffix]
+        result (ds/pull data [{:canvas/initiative select}] [:entity/key canvas])
+        change (into #{} (ds/pull-many data select tokens))
+        exists (into #{} (:canvas/initiative result))]
     (if adding?
       [{:db/id -1
         :entity/key canvas
