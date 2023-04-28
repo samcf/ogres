@@ -6,10 +6,11 @@
            io.pedestal/pedestal.jetty            {:mvn/version "0.5.10"}
            io.pedestal/pedestal.service          {:mvn/version "0.5.10"}
            jstrutz/hashids                       {:mvn/version "1.0.1"}
-           org.clojure/clojure                   {:mvn/version "1.10.3"}
+           org.clojure/clojure                   {:mvn/version "1.11.1"}
+           org.clojure/clojurescript             {:mvn/version "1.11.60"}
            org.clojure/core.async                {:mvn/version "1.5.648"}
            org.slf4j/slf4j-simple                {:mvn/version "1.7.28"}
-           thheller/shadow-cljs                  {:mvn/version "2.15.2"}
+           thheller/shadow-cljs                  {:mvn/version "2.23.3"}
            uix.core/uix.core                     {:git/url "https://github.com/roman01la/uix.git" :deps/root "core" :sha"843abbe4c4b331fbb0d7d197ecd038b466b48e43"}
            uix.dom/uix.dom                       {:git/url "https://github.com/roman01la/uix.git" :deps/root "dom" :sha "843abbe4c4b331fbb0d7d197ecd038b466b48e43"}}
  :aliases {:server/dev {:exec-fn ogres.server.core/run-development}
