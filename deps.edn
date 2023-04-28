@@ -2,7 +2,7 @@
  :deps    {com.cognitect/transit-clj             {:mvn/version "1.0.329"}
            com.cognitect/transit-cljs            {:mvn/version "0.8.269"}
            datascript-transit/datascript-transit {:mvn/version "0.3.0" :exclusions  [com.cognitect/transit-clj com.cognitect/transit-cljs]}
-           datascript/datascript                 {:mvn/version "1.2.2"}
+           datascript/datascript                 {:mvn/version "1.4.2"}
            io.pedestal/pedestal.jetty            {:mvn/version "0.5.10"}
            io.pedestal/pedestal.service          {:mvn/version "0.5.10"}
            jstrutz/hashids                       {:mvn/version "1.0.1"}
