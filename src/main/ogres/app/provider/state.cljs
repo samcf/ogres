@@ -25,7 +25,8 @@
    :session/conns     {:db/valueType :db.type/ref :db.cardinality :db.cardinality/many :db/isComponent true}
    :token/image       {:db/valueType :db.type/ref}
    :window/canvas     {:db/valueType :db.type/ref}
-   :window/selected   {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}})
+   :window/selected   {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
+   :initiative/turn   {:db/valueType :db.type/ref}})
 
 (defn local-type []
   (let [search (.. js/window -location -search)

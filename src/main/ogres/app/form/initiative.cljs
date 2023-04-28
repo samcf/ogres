@@ -5,14 +5,42 @@
             [ogres.app.render :refer [icon]]
             [uix.core.alpha :as uix]))
 
+(def ^:private query-form
+  [:local/type
+   {:local/window
+    [{:window/canvas
+      [:entity/key
+       :initiative/rounds
+       {:initiative/turn [:entity/key]}
+       {:canvas/initiative
+        [:entity/key
+         :token/label
+         :token/flags
+         :initiative/roll
+         :initiative/suffix
+         :initiative/health
+         :window/_selected
+         {:token/image [:image/checksum]}]}]}]}])
+
+(def ^:private query-footer
+  [{:local/window
+    [{:window/canvas
+      [[:initiative/turns :default 0]
+       [:initiative/rounds :default 0]
+       {:canvas/initiative
+        [:entity/key]}]}]}])
+
+(defn- initiative-order [a b]
+  (let [f (juxt :initiative/roll :entity/key)]
+    (compare (f b) (f a))))
+
+(defn- format-time [seconds]
+  (str (-> (mod seconds 3600) (/ 60) (js/Math.floor) (.toString) (.padStart 2 "0")) ":"
+       (-> (mod seconds   60)        (js/Math.floor) (.toString) (.padStart 2 "0"))))
+
 (defn- visible? [flags]
   (or (contains? flags :player)
       (not (contains? flags :hidden))))
-
-(defn- order [a b]
-  (compare
-   [(:initiative/roll b) (contains? (:token/flags a) :player) (:token/label a)]
-   [(:initiative/roll a) (contains? (:token/flags b) :player) (:token/label b)]))
 
 (defn- roll-form [{:keys [value on-change]}]
   (let [input (uix/ref) [editing? form] (use-modal)]
@@ -62,15 +90,19 @@
         [:div.initiant-health-label value])]]))
 
 (defn- initiant [context entity]
-  (let [dispatch                    (use-dispatch)
-        {:keys [entity/key]}        entity
-        {:token/keys [label flags]} entity
-        {:initiative/keys [suffix]} entity
-        url                         (use-image (-> entity :token/image :image/checksum))]
-    [:div.initiant
-     (if url
+  (let [dispatch (use-dispatch)
+        {type      :local/type
+         {{current :initiative/turn} :window/canvas} :local/window} context
+        {key       :entity/key
+         label     :token/label
+         flags     :token/flags
+         suffix    :initiative/suffix
+         {checksum :image/checksum} :token/image} entity
+        data-url (use-image checksum)]
+    [:div.initiant {:css {:current (= (:entity/key current) (:entity/key entity))}}
+     (if data-url
        [:div.initiant-image
-        {:style {:background-image (str "url(" url ")")}
+        {:style {:background-image (str "url(" data-url ")")}
          :on-click #(dispatch :element/select key true)}]
        [:div.initiant-pattern
         {:on-click #(dispatch :element/select key true)}
@@ -88,69 +120,69 @@
       [:div.initiant-flags
        (if (seq flags)
          [:em (join ", " (mapv (comp capitalize name) flags))])]]
-     (if (or (= (:local/type context) :host)
-             (contains? flags :player))
+     (if (or (= type :host) (contains? flags :player))
        [health-form
         {:value (:initiative/health entity)
          :on-change
          (fn [f v]
            (dispatch :initiative/change-health key f v))}])]))
 
-(def ^:private query
-  [:local/type
-   {:local/window
-    [{:window/canvas
-      [:entity/key
-       {:canvas/initiative
-        [:entity/key
-         :token/label
-         :token/flags
-         :initiative/roll
-         :initiative/suffix
-         :initiative/health
-         :window/_selected
-         {:token/image [:image/checksum]}]}]}]}])
-
-(def ^:private query-footer
-  [{:local/window
-    [{:window/canvas
-      [{:canvas/initiative
-        [:entity/key]}]}]}])
-
 (defn- form []
-  (let [result     (use-query query)
-        initiative (-> result :local/window :window/canvas :canvas/initiative)
-        host?      (= (:local/type result) :host)]
-    (if (seq initiative)
-      [:div.initiative
-       [:div.initiative-list
-        (for [entity (sort order initiative)
-              :when (or host? (visible? (:token/flags entity)))]
-          ^{:key (:entity/key entity)} [initiant result entity])]]
-      [:div.initiative
-       [:section
-        [:div.prompt
-         "Begin initiative by selecting"
-         [:br] "one or more tokens and clicking"
-         [:br] "the hourglass icon."]]])))
+  (let [result (use-query query-form)
+        {type :local/type
+         {{tokens :canvas/initiative
+           rounds :initiative/rounds} :window/canvas}
+         :local/window} result]
+    [:div.initiative
+     (cond (and (not (seq tokens)) (nil? rounds))
+           [:section
+            [:div.prompt
+             "Begin initiative by selecting"
+             [:br] "one or more tokens and clicking"
+             [:br] "the hourglass icon."]]
+
+           (and (not (seq tokens)) (>= rounds 1))
+           [:div.prompt
+            "Initiative is still running"
+            [:br] "but there are no tokens participating."]
+
+           (seq tokens)
+           [:div.initiative-list
+            (for [entity (sort initiative-order tokens)
+                  :when  (or (= type :host)
+                             (visible? (:token/flags entity)))]
+              ^{:key (:entity/key entity)}
+              [initiant result entity])])]))
 
 (defn- footer []
   (let [dispatch (use-dispatch)
         result   (use-query query-footer)
-        {{{tokens :canvas/initiative}
+        {{{turns  :initiative/turns
+           rounds :initiative/rounds
+           tokens :canvas/initiative}
           :window/canvas}
-         :local/window} result]
+         :local/window} result
+        started (>= rounds 1)]
     [:<>
+     [:button.button {:disabled true} "Round " rounds]
+     [:button.button {:disabled true} "Time "
+      [:span {:style {:text-transform "lowercase"}} (format-time (* turns 6))]]
+     [:button.button.button-primary
+      {:style    {:grid-column "3 / 5"}
+       :disabled (empty? tokens)
+       :on-click #(dispatch :initiative/next)}
+      [icon {:name "play-fill" :size 16}] (if (<= rounds 0) "Start" "Next")]
      [:button.button.button-neutral
-      {:disabled (empty? tokens)
+      {:style    {:grid-column "1 / 3"}
+       :disabled (empty? tokens)
        :on-click #(dispatch :initiative/roll-all)}
       [icon {:name "dice-5-fill" :size 16}] "Randomize"]
      [:button.button.button-neutral
-      {:disabled (empty? tokens)
-       :on-click #(dispatch :initiative/reset-rolls)}
+      {:disabled (not started)
+       :on-click #(dispatch :initiative/reset)}
       [icon {:name "arrow-counterclockwise" :size 16}] "Reset"]
      [:button.button.button-danger
-      {:disabled (empty? tokens)
+      {:disabled (not started)
        :on-click #(dispatch :initiative/leave)}
       [icon {:name "x-circle-fill" :size 16}] "Leave"]]))
 

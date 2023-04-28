@@ -147,7 +147,7 @@
            [icon {:name "hourglass-split" :size 22}]])
         [:button
          {:type "button" :data-tooltip "Remove"
-          :on-click #(dispatch :element/remove keys)}
+          :on-click #(dispatch :token/remove keys)}
          [icon {:name "trash3-fill" :size 22}]]])
      (fn [{:keys [selected on-change]}]
        [token-form

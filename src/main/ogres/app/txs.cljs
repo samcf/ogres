@@ -11,6 +11,13 @@
 (def ^:private zoom-scales
   [0.15 0.30 0.50 0.75 0.90 1 1.25 1.50 2 3 4])
 
+(defn- find-next
+  "Finds the element in the given collection which passes the given predicate
+   and returns the element that appears after it. Returns nil if no element
+   passes the predicate or if the element found is the last in the collection."
+  [pred xs]
+  (first (next (drop-while (complement pred) xs))))
+
 (defn- indexed
   "Returns a transducer which decorates each element with a decreasing
    negative index suitable for use as temporary ids in a DataScript
@@ -68,6 +75,10 @@
 
 (defn- trans-xf [x y]
   (comp (partition-all 2) (drop 1) (map (fn [[ax ay]] [(+ ax x) (+ ay y)])) cat))
+
+(defn- initiative-order [a b]
+  (let [f (juxt :initiative/roll :entity/key)]
+    (compare (f b) (f a))))
 
 (defmulti transact (fn [{:keys [event]}] event))
 
@@ -367,6 +378,18 @@
    [:db/add -3 :canvas/tokens -1]
    [:db/add -4 :image/checksum checksum]])
 
+(defmethod transact :token/remove
+  [{:keys [data canvas]} keys]
+  (let [keys (set keys)
+        cnvs (ds/entity data [:entity/key canvas])
+        curr (->> (:initiative/turn cnvs) :entity/key)
+        tkns (->> (:canvas/initiative cnvs) (sort initiative-order) (map :entity/key))
+        tkfn (complement (partial contains? (disj keys curr)))
+        next (->> (filter tkfn tkns) (find-next (partial = curr)))
+        data {:entity/key canvas :initiative/turn {:entity/key (or next (first tkns))}}]
+    (cond-> (for [key keys] [:db/retractEntity [:entity/key key]])
+      (contains? keys curr) (conj data))))
+
 (defmethod transact :token/translate
   [_ token x y align?]
   (let [radius (if align? (/ grid-size 2) 1)]
@@ -432,6 +455,11 @@
    [:db/add -3 :window/draw-mode :select]
    [:db/add -3 :window/selected -1]])
 
+(defmethod transact :shape/remove
+  [_ keys]
+  (for [key keys]
+    [:db/retractEntity [:entity/key key]]))
+
 (defmethod transact :shape/translate
   [{:keys [data]} key x y align?]
   (let [{[ax ay] :shape/vecs vecs :shape/vecs} (ds/pull data [:shape/vecs] [:entity/key key])
@@ -488,10 +516,14 @@
    [:db/retract [:entity/key window] :window/selected]])
 
 (defmethod transact :selection/remove
-  [{:keys [data window]}]
-  (let [result (ds/pull data [{:window/selected [:entity/key]}] [:entity/key window])]
-    (for [{:keys [entity/key]} (:window/selected result)]
-      [:db/retractEntity [:entity/key key]])))
+  [{:keys [data window] :as ctx}]
+  (let [select [{:window/selected [:entity/key :canvas/_tokens :canvas/_shapes]}]
+        result (ds/pull data select [:entity/key window])
+        groups (group-by (fn [x] (cond (:canvas/_tokens x) :token
+                                       (:canvas/_shapes x) :shape))
+                         (:window/selected result))]
+    (concat (transact (assoc ctx :event :token/remove) (map :entity/key (:token groups)))
+            (transact (assoc ctx :event :shape/remove) (map :entity/key (:shape groups))))))
 
 (defmethod transact :initiative/toggle
   [{:keys [data canvas]} keys adding?]
@@ -523,6 +555,27 @@
                 [:db/retract [:entity/key key] :initiative/health]
                 [:db/retract [:entity/key canvas] :canvas/initiative idx]])))))
 
+(defmethod transact :initiative/next
+  [{:keys [data canvas]}]
+  (let [{curr :initiative/turn
+         trns :initiative/turns
+         rnds :initiative/rounds
+         tkns :canvas/initiative} (ds/entity data [:entity/key canvas])
+        tkns (->> tkns (sort initiative-order) (map :entity/key))]
+    (if (nil? rnds)
+      [{:entity/key        canvas
+        :initiative/turn   {:entity/key (first tkns)}
+        :initiative/turns  0
+        :initiative/rounds 1}]
+      (if-let [next (find-next (partial = (:entity/key curr)) tkns)]
+        [{:entity/key       canvas
+          :initiative/turn  {:entity/key next}
+          :initiative/turns (inc trns)}]
+        [{:entity/key        canvas
+          :initiative/turn   {:entity/key (first tkns)}
+          :initiative/turns  (inc trns)
+          :initiative/rounds (inc rnds)}]))))
+
 (defmethod transact :initiative/change-roll
   [_ key roll]
   (let [parsed (.parseFloat js/window roll)]
@@ -547,14 +600,17 @@
           :when (and (nil? roll) (not (contains? flags :player)))]
       {:db/id idx :entity/key key :initiative/roll (inc (rand-int 20))})))
 
-(defmethod transact :initiative/reset-rolls
+(defmethod transact :initiative/reset
   [{:keys [data canvas]}]
   (let [result (ds/pull data [{:canvas/initiative [:entity/key]}] [:entity/key canvas])]
-    (->> (for [[idx token] (sequence (indexed) (:canvas/initiative result))
+    (->> (for [[idx token] (sequence (indexed 2) (:canvas/initiative result))
                :let [{key :entity/key} token]]
            [[:db/add idx :entity/key key]
             [:db/retract [:entity/key key] :initiative/roll]])
-         (into [] cat))))
+         (into [[:db/add -1 :entity/key canvas]
+                [:db/retract [:entity/key canvas] :initiative/turn]
+                [:db/retract [:entity/key canvas] :initiative/turns]
+                [:db/retract [:entity/key canvas] :initiative/rounds]] cat))))
 
 (defmethod transact :initiative/change-health
   [{:keys [data]} key f value]
@@ -570,7 +626,10 @@
         tokens (:canvas/initiative result)]
     (apply concat
            [[:db/add -1 :entity/key canvas]
-            [:db/retract [:entity/key canvas] :canvas/initiative]]
+            [:db/retract [:entity/key canvas] :canvas/initiative]
+            [:db/retract [:entity/key canvas] :initiative/turn]
+            [:db/retract [:entity/key canvas] :initiative/turns]
+            [:db/retract [:entity/key canvas] :initiative/rounds]]
            (for [[idx {key :entity/key}] (sequence (indexed 2) tokens)]
              [[:db/add idx :entity/key key]
               [:db/retract [:entity/key key] :initiative/roll]
