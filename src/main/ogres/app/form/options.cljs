@@ -18,7 +18,7 @@
     [[:window/label :default ""]
      [:window/draw-mode :default :select]
      {:window/canvas
-      [:entity/key
+      [:db/key
        [:canvas/dark-mode :default false]
        [:canvas/grid-size :default 70]
        [:canvas/lighting :default :revealed]

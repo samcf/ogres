@@ -3,8 +3,8 @@
             [ogres.app.hooks :refer [use-dispatch use-query]]))
 
 (def query
-  [{:local/window [:entity/key]}
-   {:local/windows [:entity/key :window/label]}])
+  [{:local/window [:db/key]}
+   {:local/windows [:db/key :window/label]}])
 
 (defn workspaces []
   (let [dispatch (use-dispatch)
@@ -12,8 +12,8 @@
         {current :local/window
          windows :local/windows} result]
     [:div.workspaces
-     (for [{:keys [entity/key window/label]} windows]
-       [:div {:key key :css {:selected (= key (:entity/key current))}}
+     (for [{:keys [db/key window/label]} windows]
+       [:div {:key key :css {:selected (= key (:db/key current))}}
         [:div {:on-click #(dispatch :workspace/change key)}
          (if (blank? label) [:em "New Canvas"] (trim label))]
         [:button {:type "button" :on-click #(dispatch :workspace/remove key) :title "Close canvas"} "×"]])

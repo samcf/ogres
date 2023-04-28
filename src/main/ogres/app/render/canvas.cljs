@@ -85,7 +85,7 @@
       [[:canvas/grid-size :default 70]
        [:canvas/lighting :default :revealed]
        {:canvas/tokens
-        [:entity/key
+        [:db/key
          [:token/flags :default #{}]
          [:token/light :default 15]
          [:token/vec :default [0 0]]]}
@@ -115,7 +115,7 @@
          [:stop {:offset "100%" :stop-color "black" :stop-opacity "0%"}]]
         [:mask {:id "light-mask"}
          [:rect {:x 0 :y 0 :width width :height height :fill "white" :fill-opacity "100%"}]
-         (for [{key :entity/key flags :token/flags [x y] :token/vec radius :token/light} tokens
+         (for [{key :db/key flags :token/flags [x y] :token/vec radius :token/light} tokens
                :when (and (> radius 0) (or (= type :host) (visible? flags)))
                :let  [radius (-> grid-size (* radius) (/ 5) (+ grid-size))]]
            [:circle {:key key :cx x :cy y :r radius :fill "url(#mask-gradient)"}])]]
@@ -134,7 +134,7 @@
       [[:canvas/grid-size :default 70]
        [:mask/filled? :default false]
        {:canvas/image [:image/width :image/height]}
-       {:canvas/masks [:entity/key :mask/vecs :mask/enabled?]}]}]}])
+       {:canvas/masks [:db/key :mask/vecs :mask/enabled?]}]}]}])
 
 (defn- render-mask-fog []
   (let [dispatch (use-dispatch)
@@ -158,12 +158,12 @@
       [:mask {:id "canvas-mask"}
        (if filled?
          [:rect {:x 0 :y 0 :width width :height height :fill "white"}])
-       (for [{key :entity/key enabled? :mask/enabled? xs :mask/vecs} masks]
+       (for [{key :db/key enabled? :mask/enabled? xs :mask/vecs} masks]
          [:polygon {:key key :points (join " " xs) :fill (if enabled? "white" "black")}])]]
      [:rect.canvas-mask-background {:x 0 :y 0 :width width :height height :mask "url(#canvas-mask)"}]
      [:rect.canvas-mask-pattern {:x 0 :y 0 :width width :height height :fill "url(#mask-pattern)" :mask "url(#canvas-mask)"}]
      (if (and (= type :host) (contains? modes mode))
-       (for [{key :entity/key xs :mask/vecs enabled? :mask/enabled?} masks]
+       (for [{key :db/key xs :mask/vecs enabled? :mask/enabled?} masks]
          [:polygon.canvas-mask-polygon
           {:key key
            :data-enabled enabled?
@@ -260,18 +260,18 @@
 (def ^:private query-shapes
   [:local/type
    {:local/window
-    [:entity/key
+    [:db/key
      [:window/scale :default 1]
      {:window/canvas
       [[:canvas/snap-grid :default false]
        {:canvas/shapes
-        [:entity/key
+        [:db/key
          :shape/kind
          :shape/vecs
          [:shape/color :default "#f44336"]
          [:shape/opacity :default 0.25]
          [:shape/pattern :default :solid]
-         {:window/_selected [:entity/key]}]}]}]}])
+         {:window/_selected [:db/key]}]}]}]}])
 
 (defn- render-shapes []
   (let [dispatch (use-dispatch)
@@ -284,10 +284,10 @@
          :local/window} result
         participant? (or (= type :host) (= type :conn))]
     (for [entity (:canvas/shapes canvas)
-          :let [key (:entity/key entity)
+          :let [key (:db/key entity)
                 {:shape/keys [kind color vecs]} entity
-                selecting (into #{} (map :entity/key) (:window/_selected entity))
-                selected? (contains? selecting (:entity/key window))
+                selecting (into #{} (map :db/key) (:window/_selected entity))
+                selected? (contains? selecting (:db/key window))
                 [ax ay] vecs]]
       ^{:key key}
       [use-portal {:label (if (and participant? selected?) :selected)}
@@ -378,13 +378,13 @@
 (def ^:private query-tokens
   [:local/type
    {:local/window
-    [:entity/key
+    [:db/key
      :window/selected
      [:window/scale :default 1]
      {:window/canvas
       [[:canvas/snap-grid :default false]
        {:canvas/tokens
-        [:entity/key
+        [:db/key
          [:initiative/suffix :default nil]
          [:token/vec :default [0 0]]
          [:token/flags :default #{}]
@@ -393,8 +393,8 @@
          [:token/light :default 15]
          [:aura/radius :default 0]
          {:token/image [:image/checksum]}
-         {:canvas/_initiative [:entity/key]}
-         {:window/_selected [:entity/key]}]}]}]}])
+         {:canvas/_initiative [:db/key]}
+         {:window/_selected [:db/key]}]}]}]}])
 
 (defn- render-tokens []
   (let [dispatch (use-dispatch)
@@ -416,9 +416,9 @@
         (->> tokens
              (filter (fn [token] (or (= type :host) (visible? (:token/flags token)))))
              (sort token-comparator)
-             (separate (fn [token] ((into #{} (map :entity/key) (:window/_selected token)) (:entity/key window)))))]
+             (separate (fn [token] ((into #{} (map :db/key) (:window/_selected token)) (:db/key window)))))]
     [:<>
-     (for [data tokens :let [{key :entity/key [ax ay] :token/vec} data]]
+     (for [data tokens :let [{key :db/key [ax ay] :token/vec} data]]
        [:> react-draggable
         {:key      key
          :position #js {:x ax :y ay}
@@ -434,7 +434,7 @@
         [:g.canvas-token {:css (css data)}
          [render-token data]]])
      (if (seq selected)
-       (let [keys         (map :entity/key selected)
+       (let [keys         (map :db/key selected)
              [ax _ bx by] (apply bounding-box (map :token/vec selected))]
          [use-portal {:label (if (or (= type :host) (= type :conn)) :selected)}
           [:> react-draggable
@@ -449,7 +449,7 @@
                     (dispatch :element/select (uuid key) (not (.-shiftKey event))))
                   (dispatch :token/translate-all keys ox oy (not= (.-metaKey event) snap-grid)))))}
            [:g.canvas-selected {:key keys}
-            (for [data selected :let [{key :entity/key [x y] :token/vec} data]]
+            (for [data selected :let [{key :db/key [x y] :token/vec} data]]
               [:g.canvas-token
                {:key key :css (css data) :data-key key :transform (str "translate(" x "," y ")")}
                [render-token data]])
@@ -488,7 +488,7 @@
 (def ^:private query-cursors
   [[:session/share-cursors :default true]
    {:session/conns
-    [:entity/key
+    [:db/key
      [:session/share-cursor :default true]
      [:local/color :default "royalBlue"]]}])
 
@@ -497,7 +497,7 @@
         result (use-query query-cursors [:db/ident :session])
         {conns :session/conns
          share :session/share-cursors} result
-        conns  (key-by :entity/key conns)]
+        conns  (key-by :db/key conns)]
     (subscribe!
      (fn [{[uuid x y] :args}]
        (if share (swap! coords assoc uuid [x y]))) :cursor/moved [share])
@@ -517,7 +517,7 @@
    [:bounds/host :default [0 0 0 0]]
    [:bounds/view :default [0 0 0 0]]
    {:local/window
-    [:entity/key
+    [:db/key
      :window/modifier
      [:window/vec :default [0 0]]
      [:window/scale :default 1]
@@ -534,7 +534,7 @@
          [_ _ hw hh] :bounds/host
          [_ _ vw vh] :bounds/view
          [sx sy _ _] :bounds/self
-         {key     :entity/key
+         {key     :db/key
           scale   :window/scale
           mode    :window/draw-mode
           modif   :window/modifier

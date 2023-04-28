@@ -9,11 +9,11 @@
   [:local/type
    {:local/window
     [{:window/canvas
-      [:entity/key
+      [:db/key
        :initiative/rounds
-       {:initiative/turn [:entity/key]}
+       {:initiative/turn [:db/key]}
        {:canvas/initiative
-        [:entity/key
+        [:db/key
          :token/label
          :token/flags
          :initiative/roll
@@ -28,10 +28,10 @@
       [[:initiative/turns :default 0]
        [:initiative/rounds :default 0]
        {:canvas/initiative
-        [:entity/key]}]}]}])
+        [:db/key]}]}]}])
 
 (defn- initiative-order [a b]
-  (let [f (juxt :initiative/roll :entity/key)]
+  (let [f (juxt :initiative/roll :db/key)]
     (compare (f b) (f a))))
 
 (defn- format-time [seconds]
@@ -93,13 +93,13 @@
   (let [dispatch (use-dispatch)
         {type      :local/type
          {{current :initiative/turn} :window/canvas} :local/window} context
-        {key       :entity/key
+        {key       :db/key
          label     :token/label
          flags     :token/flags
          suffix    :initiative/suffix
          {checksum :image/checksum} :token/image} entity
         data-url (use-image checksum)]
-    [:div.initiant {:css {:current (= (:entity/key current) (:entity/key entity))}}
+    [:div.initiant {:css {:current (= (:db/key current) (:db/key entity))}}
      (if data-url
        [:div.initiant-image
         {:style {:background-image (str "url(" data-url ")")}
@@ -151,7 +151,7 @@
             (for [entity (sort initiative-order tokens)
                   :when  (or (= type :host)
                              (visible? (:token/flags entity)))]
-              ^{:key (:entity/key entity)}
+              ^{:key (:db/key entity)}
               [initiant result entity])])]))
 
 (defn- footer []

@@ -6,8 +6,8 @@
             [ogres.app.txs :refer [transact]]))
 
 (def schema
-  {:db/ident          {:db/unique :db.unique/identity}
-   :entity/key        {:db/unique :db.unique/identity}
+  {:db/key            {:db/unique :db.unique/identity}
+   :db/ident          {:db/unique :db.unique/identity}
    :canvas/image      {:db/valueType :db.type/ref}
    :canvas/initiative {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :canvas/masks      {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
@@ -43,16 +43,16 @@
     [:db/add -1 :root/canvases -2]
     [:db/add -1 :root/local -3]
     [:db/add -1 :root/session -5]
-    [:db/add -2 :entity/key (squuid)]
+    [:db/add -2 :db/key (squuid)]
     [:db/add -3 :db/ident :local]
-    [:db/add -3 :entity/key (squuid)]
+    [:db/add -3 :db/key (squuid)]
     [:db/add -3 :local/loaded? false]
     [:db/add -3 :local/color "#03a9f4"]
     [:db/add -3 :local/window -4]
     [:db/add -3 :local/windows -4]
     [:db/add -3 :local/type (local-type)]
     [:db/add -3 :panel/expanded #{:tokens}]
-    [:db/add -4 :entity/key (squuid)]
+    [:db/add -4 :db/key (squuid)]
     [:db/add -4 :window/canvas -2]
     [:db/add -5 :db/ident :session]]))
 
@@ -96,12 +96,12 @@
 
 (defn use-dispatch []
   (let [conn    (uix/context context)
-        query   [:entity/key {:local/window [:entity/key {:window/canvas [:entity/key]}]}]
+        query   [:db/key {:local/window [:db/key {:window/canvas [:db/key]}]}]
         publish (use-publish)
         result  (use-query query)
-        context {:local  (:entity/key result)
-                 :window (:entity/key (:local/window result))
-                 :canvas (:entity/key (:window/canvas (:local/window result)))}]
+        context {:local  (:db/key result)
+                 :window (:db/key (:local/window result))
+                 :canvas (:db/key (:window/canvas (:local/window result)))}]
     (fn [topic & args]
       (publish {:topic topic :args args})
       (let [context (assoc context :data @conn :event topic)

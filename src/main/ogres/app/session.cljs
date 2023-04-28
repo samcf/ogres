@@ -36,43 +36,43 @@
 (def merge-query
   [{:root/session
     [{:session/host
-      [:entity/key
+      [:db/key
        {:local/window
         [{:window/canvas
-          [:entity/key]}]}]}]}])
+          [:db/key]}]}]}]}])
 
 (defn merge-initial-state
   "Returns a new DataScript database with the current local state `prev` mixed
    into the incoming initial state `next`."
   [next prev]
   (let [prev-local  (ds/entity prev [:db/ident :local])
-        next-local  (ds/entity next [:entity/key (:entity/key prev-local)])
+        next-local  (ds/entity next [:db/key (:db/key prev-local)])
         prev-window (:local/window prev-local)
 
-        {{{host :entity/key} :session/host} :root/session}
+        {{{host :db/key} :session/host} :root/session}
         (ds/pull next merge-query [:db/ident :root])
 
         tx-data
         (into [[:db/add -1 :db/ident :session]
-               [:db/retract [:entity/key host] :db/ident]
+               [:db/retract [:db/key host] :db/ident]
 
                ;; Selectively merge parts of the previous local entity into the
                ;; next local entity.
-               [:db/add -2 :entity/key (:entity/key prev-local)]
+               [:db/add -2 :db/key (:db/key prev-local)]
                [:db/add -2 :db/ident :local]
                [:db/add -2 :bounds/self (or (:bounds/self prev-local) [0 0 0 0])]
 
                ;; Replace host as the local user, swap places in session
                ;; connections.
-               [:db/add [:db/ident :session] :session/conns [:entity/key host]]
+               [:db/add [:db/ident :session] :session/conns [:db/key host]]
                [:db/add [:db/ident :root] :root/local -2]
                [:db/retract [:db/ident :session] :session/conns -2]]
 
               ;; Maintain local window state when reconnecting and starting
               ;; with a window that references the same canvas.
-              (if (= (:entity/key (:window/canvas (:local/window prev-local)))
-                     (:entity/key (:window/canvas (:local/window next-local))))
-                [[:db/add -3 :entity/key (:entity/key (:local/window next-local))]
+              (if (= (:db/key (:window/canvas (:local/window prev-local)))
+                     (:db/key (:window/canvas (:local/window next-local))))
+                [[:db/add -3 :db/key (:db/key (:local/window next-local))]
                  [:db/add -3 :window/vec (or (:window/vec prev-window) [0 0])]
                  [:db/add -3 :window/scale (or (:window/scale prev-window) 1)]] []))]
     (ds/db-with next tx-data)))
@@ -92,7 +92,7 @@
     :session/created
     (ds/transact!
      conn
-     [[:db/add [:db/ident :local] :entity/key (:uuid data)]
+     [[:db/add [:db/ident :local] :db/key (:uuid data)]
       [:db/add [:db/ident :local] :session/state :connected]
       [:db/add [:db/ident :local] :session/last-room (:room data)]
       [:db/add [:db/ident :session] :session/room (:room data)]])
@@ -100,29 +100,29 @@
     :session/joined
     (ds/transact!
      conn
-     [[:db/add [:db/ident :local] :entity/key (:uuid data)]
+     [[:db/add [:db/ident :local] :db/key (:uuid data)]
       [:db/add [:db/ident :local] :session/state :connected]])
 
     :session/join
     (let [local   (ds/entity @conn [:db/ident :local])
           tx-data
-          [[:db/add -1 :entity/key (:uuid data)]
+          [[:db/add -1 :db/key (:uuid data)]
            [:db/add -1 :local/type :conn]
            [:db/add -1 :panel/expanded #{:session}]
            [:db/add [:db/ident :session] :session/conns -1]]
 
           tx-data-addtl
           (if (= (:local/type local) :host)
-            [[:db/add -1 :entity/key (:uuid data)]
+            [[:db/add -1 :db/key (:uuid data)]
              [:db/add -1 :local/type :conn]
              [:db/add -1 :local/loaded? true]
              [:db/add -1 :local/color (next-color @conn session-color-options)]
              [:db/add -1 :session/state :connected]
              [:db/add -1 :local/window -2]
              [:db/add -1 :local/windows -2]
-             [:db/add -2 :entity/key (ds/squuid)]
+             [:db/add -2 :db/key (ds/squuid)]
              [:db/add -2 :window/canvas -3]
-             [:db/add -3 :entity/key (-> local :local/window :window/canvas :entity/key)]]
+             [:db/add -3 :db/key (-> local :local/window :window/canvas :db/key)]]
             [])
           report (ds/transact! conn (into tx-data tx-data-addtl))]
       (if (= (:local/type local) :host)
@@ -131,7 +131,7 @@
           (on-send {:type :tx :data tx-data-addtl}))))
 
     :session/leave
-    (ds/transact! conn [[:db/retractEntity [:entity/key (:uuid data)]]])
+    (ds/transact! conn [[:db/retractEntity [:db/key (:uuid data)]]])
 
     :image/request
     (-> (.get (.table store "images") (:checksum data))
@@ -198,8 +198,8 @@
                   (fn [message]
                     (if-let [socket @socket]
                       (if (= (.-readyState socket) 1)
-                        (let [{key :entity/key} (ds/entity @conn [:db/ident :local])
-                              defaults          {:time (js/Date.now) :src key}]
+                        (let [local    (ds/entity @conn [:db/ident :local])
+                              defaults {:time (js/Date.now) :src (:db/key local)}]
                           (->> (merge defaults message)
                                (transit/write writer)
                                (.send socket)))))) [])]
@@ -256,14 +256,14 @@
            [:host :token] (dispatch :stamp/create checksum width height :private)
            [:host :scene] (dispatch :scene/create checksum width height :private)
            ([:conn :token] [:conn :scene])
-           (on-send {:type :image :dst (:entity/key host) :data data-url}))))
+           (on-send {:type :image :dst (:db/key host) :data data-url}))))
 
      ;; Creates a request for image data from the host of the connected
      ;; session. 
      :image/request
      (fn [{[checksum] :args}]
        (let [session (ds/entity @conn [:db/ident :session])]
-         (if-let [host (-> session :session/host :entity/key)]
+         (if-let [host (-> session :session/host :db/key)]
            (let [data {:name :image/request :checksum checksum}]
              (on-send {:type :event :dst host :data data})))))
 

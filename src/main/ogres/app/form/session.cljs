@@ -9,7 +9,7 @@
     [[:local/type :default :conn]
      [:session/state :default :initial]]}
    {:root/session
-    [{:session/conns [:entity/key]}]}])
+    [{:session/conns [:db/key]}]}])
 
 (def ^:private query-footer
   [{:root/local
@@ -19,15 +19,15 @@
 
 (def ^:private query-form
   [{:root/local
-    [:entity/key
+    [:db/key
      :local/type
      :local/color
      [:session/state :default :initial]
      [:session/share-cursor :default true]]}
    {:root/session
     [:session/room
-     {:session/conns [:entity/key :local/color :local/type]}
-     {:session/host [:entity/key :local/color]}
+     {:session/conns [:db/key :local/color :local/type]}
+     {:session/host [:db/key :local/color]}
      [:session/share-cursors :default true]]}])
 
 (defn- session-url [room-key]
@@ -58,7 +58,7 @@
          {share-cursor :session/share-cursor
           state        :session/state
           type         :local/type
-          key          :entity/key} :root/local
+          key          :db/key} :root/local
          local :root/local} result]
     (if (or (= state :connected) (= state :disconnected) (= state :connecting))
       [:section.session
@@ -93,7 +93,7 @@
            [:div.session-player
             [:div.session-player-color {:style {:background-color (:local/color host)}}]
             [:div.session-player-label "Host"
-             (if (= (:entity/key host) key)
+             (if (= (:db/key host) key)
                [:span " (You)"])]]
            [:div.prompt "Not connected."])]]
        [:section
@@ -101,11 +101,11 @@
         [:div.session-players
          (if (seq conns)
            (let [xf (filter (fn [entity] (= (:local/type entity) :conn)))]
-             (for [conn (->> (conj conns local) (sequence xf) (sort-by :entity/key))]
-               [:div.session-player {:key (:entity/key conn)}
+             (for [conn (->> (conj conns local) (sequence xf) (sort-by :db/key))]
+               [:div.session-player {:key (:db/key conn)}
                 [:div.session-player-color {:style {:background-color (:local/color conn)}}]
                 [:div.session-player-label "Friend"
-                 (if (= (:entity/key conn) key)
+                 (if (= (:db/key conn) key)
                    [:span " (You)"])]]))
            [:div.prompt "No one else is here."])]]]
       [:section.session

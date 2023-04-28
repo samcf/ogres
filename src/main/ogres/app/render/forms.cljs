@@ -105,7 +105,7 @@
 
 (defmethod token-form :conditions [props]
   (let [fqs (frequencies (reduce into [] ((:values props) :token/flags [])))
-        ids ((:values props) :entity/key)]
+        ids ((:values props) :db/key)]
     (for [[flag icon-name] conditions]
       ^{:key flag}
       [checkbox
@@ -121,7 +121,7 @@
 
 (defn token-context-menu [{:keys [tokens type]}]
   (let [dispatch (use-dispatch)
-        keys     (map :entity/key tokens)]
+        keys     (map :db/key tokens)]
     [context-menu
      (fn [{:keys [selected on-change]}]
        [:<>
@@ -201,12 +201,12 @@
          [icon {:name "paint-bucket"}]]
         [:button
          {:type "button" :data-tooltip "Remove" :style {:margin-left "auto"}
-          :on-click #(dispatch :element/remove [(:entity/key shape)])}
+          :on-click #(dispatch :element/remove [(:db/key shape)])}
          [icon {:name "trash3-fill"}]]])
      (fn [{:keys [selected]}]
        [shape-form
         {:name      selected
-         :on-change #(apply dispatch %1 [(:entity/key shape)] %&)
+         :on-change #(apply dispatch %1 [(:db/key shape)] %&)
          :values    (fn vs
                       ([f] (vs f #{}))
                       ([f init] (into init (map f) [shape])))}])]))
