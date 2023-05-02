@@ -1,6 +1,8 @@
 {:paths   ["src/main"]
  :deps    {com.cognitect/transit-clj             {:mvn/version "1.0.329"}
            com.cognitect/transit-cljs            {:mvn/version "0.8.269"}
+           com.pitch/uix.core                    {:mvn/version "0.9.1"}
+           com.pitch/uix.dom                     {:mvn/version "0.9.1"}
            datascript-transit/datascript-transit {:mvn/version "0.3.0" :exclusions  [com.cognitect/transit-clj com.cognitect/transit-cljs]}
            datascript/datascript                 {:mvn/version "1.4.2"}
            io.pedestal/pedestal.jetty            {:mvn/version "0.5.10"}
@@ -10,8 +12,6 @@
            org.clojure/clojurescript             {:mvn/version "1.11.60"}
            org.clojure/core.async                {:mvn/version "1.5.648"}
            org.slf4j/slf4j-simple                {:mvn/version "1.7.28"}
-           thheller/shadow-cljs                  {:mvn/version "2.23.3"}
-           uix.core/uix.core                     {:git/url "https://github.com/roman01la/uix.git" :deps/root "core" :sha"843abbe4c4b331fbb0d7d197ecd038b466b48e43"}
-           uix.dom/uix.dom                       {:git/url "https://github.com/roman01la/uix.git" :deps/root "dom" :sha "843abbe4c4b331fbb0d7d197ecd038b466b48e43"}}
+           thheller/shadow-cljs                  {:mvn/version "2.23.3"}}
  :aliases {:server/dev {:exec-fn ogres.server.core/run-development}
            :uberjar    {:extra-deps {com.github.seancorfield/depstar {:mvn/version "2.1.303"}}}}}

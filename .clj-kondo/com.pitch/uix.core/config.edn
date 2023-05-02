@@ -1,0 +1,26 @@
+{:lint-as
+ {uix.core/fn    clojure.core/fn
+  uix.core/defui clojure.core/defn
+  uix.core/$     hooks.uix/$}
+
+ :linters
+ {:uix.core/$-arg-validation
+  {:level :warning}
+
+  :type-mismatch
+  {:level :warning
+   :namespaces
+   {uix.core
+    {memo                    {:arities {1 {:args [:ifn] :ret [:ifn]} 2 {:args [:ifn :ifn] :ret [:any]}}}
+     use-state               {:arities {1 {:args [:any] :ret [:ifn :any]}}}
+     use-memo                {:arities {2 {:args [:ifn :seqable] :ret [:any]}}}
+     use-effect              {:arities {1 {:args [:ifn] :ret [:any]} 2 {:args [:ifn :seqable] :ret [:any]}}}
+     use-layout-effect       {:arities {1 {:args [:ifn] :ret [:any]} 2 {:args [:ifn :seqable] :ret [:any]}}}
+     use-insertion-effect    {:arities {1 {:args [:ifn] :ret [:any]} 2 {:args [:ifn :seqable] :ret [:any]}}}
+     use-sync-external-store {:arities {1 {:args [:ifn :ifn] :ret [:any]}}}
+     use-callback            {:arities {2 {:args [:ifn :seqable] :ret [:ifn]}}}
+     use-ref                 {:arities {1 {:args [:any] :ret [:atom]}}}
+     use-reducer             {:arities {2 {:args [:ifn :any] :ret [:seqable]} 3 {:args [:ifn :any :any] :ret [:seqable]}}}
+     as-react                {:arities {1 {:args [:ifn] :ret [:any]}}}
+     start-transition        {:arities {1 {:args [:ifn] :ret [:nil]}}}
+     lazy                    {:arities {1 {:args [:ifn] :ret [:any]}}}}}}}}
