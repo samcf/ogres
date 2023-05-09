@@ -3,5 +3,5 @@
 
 (uix.dev/init-fast-refresh!)
 
-(defn ^:dev/after-load refresh []
+(defn ^{:export true :dev/after-load true} refresh []
   (uix.dev/refresh!))

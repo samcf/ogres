@@ -197,7 +197,7 @@
       (server/dev-interceptors)
       (server/create-server)))
 
-(defn run-development [& _args]
+(defn ^:export run-development [& _args]
   (let [server (create-dev-server)]
     (println "Starting the development server on port" (::server/port server))
     (server/start server)))

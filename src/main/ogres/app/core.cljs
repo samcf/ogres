@@ -33,7 +33,7 @@
                 ($ dnd-context
                   ($ layout))))))))))
 
-(defn main []
+(defn ^:export main []
   (let [elem (.querySelector js/document "#root")
         root (create-root elem)]
     (render-root ($ app) root)))
