@@ -4,6 +4,6 @@
                   :compiler-options {:infer-externs :auto :externs ["datascript/externs.js"]}
                   :output-dir       "web/release"
                   :asset-path       "release"
-                  :devtools         {:after-load ogres.app.core/main}
+                  :devtools         {:preloads [ogres.app.preload]}
                   :modules          {:ogres.app {:entries [ogres.app.core]
                                                  :init-fn ogres.app.core/main}}}}}

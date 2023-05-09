@@ -1156,16 +1156,8 @@ legend {
     font-size: 14px;
     gap: 4px;
     height: 32px;
-    opacity: 1;
     transition: opacity 80ms ease-in-out;
 }
-
-.panel-form[data-distance="1"] .panel-header { opacity: 0.90; }
-.panel-form[data-distance="2"] .panel-header { opacity: 0.80; }
-.panel-form[data-distance="3"] .panel-header { opacity: 0.70; }
-.panel-form[data-distance="4"] .panel-header { opacity: 0.60; }
-.panel-form[data-distance="5"] .panel-header { opacity: 0.50; }
-.panel-form--collapsed .panel-header:hover { opacity: 0.94; }
 
 .panel-header > svg {
     margin: 6px 0 0 8px;

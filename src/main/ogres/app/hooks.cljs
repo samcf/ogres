@@ -5,7 +5,7 @@
             [ogres.app.provider.state :as provider.state]
             [ogres.app.provider.storage :as provider.storage]
             [perfect-cursors :refer [PerfectCursor]]
-            [uix.core.alpha :as uix]))
+            [uix.core :refer [use-effect use-state use-layout-effect use-ref use-callback]]))
 
 (def ^{:doc "Returns a function which, when called with a topic and any number
              of additional arguments, will perform the following work:
@@ -33,16 +33,11 @@
   provider.events/use-publish)
 
 (def ^{:doc "Creates a new subscription to `topic`, calling the given
-             `handler-fn` with the event map when an event with that
+             handler `f` with the event map when an event with that
              topic is published."
-       :arglists '([f] [f deps] [f topic deps] [f topic chan deps])}
-  subscribe!
-  provider.events/subscribe!)
-
-(def ^{:doc "Creates one or more subscriptions for each given topic-fn pairs"
-       :arglists '([& topic-fn-pairs])}
-  subscribe-many!
-  provider.events/subscribe-many!)
+       :arglists '([f] [topic f] [topic options f])}
+  use-subscribe
+  provider.events/use-subscribe)
 
 (def ^{:doc "Returns a URL for the image identified by the given checksum.
              The URL is only guaranteed to be usable for the window it
@@ -62,14 +57,14 @@
 (def ^{:doc "Creates a new portal element of name `label` with contents
              rendered by `render-fn`. This portal can then be rendered
              into with `use-portal`."
-       :arglists '([render-fn label])}
+       :arglists '([props])}
   create-portal
   provider.portal/create)
 
 (def ^{:doc "Renders the given children into the portal named by the value
              of :label in `props`. When the value given is nil, will
              render the given children normally."
-       :arglists '([props children])}
+       :arglists '([props])}
   use-portal
   provider.portal/use)
 
@@ -80,47 +75,51 @@
   use-store
   provider.storage/use-store)
 
-(defn listen!
+(defn use-event-listener
   "Creates a DOM event listener on the given DOM object `element` for `event`,
    calling `f` with the DOM event."
-  ([f event]      (listen! f event []))
-  ([f event deps] (listen! f js/window event deps))
-  ([f element event deps]
-   (uix/effect!
+  ([event f]
+   (use-event-listener js/window event f))
+  ([element event f]
+   (use-effect
     (fn [] (if element (.addEventListener element event f #js {:passive false}))
-      (fn [] (if element (.removeEventListener element event f #js {:passive false})))) deps)))
+      (fn [] (if element (.removeEventListener element event f #js {:passive false}))))
+    [element event f])))
 
 (defn use-interval
   "Calls the given function `f` with no arguments every `delay` milliseconds."
   [f delay]
-  (uix/effect!
+  (use-effect
    (fn []
      (let [id (js/window.setInterval f delay)]
-       (fn [] (js/window.clearInterval id))))))
+       (fn [] (js/window.clearInterval id)))) [delay f]))
 
 (defn use-modal
-  "Returns a tuple of [state ref], changing `state` to false when there is
-   a click event that does not occur within the element identified by `ref`.
-   Pass `ref` to the element (or modal) you want to close when the user
+  "Returns a tuple of [state set-state ref], changing `state` to false when
+   there is a click event that does not occur within the element identified by
+   `ref`. Pass `ref` to the element (or modal) you want to close when the user
    clicks outside of it."
   []
-  (let [ref (uix/ref) state (uix/state false)]
-    (listen!
-     (fn [event]
-       (if (and @ref (not (.contains @ref (.-target event))))
-         (swap! state not))) (if @state js/document false) "click" [@state])
-    [state ref]))
+  (let [[state set-state] (use-state false) ref (use-ref)]
+    (use-event-listener (if state js/document false) "click"
+      (use-callback
+       (fn [event]
+         (if-let [node (deref ref)]
+           (if (not (.contains node (.-target event)))
+             (set-state false)))) []))
+    [state set-state ref]))
 
 (defn use-cursor
   "Returns a function which should be called with updates to an element's
    position from some external source, such as a WebSocket event. Accepts a
    callback function which is called with an interpolated position; use this
    new position to update the element's actual rendered position."
-  [callback]
-  (let [cursor (uix/state (PerfectCursor. callback))]
-    (uix/layout-effect!
+  [callback [x y]]
+  (let [[cursor] (use-state (PerfectCursor. callback))]
+    (use-layout-effect
      (fn []
-       (fn [] (.dispose @cursor))) [])
-    (uix/callback
-     (fn [x y]
-       (.addPoint @cursor #js [x y])))))
+       (.addPoint cursor #js [x y])
+       (fn [] (.dispose cursor))) ^:lint/disable [cursor])
+    (use-callback
+     (fn [[x y]]
+       (.addPoint cursor #js [x y])) [cursor])))

@@ -1,6 +1,6 @@
 (ns ogres.app.provider.events
-  (:require [uix.core.alpha :as uix :refer [defcontext]]
-            [clojure.core.async :refer [chan mult tap untap pub sub unsub go-loop timeout put! <! close! alts!]]))
+  (:require [clojure.core.async :refer [chan mult tap untap pub sub unsub go-loop timeout put! <! close!]]
+            [uix.core :refer [defui $ create-context use-callback use-context use-effect]]))
 
 (defn create-initial-value []
   (let [ch-src (chan 1)
@@ -9,34 +9,33 @@
     (tap multi ch-pub)
     [(pub ch-pub :topic) ch-src multi]))
 
-(defcontext context (create-initial-value))
+(def context (create-context (create-initial-value)))
 
 (defonce context-value (create-initial-value))
 
-(defn provider
+(defui provider
   "Provides an event publication object, write channel, and channel multiplexer
-   for the given children. Refer to `use-publish` and `subscribe!` to publish
+   for the given children. Refer to `use-publish` and `use-subscribe` to publish
    and subscribe to events, respectively."
-  [children]
-  (uix/context-provider [context context-value] children))
+  [{:keys [children]}]
+  ($ (.-Provider context) {:value context-value} children))
 
-(defn use-publish
+(defui use-publish
   "Returns a function that must be called with a topic as the first argument
    and the event arguments as the rest. Components may subscribe to published
-   events with subscribe!"
+   events with `use-subscribe`."
   []
-  (let [[_ ch] (uix/context context)]
-    (fn [event]
-      (put! ch event))))
+  (let [[_ ch] (use-context context)]
+    (use-callback
+     (fn [event]
+       (put! ch event)) ^:lint/disable [])))
 
-(defn subscribe!
+(defn use-subscribe
   "Subscribes the given handler to the event bus, optionally given a topic.
    May be passed a topic and channel for more nuanced control."
   ([f]
-   (subscribe! f []))
-  ([f deps]
-   (let [[_ _ multi] (uix/context context)]
-     (uix/effect!
+   (let [[_ _ multi] (use-context context)]
+     (use-effect
       (fn []
         (let [ch (chan 1)]
           (tap multi ch)
@@ -46,13 +45,13 @@
                   (recur))))
           (fn []
             (close! ch)
-            (untap multi ch)))) deps)))
-  ([f topic deps]
-   (subscribe! f topic {:chan (chan 1)} deps))
-  ([f topic opts deps]
+            (untap multi ch)))) [multi f pub])))
+  ([topic f]
+   (use-subscribe topic {:chan (chan 1)} f))
+  ([topic opts f]
    (let [{ch :chan} opts
-         [pub _]    (uix/context context)]
-     (uix/effect!
+         [pub _]    (use-context context)]
+     (use-effect
       (fn []
         (sub pub topic ch)
         (go-loop []
@@ -62,27 +61,4 @@
             (f event)
             (recur)))
         (fn []
-          (unsub pub topic ch)
-          (close! ch))) deps))))
-
-(defn subscribe-many!
-  "Subscribes to multiple topics as given by each topic-fn pair in the form
-   of `topic handler-fn`."
-  [& topic-fns]
-  (let [[pub _ _]   (uix/context context)
-        topic-fns   (into {} (partition-all 2) topic-fns)
-        chans       (repeatedly (count topic-fns) #(chan 1))
-        topic-chans (partition 2 (interleave (keys topic-fns) chans))]
-    (uix/effect!
-     (fn []
-       (doseq [[topic ch] topic-chans]
-         (sub pub topic ch))
-       (go-loop []
-         (let [[event _] (alts! chans)]
-           (if (not (nil? event))
-             (do ((topic-fns (:topic event)) event)
-                 (recur)))))
-       (fn []
-         (doseq [[topic ch] topic-chans]
-           (unsub pub topic ch)
-           (close! ch)))) [topic-fns])))
+          (unsub pub topic ch))) ^:lint/disable [f]))))

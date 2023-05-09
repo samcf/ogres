@@ -1,11 +1,13 @@
 (ns ogres.app.render.panel
   (:require [ogres.app.hooks :refer [use-dispatch use-query]]
-            [ogres.app.render :refer [icon]]
-            [ogres.app.form.render :as render]))
-
-(defn- index-of [xs x]
-  (reduce (fn [_ [i v]] (if (= v x) (reduced i))) nil
-          (map-indexed vector xs)))
+            [ogres.app.form.session :as session]
+            [ogres.app.form.scenes  :as scenes]
+            [ogres.app.form.tokens  :as tokens]
+            [ogres.app.form.options :as options]
+            [ogres.app.form.help    :as help]
+            [ogres.app.form.initiative :as initiative]
+            [ogres.app.render :refer [css icon]]
+            [uix.core :refer [defui $]]))
 
 (def ^{:private true} panel-forms
   {:host [{:key :session    :label "Friends"    :icon "people-fill"}
@@ -19,38 +21,45 @@
           {:key :initiative :label "Initiative" :icon "hourglass-split"}
           {:key :help       :label "Help"       :icon "question-diamond"}]})
 
+(def ^{:private true} components
+  {:canvas     {:form options/form}
+   :help       {:form help/form}
+   :initiative {:form initiative/form :footer initiative/footer}
+   :scenes     {:form scenes/form :footer scenes/footer}
+   :session    {:header session/header :form session/form :footer session/footer}
+   :tokens     {:form tokens/form :footer tokens/footer}})
+
 (def ^{:private true} query
   [[:local/type :default :conn]
    [:panel/expanded :default #{}]])
 
-(defn container []
+(defui container []
   (let [dispatch (use-dispatch)
         result   (use-query query)
-        forms    (panel-forms (:local/type result))
-        found    (index-of (map :key forms) (first (:panel/expanded result)))]
-    [:section.panel
-     [:div.panel-forms
-      (for [[index form] (map-indexed vector forms)
-            :let [key (:key form)
-                  distance (js/Math.abs (- found index))
-                  expanded (contains? (:panel/expanded result) key)]]
-        [:div.panel-form
-         {:key key
-          :css {(str "panel-form-" (name key)) true
-                "panel-form--expanded"         expanded
-                "panel-form--collapsed"        (not expanded)}
-          :data-distance distance}
-         [:div.panel-header
-          {:on-click #(dispatch :interface/toggle-panel key)}
-          [:<>
-           [icon {:name (:icon form) :size 20}]
-           [:div.panel-header-label (:label form)]
-           (if-let [render-fn (render/header {:form key})]
-             [render-fn])]]
-         (if expanded
-           [:div.panel-content
-            [:div.panel-container
-             [:div.panel-container-content [(render/form {:form key})]]
-             (if-let [render-fn (render/footer {:form key})]
-               [:div.panel-container-footer
-                [render-fn]])]])])]]))
+        forms    (panel-forms (:local/type result))]
+    ($ :section.panel
+      ($ :div.panel-forms
+        (for [form forms
+              :let [key (:key form)
+                    expanded (contains? (:panel/expanded result) key)]]
+          ($ :div.panel-form
+            {:key key
+             :class (css {(str "panel-form-" (name key)) true
+                          "panel-form--expanded" expanded
+                          "panel-form--collapsed" (not expanded)})}
+            ($ :div.panel-header
+              {:on-click #(dispatch :interface/toggle-panel key)}
+              ($ :<>
+                ($ icon {:name (:icon form) :size 20})
+                ($ :div.panel-header-label (:label form))
+                (if-let [component (-> components key :header)]
+                  ($ component))))
+            (if expanded
+              ($ :div.panel-content
+                ($ :div.panel-container
+                  (if-let [component (-> components key :form)]
+                    ($ :div.panel-container-content
+                      ($ component)))
+                  (if-let [component (-> components key :footer)]
+                    ($ :div.panel-container-footer
+                      ($ component))))))))))))

@@ -1,8 +1,8 @@
 (ns ogres.app.provider.image
   (:import goog.crypt.Md5)
-  (:require [ogres.app.provider.events :refer [use-publish subscribe!]]
+  (:require [ogres.app.provider.events :refer [use-publish use-subscribe]]
             [ogres.app.provider.storage :refer [use-store]]
-            [uix.core.alpha :as uix]))
+            [uix.core :refer [use-callback use-state use-effect]]))
 
 (def cache (atom {}))
 
@@ -98,7 +98,7 @@
 (defn use-image-uploader [{:keys [type]}]
   (let [publish (use-publish)
         store   (use-store)]
-    (uix/callback
+    (use-callback
      (fn [file]
        (-> (create-data-url file)
            (.then create-image-element)
@@ -117,19 +117,19 @@
                           (.then (fn [] (js/Promise.resolve data)))))))
            (.then (fn [data]
                     (publish {:topic :image/create :args [type data]})))))
-     [type])))
+     [publish store type])))
 
 (defn use-image [checksum]
   (let [publish          (use-publish)
         store            (use-store)
-        sentinel         (uix/state 0)
-        watch-key        (deref (uix/state (random-uuid)))
+        [_ set-sentinel] (use-state 0)
+        [watch-key]      (use-state (random-uuid))
         [loading cached] (get @cache checksum [false nil])]
 
     (if (not (or loading cached))
       (swap! cache assoc checksum [true nil]))
 
-    (uix/effect!
+    (use-effect
      (fn []
        (if (string? checksum)
          (add-watch
@@ -137,22 +137,22 @@
           (fn [_ _ _ value]
             (if (not cached)
               (let [[_ cached] (get value checksum [false nil])]
-                (if cached (swap! sentinel inc)))))))
-       (fn [] (remove-watch cache watch-key))) [checksum cached])
+                (if cached (set-sentinel inc)))))))
+       (fn [] (remove-watch cache watch-key))) [watch-key checksum cached])
 
-    (subscribe!
-     (fn [{[checksum data-url] :args}]
-       (-> (create-object-url data-url)
-           (.then #(swap! cache assoc checksum [false %1])))) :image/cache [])
+    (use-subscribe :image/cache
+      (use-callback
+       (fn [{[checksum data-url] :args}]
+         (-> (create-object-url data-url)
+             (.then #(swap! cache assoc checksum [false %1])))) []))
 
-    (uix/effect!
+    (use-effect
      (fn []
        (if (and (string? checksum) (not (or loading cached)))
          (-> (.table store "images")
              (.get checksum)
              (.then (fn [rec] (create-object-url (.-data rec))))
              (.then (fn [url] (swap! cache assoc checksum [false url])))
-             (.catch (fn [] (publish {:topic :image/request :args [checksum]}))))))
-     [checksum])
+             (.catch (fn [] (publish {:topic :image/request :args [checksum]})))))) ^:lint/disable [checksum])
 
     cached))
