@@ -1156,12 +1156,8 @@ legend {
     font-size: 14px;
     gap: 4px;
     height: 32px;
-    opacity: 1;
     transition: opacity 80ms ease-in-out;
 }
-
-.panel-form--collapsed .panel-header { opacity: 0.80; }
-.panel-form--collapsed .panel-header:hover { opacity: 1; }
 
 .panel-header > svg {
     margin: 6px 0 0 8px;
