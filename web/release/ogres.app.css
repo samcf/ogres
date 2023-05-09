@@ -1462,10 +1462,7 @@ legend {
 .panel-form-initiative .panel-container-footer {
     display: grid;
     gap: 6px;
-    grid-template-columns: repeat(4, 1fr);
-    grid-template-areas:
-      "prev turn time next"
-      "rand rand rest quit";
+    grid-template-columns: repeat(3, 1fr);
 }
 
 .initiative-list {

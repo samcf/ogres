@@ -171,14 +171,12 @@
       ($ :button.button {:disabled true} "Time "
         ($ :span {:style {:text-transform "lowercase"}} (format-time (* turns 6))))
       ($ :button.button.button-primary
-        {:style    {:grid-column "3 / 5"}
-         :disabled (empty? tokens)
+        {:disabled (empty? tokens)
          :on-click #(dispatch :initiative/next)}
         ($ icon {:name "play-fill" :size 16})
         (if (<= rounds 0) "Start" "Next"))
       ($ :button.button.button-neutral
-        {:style    {:grid-column "1 / 3"}
-         :disabled (empty? tokens)
+        {:disabled (empty? tokens)
          :on-click #(dispatch :initiative/roll-all)}
         ($ icon {:name "dice-5-fill" :size 16}) "Randomize")
       ($ :button.button.button-neutral
