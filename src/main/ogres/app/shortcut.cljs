@@ -72,7 +72,7 @@
    (fn [[conn dispatch] event]
      (if (.. event -target (closest "svg.canvas"))
        (let [select [[:bounds/self :default [0 0 0 0]]]
-             result (pull @conn select [:db/ident :root])
+             result (pull @conn select [:db/ident :local])
              {[ox oy _ _] :bounds/self} result
              cx (- (.-clientX event) ox)
              cy (- (.-clientY event) oy)
