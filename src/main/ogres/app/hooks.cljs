@@ -36,8 +36,8 @@
              `handler-fn` with the event map when an event with that
              topic is published."
        :arglists '([f] [f topic] [f topic chan])}
-  subscribe!
-  provider.events/subscribe!)
+  use-subscribe
+  provider.events/use-subscribe)
 
 (def ^{:doc "Returns a URL for the image identified by the given checksum.
              The URL is only guaranteed to be usable for the window it
@@ -75,11 +75,11 @@
   use-store
   provider.storage/use-store)
 
-(defn listen!
+(defn use-listen
   "Creates a DOM event listener on the given DOM object `element` for `event`,
    calling `f` with the DOM event."
   ([f event]
-   (listen! f js/window event))
+   (use-listen f js/window event))
   ([f element event]
    (use-effect
     (fn [] (if element (.addEventListener element event f #js {:passive false}))
@@ -101,7 +101,7 @@
    clicks outside of it."
   []
   (let [[state set-state] (use-state false) ref (use-ref)]
-    (listen!
+    (use-listen
      (use-callback
       (fn [event]
         (if-let [node (deref ref)]

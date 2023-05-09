@@ -1,6 +1,6 @@
 (ns ogres.app.shortcut
   (:require [datascript.core :refer [pull]]
-            [ogres.app.hooks :refer [listen! use-dispatch]]
+            [ogres.app.hooks :refer [use-listen use-dispatch]]
             [ogres.app.provider.state :refer [context]]
             [uix.core :refer [defui use-context]]))
 
@@ -103,7 +103,7 @@
   (let [dispatch (use-dispatch)
         conn     (use-context context)]
     (doseq [type ["keydown" "keyup" "wheel"]]
-      (listen!
+      (use-listen
        (fn [event]
          (if (allow-event? event)
            (if-let [f (shortcuts (event-key type event))]

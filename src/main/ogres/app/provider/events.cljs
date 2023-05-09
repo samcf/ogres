@@ -15,7 +15,7 @@
 
 (defui provider
   "Provides an event publication object, write channel, and channel multiplexer
-   for the given children. Refer to `use-publish` and `subscribe!` to publish
+   for the given children. Refer to `use-publish` and `use-subscribe` to publish
    and subscribe to events, respectively."
   [{:keys [children]}]
   ($ (.-Provider context) {:value context-value} children))
@@ -23,14 +23,14 @@
 (defui use-publish
   "Returns a function that must be called with a topic as the first argument
    and the event arguments as the rest. Components may subscribe to published
-   events with subscribe!"
+   events with `use-subscribe`."
   []
   (let [[_ ch] (use-context context)]
     (use-callback
      (fn [event]
        (put! ch event)) ^:lint/disable [])))
 
-(defn subscribe!
+(defn use-subscribe
   "Subscribes the given handler to the event bus, optionally given a topic.
    May be passed a topic and channel for more nuanced control."
   ([f]
@@ -47,7 +47,7 @@
             (close! ch)
             (untap multi ch)))) [multi f pub])))
   ([f topic]
-   (subscribe! f topic {:chan (chan 1)}))
+   (use-subscribe f topic {:chan (chan 1)}))
   ([f topic opts]
    (let [{ch :chan} opts
          [pub _]    (use-context context)]

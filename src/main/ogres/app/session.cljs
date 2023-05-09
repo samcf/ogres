@@ -5,7 +5,7 @@
             [datascript.core :as ds]
             [datascript.transit :as dst]
             [ogres.app.env :as env]
-            [ogres.app.hooks :refer [listen! subscribe! use-dispatch use-publish use-interval use-store]]
+            [ogres.app.hooks :refer [use-listen use-subscribe use-dispatch use-publish use-interval use-store]]
             [ogres.app.provider.image :refer [create-checksum create-image-element]]
             [ogres.app.provider.state :as provider.state]
             [uix.core :refer [defui use-context use-state use-callback use-effect]]))
@@ -230,7 +230,7 @@
 
     ;; Subscribe to requests to create a new session, creating a WebSocket
     ;; connection object.
-    (subscribe!
+    (use-subscribe
      (use-callback
       (fn []
         (let [host (ds/entity @conn [:db/ident :local])
@@ -242,7 +242,7 @@
 
     ;; Subscribe to requests to join the session, creating a WebSocket
     ;; connection object.
-    (subscribe!
+    (use-subscribe
      (use-callback
       (fn []
         (let [search (.. js/window -location -search)
@@ -254,14 +254,14 @@
 
     ;; Subscribe to regular heartbeat events, rebroadcasting it to the other
     ;; connections in the server.
-    (subscribe!
+    (use-subscribe
      (use-callback
       (fn []
         (on-send {:type :heartbeat})) [on-send]) :session/heartbeat)
 
     ;; Subscribe to an intentional action to close the session, calling
     ;; `close` on the WebSocket object.
-    (subscribe!
+    (use-subscribe
      (use-callback
       (fn []
         (when (not (nil? socket))
@@ -273,7 +273,7 @@
     ;; Sending image data to the host is interpretted as a request to share an
     ;; image from their local computer to the rest of the connections in the
     ;; session as a token.
-    (subscribe!
+    (use-subscribe
      (use-callback
       (fn [{[type {:keys [data-url checksum width height]}] :args}]
         (let [{{kind :local/type} :root/local
@@ -287,7 +287,7 @@
 
     ;; Subscribe to requests for image data from other non-host connections
     ;; and reply with the appropriate image data in the form of a data URL.
-    (subscribe!
+    (use-subscribe
      (use-callback
       (fn [{[checksum] :args}]
         (let [session (ds/entity @conn [:db/ident :session])]
@@ -297,14 +297,14 @@
 
     ;; Subscribe to DataScript transactions and broadcast the transaction data
     ;; to the other connections in the session.
-    (subscribe!
+    (use-subscribe
      (use-callback
       (fn [{[{tx-data :tx-data}] :args}]
         (on-send {:type :tx :data tx-data})) [on-send]) :tx/commit)
 
     ;; Subscribe to changes to the user's cursor position on the canvas and
     ;; broadcast these changes to the other connections in the session.
-    (subscribe!
+    (use-subscribe
      (use-callback
       (fn [{[x y] :args}]
         (let [data {:name :cursor/moved :coord [x y]}]
@@ -313,7 +313,7 @@
 
     ;; Listen to the "close" event on the WebSocket object and dispatch the
     ;; appropriate event to communicate this change to state.
-    (listen!
+    (use-listen
      (use-callback
       (fn []
         (dispatch :session/disconnected)) [dispatch]) socket "close")
@@ -321,7 +321,7 @@
     ;; Listen to the "message" event on the WebSocket object and forward the
     ;; event details to the appropriate handler.
     (let [context {:conn conn :publish publish :dispatch dispatch :store store}]
-      (listen!
+      (use-listen
        (use-callback
         (fn [event]
           (let [data (transit/read reader (.-data event))]

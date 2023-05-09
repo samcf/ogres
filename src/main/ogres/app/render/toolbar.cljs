@@ -1,5 +1,5 @@
 (ns ogres.app.render.toolbar
-  (:require [ogres.app.hooks :refer [listen! use-dispatch use-query]]
+  (:require [ogres.app.hooks :refer [use-listen use-dispatch use-query]]
             [ogres.app.render :refer [css icon]]
             [uix.core :refer [defui $ use-ref use-state]]))
 
@@ -72,7 +72,7 @@
         (if (and (not (nil? tooltip-key)) tooltips?)
           js/window nil)]
 
-    (listen!
+    (use-listen
      (fn [event]
        (if (not (.contains @container (.-target event)))
          (set-tooltip-key nil))) element "mouseover")

@@ -3,7 +3,7 @@
             [clojure.string :refer [join]]
             [ogres.app.const :refer [grid-size]]
             [ogres.app.geom :refer [bounding-box chebyshev euclidean triangle]]
-            [ogres.app.hooks :refer [create-portal subscribe! use-cursor use-dispatch use-image use-portal use-publish use-query]]
+            [ogres.app.hooks :refer [create-portal use-subscribe use-cursor use-dispatch use-image use-portal use-publish use-query]]
             [ogres.app.render :refer [css icon]]
             [ogres.app.render.draw :refer [draw]]
             [ogres.app.render.forms :refer [token-context-menu shape-context-menu]]
@@ -504,7 +504,7 @@
                       (set-coords
                        (fn [m]
                          (assoc m uuid [x y]))))) [share])]
-    (subscribe! listener :cursor/moved)
+    (use-subscribe listener :cursor/moved)
     (if share
       ($ :g.canvas-cursors
         (for [[uuid point] coords

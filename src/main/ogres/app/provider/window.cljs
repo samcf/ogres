@@ -2,7 +2,7 @@
   (:require [cognitect.transit :as t]
             [datascript.core :as ds]
             [datascript.transit :as dst]
-            [ogres.app.hooks :refer [listen! subscribe! use-dispatch use-query]]
+            [ogres.app.hooks :refer [use-listen use-subscribe use-dispatch use-query]]
             [ogres.app.provider.state :as provider.state]
             [ogres.app.timing :refer [debounce]]
             [uix.core :refer [defui $ create-context use-context use-state use-effect]]))
@@ -24,7 +24,7 @@
    player's view of the canvas." []
   (let [dispatch             (use-dispatch)
         {:keys [view reset]} (use-context context)]
-    (subscribe!
+    (use-subscribe
      (fn []
        (if (nil? view)
          (let [url (.. js/window -location -origin)
@@ -38,7 +38,7 @@
   "Registers a DataScript listener in order to forward transactions from the
    host window to the view window." []
   (let [{:keys [view]} (use-context context)]
-    (subscribe!
+    (use-subscribe
      (fn [{[{tx-data :tx-data}] :args}]
        (->>
         #js {:detail (t/write writer tx-data)}
@@ -50,7 +50,7 @@
    form of serialized EDN DataScript transactions. Unmarshals and transacts
    those against the local DataScript connection." []
   (let [conn (use-context provider.state/context)]
-    (listen!
+    (use-listen
      (fn [event]
        (->>
         (.-detail event)
@@ -71,7 +71,7 @@
                            (dispatch :bounds/change type)))) 100)
         [observer] (use-state (js/ResizeObserver. handler))
         [canvas set-canvas] (use-state nil)]
-    (listen! handler "resize")
+    (use-listen handler "resize")
     (use-effect
      (fn []
        (if (= type :host)
@@ -93,7 +93,7 @@
    closed."
   []
   (let [{:keys [view reset]} (use-context context)]
-    (listen!
+    (use-listen
      (fn []
        (.setTimeout
         js/window
@@ -101,7 +101,7 @@
           (when (.-closed view)
             (reset))) 200)) view "visibilitychange")
 
-    (listen!
+    (use-listen
      (fn []
        (reset)) "beforeunload")))
 

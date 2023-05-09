@@ -3,7 +3,7 @@
             [datascript.transit :as dt]
             [dexie]
             [ogres.app.env :as env]
-            [ogres.app.provider.events :refer [subscribe!]]
+            [ogres.app.provider.events :refer [use-subscribe]]
             [ogres.app.provider.state :as state :refer [use-query]]
             [ogres.app.timing :refer [debounce]]
             [uix.core :refer [defui $ create-context use-callback use-context use-effect]]))
@@ -89,7 +89,7 @@
 (defui reset-handler
   []
   (let [store (use-store)]
-    (subscribe!
+    (use-subscribe
      (use-callback
       (fn []
         (.delete store)
@@ -105,10 +105,10 @@
         (use-callback
          (fn [event]
            (->> event :args first (.bulkDelete (.table store "images")))) [store])]
-    (subscribe! on-remove :stamp/remove)
-    (subscribe! on-remove :scene/remove)
-    (subscribe! on-remove-bulk :stamp/remove-all)
-    (subscribe! on-remove-bulk :scene/remove-all)))
+    (use-subscribe on-remove :stamp/remove)
+    (use-subscribe on-remove :scene/remove)
+    (use-subscribe on-remove-bulk :stamp/remove-all)
+    (use-subscribe on-remove-bulk :scene/remove-all)))
 
 (defui handlers
   "Registers event handlers related to IndexedDB, such as those involved in

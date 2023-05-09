@@ -1,6 +1,6 @@
 (ns ogres.app.provider.image
   (:import goog.crypt.Md5)
-  (:require [ogres.app.provider.events :refer [use-publish subscribe!]]
+  (:require [ogres.app.provider.events :refer [use-publish use-subscribe]]
             [ogres.app.provider.storage :refer [use-store]]
             [uix.core :refer [use-callback use-state use-effect]]))
 
@@ -140,7 +140,7 @@
                 (if cached (set-sentinel inc)))))))
        (fn [] (remove-watch cache watch-key))) [watch-key checksum cached])
 
-    (subscribe!
+    (use-subscribe
      (use-callback
       (fn [{[checksum data-url] :args}]
         (-> (create-object-url data-url)
