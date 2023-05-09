@@ -1,9 +1,9 @@
 (ns ogres.app.provider.state
-  (:require [uix.core.alpha :as uix :refer [defcontext]]
-            [datascript.core :as ds :refer [squuid]]
+  (:require [datascript.core :as ds :refer [squuid]]
             [ogres.app.env :as env]
             [ogres.app.provider.events :refer [use-publish]]
-            [ogres.app.txs :refer [transact]]))
+            [ogres.app.txs :refer [transact]]
+            [uix.core :refer [defui $ create-context use-context use-callback use-state use-effect]]))
 
 (def schema
   {:db/key            {:db/unique :db.unique/identity}
@@ -56,15 +56,15 @@
     [:db/add -4 :window/canvas -2]
     [:db/add -5 :db/ident :session]]))
 
-(defcontext context (ds/conn-from-db (initial-data)))
+(def context (create-context (ds/conn-from-db (initial-data))))
 
 (defonce context-value (ds/conn-from-db (initial-data)))
 
-(defn provider
+(defui provider
   "Provides a DataScript in-memory database to the application and causes
    re-renders when transactions are performed."
-  [child]
-  (uix/context-provider [context context-value] child))
+  [{:keys [children]}]
+  ($ (.-Provider context) {:value context-value} children))
 
 (defn listening? [data]
   (let [select [:local/type :local/paused?]
@@ -74,12 +74,12 @@
 (defn use-query
   ([pattern]
    (use-query pattern [:db/ident :local]))
-  ([pattern entity]
-   (let [conn       (uix/context context)
-         listen-key (deref (uix/state (squuid)))
-         get-result (uix/callback #(ds/pull @conn pattern entity) [])
-         prev-state (uix/state (get-result))]
-     (uix/effect!
+  ([pattern entity-id]
+   (let [conn                   (use-context context)
+         get-result             (use-callback #(ds/pull @conn pattern entity-id) ^:lint/disable [])
+         [listen-key]           (use-state (random-uuid))
+         [prev-state set-state] (use-state (get-result))]
+     (use-effect
       (fn []
         (let [canceled? (atom false)]
           (ds/listen!
@@ -87,25 +87,26 @@
            (fn [{:keys [db-after]}]
              (if (and (listening? db-after) (not @canceled?))
                (let [next-state (get-result)]
-                 (if-not (= @prev-state next-state)
-                   (reset! prev-state next-state))))))
+                 (if (not= prev-state next-state)
+                   (set-state next-state))))))
           (fn []
             (reset! canceled? true)
-            (ds/unlisten! conn listen-key)))) [])
-     @prev-state)))
+            (ds/unlisten! conn listen-key)))) ^:lint/disable [prev-state])
+     prev-state)))
 
 (defn use-dispatch []
-  (let [conn    (uix/context context)
+  (let [conn    (use-context context)
         query   [:db/key {:local/window [:db/key {:window/canvas [:db/key]}]}]
         publish (use-publish)
         result  (use-query query)
-        context {:local  (:db/key result)
-                 :window (:db/key (:local/window result))
-                 :canvas (:db/key (:window/canvas (:local/window result)))}]
-    (fn [topic & args]
-      (publish {:topic topic :args args})
-      (let [context (assoc context :data @conn :event topic)
-            tx-data (apply transact context args)]
-        (if (seq tx-data)
-          (let [report (ds/transact! conn tx-data)]
-            (publish {:topic :tx/commit :args (list report)})))))))
+        {local :db/key
+         {window :db/key
+          {canvas :db/key} :window/canvas} :local/window} result]
+    (use-callback
+     (fn [topic & args]
+       (publish {:topic topic :args args})
+       (let [context (hash-map :data @conn :event topic :local local :window window :canvas canvas)
+             tx-data (apply transact context args)]
+         (if (seq tx-data)
+           (let [report (ds/transact! conn tx-data)]
+             (publish {:topic :tx/commit :args (list report)}))))) ^:lint/disable [publish local window canvas])))

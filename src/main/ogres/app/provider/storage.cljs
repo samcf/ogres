@@ -3,12 +3,12 @@
             [datascript.transit :as dt]
             [dexie]
             [ogres.app.env :as env]
-            [ogres.app.provider.events :refer [subscribe! subscribe-many!]]
+            [ogres.app.provider.events :refer [subscribe!]]
             [ogres.app.provider.state :as state :refer [use-query]]
             [ogres.app.timing :refer [debounce]]
-            [uix.core.alpha :as uix :refer [defcontext]]))
+            [uix.core :refer [defui $ create-context use-callback use-context use-effect]]))
 
-(defcontext context)
+(def context (create-context))
 
 (def ignored-attrs
   #{:local/type
@@ -24,24 +24,25 @@
     (.stores (.version store 1) #js {:images "checksum" :app "release, updated"})
     store))
 
-(defn provider
+(defn use-store []
+  (use-context context))
+
+(defui provider
   "Provides an instance of the Dexie object, a convenience wrapper around
    the browser's IndexedDB data store."
-  [child]
+  [{:keys [children]}]
   (let [store (initialize)]
-    (uix/context-provider [context store] child)))
+    ($ (.-Provider context) {:value store} children)))
 
-(defn use-store []
-  (uix/context context))
-
-(defn marshaller
+(defui marshaller
   "Listens to transactions to the DataScript database and serializes the
    application state to the browser's IndexedDB store. This is only performed
    on the host window and only after the application has already initialized
-   the state." []
-  (let [conn  (uix/context state/context)
+   the state."
+  []
+  (let [conn  (use-context state/context)
         store (use-store)]
-    (uix/effect!
+    (use-effect
      (fn []
        (ds/listen! conn :marshaller
                    (debounce
@@ -55,17 +56,18 @@
                             (dt/write-transit-str)
                             (as-> marshalled #js {:release env/VERSION :updated (* -1 (.now js/Date)) :data marshalled})
                             (as-> record (.put (.table store "app") record))))) 200))
-       (fn [] (ds/unlisten! conn :marshaller))) []) nil))
+       (fn [] (ds/unlisten! conn :marshaller)))) []))
 
-(defn unmarshaller
+(defui unmarshaller
   "Initializes the DataScript database from the serialized state within the
    browser's IndexedDB store. This is only run once for both the host and
-   view window." []
-  (let [conn    (uix/context state/context)
+   view window."
+  []
+  (let [conn    (use-context state/context)
         store   (use-store)
         tx-data [[:db/add [:db/ident :local] :local/loaded? true]
                  [:db/add [:db/ident :local] :local/type (state/local-type)]]]
-    (uix/effect!
+    (use-effect
      (fn []
        (-> (.table store "app")
            (.get env/VERSION)
@@ -82,30 +84,37 @@
                  (as-> data (ds/reset-conn! conn data))))))
            (.catch
             (fn []
-              (ds/transact! conn tx-data))))) []) nil))
+              (ds/transact! conn tx-data)))))) []))
 
-(defn reset-handler []
+(defui reset-handler
+  []
   (let [store (use-store)]
     (subscribe!
-     (fn []
-       (.delete store)
-       (.reload (.-location js/window))) :storage/reset []) nil))
+     (use-callback
+      (fn []
+        (.delete store)
+        (.reload (.-location js/window))) [store]) :storage/reset)))
 
-(defn remove-handler []
+(defui remove-handler []
   (let [store (use-store)
-        table (.table store "images")]
-    (subscribe-many!
-     :stamp/remove     #(->> % :args first (.delete table))
-     :scene/remove     #(->> % :args first (.delete table))
-     :stamp/remove-all #(->> % :args first clj->js (.bulkDelete table))
-     :scene/remove-all #(->> % :args first clj->js (.bulkDelete table)))
-    nil))
+        on-remove
+        (use-callback
+         (fn [event]
+           (->> event :args first (.delete (.table store "images")))) [store])
+        on-remove-bulk
+        (use-callback
+         (fn [event]
+           (->> event :args first (.bulkDelete (.table store "images")))) [store])]
+    (subscribe! on-remove :stamp/remove)
+    (subscribe! on-remove :scene/remove)
+    (subscribe! on-remove-bulk :stamp/remove-all)
+    (subscribe! on-remove-bulk :scene/remove-all)))
 
-(defn handlers
+(defui handlers
   "Registers event handlers related to IndexedDB, such as those involved in
    saving and loading the application state." []
   (let [{type :local/type} (use-query [:local/type])]
     (case type
-      :host [:<> [unmarshaller] [marshaller] [remove-handler] [reset-handler]]
-      :view [:<> [unmarshaller]]
-      :conn [:<> [remove-handler]])))
+      :host ($ :<> ($ unmarshaller) ($ marshaller) ($ remove-handler) ($ reset-handler))
+      :view ($ :<> ($ unmarshaller))
+      :conn ($ :<> ($ remove-handler)))))

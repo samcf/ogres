@@ -1,38 +1,40 @@
 (ns ogres.app.provider.portal
   (:refer-clojure :exclude [use])
-  (:require [uix.core.alpha :as uix :refer [defcontext]]
-            [uix.dom.alpha :refer [create-portal]]))
+  (:require [uix.core :refer [defui $ create-context use-context use-state use-callback]]
+            [uix.dom :refer [create-portal]]))
 
-(defcontext portal)
+(def context (create-context))
 
-(defn provider
+(defui provider
   "Context provider that allows the user to define portal targets and associate
    them with a label; other components within the provider can then render
    into these targets by label."
-  [children]
-  (let [portals  (uix/state {})
-        register (uix/callback
-                  (fn [label ref]
-                    (swap! portals assoc label ref)) [])]
-    (uix/context-provider [portal [@portals register]] children)))
+  [{:keys [children]}]
+  (let [[portals set-portals] (use-state {})
+        register              (use-callback
+                               (fn [name ref]
+                                 (set-portals
+                                  (fn [portals]
+                                    (assoc portals name ref)))) [])]
+    ($ (.-Provider context) {:value [portals register]} children)))
 
-(defn create
+(defui create
   "Registers the DOM element returned by `f` as a portal labeled by `label`.
    This element will be used as the target node for rendering the contents
    of `use`."
-  [f label]
-  (let [[_ register] (uix/context portal)
-        callback     (uix/callback
+  [{:keys [name children]}]
+  (let [[_ register] (use-context context)
+        callback     (use-callback
                       (fn [node]
-                        (register label node)) [])]
-    (f callback)))
+                        (register name node)) [register name])]
+    (children {:ref callback})))
 
-(defn use
+(defui use
   "Renders the given children into the portal target associated with the given
    label; if the label is nil, renders the contents normally."
-  [{:keys [label]} children]
-  (let [[portals _] (uix/context portal)
-        node        (get portals label)]
+  [{:keys [name children]}]
+  (let [[portals _] (use-context context)
+        node        (get portals name)]
     (if (not (nil? node))
-      (create-portal children node)
-      children)))
+      (create-portal (children) node)
+      (children))))

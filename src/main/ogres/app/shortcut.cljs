@@ -2,7 +2,7 @@
   (:require [datascript.core :refer [pull]]
             [ogres.app.hooks :refer [listen! use-dispatch]]
             [ogres.app.provider.state :refer [context]]
-            [uix.core.alpha :as uix]))
+            [uix.core :refer [defui use-context]]))
 
 (defn linear [dx dy rx ry]
   (fn [n] (+ (* (/ (- n dx) (- dy dx)) (- ry rx)) rx)))
@@ -99,13 +99,13 @@
                   (or (= (.-type target) "text")
                       (= (.-type target) "number")))))))
 
-(defn handlers []
+(defui handlers []
   (let [dispatch (use-dispatch)
-        conn     (uix/context context)]
+        conn     (use-context context)]
     (doseq [type ["keydown" "keyup" "wheel"]]
       (listen!
        (fn [event]
          (if (allow-event? event)
            (if-let [f (shortcuts (event-key type event))]
              (let [context [conn dispatch]]
-               (f context event))))) type [dispatch]))))
+               (f context event))))) type))))

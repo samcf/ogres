@@ -5,10 +5,10 @@
             [datascript.core :as ds]
             [datascript.transit :as dst]
             [ogres.app.env :as env]
-            [ogres.app.hooks :refer [listen! subscribe! subscribe-many! use-dispatch use-publish use-interval use-store]]
+            [ogres.app.hooks :refer [listen! subscribe! use-dispatch use-publish use-interval use-store]]
             [ogres.app.provider.image :refer [create-checksum create-image-element]]
             [ogres.app.provider.state :as provider.state]
-            [uix.core.alpha :as uix]))
+            [uix.core :refer [defui use-context use-state use-callback use-effect]]))
 
 (def reader (transit/reader :json {:handlers dst/read-handlers}))
 (def writer (transit/writer :json {:handlers dst/write-handlers}))
@@ -26,12 +26,6 @@
     (if (seq unused)
       (first (shuffle unused))
       (first (shuffle colors)))))
-
-(defn handle-open [_ _]
-  (comment "Not implemented"))
-
-(defn handle-close [{:keys [dispatch]} _]
-  (dispatch :session/disconnected))
 
 (def merge-query
   [{:root/session
@@ -138,7 +132,7 @@
         (.then (fn [r] (.-data r)))
         (.then (fn [data-url]
                  (on-send {:type :image :dst (:src message) :data data-url}))))
-    
+
     :cursor/moved
     (let [{src :src {[x y] :coord} :data} message]
       (publish {:topic :cursor/moved :args [src x y]}))))
@@ -187,132 +181,148 @@
       (-> (.put (.table store "images") record)
           (.then #(publish {:topic :image/cache :args [checksum data-url]}))))))
 
-(defn handlers []
-  (let [publish  (use-publish)
+(defui handlers []
+  (let [[socket set-socket] (use-state nil)
+        [cursor] (use-state (chan (sliding-buffer 1)))
         dispatch (use-dispatch)
+        publish  (use-publish)
         store    (use-store)
-        conn     (uix/context provider.state/context)
-        socket   (uix/state nil)
-        cursor   (deref (uix/state (chan (sliding-buffer 1))))
-        on-send  (uix/callback
+        conn     (use-context provider.state/context)
+        on-send  (use-callback
                   (fn [message]
-                    (if-let [socket @socket]
+                    (if (not (nil? socket))
                       (if (= (.-readyState socket) 1)
                         (let [local    (ds/entity @conn [:db/ident :local])
                               defaults {:time (js/Date.now) :src (:db/key local)}]
                           (->> (merge defaults message)
                                (transit/write writer)
-                               (.send socket)))))) [])]
-
-    (uix/effect!
-     (fn []
-       (fn []
-         (if-let [ws @socket]
-           (.close ws)
-           (reset! socket nil)))) [])
-
-    (subscribe-many!
-     ;; Open a WebSocket connection and attempt to create a new multiplayer
-     ;; lobby with either a new random key or with the key most previously
-     ;; used.
-     :session/request
-     (fn []
-       (let [host (ds/entity @conn [:db/ident :local])
-             conn (js/WebSocket.
-                   (if (:session/last-room host)
-                     (str env/SOCKET-URL "?host=" (:session/last-room host))
-                     env/SOCKET-URL))]
-         (reset! socket conn)))
-
-     ;; Open a WebSocket connection and attempt to join an existing multiplayer
-     ;; room with the key given by the query parameter "join".     
-     :session/join
-     (fn []
-       (let [search (.. js/window -location -search)
-             params (js/URLSearchParams. search)
-             room   (.get params "join")]
-         (if (not (nil? room))
-           (let [ws (js/WebSocket. (str env/SOCKET-URL "?join=" room))]
-             (reset! socket ws)))))
-
-     :session/heartbeat
-     (fn []
-       (on-send {:type :heartbeat}))
-
-     ;; Closes the WebSocket connection.
-     :session/close
-     (fn []
-       (when-let [ws @socket]
-         (.close ws)
-         (reset! socket nil)))
-
-     ;; Handles image uploads by either host or player connections. 
-     :image/create
-     (fn [{[type {:keys [data-url checksum width height]}] :args}]
-       (let [{{kind :local/type} :root/local
-              {host :session/host} :root/session}
-             (ds/entity (ds/db conn) [:db/ident :root])]
-         (case [kind type]
-           [:host :token] (dispatch :stamp/create checksum width height :private)
-           [:host :scene] (dispatch :scene/create checksum width height :private)
-           ([:conn :token] [:conn :scene])
-           (on-send {:type :image :dst (:db/key host) :data data-url}))))
-
-     ;; Creates a request for image data from the host of the connected
-     ;; session. 
-     :image/request
-     (fn [{[checksum] :args}]
-       (let [session (ds/entity @conn [:db/ident :session])]
-         (if-let [host (-> session :session/host :db/key)]
-           (let [data {:name :image/request :checksum checksum}]
-             (on-send {:type :event :dst host :data data})))))
-
-     ;; Send all DataScript transactions to all other connections in the
-     ;; multiplayer session.
-     :tx/commit
-     (fn [{[{tx-data :tx-data}] :args}]
-       (on-send {:type :tx :data tx-data})))
+                               (.send socket)))))) ^:lint/disable [socket])]
 
     ;; Establish a WebSocket connection to the room identified by the "join"
     ;; query parameter in the URL.
-    (uix/effect!
+    (use-effect
      (fn []
-       (let [local (ds/entity @conn [:db/ident :local])]
-         (if (= (:local/type local) :conn)
-           (dispatch :session/join)))) [])
-
-    (let [opts {:chan cursor :rate-limit 80}]
-      (subscribe!
-       (fn [{[x y] :args}]
-         (let [data {:name :cursor/moved :coord [x y]}]
-           (on-send {:type :event :data data}))) :cursor/move opts []))
+       (let [local (ds/entity @conn [:db/ident :local])
+             state (:session/state local)
+             type  (:local/type local)]
+         (if (and (= type :conn) (or (nil? state) (= state :initial)))
+           (dispatch :session/join)))) [conn dispatch])
 
     ;; Periodically attempt to re-establish closed connections.
     (use-interval
-     (fn []
-       (let [local (ds/entity @conn [:db/ident :local])]
-         (if (and (= (:local/type local) :conn)
-                  (= (:session/state local) :disconnected))
-           (dispatch :session/join)))) interval-reconnect)
+     (use-callback
+      (fn []
+        (let [local (ds/entity @conn [:db/ident :local])]
+          (if (and (= (:local/type local) :conn)
+                   (= (:session/state local) :disconnected))
+            (dispatch :session/join)))) [conn dispatch]) interval-reconnect)
 
     ;; Periodically send heartbeat messages to keep the session connections
     ;; alive. This heartbeat will be sent to the server and then distributed
     ;; to the other connections in the room.
     (use-interval
-     (fn []
-       (let [local (ds/entity @conn [:db/ident :local])]
-         (if (and (= (:local/type local) :host)
-                  (= (:session/state local) :connected))
-           (dispatch :session/heartbeat)))), interval-heartbeat)
+     (use-callback
+      (fn []
+        (let [local (ds/entity @conn [:db/ident :local])]
+          (if (and (= (:local/type local) :host)
+                   (= (:session/state local) :connected))
+            (dispatch :session/heartbeat)))) [conn dispatch]), interval-heartbeat)
 
+    ;; Subscribe to requests to create a new session, creating a WebSocket
+    ;; connection object.
+    (subscribe!
+     (use-callback
+      (fn []
+        (let [host (ds/entity @conn [:db/ident :local])
+              conn (js/WebSocket.
+                    (if (:session/last-room host)
+                      (str env/SOCKET-URL "?host=" (:session/last-room host))
+                      env/SOCKET-URL))]
+          (set-socket conn))) [conn]) :session/request)
+
+    ;; Subscribe to requests to join the session, creating a WebSocket
+    ;; connection object.
+    (subscribe!
+     (use-callback
+      (fn []
+        (let [search (.. js/window -location -search)
+              params (js/URLSearchParams. search)
+              room   (.get params "join")]
+          (if (not (nil? room))
+            (let [conn (js/WebSocket. (str env/SOCKET-URL "?join=" room))]
+              (set-socket conn))))) []) :session/join)
+
+    ;; Subscribe to regular heartbeat events, rebroadcasting it to the other
+    ;; connections in the server.
+    (subscribe!
+     (use-callback
+      (fn []
+        (on-send {:type :heartbeat})) [on-send]) :session/heartbeat)
+
+    ;; Subscribe to an intentional action to close the session, calling
+    ;; `close` on the WebSocket object.
+    (subscribe!
+     (use-callback
+      (fn []
+        (when (not (nil? socket))
+          (.close socket)
+          (set-socket nil))) [socket]) :session/close)
+
+    ;; Subscribe to image uploads, either handling them normally if the user is
+    ;; the host or sending the image data to the host if the user is a client.
+    ;; Sending image data to the host is interpretted as a request to share an
+    ;; image from their local computer to the rest of the connections in the
+    ;; session as a token.
+    (subscribe!
+     (use-callback
+      (fn [{[type {:keys [data-url checksum width height]}] :args}]
+        (let [{{kind :local/type} :root/local
+               {host :session/host} :root/session}
+              (ds/entity (ds/db conn) [:db/ident :root])]
+          (case [kind type]
+            [:host :token] (dispatch :stamp/create checksum width height :private)
+            [:host :scene] (dispatch :scene/create checksum width height :private)
+            ([:conn :token] [:conn :scene])
+            (on-send {:type :image :dst (:db/key host) :data data-url})))) [conn dispatch on-send]) :image/create)
+
+    ;; Subscribe to requests for image data from other non-host connections
+    ;; and reply with the appropriate image data in the form of a data URL.
+    (subscribe!
+     (use-callback
+      (fn [{[checksum] :args}]
+        (let [session (ds/entity @conn [:db/ident :session])]
+          (if-let [host (-> session :session/host :db/key)]
+            (let [data {:name :image/request :checksum checksum}]
+              (on-send {:type :event :dst host :data data}))))) [conn on-send]) :image/request)
+
+    ;; Subscribe to DataScript transactions and broadcast the transaction data
+    ;; to the other connections in the session.
+    (subscribe!
+     (use-callback
+      (fn [{[{tx-data :tx-data}] :args}]
+        (on-send {:type :tx :data tx-data})) [on-send]) :tx/commit)
+
+    ;; Subscribe to changes to the user's cursor position on the canvas and
+    ;; broadcast these changes to the other connections in the session.
+    (subscribe!
+     (use-callback
+      (fn [{[x y] :args}]
+        (let [data {:name :cursor/moved :coord [x y]}]
+          (on-send {:type :event :data data}))) [on-send]) :cursor/move
+     {:chan cursor :rate-limit 80})
+
+    ;; Listen to the "close" event on the WebSocket object and dispatch the
+    ;; appropriate event to communicate this change to state.
+    (listen!
+     (use-callback
+      (fn []
+        (dispatch :session/disconnected)) [dispatch]) socket "close")
+
+    ;; Listen to the "message" event on the WebSocket object and forward the
+    ;; event details to the appropriate handler.
     (let [context {:conn conn :publish publish :dispatch dispatch :store store}]
-      (doseq [type ["open" "close" "message" "error"]]
-        (listen!
-         (fn [event]
-           (case type
-             "open"    (handle-open context event)
-             "close"   (handle-close context event)
-             "error"   (js/console.log "error" event)
-             "message" (let [data (transit/read reader (.-data event))]
-                         (handle-message context data on-send))))
-         @socket type [context @socket]))) nil))
+      (listen!
+       (use-callback
+        (fn [event]
+          (let [data (transit/read reader (.-data event))]
+            (handle-message context data on-send))) [context on-send]) socket "message"))))
