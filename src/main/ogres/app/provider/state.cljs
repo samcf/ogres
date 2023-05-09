@@ -77,8 +77,8 @@
   ([pattern entity-id]
    (let [conn                   (use-context context)
          get-result             (use-callback #(ds/pull @conn pattern entity-id) ^:lint/disable [])
-         [listen-key]           (use-state (random-uuid))
-         [prev-state set-state] (use-state (get-result))]
+         [listen-key]           (use-state random-uuid)
+         [prev-state set-state] (use-state get-result)]
      (use-effect
       (fn []
         (let [canceled? (atom false)]
