@@ -2,10 +2,10 @@
   (:require [cognitect.transit :as t]
             [datascript.core :as ds]
             [datascript.transit :as dst]
-            [ogres.app.hooks :refer [use-listen use-subscribe use-dispatch use-query]]
+            [ogres.app.hooks :refer [use-event-listener use-subscribe use-dispatch use-query]]
             [ogres.app.provider.state :as provider.state]
             [ogres.app.timing :refer [debounce]]
-            [uix.core :refer [defui $ create-context use-context use-state use-effect]]))
+            [uix.core :refer [defui $ create-context use-callback use-context use-state use-effect]]))
 
 (def context (create-context))
 
@@ -50,12 +50,13 @@
    form of serialized EDN DataScript transactions. Unmarshals and transacts
    those against the local DataScript connection." []
   (let [conn (use-context provider.state/context)]
-    (use-listen
-     (fn [event]
-       (->>
-        (.-detail event)
-        (t/read reader)
-        (ds/transact! conn))) "AppStateTx")))
+    (use-event-listener "AppStateTx"
+      (use-callback
+       (fn [event]
+         (->>
+          (.-detail event)
+          (t/read reader)
+          (ds/transact! conn))) [conn]))))
 
 (defui bounds
   "Registers event handlers to watch for changes in the canvas dimensions in
@@ -71,7 +72,7 @@
                            (dispatch :bounds/change type)))) 100)
         [observer] (use-state (js/ResizeObserver. handler))
         [canvas set-canvas] (use-state nil)]
-    (use-listen handler "resize")
+    (use-event-listener "resize" handler)
     (use-effect
      (fn []
        (if (= type :host)
@@ -93,44 +94,38 @@
    closed."
   []
   (let [{:keys [view reset]} (use-context context)]
-    (use-listen
-     (fn []
-       (.setTimeout
-        js/window
-        (fn []
-          (when (.-closed view)
-            (reset))) 200)) view "visibilitychange")
-
-    (use-listen
-     (fn []
-       (reset)) "beforeunload")))
+    (use-event-listener view "visibilitychange"
+      (use-callback
+       (fn []
+         (.. js/window (setTimeout #(when (.-closed view) (reset)) 200)))
+       [view reset]))
+    (use-event-listener "beforeunload"
+      (fn [] (reset)))))
 
 (defui provider
   "Provides a reference to the view window, if any, and registers several
    event handlers needed for them."
   []
-  (let [dispatch (use-dispatch)
+  (let [[screen set-screen] (use-state nil)
+        dispatch (use-dispatch)
         result   (use-query [:local/type :local/loaded?])
-        [-window set-window] (use-state nil)
-        on-set-window
-        (fn
-          ([]
-           (when-let [element -window]
-             (.close element)
-             (dispatch :share/toggle false)
-             (set-window nil)))
-          ([element]
-           (set-window element)))]
+        on-reset (use-callback
+                  (fn
+                    ([] (when-let [element screen]
+                          (.close element)
+                          (dispatch :share/toggle false)
+                          (set-screen nil)))
+                    ([element] (set-screen element))) [dispatch screen])]
     (if (:local/loaded? result)
-      ($ (.-Provider context) {:value {:view -window :reset on-set-window}}
-         (case (:local/type result)
-           :host ($ :<>
-                    ($ initialize)
-                    ($ bounds {:target js/window :type :host})
-                    (if-let [target -window]
-                      ($ :<>
-                         ($ dispatcher)
-                         ($ bounds {:target target :type :view})))
-                    ($ closers))
-           :view ($ listener)
-           :conn ($ bounds {:target js/window :type :conn}))))))
+      ($ (.-Provider context) {:value {:view screen :reset on-reset}}
+        (case (:local/type result)
+          :host ($ :<>
+                  ($ initialize)
+                  ($ bounds {:target js/window :type :host})
+                  (if-let [target screen]
+                    ($ :<>
+                      ($ dispatcher)
+                      ($ bounds {:target target :type :view})))
+                  ($ closers))
+          :view ($ listener)
+          :conn ($ bounds {:target js/window :type :conn}))))))

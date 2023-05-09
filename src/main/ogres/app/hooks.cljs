@@ -75,16 +75,16 @@
   use-store
   provider.storage/use-store)
 
-(defn use-listen
+(defn use-event-listener
   "Creates a DOM event listener on the given DOM object `element` for `event`,
    calling `f` with the DOM event."
-  ([f event]
-   (use-listen f js/window event))
-  ([f element event]
+  ([event f]
+   (use-event-listener js/window event f))
+  ([element event f]
    (use-effect
     (fn [] (if element (.addEventListener element event f #js {:passive false}))
       (fn [] (if element (.removeEventListener element event f #js {:passive false}))))
-    [f element event])))
+    [element event f])))
 
 (defn use-interval
   "Calls the given function `f` with no arguments every `delay` milliseconds."
@@ -101,13 +101,12 @@
    clicks outside of it."
   []
   (let [[state set-state] (use-state false) ref (use-ref)]
-    (use-listen
-     (use-callback
-      (fn [event]
-        (if-let [node (deref ref)]
-          (if (not (.contains node (.-target event)))
-            (set-state false)))) [])
-     (if state js/document false) "click")
+    (use-event-listener (if state js/document false) "click"
+      (use-callback
+       (fn [event]
+         (if-let [node (deref ref)]
+           (if (not (.contains node (.-target event)))
+             (set-state false)))) []))
     [state set-state ref]))
 
 (defn use-cursor

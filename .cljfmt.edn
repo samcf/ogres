@@ -1,1 +1,2 @@
-{:indents {$ [[:inner 0]]}}
+{:indents {use-event-listener [[:inner 0]]
+           $                  [[:inner 0]]}}

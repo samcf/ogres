@@ -1,6 +1,6 @@
 (ns ogres.app.shortcut
   (:require [datascript.core :refer [pull]]
-            [ogres.app.hooks :refer [use-listen use-dispatch]]
+            [ogres.app.hooks :refer [use-event-listener use-dispatch]]
             [ogres.app.provider.state :refer [context]]
             [uix.core :refer [defui use-callback use-context]]))
 
@@ -102,21 +102,21 @@
 (defui handlers []
   (let [dispatch (use-dispatch)
         conn     (use-context context)]
-    (use-listen
-     (use-callback
-      (fn [event]
-        (if (allow-event? event)
-          (if-let [f (shortcuts (event-key "keyup" event))]
-            (f [conn dispatch] event)))) [conn dispatch]) "keyup")
-    (use-listen
-     (use-callback
-      (fn [event]
-        (if (allow-event? event)
-          (if-let [f (shortcuts (event-key "keydown" event))]
-            (f [conn dispatch] event)))) [conn dispatch]) "keydown")
-    (use-listen
-     (use-callback
-      (fn [event]
-        (if (allow-event? event)
-          (if-let [f (shortcuts (event-key "wheel" event))]
-            (f [conn dispatch] event)))) [conn dispatch]) "wheel")))
+    (use-event-listener "keyup"
+      (use-callback
+       (fn [event]
+         (if (allow-event? event)
+           (if-let [f (shortcuts (event-key "keyup" event))]
+             (f [conn dispatch] event)))) [conn dispatch]))
+    (use-event-listener "keydown"
+      (use-callback
+       (fn [event]
+         (if (allow-event? event)
+           (if-let [f (shortcuts (event-key "keydown" event))]
+             (f [conn dispatch] event)))) [conn dispatch]))
+    (use-event-listener "wheel"
+      (use-callback
+       (fn [event]
+         (if (allow-event? event)
+           (if-let [f (shortcuts (event-key "wheel" event))]
+             (f [conn dispatch] event)))) [conn dispatch]))))

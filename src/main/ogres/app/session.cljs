@@ -5,7 +5,7 @@
             [datascript.core :as ds]
             [datascript.transit :as dst]
             [ogres.app.env :as env]
-            [ogres.app.hooks :refer [use-listen use-subscribe use-dispatch use-publish use-interval use-store]]
+            [ogres.app.hooks :refer [use-event-listener use-subscribe use-dispatch use-publish use-interval use-store]]
             [ogres.app.provider.image :refer [create-checksum create-image-element]]
             [ogres.app.provider.state :as provider.state]
             [uix.core :refer [defui use-context use-state use-callback use-effect]]))
@@ -313,16 +313,16 @@
 
     ;; Listen to the "close" event on the WebSocket object and dispatch the
     ;; appropriate event to communicate this change to state.
-    (use-listen
-     (use-callback
-      (fn []
-        (dispatch :session/disconnected)) [dispatch]) socket "close")
+    (use-event-listener socket "close"
+      (use-callback
+       (fn []
+         (dispatch :session/disconnected)) [dispatch]))
 
     ;; Listen to the "message" event on the WebSocket object and forward the
     ;; event details to the appropriate handler.
-    (let [context {:conn conn :publish publish :dispatch dispatch :store store}]
-      (use-listen
-       (use-callback
-        (fn [event]
-          (let [data (transit/read reader (.-data event))]
-            (handle-message context data on-send))) [context on-send]) socket "message"))))
+    (use-event-listener socket "message"
+      (use-callback
+       (fn [event]
+         (let [context {:conn conn :publish publish :dispatch dispatch :store store}
+               data (transit/read reader (.-data event))]
+           (handle-message context data on-send))) [conn publish dispatch store on-send]))))
