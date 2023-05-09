@@ -88,6 +88,25 @@ input[type="number"] {
     width: 100%;
 }
 
+fieldset.checkbox {
+    display: flex;
+    align-items: center;
+}
+
+fieldset.checkbox label {
+    text-transform: capitalize;
+    line-height: 1;
+    font-size: 13px;
+}
+
+fieldset.checkbox + fieldset {
+    margin-top: 4px;
+}
+
+input[type="checkbox"]:disabled + label {
+    color: hsl(0, 0%, 60%);
+}
+
 a,
 a:link,
 a:visited {
@@ -1137,16 +1156,8 @@ legend {
     font-size: 14px;
     gap: 4px;
     height: 32px;
-    opacity: 1;
     transition: opacity 80ms ease-in-out;
 }
-
-.panel-form[data-distance="1"] .panel-header { opacity: 0.90; }
-.panel-form[data-distance="2"] .panel-header { opacity: 0.80; }
-.panel-form[data-distance="3"] .panel-header { opacity: 0.70; }
-.panel-form[data-distance="4"] .panel-header { opacity: 0.60; }
-.panel-form[data-distance="5"] .panel-header { opacity: 0.50; }
-.panel-form--collapsed .panel-header:hover { opacity: 0.94; }
 
 .panel-header > svg {
     margin: 6px 0 0 8px;
@@ -1450,29 +1461,50 @@ legend {
 
 .panel-form-initiative .panel-container-footer {
     display: grid;
-    grid-template-columns: 1fr min-content min-content;
-    gap: 8px;
+    gap: 6px;
+    grid-template-columns: repeat(3, 1fr);
 }
 
 .initiative-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 8px 0;
 }
 
 .initiant {
+    border-color: var(--theme-paper-dark);
+    border-style: dotted;
+    border-width: 1px 0 0 0;
     box-sizing: border-box;
     display: grid;
     grid-gap: 4px;
     grid-template-areas: "a b c";
     grid-template-columns: 48px 1fr max-content;
-    padding: 0 8px 0 8px;
+    padding: 8px;
     position: relative;
 }
 
+.initiant:first-child {
+    border-top: none;
+}
+
+.initiant:last-child {
+    border-bottom: none;
+}
+
+.initiant.current {
+    background-color: var(--color-primary-a);
+    border-width: 1px 0;
+}
+
+.initiant.current + .initiant {
+    border-width: 0;
+}
+
+.initiant.current .initiant-info {
+    color: white;
+}
+
 .initiant + .initiant {
-    border-top: 1px dotted var(--theme-paper-dark);
     padding-top: 8px;
 }
 
@@ -1617,20 +1649,6 @@ legend {
 .help li,
 .help label {
     font-size: 13px;
-}
-
-.help fieldset {
-    display: flex;
-    align-items: center;
-}
-
-.help fieldset label {
-    text-transform: capitalize;
-    line-height: 1;
-}
-
-.help fieldset + fieldset {
-    margin-top: 4px;
 }
 
 /* Session Form */
