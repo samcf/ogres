@@ -497,14 +497,14 @@
         result (use-query query-cursors [:db/ident :session])
         {conns :session/conns
          share :session/share-cursors} result
-        conns    (key-by :db/key conns)
-        listener (use-callback
-                  (fn [{[uuid x y] :args}]
-                    (if share
-                      (set-coords
-                       (fn [m]
-                         (assoc m uuid [x y]))))) [share])]
-    (use-subscribe listener :cursor/moved)
+        conns    (key-by :db/key conns)]
+    (use-subscribe :cursor/moved
+      (use-callback
+       (fn [{[uuid x y] :args}]
+         (if share
+           (set-coords
+            (fn [m]
+              (assoc m uuid [x y]))))) [share]))
     (if share
       ($ :g.canvas-cursors
         (for [[uuid point] coords

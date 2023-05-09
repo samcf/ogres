@@ -89,11 +89,11 @@
 (defui reset-handler
   []
   (let [store (use-store)]
-    (use-subscribe
-     (use-callback
-      (fn []
-        (.delete store)
-        (.reload (.-location js/window))) [store]) :storage/reset)))
+    (use-subscribe :storage/reset
+      (use-callback
+       (fn []
+         (.delete store)
+         (.reload (.-location js/window))) [store]))))
 
 (defui remove-handler []
   (let [store (use-store)
@@ -105,10 +105,10 @@
         (use-callback
          (fn [event]
            (->> event :args first (.bulkDelete (.table store "images")))) [store])]
-    (use-subscribe on-remove :stamp/remove)
-    (use-subscribe on-remove :scene/remove)
-    (use-subscribe on-remove-bulk :stamp/remove-all)
-    (use-subscribe on-remove-bulk :scene/remove-all)))
+    (use-subscribe :stamp/remove on-remove)
+    (use-subscribe :scene/remove on-remove)
+    (use-subscribe :stamp/remove-all on-remove-bulk)
+    (use-subscribe :scene/remove-all on-remove-bulk)))
 
 (defui handlers
   "Registers event handlers related to IndexedDB, such as those involved in

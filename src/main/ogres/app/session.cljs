@@ -230,86 +230,86 @@
 
     ;; Subscribe to requests to create a new session, creating a WebSocket
     ;; connection object.
-    (use-subscribe
-     (use-callback
-      (fn []
-        (let [host (ds/entity @conn [:db/ident :local])
-              conn (js/WebSocket.
-                    (if (:session/last-room host)
-                      (str env/SOCKET-URL "?host=" (:session/last-room host))
-                      env/SOCKET-URL))]
-          (set-socket conn))) [conn]) :session/request)
+    (use-subscribe :session/request
+      (use-callback
+       (fn []
+         (let [host (ds/entity @conn [:db/ident :local])
+               conn (js/WebSocket.
+                     (if (:session/last-room host)
+                       (str env/SOCKET-URL "?host=" (:session/last-room host))
+                       env/SOCKET-URL))]
+           (set-socket conn))) [conn]))
 
     ;; Subscribe to requests to join the session, creating a WebSocket
     ;; connection object.
-    (use-subscribe
-     (use-callback
-      (fn []
-        (let [search (.. js/window -location -search)
-              params (js/URLSearchParams. search)
-              room   (.get params "join")]
-          (if (not (nil? room))
-            (let [conn (js/WebSocket. (str env/SOCKET-URL "?join=" room))]
-              (set-socket conn))))) []) :session/join)
+    (use-subscribe :session/join
+      (use-callback
+       (fn []
+         (let [search (.. js/window -location -search)
+               params (js/URLSearchParams. search)
+               room   (.get params "join")]
+           (if (not (nil? room))
+             (let [conn (js/WebSocket. (str env/SOCKET-URL "?join=" room))]
+               (set-socket conn))))) []))
 
     ;; Subscribe to regular heartbeat events, rebroadcasting it to the other
     ;; connections in the server.
-    (use-subscribe
-     (use-callback
-      (fn []
-        (on-send {:type :heartbeat})) [on-send]) :session/heartbeat)
+    (use-subscribe :session/heartbeat
+      (use-callback
+       (fn []
+         (on-send {:type :heartbeat})) [on-send]))
 
     ;; Subscribe to an intentional action to close the session, calling
     ;; `close` on the WebSocket object.
-    (use-subscribe
-     (use-callback
-      (fn []
-        (when (not (nil? socket))
-          (.close socket)
-          (set-socket nil))) [socket]) :session/close)
+    (use-subscribe :session/close
+      (use-callback
+       (fn []
+         (when (not (nil? socket))
+           (.close socket)
+           (set-socket nil))) [socket]))
 
     ;; Subscribe to image uploads, either handling them normally if the user is
     ;; the host or sending the image data to the host if the user is a client.
     ;; Sending image data to the host is interpretted as a request to share an
     ;; image from their local computer to the rest of the connections in the
     ;; session as a token.
-    (use-subscribe
-     (use-callback
-      (fn [{[type {:keys [data-url checksum width height]}] :args}]
-        (let [{{kind :local/type} :root/local
-               {host :session/host} :root/session}
-              (ds/entity (ds/db conn) [:db/ident :root])]
-          (case [kind type]
-            [:host :token] (dispatch :stamp/create checksum width height :private)
-            [:host :scene] (dispatch :scene/create checksum width height :private)
-            ([:conn :token] [:conn :scene])
-            (on-send {:type :image :dst (:db/key host) :data data-url})))) [conn dispatch on-send]) :image/create)
+    (use-subscribe :image/create
+      (use-callback
+       (fn [{[type {:keys [data-url checksum width height]}] :args}]
+         (let [{{kind :local/type} :root/local
+                {host :session/host} :root/session}
+               (ds/entity (ds/db conn) [:db/ident :root])]
+           (case [kind type]
+             [:host :token] (dispatch :stamp/create checksum width height :private)
+             [:host :scene] (dispatch :scene/create checksum width height :private)
+             ([:conn :token] [:conn :scene])
+             (on-send {:type :image :dst (:db/key host) :data data-url})))) [conn dispatch on-send]))
 
     ;; Subscribe to requests for image data from other non-host connections
     ;; and reply with the appropriate image data in the form of a data URL.
-    (use-subscribe
-     (use-callback
-      (fn [{[checksum] :args}]
-        (let [session (ds/entity @conn [:db/ident :session])]
-          (if-let [host (-> session :session/host :db/key)]
-            (let [data {:name :image/request :checksum checksum}]
-              (on-send {:type :event :dst host :data data}))))) [conn on-send]) :image/request)
+    (use-subscribe :image/request
+      (use-callback
+       (fn [{[checksum] :args}]
+         (let [session (ds/entity @conn [:db/ident :session])]
+           (if-let [host (-> session :session/host :db/key)]
+             (let [data {:name :image/request :checksum checksum}]
+               (on-send {:type :event :dst host :data data}))))) [conn on-send]))
 
     ;; Subscribe to DataScript transactions and broadcast the transaction data
     ;; to the other connections in the session.
-    (use-subscribe
-     (use-callback
-      (fn [{[{tx-data :tx-data}] :args}]
-        (on-send {:type :tx :data tx-data})) [on-send]) :tx/commit)
+    (use-subscribe :tx/commit
+      (use-callback
+       (fn [{[{tx-data :tx-data}] :args}]
+         (on-send {:type :tx :data tx-data})) [on-send]))
 
     ;; Subscribe to changes to the user's cursor position on the canvas and
     ;; broadcast these changes to the other connections in the session.
-    (use-subscribe
-     (use-callback
-      (fn [{[x y] :args}]
-        (let [data {:name :cursor/moved :coord [x y]}]
-          (on-send {:type :event :data data}))) [on-send]) :cursor/move
-     {:chan cursor :rate-limit 80})
+    (use-subscribe :cursor/move
+      {:chan cursor :rate-limit 80}
+      (use-callback
+       (fn [{[x y] :args}]
+         (let [data {:name :cursor/moved :coord [x y]}]
+           (on-send {:type :event :data data}))) [on-send]))
 
     ;; Listen to the "close" event on the WebSocket object and dispatch the
     ;; appropriate event to communicate this change to state.

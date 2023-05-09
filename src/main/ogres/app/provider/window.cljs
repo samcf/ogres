@@ -24,26 +24,26 @@
    player's view of the canvas." []
   (let [dispatch             (use-dispatch)
         {:keys [view reset]} (use-context context)]
-    (use-subscribe
-     (fn []
-       (if (nil? view)
-         (let [url (.. js/window -location -origin)
-               url (str url "?share=true")
-               win (.open js/window url "ogres.app" "width=640,height=640")]
-           (reset win)
-           (dispatch :share/toggle true))
-         (reset))) :share/initiate)))
+    (use-subscribe :share/initiate
+      (fn []
+        (if (nil? view)
+          (let [url (.. js/window -location -origin)
+                url (str url "?share=true")
+                win (.open js/window url "ogres.app" "width=640,height=640")]
+            (reset win)
+            (dispatch :share/toggle true))
+          (reset))))))
 
 (defui dispatcher
   "Registers a DataScript listener in order to forward transactions from the
    host window to the view window." []
   (let [{:keys [view]} (use-context context)]
-    (use-subscribe
-     (fn [{[{tx-data :tx-data}] :args}]
-       (->>
-        #js {:detail (t/write writer tx-data)}
-        (js/CustomEvent. "AppStateTx")
-        (.dispatchEvent view))) :tx/commit)))
+    (use-subscribe :tx/commit
+      (fn [{[{tx-data :tx-data}] :args}]
+        (->>
+         #js {:detail (t/write writer tx-data)}
+         (js/CustomEvent. "AppStateTx")
+         (.dispatchEvent view))))))
 
 (defui listener
   "Registers an event handler to listen for application state changes in the

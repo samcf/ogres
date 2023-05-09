@@ -46,9 +46,9 @@
           (fn []
             (close! ch)
             (untap multi ch)))) [multi f pub])))
-  ([f topic]
-   (use-subscribe f topic {:chan (chan 1)}))
-  ([f topic opts]
+  ([topic f]
+   (use-subscribe topic {:chan (chan 1)} f))
+  ([topic opts f]
    (let [{ch :chan} opts
          [pub _]    (use-context context)]
      (use-effect

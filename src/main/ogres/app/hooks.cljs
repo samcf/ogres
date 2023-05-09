@@ -33,9 +33,9 @@
   provider.events/use-publish)
 
 (def ^{:doc "Creates a new subscription to `topic`, calling the given
-             `handler-fn` with the event map when an event with that
+             handler `f` with the event map when an event with that
              topic is published."
-       :arglists '([f] [f topic] [f topic chan])}
+       :arglists '([f] [topic f] [topic options f])}
   use-subscribe
   provider.events/use-subscribe)
 

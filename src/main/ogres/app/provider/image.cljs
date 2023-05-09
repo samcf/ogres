@@ -140,11 +140,11 @@
                 (if cached (set-sentinel inc)))))))
        (fn [] (remove-watch cache watch-key))) [watch-key checksum cached])
 
-    (use-subscribe
-     (use-callback
-      (fn [{[checksum data-url] :args}]
-        (-> (create-object-url data-url)
-            (.then #(swap! cache assoc checksum [false %1])))) []) :image/cache)
+    (use-subscribe :image/cache
+      (use-callback
+       (fn [{[checksum data-url] :args}]
+         (-> (create-object-url data-url)
+             (.then #(swap! cache assoc checksum [false %1])))) []))
 
     (use-effect
      (fn []
