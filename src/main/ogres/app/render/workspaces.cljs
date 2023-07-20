@@ -18,5 +18,10 @@
         ($ :div {:key key :class (css {:selected (= key (:db/key current))})}
           ($ :div {:on-click #(dispatch :workspace/change key)}
             (if (blank? label) ($ :em "New Canvas") (trim label)))
-          ($ :button {:type "button" :on-click #(dispatch :workspace/remove key) :title "Close canvas"} "×")))
+          ($ :button
+            {:type "button"
+             :on-click #(when (js/confirm (str "Close " (when (not (blank? label)) (str label " ")) "canvas?"))
+                          (dispatch :workspace/remove key))
+             :title "Close canvas"}
+            "×")))
       ($ :button {:type "button" :on-click #(dispatch :workspace/create) :title "Create new canvas"} "+"))))
