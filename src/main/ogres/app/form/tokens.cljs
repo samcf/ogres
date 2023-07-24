@@ -21,7 +21,7 @@
      [:bounds/self :default [0 0 0 0]]
      {:local/window
       [[:window/scale :default 1]
-       [:window/vec :default [0 0]]]}]}])
+       [:window/point :default [0 0]]]}]}])
 
 (defui image [{:keys [checksum children]}]
   (let [data-url (use-image checksum)]
@@ -133,7 +133,7 @@
         on-create (use-callback
                    (fn [checksum element delta]
                      (let [{{[bx by bw bh] :bounds/self
-                             {[cx cy] :window/vec
+                             {[cx cy] :window/point
                               scale :window/scale} :local/window} :root/local} result
                            rect    (.getBoundingClientRect element)
                            [tw th] [(.-width rect) (.-height rect)]

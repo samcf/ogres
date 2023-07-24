@@ -57,14 +57,14 @@
   [[:bounds/self :default [0 0 0 0]]
    {:local/window
     [[:window/scale :default 1]
-     [:window/vec :default [0 0]]
+     [:window/point :default [0 0]]
      {:window/canvas
       [[:canvas/snap-grid :default false]]}]}])
 
 (defui ^{:private true} polygon [{:keys [on-create]}]
   (let [result (use-query query)
         {[ox oy] :bounds/self
-         {[tx ty] :window/vec
+         {[tx ty] :window/point
           scale   :window/scale
           {align :canvas/snap-grid} :window/canvas}
          :local/window} result
@@ -109,7 +109,7 @@
   (let [dispatch (use-dispatch)
         result   (use-query query)
         {[ox oy]  :bounds/self
-         {[tx ty] :window/vec
+         {[tx ty] :window/point
           scale   :window/scale} :local/window} result]
     ($ drawable
       {:transform
@@ -128,7 +128,7 @@
   (let [dispatch (use-dispatch)
         result   (use-query query)
         {[ox oy] :bounds/self
-         {[tx ty] :window/vec
+         {[tx ty] :window/point
           scale   :window/scale} :local/window} result]
     ($ drawable
       {:transform
@@ -154,7 +154,7 @@
 (defui ^{:private true} draw-ruler []
   (let [result (use-query query)
         {[ox oy] :bounds/self
-         {[tx ty] :window/vec
+         {[tx ty] :window/point
           scale   :window/scale
           {align :canvas/snap-grid} :window/canvas}
          :local/window} result]
@@ -181,7 +181,7 @@
   (let [dispatch (use-dispatch)
         result   (use-query query)
         {[ox oy] :bounds/self
-         {[tx ty] :window/vec
+         {[tx ty] :window/point
           scale   :window/scale
           {align :canvas/snap-grid} :window/canvas}
          :local/window} result]
@@ -209,7 +209,7 @@
   (let [dispatch (use-dispatch)
         result   (use-query query)
         {[ox oy] :bounds/self
-         {[tx ty] :window/vec
+         {[tx ty] :window/point
           scale   :window/scale
           {align :canvas/snap-grid} :window/canvas}
          :local/window} result]
@@ -236,7 +236,7 @@
   (let [dispatch (use-dispatch)
         result   (use-query query)
         {[ox oy] :bounds/self
-         {[tx ty] :window/vec
+         {[tx ty] :window/point
           scale   :window/scale
           {align :canvas/snap-grid} :window/canvas}
          :local/window} result]
@@ -263,7 +263,7 @@
   (let [dispatch (use-dispatch)
         result   (use-query query)
         {[ox oy] :bounds/self
-         {[tx ty] :window/vec
+         {[tx ty] :window/point
           scale   :window/scale} :local/window} result]
     ($ drawable
       {:transform

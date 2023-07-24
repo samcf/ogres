@@ -132,7 +132,7 @@
                      [:db/add idx :local/window tmp]
                      [:db/add tmp :db/key (squuid)]
                      [:db/add tmp :window/canvas -2]
-                     [:db/add tmp :window/vec [0 0]]
+                     [:db/add tmp :window/point [0 0]]
                      [:db/add tmp :window/scale 1]])))
 
       (= key (:db/key window))
@@ -156,7 +156,7 @@
                        [:db/add idx :local/window tmp]
                        [:db/add tmp :db/key (or key (squuid))]
                        [:db/add tmp :window/canvas [:db/key (:db/key (:window/canvas next))]]
-                       [:db/add tmp :window/vec [0 0]]
+                       [:db/add tmp :window/point [0 0]]
                        [:db/add tmp :window/scale 1]]))))
 
       :else
@@ -171,7 +171,7 @@
 (defmethod transact :window/translate
   [{:keys [window]} x y]
   [[:db/add -1 :db/key window]
-   [:db/add -1 :window/vec [(round x 1) (round y 1)]]])
+   [:db/add -1 :window/point [(round x 1) (round y 1)]]])
 
 (defmethod transact :window/change-mode
   [{:keys [data local window]} mode]
@@ -205,14 +205,14 @@
          [_ _ w h] (:bounds/self result)]
      (transact context next (/ w 2) (/ h 2))))
   ([{:keys [data window]} next x y]
-   (let [select [[:window/scale :default 1] [:window/vec :default [0 0]]]
+   (let [select [[:window/scale :default 1] [:window/point :default [0 0]]]
          result (ds/pull data select [:db/key window])
-         {prev :window/scale [cx cy] :window/vec} result
+         {prev :window/scale [cx cy] :window/point} result
          fx (/ next prev)
          dx (/ (- (* x fx) x) next)
          dy (/ (- (* y fx) y) next)]
      [[:db/add -1 :db/key window]
-      [:db/add -1 :window/vec [(round (- cx dx) 1) (round (- cy dy) 1)]]
+      [:db/add -1 :window/point [(round (- cx dx) 1) (round (- cy dy) 1)]]
       [:db/add -1 :window/scale next]])))
 
 (defmethod transact :zoom/delta
@@ -341,7 +341,7 @@
 (defmethod transact :token/create
   [{:keys [window canvas]} x y checksum]
   [[:db/add -1 :db/key (squuid)]
-   [:db/add -1 :token/vec [x y]]
+   [:db/add -1 :token/point [x y]]
    [:db/add -1 :token/image -4]
    [:db/add -2 :db/key window]
    [:db/add -2 :window/selected -1]
@@ -366,7 +366,7 @@
   [_ token x y align?]
   (let [radius (if align? (/ grid-size 2) 1)]
     [[:db/add -1 :db/key token]
-     [:db/add -1 :token/vec [(round x radius) (round y radius)]]]))
+     [:db/add -1 :token/point [(round x radius) (round y radius)]]]))
 
 (defmethod transact :token/change-flag
   [{:keys [data]} keys flag add?]
@@ -378,10 +378,10 @@
 (defmethod transact :token/translate-all
   [{:keys [data]} keys x y align?]
   (let [lookup (map (fn [key] [:db/key key]) keys)
-        tokens (ds/pull-many data [:db/key :token/vec] lookup)
+        tokens (ds/pull-many data [:db/key :token/point] lookup)
         radius (if align? (/ grid-size 2) 1)]
-    (for [[id {key :db/key [tx ty] :token/vec}] (sequence (indexed) tokens)]
-      {:db/id id :db/key key :token/vec [(round (+ x tx) radius) (round (+ y ty) radius)]})))
+    (for [[id {key :db/key [tx ty] :token/point}] (sequence (indexed) tokens)]
+      {:db/id id :db/key key :token/point [(round (+ x tx) radius) (round (+ y ty) radius)]})))
 
 (defmethod transact :token/change-label
   [_ keys value]
@@ -470,7 +470,7 @@
 
 (defmethod transact :selection/from-rect
   [{:keys [data window canvas]} vecs]
-  (let [select [{:canvas/tokens [:db/key :token/vec]}]
+  (let [select [{:canvas/tokens [:db/key :token/point]}]
         result (ds/pull data select [:db/key canvas])
         bounds (normalize vecs)]
     [{:db/id -1
@@ -478,7 +478,7 @@
       :window/draw-mode :select
       :window/selected
       (for [[idx token] (sequence (indexed 2) (:canvas/tokens result))
-            :let  [{[x y] :token/vec key :db/key} token]
+            :let  [{[x y] :token/point key :db/key} token]
             :when (within? x y bounds)]
         {:db/id idx :db/key key})}]))
 
@@ -696,12 +696,12 @@
 
 (defmethod transact :session/focus
   [{:keys [data]}]
-  (let [select-w [:window/canvas [:window/vec :default [0 0]] [:window/scale :default 1]]
+  (let [select-w [:window/canvas [:window/point :default [0 0]] [:window/scale :default 1]]
         select-l [:db/key [:bounds/self :default [0 0 0 0]] {:local/windows [:window/canvas] :local/window select-w}]
         select-s [{:session/host select-l} {:session/conns select-l}]
         result   (ds/pull data select-s [:db/ident :session])
         {{[_ _ hw hh] :bounds/self
-          {[hx hy] :window/vec} :local/window
+          {[hx hy] :window/point} :local/window
           host :local/window} :session/host
          conns :session/conns} result
         scale (:window/scale host)
@@ -722,7 +722,7 @@
             [:db/add next :local/window prev]
             [:db/add next :local/windows prev]
             [:db/add prev :db/key        (or exst (squuid))]
-            [:db/add prev :window/vec    [cx cy]]
+            [:db/add prev :window/point  [cx cy]]
             [:db/add prev :window/scale  scale]
             [:db/add prev :window/canvas (:db/id (:window/canvas host))]])
          (into [] cat))))

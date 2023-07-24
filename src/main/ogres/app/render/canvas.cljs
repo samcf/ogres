@@ -88,7 +88,7 @@
         [:db/key
          [:token/flags :default #{}]
          [:token/light :default 15]
-         [:token/vec :default [0 0]]]}
+         [:token/point :default [0 0]]]}
        {:canvas/image [:image/checksum :image/width :image/height]}]}]}])
 
 (defui render-mask-vis []
@@ -115,7 +115,7 @@
             ($ :stop {:offset "100%" :stop-color "black" :stop-opacity "0%"}))
           ($ :mask {:id "light-mask"}
             ($ :rect {:x 0 :y 0 :width width :height height :fill "white" :fill-opacity "100%"})
-            (for [{key :db/key flags :token/flags [x y] :token/vec radius :token/light} tokens
+            (for [{key :db/key flags :token/flags [x y] :token/point radius :token/light} tokens
                   :when (and (> radius 0) (or (= type :host) (visible? flags)))
                   :let  [radius (-> grid-size (* radius) (/ 5) (+ grid-size))]]
               ($ :circle {:key key :cx x :cy y :r radius :fill "url(#mask-gradient)"}))))
@@ -178,7 +178,7 @@
 (def ^:private query-grid
   [[:bounds/self :default [0 0 0 0]]
    {:local/window
-    [[:window/vec :default [0 0]]
+    [[:window/point :default [0 0]]
      [:window/scale :default 1]
      [:window/draw-mode :default :select]
      {:window/canvas
@@ -187,7 +187,7 @@
 (defui render-grid []
   (let [data (use-query query-grid)
         {[_ _ w h] :bounds/self
-         {[cx cy] :window/vec
+         {[cx cy] :window/point
           mode    :window/draw-mode
           scale   :window/scale
           canvas  :window/canvas} :local/window} data]
@@ -369,8 +369,8 @@
               ($ :span (label data)))))))))
 
 (defn- token-comparator [a b]
-  (let [[ax ay] (:token/vec a)
-        [bx by] (:token/vec b)]
+  (let [[ax ay] (:token/point a)
+        [bx by] (:token/point b)]
     (compare [(:token/size b) by bx]
              [(:token/size a) ay ax])))
 
@@ -385,7 +385,7 @@
        {:canvas/tokens
         [:db/key
          [:initiative/suffix :default nil]
-         [:token/vec :default [0 0]]
+         [:token/point :default [0 0]]
          [:token/flags :default #{}]
          [:token/label :default ""]
          [:token/size :default 5]
@@ -417,7 +417,7 @@
              (sort token-comparator)
              (separate (fn [token] ((into #{} (map :db/key) (:window/_selected token)) (:db/key window)))))]
     ($ :<>
-      (for [data tokens :let [{key :db/key [ax ay] :token/vec} data]]
+      (for [data tokens :let [{key :db/key [ax ay] :token/point} data]]
         ($ react-draggable
           {:key      key
            :position #js {:x ax :y ay}
@@ -434,7 +434,7 @@
             ($ render-token {:data data}))))
       (if (seq selected)
         (let [keys (map :db/key selected)
-              [ax _ bx by] (apply bounding-box (map :token/vec selected))]
+              [ax _ bx by] (apply bounding-box (map :token/point selected))]
           ($ use-portal {:name (if (or (= type :host) (= type :conn)) :selected)}
             (fn []
               ($ react-draggable
@@ -449,7 +449,7 @@
                          (dispatch :element/select (uuid key) (not (.-shiftKey event))))
                        (dispatch :token/translate-all keys ox oy (not= (.-metaKey event) snap-grid)))))}
                 ($ :g.canvas-selected {:key keys}
-                  (for [data selected :let [{key :db/key [x y] :token/vec} data]]
+                  (for [data selected :let [{key :db/key [x y] :token/point} data]]
                     ($ :g.canvas-token
                       {:key key :class (css (token-css data)) :data-key key :transform (str "translate(" x "," y ")")}
                       ($ render-token {:data data})))
@@ -523,7 +523,7 @@
    {:local/window
     [:db/key
      :window/modifier
-     [:window/vec :default [0 0]]
+     [:window/point :default [0 0]]
      [:window/scale :default 1]
      [:window/draw-mode :default :select]
      {:window/canvas
@@ -542,7 +542,7 @@
           scale   :window/scale
           mode    :window/draw-mode
           modif   :window/modifier
-          [cx cy] :window/vec
+          [cx cy] :window/point
           {dark-mode :canvas/dark-mode}
           :window/canvas}
          :local/window} result

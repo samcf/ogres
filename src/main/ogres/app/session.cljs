@@ -67,7 +67,7 @@
               (if (= (:db/key (:window/canvas (:local/window prev-local)))
                      (:db/key (:window/canvas (:local/window next-local))))
                 [[:db/add -3 :db/key (:db/key (:local/window next-local))]
-                 [:db/add -3 :window/vec (or (:window/vec prev-window) [0 0])]
+                 [:db/add -3 :window/point (or (:window/point prev-window) [0 0])]
                  [:db/add -3 :window/scale (or (:window/scale prev-window) 1)]] []))]
     (ds/db-with next tx-data)))
 
