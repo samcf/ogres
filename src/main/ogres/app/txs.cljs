@@ -85,47 +85,19 @@
 (defmethod transact :default [] [])
 
 (defmethod transact :workspace/create
-  [{:keys [data local]}]
-  (let [session (ds/entity data [:db/ident :session])]
-    (into [[:db/add -1 :db/key (squuid)]
-           [:db/add -2 :db/key (squuid)]
-           [:db/add [:db/key local] :local/window -1]
-           [:db/add [:db/key local] :local/windows -1]
-           [:db/add -1 :window/canvas -2]
-           [:db/add [:db/ident :root] :root/canvases -2]]
-          cat
-          (for [[idx conn] (sequence (indexed 3 2) (:session/conns session))
-                :let [tmp (dec idx)]]
-            [[:db/add idx :db/key (:db/key conn)]
-             [:db/add idx :local/windows tmp]
-             [:db/add idx :local/window tmp]
-             [:db/add tmp :db/key (squuid)]
-             [:db/add tmp :window/canvas -2]]))))
+  [{:keys [local]}]
+  [[:db/add -1 :db/key (squuid)]
+   [:db/add -2 :db/key (squuid)]
+   [:db/add [:db/key local] :local/window -1]
+   [:db/add [:db/key local] :local/windows -1]
+   [:db/add -1 :window/canvas -2]
+   [:db/add [:db/ident :root] :root/canvases -2]])
 
 (defmethod transact :workspace/change
-  [{:keys [data local]} key]
-  (let [window  (ds/entity data [:db/key key])
-        session (ds/entity data [:db/ident :session])]
-    (into [[:db/add -1 :db/key local]
-           [:db/add -2 :db/key key]
-           [:db/add -1 :local/window -2]]
-          cat
-          (for [[idx conn] (sequence (indexed 3 2) (:session/conns session))
-                :let [tmp (dec idx)
-                      key (->> (:local/windows conn)
-                               (filter #(= (:db/key (:window/canvas %))
-                                           (:db/key (:window/canvas window))))
-                               (first)
-                               (:db/key))]]
-            [[:db/add idx :db/key (:db/key conn)]
-             [:db/add idx :local/windows tmp]
-             [:db/add idx :local/window tmp]
-             [:db/add tmp :db/key (or key (squuid))]
-             (if-let [value (:window/vec window)]
-               [:db/add tmp :window/vec value])
-             (if-let [value (:window/scale window)]
-               [:db/add tmp :window/scale value])
-             [:db/add tmp :window/canvas [:db/key (:db/key (:window/canvas window))]]]))))
+  [{:keys [local]} key]
+  [[:db/add -1 :db/key local]
+   [:db/add -2 :db/key key]
+   [:db/add -1 :local/window -2]])
 
 (defmethod transact :workspace/remove
   [{:keys [data local]} key]
@@ -721,3 +693,36 @@
 (defmethod transact :session/toggle-share-my-cursor
   [{:keys [local]} enabled]
   [{:db/id -1 :db/key local :session/share-cursor enabled}])
+
+(defmethod transact :session/focus
+  [{:keys [data]}]
+  (let [select-w [:window/canvas [:window/vec :default [0 0]] [:window/scale :default 1]]
+        select-l [:db/key [:bounds/self :default [0 0 0 0]] {:local/windows [:window/canvas] :local/window select-w}]
+        select-s [{:session/host select-l} {:session/conns select-l}]
+        result   (ds/pull data select-s [:db/ident :session])
+        {{[_ _ hw hh] :bounds/self
+          {[hx hy] :window/vec} :local/window
+          host :local/window} :session/host
+         conns :session/conns} result
+        scale (:window/scale host)
+        mx (- hx (/ hw scale 2))
+        my (- hy (/ hh scale 2))]
+    (->> (for [[next conn] (sequence (indexed 1 2) conns)
+               :let [prev (dec next)
+                     exst (->> (:local/windows conn)
+                               (filter (fn [conn]
+                                         (= (:db/key (:window/canvas conn))
+                                            (:db/key (:window/canvas host)))))
+                               (first)
+                               (:db/key))
+                     [_ _ cw ch] (:bounds/self conn)
+                     cx (+ mx (/ cw scale 2))
+                     cy (+ my (/ ch scale 2))]]
+           [[:db/add next :db/key (:db/key conn)]
+            [:db/add next :local/window prev]
+            [:db/add next :local/windows prev]
+            [:db/add prev :db/key        (or exst (squuid))]
+            [:db/add prev :window/vec    [cx cy]]
+            [:db/add prev :window/scale  scale]
+            [:db/add prev :window/canvas (:db/id (:window/canvas host))]])
+         (into [] cat))))

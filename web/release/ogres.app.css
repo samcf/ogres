@@ -410,11 +410,15 @@ legend {
 }
 
 .toolbar button {
+    align-items: center;
     background: none;
     border: 1px solid transparent;
     color: hsl(0, 0%, 70%);
+    display: flex;
     font-family: var(--font-stack-transitional);
-    height: 40px;
+    gap: 8px;
+    height: 38px;
+    justify-content: center;
     min-width: 40px;
     position: relative;
     transition: color 80ms ease-in-out;
@@ -458,8 +462,8 @@ legend {
     display: flex;
 }
 
-.toolbar-zoom {
-    width: 60px;
+.toolbar-text {
+    width: 80px;
 }
 
 .toolbar-shortcut {
@@ -473,10 +477,6 @@ legend {
     position: absolute;
     top: -4px;
     width: 10px;
-}
-
-.toolbar button:not(.toolbar-zoom) {
-    padding-top: 4px;
 }
 
 /* Token Templates */
