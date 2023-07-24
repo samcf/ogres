@@ -23,6 +23,7 @@
     :mode/mask-remove "Remove a mask."
     :mask/hide   "Remove all masks and then mask the entire scene."
     :mask/show   "Remove all masks and reveal the entire scene."
+    :scene/focus "Focus the current view, moving everyone to this scene and position."
     :share/play  "Resumes updates to the player window."
     :share/pause "Pauses updates to the player window. Good time to setup an ambush!"
     :share/open  ($ :span "Open or close the player window. "
@@ -30,7 +31,8 @@
                           :target "_blank"} "Learn more") ".")))
 
 (def ^{:private true} query
-  [[:local/type :default :conn]
+  [:session/_host
+   [:local/type :default :conn]
    [:local/tooltips? :default true]
    [:local/sharing? :default false]
    [:local/paused? :default false]
@@ -40,7 +42,7 @@
 
 (defui toolbar []
   (let [dispatch  (use-dispatch)
-        data      (use-query query)
+        result    (use-query query)
         container (use-ref)
         [tooltip-key set-tooltip-key] (use-state nil)
 
@@ -49,7 +51,7 @@
          sharing?  :local/sharing?
          paused?   :local/paused?
          {scale :window/scale
-          mode  :window/draw-mode} :local/window} data
+          mode  :window/draw-mode} :local/window} result
 
         conn? (= type :conn)
 
@@ -84,7 +86,7 @@
           ($ tooltip {:tooltip tooltip-key})))
       ($ :div.toolbar-groups
         ($ :div.toolbar-group
-          ($ :button.toolbar-zoom
+          ($ :button.toolbar-text
             {:disabled (= scale 1)
              :on-click #(dispatch :zoom/reset)
              :on-mouse-enter (tooltip-fn :zoom/reset)}
@@ -157,4 +159,10 @@
             {:disabled (or conn? (not sharing?) paused?)
              :on-click #(dispatch :share/switch)
              :on-mouse-enter (tooltip-fn :share/pause)}
-            ($ icon {:name "pause-fill" :size 22})))))))
+            ($ icon {:name "pause-fill" :size 22})))
+        ($ :div.toolbar-group
+          ($ :button.toolbar-text
+            {:disabled (not (and (= type :host) (not (nil? (:session/_host result)))))
+             :on-click #(dispatch :session/focus)
+             :on-mouse-enter (tooltip-fn :scene/focus)}
+            ($ icon {:name "camera2" :size 22}) "Focus"))))))
