@@ -324,20 +324,6 @@
   (for [key keys]
     [:db/retractEntity [:db/key key]]))
 
-(defmethod transact :scene/create
-  [_ checksum width height]
-  [[:db/add -1 :image/checksum checksum]
-   [:db/add -1 :image/width width]
-   [:db/add -1 :image/height height]
-   [:db/add [:db/ident :root] :root/scenes -1]])
-
-(defmethod transact :scene/remove
-  [_ checksum]
-  [[:db/retractEntity [:image/checksum checksum]]])
-
-(defmethod transact :scene/remove-all [_]
-  [[:db/retract [:db/ident :root] :root/scenes]])
-
 (defmethod transact :token/create
   [{:keys [window canvas]} x y checksum]
   [[:db/add -1 :db/key (squuid)]
@@ -402,19 +388,6 @@
   [_ keys radius]
   (for [[id key] (sequence (indexed) keys)]
     {:db/id id :db/key key :aura/radius radius}))
-
-(defmethod transact :token/change-stamp
-  [_ keys checksum]
-  (concat [[:db/add -1 :image/checksum checksum]]
-          (for [[id key] (sequence (indexed 2) keys)]
-            {:db/id id :db/key key :token/image -1})))
-
-(defmethod transact :token/remove-stamp
-  [_ keys]
-  (->> (for [[id key] (sequence (indexed) keys)]
-         [[:db/add id :db/key key]
-          [:db/retract [:db/key key] :token/image]])
-       (into [] cat)))
 
 (defmethod transact :shape/create
   [{:keys [window canvas]} kind vecs]
@@ -620,20 +593,33 @@
   [{:keys [local]} panel]
   [{:db/id -1 :db/key local :panel/expanded #{panel}}])
 
-(defmethod transact :stamp/create
-  [_ checksum width height scope]
-  [{:db/id          -1
-    :image/checksum checksum
-    :image/width    width
-    :image/height   height
-    :image/scope    scope}
-   {:db/id [:db/ident :root] :root/stamps -1}])
+(defmethod transact :scenes/create
+  [_ checksum width height]
+  [[:db/add [:db/ident :root] :root/scene-images -1]
+   [:db/add -1 :image/width width]
+   [:db/add -1 :image/height height]
+   [:db/add -1 :image/checksum checksum]])
 
-(defmethod transact :stamp/remove [_ checksum]
+(defmethod transact :scenes/remove
+  [_ checksum]
   [[:db/retractEntity [:image/checksum checksum]]])
 
-(defmethod transact :stamp/remove-all []
-  [[:db/retract [:db/ident :root] :root/stamps]])
+(defmethod transact :scenes/remove-all [_]
+  [[:db/retract [:db/ident :root] :root/scene-images]])
+
+(defmethod transact :tokens/create
+  [_ checksum width height scope]
+  [[:db/add [:db/ident :root] :root/token-images -1]
+   [:db/add -1 :image/scope scope]
+   [:db/add -1 :image/width width]
+   [:db/add -1 :image/height height]
+   [:db/add -1 :image/checksum checksum]])
+
+(defmethod transact :tokens/remove [_ checksum]
+  [[:db/retractEntity [:image/checksum checksum]]])
+
+(defmethod transact :tokens/remove-all []
+  [[:db/retract [:db/ident :root] :root/token-images]])
 
 (defmethod transact :mask/fill
   [{:keys [canvas]}]

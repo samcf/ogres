@@ -310,32 +310,32 @@
                     ($ shape-context-menu
                       {:shape entity})))))))))))
 
-(defui render-stamp [{:keys [checksum]}]
+(defui render-token-face [{:keys [checksum]}]
   (let [url (use-image checksum)]
     ($ :image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"})))
 
-(def ^:private query-stamps
+(def ^:private query-token-faces
   [{:local/window
     [{:window/canvas
       [{:canvas/tokens
         [{:token/image
           [:image/checksum]}]}]}]}])
 
-(defui render-stamps []
-  (let [result    (use-query query-stamps)
+(defui render-token-faces []
+  (let [result    (use-query query-token-faces)
         tokens    (-> result :local/window :window/canvas :canvas/tokens)
         checksums (into #{} (comp (map :token/image) (map :image/checksum)) tokens)
         attrs     {:width "100%" :height "100%" :patternContentUnits "objectBoundingBox"}]
     ($ :defs
-      ($ :pattern (merge attrs {:id "token-stamp-default" :viewBox "-2 -2 16 16" :fill "#f2f2eb"})
+      ($ :pattern (merge attrs {:id "token-face-default" :viewBox "-2 -2 16 16" :fill "#f2f2eb"})
         ($ :rect {:x -2 :y -2 :width 16 :height 16 :fill "hsl(208deg 21% 20%)"})
         ($ icon {:name "dnd" :size 12}))
-      ($ :pattern (merge attrs {:id "token-stamp-deceased" :viewBox "-2 -2 16 16" :fill "#f2f2eb"})
+      ($ :pattern (merge attrs {:id "token-face-deceased" :viewBox "-2 -2 16 16" :fill "#f2f2eb"})
         ($ :rect {:x -2 :y -2 :width 16 :height 16 :fill "hsl(208deg 21% 20%)"})
         ($ icon {:name "skull" :size 12}))
       (for [checksum checksums]
-        ($ :pattern (merge attrs {:key checksum :id (str "token-stamp-" checksum)})
-          ($ render-stamp {:checksum checksum}))))))
+        ($ :pattern (merge attrs {:key checksum :id (str "token-face-" checksum)})
+          ($ render-token-face {:checksum checksum}))))))
 
 (defui render-token [{:keys [data]}]
   ($ :<>
@@ -346,9 +346,9 @@
           flags (:token/flags data)
           scale (/ (:token/size data) 5)
           hashs (:image/checksum (:token/image data))
-          pttrn (cond (flags :unconscious) (str "token-stamp-deceased")
-                      (string? hashs)      (str "token-stamp-" hashs)
-                      :else                (str "token-stamp-default"))]
+          pttrn (cond (flags :unconscious) (str "token-face-deceased")
+                      (string? hashs)      (str "token-face-" hashs)
+                      :else                (str "token-face-default"))]
       ($ :g.canvas-token-container {:transform (str "scale(" scale ")")}
         ($ :circle.canvas-token-ring {:cx 0 :cy 0 :style {:r radii :fill "transparent"}})
         ($ :circle.canvas-token-shape {:cx 0 :cy 0 :r radii :fill (str "url(#" pttrn ")")})
@@ -575,7 +575,7 @@
           (if (and (= mode :select) (= modif :shift))
             ($ draw {:mode :select}))
           ($ :g.canvas-board {:transform (str "scale(" scale ") translate(" cx ", " cy ")")}
-            ($ render-stamps)
+            ($ render-token-faces)
             ($ render-scene)
             ($ render-grid)
             ($ render-shapes)

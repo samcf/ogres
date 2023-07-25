@@ -12,10 +12,10 @@
 
 (def ^:private query-footer
   [{:root/local [:local/type]}
-   {:root/stamps [:image/checksum]}])
+   {:root/token-images [:image/checksum]}])
 
 (def ^:private query-form
-  [{:root/stamps [:image/checksum :image/scope]}
+  [{:root/token-images [:image/checksum :image/scope]}
    {:root/local
     [[:local/type :default :conn]
      [:bounds/self :default [0 0 0 0]]
@@ -124,12 +124,12 @@
 (defui form []
   (let [dispatch  (use-dispatch)
         result    (use-query query-form [:db/ident :root])
-        {data :root/stamps
+        {data :root/token-images
          {type :local/type} :root/local} result
         data-pub  (into [:default] (xf-scope :public) data)
         data-prv  (into [] (xf-scope :private) data)
         on-scope  (use-callback (fn []) [])
-        on-remove (use-callback (fn [key] (dispatch :stamp/remove key)) [dispatch])
+        on-remove (use-callback (fn [key] (dispatch :tokens/remove key)) [dispatch])
         on-create (use-callback
                    (fn [checksum element delta]
                      (let [{{[bx by bw bh] :bounds/self
@@ -163,7 +163,7 @@
   (let [dispatch (use-dispatch)
         result   (use-query query-footer [:db/ident :root])
         {{type :local/type} :root/local
-         images :root/stamps} result
+         images :root/token-images} result
         images   (sequence (map :image/checksum) images)
         upload   (use-image-uploader {:type :token})
         input    (use-ref)]
@@ -184,5 +184,5 @@
         {:type     "button"
          :title    "Remove all"
          :disabled (or (= type :conn) (empty? images))
-         :on-click #(dispatch :stamp/remove-all images)}
+         :on-click #(dispatch :tokens/remove-all images)}
         ($ icon {:name "trash3-fill" :size 16})))))

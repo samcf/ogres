@@ -6,10 +6,10 @@
 (def ^:private per-page 6)
 
 (def ^:private header-query
-  [{:root/scenes [:image/checksum]}])
+  [{:root/scene-images [:image/checksum]}])
 
 (def ^:private query
-  [{:root/scenes [:image/checksum]}])
+  [{:root/scene-images [:image/checksum]}])
 
 (defui thumbnail [{:keys [checksum children]}]
   (let [data-url (use-image checksum)]
@@ -18,7 +18,7 @@
 (defui form []
   (let [dispatch (use-dispatch)
         result   (use-query query [:db/ident :root])
-        data     (vec (:root/scenes result))
+        data     (vec (:root/scene-images result))
         pages    (int (js/Math.ceil (/ (count data) per-page)))
         [page set-page] (use-state 1)]
     (if (seq data)
@@ -35,11 +35,16 @@
                 (fn [{:keys [data-url]}]
                   ($ :figure.scenes-scene
                     {:style {:background-image (str "url(" data-url ")")}
-                     :on-click #(dispatch :canvas/change-scene checksum)}
+                     :on-click
+                     (fn [event]
+                       (.stopPropagation event)
+                       (dispatch :canvas/change-scene checksum))}
                     ($ :button
-                      {:type "button"
-                       :title "Remove"
-                       :on-click #(dispatch :scene/remove checksum)}
+                      {:type "button" :title "Remove"
+                       :on-click
+                       (fn [event]
+                         (.stopPropagation event)
+                         (dispatch :scenes/remove checksum))}
                       ($ icon {:name "trash3-fill" :size 16})))))
               ($ :figure.scenes-placeholder {:key idx})))
           ($ pagination
@@ -56,7 +61,7 @@
 (defui footer []
   (let [dispatch (use-dispatch)
         result   (use-query header-query [:db/ident :root])
-        scenes   (sequence (map :image/checksum) (:root/scenes result))
+        scenes   (sequence (map :image/checksum) (:root/scene-images result))
         upload   (use-image-uploader {:type :scene})
         input    (use-ref)]
     ($ :<>
@@ -76,5 +81,5 @@
         {:type     "button"
          :title    "Remove all"
          :disabled (empty? scenes)
-         :on-click #(dispatch :scene/remove-all scenes)}
+         :on-click #(dispatch :scenes/remove-all scenes)}
         ($ icon {:name "trash3-fill" :size 16})))))

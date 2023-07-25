@@ -99,16 +99,16 @@
   (let [store (use-store)
         on-remove
         (use-callback
-         (fn [event]
-           (->> event :args first (.delete (.table store "images")))) [store])
+         (fn [{[id] :args}]
+           (.delete (.table store "images") id)) [store])
         on-remove-bulk
         (use-callback
-         (fn [event]
-           (->> event :args first (.bulkDelete (.table store "images")))) [store])]
-    (use-subscribe :stamp/remove on-remove)
-    (use-subscribe :scene/remove on-remove)
-    (use-subscribe :stamp/remove-all on-remove-bulk)
-    (use-subscribe :scene/remove-all on-remove-bulk)))
+         (fn [{[ids] :args}]
+           (.bulkDelete (.table store "images") (clj->js ids))) [store])]
+    (use-subscribe :tokens/remove on-remove)
+    (use-subscribe :scenes/remove on-remove)
+    (use-subscribe :tokens/remove-all on-remove-bulk)
+    (use-subscribe :scenes/remove-all on-remove-bulk)))
 
 (defui handlers
   "Registers event handlers related to IndexedDB, such as those involved in

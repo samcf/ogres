@@ -172,8 +172,9 @@
       (-> (.put (.table store "images") record)
           (.then #(create-image-element data-url))
           (.then (fn [image]
-                   (let [w (.-width image) h (.-height image)]
-                     (dispatch :stamp/create checksum w h :public)
+                   (let [width  (.-width image)
+                         height (.-height image)]
+                     (dispatch :tokens/create checksum width height :public)
                      (publish {:topic :image/cache :args [checksum data-url]})))))
       ;; This connection has received image data from the host - put it in
       ;; local storage and publish the relevant event to trigger an update
@@ -280,8 +281,8 @@
                 {host :session/host} :root/session}
                (ds/entity (ds/db conn) [:db/ident :root])]
            (case [kind type]
-             [:host :token] (dispatch :stamp/create checksum width height :private)
-             [:host :scene] (dispatch :scene/create checksum width height :private)
+             [:host :token] (dispatch :tokens/create checksum width height :private)
+             [:host :scene] (dispatch :scenes/create checksum width height :private)
              ([:conn :token] [:conn :scene])
              (on-send {:type :image :dst (:db/key host) :data data-url})))) [conn dispatch on-send]))
 
