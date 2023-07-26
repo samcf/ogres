@@ -147,7 +147,7 @@
                 :on-click #(dispatch :token/change-flag keys :hidden (not on))
                 :disabled (= type :conn)}
                ($ icon {:name (if on "eye-slash-fill" "eye-fill") :size 22})))
-           (let [on (every? (comp vector? :canvas/_initiative) tokens)]
+           (let [on (every? (comp vector? :scene/_initiative) tokens)]
              ($ :button
                {:type "button" :class (css {:selected on}) :data-tooltip "Initiative"
                 :on-click #(dispatch :initiative/toggle keys (not on))}

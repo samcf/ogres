@@ -13,7 +13,7 @@
   {:host [{:key :session    :label "Friends"    :icon "people-fill"}
           {:key :scenes     :label "Maps"       :icon "images"}
           {:key :tokens     :label "Tokens"     :icon "person-circle"}
-          {:key :canvas     :label "Options"    :icon "wrench-adjustable-circle"}
+          {:key :scene      :label "Options"    :icon "wrench-adjustable-circle"}
           {:key :initiative :label "Initiative" :icon "hourglass-split"}
           {:key :help       :label "Help"       :icon "question-diamond"}]
    :conn [{:key :session    :label "Friends"    :icon "people-fill"}
@@ -22,7 +22,7 @@
           {:key :help       :label "Help"       :icon "question-diamond"}]})
 
 (def ^{:private true} components
-  {:canvas     {:form options/form}
+  {:scene      {:form options/form}
    :help       {:form help/form}
    :initiative {:form initiative/form :footer initiative/footer}
    :scenes     {:form scenes/form :footer scenes/footer}

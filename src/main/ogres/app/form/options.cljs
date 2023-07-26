@@ -17,31 +17,31 @@
   [{:local/window
     [[:window/label :default ""]
      [:window/draw-mode :default :select]
-     {:window/canvas
+     {:window/scene
       [:db/key
-       [:canvas/dark-mode :default false]
-       [:canvas/grid-size :default 70]
-       [:canvas/lighting :default :revealed]
-       [:canvas/show-grid :default true]
-       [:canvas/snap-grid :default false]
-       [:canvas/timeofday :default :none]
-       {:canvas/image
+       [:scene/dark-mode :default false]
+       [:scene/grid-size :default 70]
+       [:scene/lighting :default :revealed]
+       [:scene/show-grid :default true]
+       [:scene/snap-grid :default false]
+       [:scene/timeofday :default :none]
+       {:scene/image
         [:image/checksum]}]}]}])
 
 (defui form []
   (let [dispatch (use-dispatch)
         result   (use-query query [:db/ident :local])
         {window :local/window
-         {canvas :window/canvas
-          {{checksum :image/checksum} :canvas/image}
-          :window/canvas}
+         {scene :window/scene
+          {{checksum :image/checksum} :scene/image}
+          :window/scene}
          :local/window} result]
     ($ :section.options
       ($ :section
         ($ :fieldset
           ($ :input
             {:type "text"
-             :placeholder "Name this canvas..."
+             :placeholder "Name this scene..."
              :maxLength 36
              :spellCheck "false"
              :value (:window/label window)
@@ -57,11 +57,11 @@
             ($ :input
               {:id "show-grid"
                :type "checkbox"
-               :checked (:canvas/show-grid canvas)
+               :checked (:scene/show-grid scene)
                :on-change
                (fn [event]
                  (let [checked (.. event -target -checked)]
-                   (dispatch :canvas/toggle-show-grid checked)))})
+                   (dispatch :scene/toggle-show-grid checked)))})
             ($ :label {:for "show-grid"}
               ($ icon {:name "grid-fill" :size 16})))
           ($ :fieldset
@@ -69,11 +69,11 @@
             ($ :input
               {:id "align-grid"
                :type "checkbox"
-               :checked (:canvas/snap-grid canvas)
+               :checked (:scene/snap-grid scene)
                :on-change
                (fn [event]
                  (let [checked (.. event -target -checked)]
-                   (dispatch :canvas/toggle-snap-grid checked)))})
+                   (dispatch :scene/toggle-snap-grid checked)))})
             ($ :label {:for "align-grid"}
               ($ icon {:name "bounding-box" :size 16})))
           ($ :fieldset
@@ -81,21 +81,21 @@
             ($ :input
               {:id "dark-mode"
                :type "checkbox"
-               :checked (:canvas/dark-mode canvas)
+               :checked (:scene/dark-mode scene)
                :on-change
                (fn [event]
                  (let [checked (.. event -target -checked)]
-                   (dispatch :canvas/toggle-dark-mode checked)))})
+                   (dispatch :scene/toggle-dark-mode checked)))})
             ($ :label {:for "dark-mode"}
               ($ icon {:name "lightbulb-fill" :size 16})))
           ($ :fieldset
             ($ :label "Tile size (px)")
             ($ :input
               {:type "number"
-               :value (or (:canvas/grid-size canvas) 0)
+               :value (or (:scene/grid-size scene) 0)
                :placeholder "Grid size"
                :disabled (not checksum)
-               :on-change #(dispatch :canvas/change-grid-size (.. %1 -target -value))}))))
+               :on-change #(dispatch :scene/change-grid-size (.. %1 -target -value))}))))
       ($ :section.options-effects
         ($ :header "Effects")
         ($ :form
@@ -108,9 +108,9 @@
                   ($ :input
                     {:id key
                      :type "radio"
-                     :checked (= (:canvas/lighting canvas) option)
+                     :checked (= (:scene/lighting scene) option)
                      :disabled (not checksum)
-                     :on-change #(dispatch :canvas/change-lighting option)})
+                     :on-change #(dispatch :scene/change-lighting option)})
                   ($ :label {:for key :data-tooltip label}
                     ($ icon {:name icon-name :size 18}))))))
           ($ :fieldset
@@ -122,8 +122,8 @@
                   ($ :input
                     {:id key
                      :type "radio"
-                     :checked (= option (:canvas/timeofday canvas))
+                     :checked (= option (:scene/timeofday scene))
                      :disabled (not checksum)
-                     :on-change #(dispatch :canvas/change-time-of-day option)})
+                     :on-change #(dispatch :scene/change-time-of-day option)})
                   ($ :label {:for key :data-tooltip label}
                     ($ icon {:name icon-name :size 18})))))))))))

@@ -38,13 +38,13 @@
                      :on-click
                      (fn [event]
                        (.stopPropagation event)
-                       (dispatch :canvas/change-scene checksum))}
+                       (dispatch :scene/change-image checksum))}
                     ($ :button
                       {:type "button" :title "Remove"
                        :on-click
                        (fn [event]
                          (.stopPropagation event)
-                         (dispatch :scenes/remove checksum))}
+                         (dispatch :scene-images/remove checksum))}
                       ($ icon {:name "trash3-fill" :size 16})))))
               ($ :figure.scenes-placeholder {:key idx})))
           ($ pagination
@@ -81,5 +81,5 @@
         {:type     "button"
          :title    "Remove all"
          :disabled (empty? scenes)
-         :on-click #(dispatch :scenes/remove-all scenes)}
+         :on-click #(dispatch :scene-images/remove-all scenes)}
         ($ icon {:name "trash3-fill" :size 16})))))

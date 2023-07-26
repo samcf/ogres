@@ -106,9 +106,9 @@
          (fn [{[ids] :args}]
            (.bulkDelete (.table store "images") (clj->js ids))) [store])]
     (use-subscribe :tokens/remove on-remove)
-    (use-subscribe :scenes/remove on-remove)
+    (use-subscribe :scene-images/remove on-remove)
     (use-subscribe :tokens/remove-all on-remove-bulk)
-    (use-subscribe :scenes/remove-all on-remove-bulk)))
+    (use-subscribe :scene-images/remove-all on-remove-bulk)))
 
 (defui handlers
   "Registers event handlers related to IndexedDB, such as those involved in

@@ -212,7 +212,7 @@ legend {
     font-weight: bold;
 }
 
-/* Canvas Options */
+/* Scene Options */
 .options {
     display: flex;
     flex-direction: column;
@@ -307,7 +307,7 @@ legend {
     grid-area: a;
 }
 
-.layout-canvas,
+.layout-scene,
 .layout-modal,
 .layout-toolbar,
 .layout-tokens {
@@ -497,65 +497,65 @@ legend {
     stroke: black;
 }
 
-/* Canvas */
-.canvas {
+/* Scene */
+.scene {
     background-color: var(--theme-background-d);
     pointer-events: all;
     height: 100%;
     width: 100%;
 }
 
-.canvas text,
-.canvas-grid,
-.canvas-image {
+.scene text,
+.scene-grid,
+.scene-image {
     pointer-events: none;
 }
 
-.canvas.theme--light {
-    --canvas-stroke: rgba(255, 255, 255, 1);
-    --canvas-text: rgba(255, 255, 255, 1);
-    --canvas-text-outline: rgba(0, 0, 0, 1);
+.scene.theme--light {
+    --scene-stroke: rgba(255, 255, 255, 1);
+    --scene-text: rgba(255, 255, 255, 1);
+    --scene-text-outline: rgba(0, 0, 0, 1);
 }
 
-.canvas.theme--dark {
-    --canvas-stroke: rgba(0, 0, 0, 1);
-    --canvas-text: rgba(0, 0, 0, 1);
-    --canvas-text-outline: rgba(255, 255, 255, 1);
+.scene.theme--dark {
+    --scene-stroke: rgba(0, 0, 0, 1);
+    --scene-text: rgba(0, 0, 0, 1);
+    --scene-text-outline: rgba(255, 255, 255, 1);
 }
 
-.canvas-text {
-    fill: var(--canvas-text);
+.scene-text {
+    fill: var(--scene-text);
     font-size: 12px;
     paint-order: stroke;
     stroke-width: 3px;
-    stroke: var(--canvas-text-outline);
+    stroke: var(--scene-text-outline);
 }
 
-/* Canvas Cursors */
-.canvas-cursor {
+/* Scene Cursors */
+.scene-cursor {
     filter: drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.60));
     stroke: var(--theme-background-d);
     stroke-width: 1px;
 }
 
-.canvas-cursor svg use {
+.scene-cursor svg use {
     transform: rotate(270deg);
     transform-origin: 50% 50%;
 }
 
-/* Canvas Tokens */
-.canvas-token.flag--hidden circle,
-.canvas-token.flag--invisible circle {
+/* Scene Tokens */
+.scene-token.flag--hidden circle,
+.scene-token.flag--invisible circle {
     fill-opacity: 0.70;
 }
 
-.canvas-token-label {
+.scene-token-label {
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
-.canvas-token-label > span {
+.scene-token-label > span {
     background-color: var(--theme-background-d);
     border-radius: 8px;
     color: var(--theme-text);
@@ -563,21 +563,21 @@ legend {
     padding: 0 8px;
 }
 
-.canvas-token-shape {
+.scene-token-shape {
     cursor: pointer;
     filter: drop-shadow(1px 1px 0.5px rgba(0, 0, 0, 1));
 }
 
-.canvas-token-shape + text {
+.scene-token-shape + text {
     text-anchor: middle;
 }
 
-.canvas-token-flags {
+.scene-token-flags {
     pointer-events: none;
     color: var(--theme-text);
 }
 
-.canvas-token-flags circle {
+.scene-token-flags circle {
     fill: var(--theme-background-d);
 }
 
@@ -586,15 +586,15 @@ legend {
     100% { transform: scale(1.3); }
 }
 
-.canvas-token-ring {
+.scene-token-ring {
     animation: ring-pulse 0.50s alternate infinite;
     display: none;
     pointer-events: none;
     stroke-width: 1px;
-    stroke: var(--canvas-stroke);
+    stroke: var(--scene-stroke);
 }
 
-.canvas-selected .canvas-token .canvas-token-ring {
+.scene-selected .scene-token .scene-token-ring {
     display: block;
 }
 
@@ -603,32 +603,32 @@ legend {
     100% { fill-opacity: 0.10; }
 }
 
-.canvas-token-aura {
+.scene-token-aura {
     animation: aura-pulse 1.50s alternate infinite;
-    fill: var(--canvas-stroke);
-    stroke: var(--canvas-stroke);
+    fill: var(--scene-stroke);
+    stroke: var(--scene-stroke);
     stroke-width: 1px;
     stroke-opacity: 0.45;
     pointer-events: none;
 }
 
-.canvas-shape-rect > path {
+.scene-shape-rect > path {
     shape-rendering: crispEdges;
 }
 
-/* Canvas Shapes */
-.canvas-shape {
+/* Scene Shapes */
+.scene-shape {
     cursor: pointer;
 }
 
-.canvas-shape:hover > circle,
-.canvas-shape:hover > path,
-.canvas-shape:hover > line,
-.canvas-shape:hover > polygon,
-.canvas-shape.selected > circle,
-.canvas-shape.selected > path,
-.canvas-shape.selected > line,
-.canvas-shape.selected > polygon {
+.scene-shape:hover > circle,
+.scene-shape:hover > path,
+.scene-shape:hover > line,
+.scene-shape:hover > polygon,
+.scene-shape.selected > circle,
+.scene-shape.selected > path,
+.scene-shape.selected > line,
+.scene-shape.selected > polygon {
     stroke-dasharray: 4px;
     animation: stroke-animation 1s linear infinite;
 }
@@ -638,49 +638,49 @@ legend {
     100% { stroke-dashoffset: 16px; }
 }
 
-.canvas-drawable {
+.scene-drawable {
     cursor: crosshair;
 }
 
-.canvas-drawable line,
-.canvas-drawable path,
-.canvas-drawable polygon,
-.canvas-drawable circle {
+.scene-drawable line,
+.scene-drawable path,
+.scene-drawable polygon,
+.scene-drawable circle {
     fill: transparent;
-    stroke: var(--canvas-stroke);
+    stroke: var(--scene-stroke);
     stroke-dasharray: 8px;
 }
 
-.canvas-drawable-grid path,
-.canvas-drawable-rect path,
-.canvas-drawable-select path {
+.scene-drawable-grid path,
+.scene-drawable-rect path,
+.scene-drawable-select path {
     shape-rendering: crispEdges;
 }
 
-.canvas-drawable-select {
+.scene-drawable-select {
     cursor: auto;
 }
 
-.canvas-drawable-select path {
+.scene-drawable-select path {
     fill-opacity: 0.30;
-    fill: var(--canvas-stroke);
+    fill: var(--scene-stroke);
     stroke: none;
 }
 
-.canvas-bounds rect {
+.scene-bounds rect {
     fill: transparent;
     pointer-events: none;
     shape-rendering: crispEdges;
     stroke-dasharray: 6px;
     stroke-width: 1;
-    stroke: var(--canvas-stroke);
+    stroke: var(--scene-stroke);
 }
 
-.canvas-grid pattern > path {
+.scene-grid pattern > path {
     fill: none;
     stroke-dasharray: 2px;
     stroke-width: 1px;
-    stroke: var(--canvas-stroke);
+    stroke: var(--scene-stroke);
     opacity: 0.60;
 }
 
@@ -941,44 +941,44 @@ legend {
 }
 
 /* Masks */
-.canvas-mask {
+.scene-mask {
     pointer-events: none;
 }
 
-.canvas-mask-background {
+.scene-mask-background {
     fill: var(--theme-background-d);
 }
 
-.canvas-mask-pattern {
+.scene-mask-pattern {
     fill-opacity: 0;
 }
 
-.canvas-mask.is-dimmed .canvas-mask-background {
+.scene-mask.is-dimmed .scene-mask-background {
     fill-opacity: 0.75;
 }
 
-.canvas.is-host .canvas-mask-background {
+.scene.is-host .scene-mask-background {
     fill-opacity: 0.40;
 }
 
-.canvas.is-host .canvas-mask-pattern {
+.scene.is-host .scene-mask-pattern {
     fill-opacity: 0.30;
 }
 
-.canvas-mask-polygon {
+.scene-mask-polygon {
     fill: transparent;
     pointer-events: fill;
-    stroke: var(--canvas-stroke);
+    stroke: var(--scene-stroke);
     stroke-width: 2px;
 }
 
-.canvas-mask-polygon:hover {
+.scene-mask-polygon:hover {
     cursor: pointer;
     stroke: orange;
 }
 
 /* Forms */
-.form-canvas-profile button:nth-child(1) {
+.form-scene-profile button:nth-child(1) {
     align-items: center;
     aspect-ratio: 1;
     color: var(--theme-paper-accent);
@@ -988,17 +988,17 @@ legend {
     padding: 0;
 }
 
-.form-canvas-profile button:nth-child(1) > div {
+.form-scene-profile button:nth-child(1) > div {
     aspect-ratio: 1;
     background-size: cover;
     width: 100%;
 }
 
-.form-canvas-profile button:nth-child(1):not(:disabled) {
+.form-scene-profile button:nth-child(1):not(:disabled) {
     cursor: pointer;
 }
 
-.form-canvas-profile button:nth-child(2) {
+.form-scene-profile button:nth-child(2) {
     grid-area: c;
 }
 
@@ -1614,25 +1614,25 @@ legend {
 }
 
 /* Shared */
-.canvas,
+.scene,
 .toolbar-group,
 .toolbar-group button {
     border-radius: 3px;
 }
 
 /* Global */
-.root[data-view-type="host"] .canvas {
+.root[data-view-type="host"] .scene {
     border-radius: 0 3px 3px 3px;
 }
 
-.root[data-view-type="view"] .canvas-shape:hover > circle,
-.root[data-view-type="view"] .canvas-shape:hover > path,
-.root[data-view-type="view"] .canvas-shape:hover > line,
-.root[data-view-type="view"] .canvas-shape:hover > polygon,
-.root[data-view-type="view"] .canvas-shape.selected > circle,
-.root[data-view-type="view"] .canvas-shape.selected > path,
-.root[data-view-type="view"] .canvas-shape.selected > line,
-.root[data-view-type="view"] .canvas-shape.selected > polygon {
+.root[data-view-type="view"] .scene-shape:hover > circle,
+.root[data-view-type="view"] .scene-shape:hover > path,
+.root[data-view-type="view"] .scene-shape:hover > line,
+.root[data-view-type="view"] .scene-shape:hover > polygon,
+.root[data-view-type="view"] .scene-shape.selected > circle,
+.root[data-view-type="view"] .scene-shape.selected > path,
+.root[data-view-type="view"] .scene-shape.selected > line,
+.root[data-view-type="view"] .scene-shape.selected > polygon {
     stroke-dasharray: none;
     animation: none;
 }
@@ -1643,7 +1643,7 @@ legend {
     grid-template-rows: 1fr;
 }
 
-.root[data-view-type="view"] .canvas {
+.root[data-view-type="view"] .scene {
     pointer-events: none;
 }
 

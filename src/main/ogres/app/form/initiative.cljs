@@ -7,11 +7,11 @@
 (def ^:private query-form
   [:local/type
    {:local/window
-    [{:window/canvas
+    [{:window/scene
       [:db/key
        :initiative/rounds
        {:initiative/turn [:db/key]}
-       {:canvas/initiative
+       {:scene/initiative
         [:db/key
          :token/label
          :token/flags
@@ -23,10 +23,10 @@
 
 (def ^:private query-footer
   [{:local/window
-    [{:window/canvas
+    [{:window/scene
       [[:initiative/turns :default 0]
        [:initiative/rounds :default 0]
-       {:canvas/initiative
+       {:scene/initiative
         [:db/key]}]}]}])
 
 (defn- initiative-order [a b]
@@ -95,7 +95,7 @@
 (defui initiant [{:keys [context entity]}]
   (let [dispatch (use-dispatch)
         {type      :local/type
-         {{current :initiative/turn} :window/canvas} :local/window} context
+         {{current :initiative/turn} :window/scene} :local/window} context
         {key       :db/key
          label     :token/label
          flags     :token/flags
@@ -133,8 +133,8 @@
 (defui form []
   (let [result (use-query query-form)
         {type :local/type
-         {{tokens :canvas/initiative
-           rounds :initiative/rounds} :window/canvas}
+         {{tokens :scene/initiative
+           rounds :initiative/rounds} :window/scene}
          :local/window} result]
     ($ :div.initiative
       (cond (and (not (seq tokens)) (nil? rounds))
@@ -162,8 +162,8 @@
         result   (use-query query-footer)
         {{{turns  :initiative/turns
            rounds :initiative/rounds
-           tokens :canvas/initiative}
-          :window/canvas}
+           tokens :scene/initiative}
+          :window/scene}
          :local/window} result
         started (>= rounds 1)]
     ($ :<>

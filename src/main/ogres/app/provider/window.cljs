@@ -21,7 +21,7 @@
 
 (defui initialize
   "Registers a DataScript listener in order to manage the view window, the
-   player's view of the canvas." []
+   player's view of the scene." []
   (let [dispatch             (use-dispatch)
         {:keys [view reset]} (use-context context)]
     (use-subscribe :share/initiate
@@ -59,35 +59,35 @@
           (ds/transact! conn))) [conn]))))
 
 (defui bounds
-  "Registers event handlers to watch for changes in the canvas dimensions in
+  "Registers event handlers to watch for changes in the scene dimensions in
    order to put those dimensions in the application state. Dimensions are
    of the form [x y width height]."
   [{:keys [target type]}]
   (let [dispatch (use-dispatch)
         handler  (debounce
                   (fn []
-                    (if-let [element (.. target -document (querySelector ".layout-canvas"))]
+                    (if-let [element (.. target -document (querySelector ".layout-scene"))]
                       (->> (.getBoundingClientRect element)
                            (bounds->vector)
                            (dispatch :bounds/change type)))) 100)
         [observer] (use-state (js/ResizeObserver. handler))
-        [canvas set-canvas] (use-state nil)]
+        [scene set-scene] (use-state nil)]
     (use-event-listener "resize" handler)
     (use-effect
      (fn []
        (if (= type :host)
          (.dispatchEvent target (js/Event. "resize")))
        ((fn f []
-          (let [element (.querySelector (.-document target) ".layout-canvas")]
+          (let [element (.querySelector (.-document target) ".layout-scene")]
             (if element
-              (set-canvas element)
+              (set-scene element)
               (.requestAnimationFrame js/window f)))))))
 
     (use-effect
      (fn []
-       (when canvas
-         (.observe observer canvas)
-         (fn [] (.unobserve observer canvas)))) ^:lint/disable [canvas])))
+       (when scene
+         (.observe observer scene)
+         (fn [] (.unobserve observer scene)))) ^:lint/disable [scene])))
 
 (defui closers
   "Registers event handlers to listen for the host or view windows being

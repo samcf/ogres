@@ -1,4 +1,4 @@
-(ns ogres.app.render.canvas
+(ns ogres.app.render.scene
   (:require [clojure.set :refer [difference]]
             [clojure.string :refer [join]]
             [ogres.app.const :refer [grid-size]]
@@ -57,22 +57,22 @@
     (string? label) (str label)
     (number? suffix) (str " " (char (+ suffix 64)))))
 
-(def ^:private query-scene
+(def ^:private query-scene-image
   [{:local/window
-    [{:window/canvas
-      [[:canvas/grid-size :default 70]
-       [:canvas/timeofday :default :none]
-       {:canvas/image [:image/checksum]}]}]}])
+    [{:window/scene
+      [[:scene/grid-size :default 70]
+       [:scene/timeofday :default :none]
+       {:scene/image [:image/checksum]}]}]}])
 
-(defui render-scene []
-  (let [result (use-query query-scene)
-        {{{size        :canvas/grid-size
-           time-of-day :canvas/timeofday
-           {checksum   :image/checksum} :canvas/image}
-          :window/canvas}
+(defui render-scene-image []
+  (let [result (use-query query-scene-image)
+        {{{size        :scene/grid-size
+           time-of-day :scene/timeofday
+           {checksum   :image/checksum} :scene/image}
+          :window/scene}
          :local/window} result
         url (use-image checksum)]
-    ($ :g.canvas-image {:transform (str "scale(" (/ grid-size size) ")")}
+    ($ :g.scene-image {:transform (str "scale(" (/ grid-size size) ")")}
       ($ :defs {:key time-of-day}
         ($ :filter {:id "atmosphere"}
           ($ :feColorMatrix {:type "matrix" :values (join " " (color-matrix time-of-day))})))
@@ -81,32 +81,32 @@
 (def ^:private query-mask-vis
   [:local/type
    {:local/window
-    [{:window/canvas
-      [[:canvas/grid-size :default 70]
-       [:canvas/lighting :default :revealed]
-       {:canvas/tokens
+    [{:window/scene
+      [[:scene/grid-size :default 70]
+       [:scene/lighting :default :revealed]
+       {:scene/tokens
         [:db/key
          [:token/flags :default #{}]
          [:token/light :default 15]
          [:token/point :default [0 0]]]}
-       {:canvas/image [:image/checksum :image/width :image/height]}]}]}])
+       {:scene/image [:image/checksum :image/width :image/height]}]}]}])
 
 (defui render-mask-vis []
   (let [result (use-query query-mask-vis)
         {type :local/type
-         {{visibility :canvas/lighting
-           size       :canvas/grid-size
-           tokens     :canvas/tokens
+         {{visibility :scene/lighting
+           size       :scene/grid-size
+           tokens     :scene/tokens
            {checksum  :image/checksum
             width     :image/width
             height    :image/height}
-           :canvas/image}
-          :window/canvas}
+           :scene/image}
+          :window/scene}
          :local/window} result
         width  (* width  (/ grid-size size))
         height (* height (/ grid-size size))]
     (if (and checksum (not= visibility :revealed))
-      ($ :g.canvas-mask {:class (css {:is-dimmed (= visibility :dimmed)})}
+      ($ :g.scene-mask {:class (css {:is-dimmed (= visibility :dimmed)})}
         ($ :defs
           ($ pattern {:id "mask-pattern" :name :lines :color "black"})
           ($ :radialGradient {:id "mask-gradient"}
@@ -119,10 +119,10 @@
                   :when (and (> radius 0) (or (= type :host) (visible? flags)))
                   :let  [radius (-> grid-size (* radius) (/ 5) (+ grid-size))]]
               ($ :circle {:key key :cx x :cy y :r radius :fill "url(#mask-gradient)"}))))
-        ($ :rect.canvas-mask-background
+        ($ :rect.scene-mask-background
           {:x 0 :y 0 :width width :height height :mask "url(#light-mask)"})
         (if (= visibility :hidden)
-          ($ :rect.canvas-mask-pattern
+          ($ :rect.scene-mask-pattern
             {:x 0 :y 0 :width width :height height
              :fill "url(#mask-pattern)" :mask "url(#light-mask)"}))))))
 
@@ -130,41 +130,41 @@
   [:local/type
    {:local/window
     [[:window/draw-mode :default :select]
-     {:window/canvas
-      [[:canvas/grid-size :default 70]
+     {:window/scene
+      [[:scene/grid-size :default 70]
        [:mask/filled? :default false]
-       {:canvas/image [:image/width :image/height]}
-       {:canvas/masks [:db/key :mask/vecs :mask/enabled?]}]}]}])
+       {:scene/image [:image/width :image/height]}
+       {:scene/masks [:db/key :mask/vecs :mask/enabled?]}]}]}])
 
 (defui render-mask-fog []
   (let [dispatch (use-dispatch)
         result   (use-query query-mask-fog)
         {type :local/type
          {mode :window/draw-mode
-          {size    :canvas/grid-size
+          {size    :scene/grid-size
            filled? :mask/filled?
-           masks   :canvas/masks
+           masks   :scene/masks
            {width  :image/width
             height :image/height}
-           :canvas/image}
-          :window/canvas}
+           :scene/image}
+          :window/scene}
          :local/window} result
         modes #{:mask :mask-toggle :mask-remove}
         width  (* width  (/ grid-size size))
         height (* height (/ grid-size size))]
-    ($ :g.canvas-mask
+    ($ :g.scene-mask
       ($ :defs
         ($ pattern {:id "mask-pattern" :name :lines})
-        ($ :mask {:id "canvas-mask"}
+        ($ :mask {:id "scene-mask"}
           (if filled?
             ($ :rect {:x 0 :y 0 :width width :height height :fill "white"}))
           (for [{key :db/key enabled? :mask/enabled? xs :mask/vecs} masks]
             ($ :polygon {:key key :points (join " " xs) :fill (if enabled? "white" "black")}))))
-      ($ :rect.canvas-mask-background {:x 0 :y 0 :width width :height height :mask "url(#canvas-mask)"})
-      ($ :rect.canvas-mask-pattern {:x 0 :y 0 :width width :height height :fill "url(#mask-pattern)" :mask "url(#canvas-mask)"})
+      ($ :rect.scene-mask-background {:x 0 :y 0 :width width :height height :mask "url(#scene-mask)"})
+      ($ :rect.scene-mask-pattern {:x 0 :y 0 :width width :height height :fill "url(#mask-pattern)" :mask "url(#scene-mask)"})
       (if (and (= type :host) (contains? modes mode))
         (for [{key :db/key xs :mask/vecs enabled? :mask/enabled?} masks]
-          ($ :polygon.canvas-mask-polygon
+          ($ :polygon.scene-mask-polygon
             {:key key
              :data-enabled enabled?
              :points (join " " xs)
@@ -181,8 +181,8 @@
     [[:window/point :default [0 0]]
      [:window/scale :default 1]
      [:window/draw-mode :default :select]
-     {:window/canvas
-      [[:canvas/show-grid :default true]]}]}])
+     {:window/scene
+      [[:scene/show-grid :default true]]}]}])
 
 (defui render-grid []
   (let [data (use-query query-grid)
@@ -190,8 +190,8 @@
          {[cx cy] :window/point
           mode    :window/draw-mode
           scale   :window/scale
-          canvas  :window/canvas} :local/window} data]
-    (if (or (:canvas/show-grid canvas) (= mode :grid))
+          scene   :window/scene} :local/window} data]
+    (if (or (:scene/show-grid scene) (= mode :grid))
       (let [w (/ w scale)
             h (/ h scale)
             [sx sy ax ay bx]
@@ -200,7 +200,7 @@
              (- (* w  3) cx)
              (- (* h  3) cy)
              (- (* w -3) cx)]]
-        ($ :g {:class "canvas-grid"}
+        ($ :g {:class "scene-grid"}
           ($ :defs
             ($ :pattern {:id "grid" :width grid-size :height grid-size :patternUnits "userSpaceOnUse"}
               ($ :path {:d (join " " ["M" 0 0 "H" grid-size "V" grid-size])})))
@@ -261,9 +261,9 @@
    {:local/window
     [:db/key
      [:window/scale :default 1]
-     {:window/canvas
-      [[:canvas/snap-grid :default false]
-       {:canvas/shapes
+     {:window/scene
+      [[:scene/snap-grid :default false]
+       {:scene/shapes
         [:db/key
          :shape/kind
          :shape/vecs
@@ -278,11 +278,11 @@
         {type    :local/type
          window  :local/window
          {scale  :window/scale
-          canvas :window/canvas
-          {snap-grid :canvas/snap-grid} :window/canvas}
+          scene  :window/scene
+          {snap-grid :scene/snap-grid} :window/scene}
          :local/window} result
         participant? (or (= type :host) (= type :conn))]
-    (for [entity (:canvas/shapes canvas)
+    (for [entity (:scene/shapes scene)
           :let   [key (:db/key entity)
                   {:shape/keys [kind color vecs]} entity
                   selecting (into #{} (map :db/key) (:window/_selected entity))
@@ -301,7 +301,7 @@
                    (dispatch :shape/translate key ox oy (not= snap-grid (.-metaKey event)))
                    (dispatch :element/select key true))))}
             (let [id (random-uuid)]
-              ($ :g {:class (css {:canvas-shape true :selected selected? (str "canvas-shape-" (name kind)) true})}
+              ($ :g {:class (css {:scene-shape true :selected selected? (str "scene-shape-" (name kind)) true})}
                 ($ :defs
                   ($ pattern {:id id :name (:shape/pattern entity) :color color}))
                 ($ render-shape {:entity entity :attrs {:fill (str "url(#" id ")")}})
@@ -316,14 +316,14 @@
 
 (def ^:private query-token-faces
   [{:local/window
-    [{:window/canvas
-      [{:canvas/tokens
+    [{:window/scene
+      [{:scene/tokens
         [{:token/image
           [:image/checksum]}]}]}]}])
 
 (defui render-token-faces []
   (let [result    (use-query query-token-faces)
-        tokens    (-> result :local/window :window/canvas :canvas/tokens)
+        tokens    (-> result :local/window :window/scene :scene/tokens)
         checksums (into #{} (comp (map :token/image) (map :image/checksum)) tokens)
         attrs     {:width "100%" :height "100%" :patternContentUnits "objectBoundingBox"}]
     ($ :defs
@@ -341,7 +341,7 @@
   ($ :<>
     (let [radius (* grid-size (/ (:aura/radius data) 5))]
       (if (> radius 0)
-        ($ :circle.canvas-token-aura {:cx 0 :cy 0 :r (+ radius (/ grid-size 2))})))
+        ($ :circle.scene-token-aura {:cx 0 :cy 0 :r (+ radius (/ grid-size 2))})))
     (let [radii (- (/ grid-size 2) 2)
           flags (:token/flags data)
           scale (/ (:token/size data) 5)
@@ -349,9 +349,9 @@
           pttrn (cond (flags :unconscious) (str "token-face-deceased")
                       (string? hashs)      (str "token-face-" hashs)
                       :else                (str "token-face-default"))]
-      ($ :g.canvas-token-container {:transform (str "scale(" scale ")")}
-        ($ :circle.canvas-token-ring {:cx 0 :cy 0 :style {:r radii :fill "transparent"}})
-        ($ :circle.canvas-token-shape {:cx 0 :cy 0 :r radii :fill (str "url(#" pttrn ")")})
+      ($ :g.scene-token-container {:transform (str "scale(" scale ")")}
+        ($ :circle.scene-token-ring {:cx 0 :cy 0 :style {:r radii :fill "transparent"}})
+        ($ :circle.scene-token-shape {:cx 0 :cy 0 :r radii :fill (str "url(#" pttrn ")")})
         (for [[deg flag] (->> #{:player :hidden :unconscious}
                               (difference flags)
                               (take 4)
@@ -359,13 +359,13 @@
               :let [rn (* (/ js/Math.PI 180) deg)
                     cx (* (js/Math.sin rn) radii)
                     cy (* (js/Math.cos rn) radii)]]
-          ($ :g.canvas-token-flags {:key flag :transform (str "translate(" cx ", " cy ")")}
+          ($ :g.scene-token-flags {:key flag :transform (str "translate(" cx ", " cy ")")}
             ($ :circle {:cx 0 :cy 0 :r 12})
             ($ :g {:transform (str "translate(" -8 ", " -8 ")")}
               ($ icon {:name (condition->icon flag) :size 16}))))
         (if (seq (label data))
           ($ :foreignObject.context-menu-object {:x -200 :y (- radii 8) :width 400 :height 32}
-            ($ :div.canvas-token-label
+            ($ :div.scene-token-label
               ($ :span (label data)))))))))
 
 (defn- token-comparator [a b]
@@ -380,9 +380,9 @@
     [:db/key
      :window/selected
      [:window/scale :default 1]
-     {:window/canvas
-      [[:canvas/snap-grid :default false]
-       {:canvas/tokens
+     {:window/scene
+      [[:scene/snap-grid :default false]
+       {:scene/tokens
         [:db/key
          [:initiative/suffix :default nil]
          [:token/point :default [0 0]]
@@ -392,15 +392,15 @@
          [:token/light :default 15]
          [:aura/radius :default 0]
          {:token/image [:image/checksum]}
-         {:canvas/_initiative [:db/key]}
+         {:scene/_initiative [:db/key]}
          {:window/_selected [:db/key]}]}]}]}])
 
 (defui render-tokens []
   (let [dispatch (use-dispatch)
         result   (use-query query-tokens)
-        {:local/keys [type window]} result
-        {:window/keys [scale canvas]} window
-        {:canvas/keys [snap-grid tokens]} canvas
+        {:local/keys  [type window]} result
+        {:window/keys [scale scene]} window
+        {:scene/keys  [snap-grid tokens]} scene
 
         flags-xf
         (comp (map name)
@@ -430,7 +430,7 @@
                (if (= (euclidean ax ay bx by) 0)
                  (dispatch :element/select key (not (.-shiftKey event)))
                  (dispatch :token/translate key bx by (not= (.-metaKey event) snap-grid)))))}
-          ($ :g.canvas-token {:class (css (token-css data))}
+          ($ :g.scene-token {:class (css (token-css data))}
             ($ render-token {:data data}))))
       (if (seq selected)
         (let [keys (map :db/key selected)
@@ -445,12 +445,12 @@
                  (fn [event data]
                    (let [ox (.-x data) oy (.-y data)]
                      (if (and (= ox 0) (= oy 0))
-                       (let [key (.. event -target (closest ".canvas-token[data-key]") -dataset -key)]
+                       (let [key (.. event -target (closest ".scene-token[data-key]") -dataset -key)]
                          (dispatch :element/select (uuid key) (not (.-shiftKey event))))
                        (dispatch :token/translate-all keys ox oy (not= (.-metaKey event) snap-grid)))))}
-                ($ :g.canvas-selected {:key keys}
+                ($ :g.scene-selected {:key keys}
                   (for [data selected :let [{key :db/key [x y] :token/point} data]]
-                    ($ :g.canvas-token
+                    ($ :g.scene-token
                       {:key key :class (css (token-css data)) :data-key key :transform (str "translate(" x "," y ")")}
                       ($ render-token {:data data})))
                   (if (or (= type :host) (= type :conn))
@@ -467,7 +467,7 @@
         {[_ _ hw hh] :bounds/host
          [_ _ vw vh] :bounds/view} result
         [ox oy] [(/ (- hw vw) 2) (/ (- hh vh) 2)]]
-    ($ :g.canvas-bounds {:transform (str "translate(" ox " , " oy ")")}
+    ($ :g.scene-bounds {:transform (str "translate(" ox " , " oy ")")}
       ($ :rect {:x 0 :y 0 :width vw :height vh :rx 8}))))
 
 (defui render-cursor [{[x y] :coord color :color}]
@@ -482,7 +482,7 @@
        (on-point-move [x y])) [on-point-move x y])
     (if (not (nil? point))
       (let [[ax ay] point]
-        ($ :g.canvas-cursor {:transform (str "translate(" (- ax 4) ", " (- ay 4) ")") :color color}
+        ($ :g.scene-cursor {:transform (str "translate(" (- ax 4) ", " (- ay 4) ")") :color color}
           ($ icon {:name "cursor-fill" :size 32}))))))
 
 (def ^:private query-cursors
@@ -506,7 +506,7 @@
             (fn [m]
               (assoc m uuid [x y]))))) [share]))
     (if share
-      ($ :g.canvas-cursors
+      ($ :g.scene-cursors
         (for [[uuid point] coords
               :let  [local (conns uuid)
                      color (:local/color local)
@@ -514,7 +514,7 @@
               :when (and local share)]
           ($ render-cursor {:key uuid :coord point :color color}))))))
 
-(def ^:private query-canvas
+(def ^:private query-scene
   [:local/type
    [:local/privileged? :default false]
    [:bounds/self :default [0 0 0 0]]
@@ -526,13 +526,13 @@
      [:window/point :default [0 0]]
      [:window/scale :default 1]
      [:window/draw-mode :default :select]
-     {:window/canvas
-      [[:canvas/dark-mode :default false]]}]}])
+     {:window/scene
+      [[:scene/dark-mode :default false]]}]}])
 
-(defui render-canvas []
+(defui render-scene []
   (let [dispatch (use-dispatch)
         publish  (use-publish)
-        result   (use-query query-canvas)
+        result   (use-query query-scene)
         {type        :local/type
          priv?       :local/privileged?
          [_ _ hw hh] :bounds/host
@@ -543,8 +543,8 @@
           mode    :window/draw-mode
           modif   :window/modifier
           [cx cy] :window/point
-          {dark-mode :canvas/dark-mode}
-          :window/canvas}
+          {dark-mode :scene/dark-mode}
+          :window/scene}
          :local/window} result
         cx (if (= type :view) (->> (- hw vw) (max 0) (* (/ -1 2 scale)) (+ cx)) cx)
         cy (if (= type :view) (->> (- hh vh) (max 0) (* (/ -1 2 scale)) (+ cy)) cy)
@@ -568,15 +568,15 @@
                      y (- (/ (- (.-clientY event) sy) scale) cy)]
                  (publish {:topic :cursor/move :args [x y]})))))
          [publish sx sy cx cy scale])]
-    ($ :svg.canvas {:key key :class (css {:theme--light (not dark-mode) :theme--dark dark-mode :is-host (= type :host) :is-priv priv?})}
+    ($ :svg.scene {:key key :class (css {:theme--light (not dark-mode) :theme--dark dark-mode :is-host (= type :host) :is-priv priv?})}
       ($ react-draggable {:position #js {:x 0 :y 0} :on-stop on-translate}
         ($ :g {:style {:will-change "transform"} :on-mouse-move on-cursor-move}
           ($ :rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"})
           (if (and (= mode :select) (= modif :shift))
             ($ draw {:mode :select}))
-          ($ :g.canvas-board {:transform (str "scale(" scale ") translate(" cx ", " cy ")")}
+          ($ :g.scene-board {:transform (str "scale(" scale ") translate(" cx ", " cy ")")}
             ($ render-token-faces)
-            ($ render-scene)
+            ($ render-scene-image)
             ($ render-grid)
             ($ render-shapes)
             ($ render-tokens)
@@ -589,9 +589,9 @@
       ($ create-portal {:name :multiselect}
         (fn [{:keys [ref]}]
           ($ :g {:ref   ref
-                 :class "canvas-drawable canvas-drawable-select"
+                 :class "scene-drawable scene-drawable-select"
                  :style {:outline "none"}})))
       (if (contains? draw-modes mode)
-        ($ :g {:class (str "canvas-drawable canvas-drawable-" (name mode))}
+        ($ :g {:class (str "scene-drawable scene-drawable-" (name mode))}
           ($ draw {:key mode :mode mode :node nil})))
       (if priv? ($ render-bounds)))))

@@ -84,86 +84,6 @@
 
 (defmethod transact :default [] [])
 
-(defmethod transact :workspace/create
-  [{:keys [local]}]
-  [[:db/add -1 :db/key (squuid)]
-   [:db/add -2 :db/key (squuid)]
-   [:db/add [:db/key local] :local/window -1]
-   [:db/add [:db/key local] :local/windows -1]
-   [:db/add -1 :window/canvas -2]
-   [:db/add [:db/ident :root] :root/canvases -2]])
-
-(defmethod transact :workspace/change
-  [{:keys [local]} key]
-  [[:db/add -1 :db/key local]
-   [:db/add -2 :db/key key]
-   [:db/add -1 :local/window -2]])
-
-(defmethod transact :workspace/remove
-  [{:keys [data local]} key]
-  (let [select-w [:db/key {:window/canvas [:db/key]}]
-        select-l [:db/key {:local/windows select-w :local/window select-w}]
-        select-r [{:root/local select-l} {:root/session [{:session/conns select-l}]}]
-        select-o [:db/key {:window/canvas [:db/key {:window/_canvas [:db/key]}]}]
-
-        {{canvas :db/key
-          remove :window/_canvas} :window/canvas}
-        (ds/pull data select-o [:db/key key])
-
-        {{conns   :session/conns} :root/session
-         {window  :local/window
-          windows :local/windows} :root/local}
-        (ds/pull data select-r [:db/ident :root])]
-    (cond
-      (= (count windows) 1)
-      (into [[:db/retractEntity [:db/key canvas]]
-             [:db/add -1 :db/key (squuid)]
-             [:db/add -1 :window/canvas -2]
-             [:db/add -2 :db/key (squuid)]
-             [:db/add [:db/key local] :local/window -1]
-             [:db/add [:db/key local] :local/windows -1]]
-            (comp cat cat)
-            (list (for [{:keys [db/key]} remove]
-                    [[:db/retractEntity [:db/key key]]])
-                  (for [[idx conn] (sequence (indexed 3 2) conns)
-                        :let [tmp (dec idx)]]
-                    [[:db/add idx :db/key (:db/key conn)]
-                     [:db/add idx :local/windows tmp]
-                     [:db/add idx :local/window tmp]
-                     [:db/add tmp :db/key (squuid)]
-                     [:db/add tmp :window/canvas -2]
-                     [:db/add tmp :window/point [0 0]]
-                     [:db/add tmp :window/scale 1]])))
-
-      (= key (:db/key window))
-      (let [next (->> windows (filter #(not= (:db/key %) (:db/key window))) (first))]
-        (into [[:db/retractEntity [:db/key canvas]]
-               [:db/add -1 :db/key (:db/key next)]
-               [:db/add -2 :db/key local]
-               [:db/add -2 :local/window -1]]
-              (comp cat cat)
-              (list (for [{:keys [db/key]} remove]
-                      [[:db/retractEntity [:db/key key]]])
-                    (for [[idx conn] (sequence (indexed 3 2) conns)
-                          :let [tmp (dec idx)
-                                key (->> (:local/windows conn)
-                                         (filter #(= (:db/key (:window/canvas %))
-                                                     (:db/key (:window/canvas next))))
-                                         (first)
-                                         (:db/key))]]
-                      [[:db/add idx :db/key (:db/key conn)]
-                       [:db/add idx :local/windows tmp]
-                       [:db/add idx :local/window tmp]
-                       [:db/add tmp :db/key (or key (squuid))]
-                       [:db/add tmp :window/canvas [:db/key (:db/key (:window/canvas next))]]
-                       [:db/add tmp :window/point [0 0]]
-                       [:db/add tmp :window/scale 1]]))))
-
-      :else
-      (into [[:db/retractEntity [:db/key canvas]]]
-            (for [{:keys [db/key]} remove]
-              [:db/retractEntity [:db/key key]])))))
-
 (defmethod transact :window/change-label
   [{:keys [window]} label]
   [[:db/add [:db/key window] :window/label label]])
@@ -243,65 +163,173 @@
 (defmethod transact :zoom/reset [context]
   (transact (assoc context :event :zoom/change) 1))
 
-(defmethod transact :canvas/change-scene
-  [{:keys [data canvas]} checksum]
+;; -- Scenes --
+(defmethod
+  ^{:doc "Creates a new blank scene and corresponding window for the local user
+          then switches them to it."}
+  transact :scenes/create
+  [{:keys [local]}]
+  [[:db/add -1 :db/key (squuid)]
+   [:db/add -2 :db/key (squuid)]
+   [:db/add [:db/key local] :local/window -1]
+   [:db/add [:db/key local] :local/windows -1]
+   [:db/add -1 :window/scene -2]
+   [:db/add [:db/ident :root] :root/scenes -2]])
+
+(defmethod
+  ^{:doc "Switches to the given scene by the given window identifier."}
+  transact :scenes/change
+  [{:keys [local]} key]
+  [[:db/add -1 :db/key local]
+   [:db/add -2 :db/key key]
+   [:db/add -1 :local/window -2]])
+
+(defmethod
+  ^{:doc "Removes the scene and corresponding window for the local user. Also
+          removes all scene windows for any connected users and switches them
+          to whichever scene the host is now on."}
+  transact :scenes/remove
+  [{:keys [data local]} key]
+  (let [select-w [:db/key {:window/scene [:db/key]}]
+        select-l [:db/key {:local/windows select-w :local/window select-w}]
+        select-r [{:root/local select-l} {:root/session [{:session/conns select-l}]}]
+        select-o [:db/key {:window/scene [:db/key {:window/_scene [:db/key]}]}]
+
+        {{scene :db/key
+          remove :window/_scene} :window/scene}
+        (ds/pull data select-o [:db/key key])
+
+        {{conns   :session/conns} :root/session
+         {window  :local/window
+          windows :local/windows} :root/local}
+        (ds/pull data select-r [:db/ident :root])]
+    (cond
+      (= (count windows) 1)
+      (into [[:db/retractEntity [:db/key scene]]
+             [:db/add -1 :db/key (squuid)]
+             [:db/add -1 :window/scene -2]
+             [:db/add -2 :db/key (squuid)]
+             [:db/add [:db/key local] :local/window -1]
+             [:db/add [:db/key local] :local/windows -1]]
+            (comp cat cat)
+            (list (for [{:keys [db/key]} remove]
+                    [[:db/retractEntity [:db/key key]]])
+                  (for [[idx conn] (sequence (indexed 3 2) conns)
+                        :let [tmp (dec idx)]]
+                    [[:db/add idx :db/key (:db/key conn)]
+                     [:db/add idx :local/windows tmp]
+                     [:db/add idx :local/window tmp]
+                     [:db/add tmp :db/key (squuid)]
+                     [:db/add tmp :window/scene -2]
+                     [:db/add tmp :window/point [0 0]]
+                     [:db/add tmp :window/scale 1]])))
+
+      (= key (:db/key window))
+      (let [next (->> windows (filter #(not= (:db/key %) (:db/key window))) (first))]
+        (into [[:db/retractEntity [:db/key scene]]
+               [:db/add -1 :db/key (:db/key next)]
+               [:db/add -2 :db/key local]
+               [:db/add -2 :local/window -1]]
+              (comp cat cat)
+              (list (for [{:keys [db/key]} remove]
+                      [[:db/retractEntity [:db/key key]]])
+                    (for [[idx conn] (sequence (indexed 3 2) conns)
+                          :let [tmp (dec idx)
+                                key (->> (:local/windows conn)
+                                         (filter #(= (:db/key (:window/scene %))
+                                                     (:db/key (:window/scene next))))
+                                         (first)
+                                         (:db/key))]]
+                      [[:db/add idx :db/key (:db/key conn)]
+                       [:db/add idx :local/windows tmp]
+                       [:db/add idx :local/window tmp]
+                       [:db/add tmp :db/key (or key (squuid))]
+                       [:db/add tmp :window/scene [:db/key (:db/key (:window/scene next))]]
+                       [:db/add tmp :window/point [0 0]]
+                       [:db/add tmp :window/scale 1]]))))
+
+      :else
+      (into [[:db/retractEntity [:db/key scene]]]
+            (for [{:keys [db/key]} remove]
+              [:db/retractEntity [:db/key key]])))))
+
+;; -- Scene Images --
+(defmethod
+  ^{:doc "Creates a new scene image with the given checksum, width, and height.
+          Relates this entity to the root scene collection."}
+  transact :scene-images/create
+  [_ checksum width height]
+  [[:db/add [:db/ident :root] :root/scene-images -1]
+   [:db/add -1 :image/width width]
+   [:db/add -1 :image/height height]
+   [:db/add -1 :image/checksum checksum]])
+
+(defmethod
+  ^{:doc "Removes the scene image by the given identifying checksum."}
+  transact :scene-images/remove
+  [_ checksum]
+  [[:db/retractEntity [:image/checksum checksum]]])
+
+(defmethod
+  ^{:doc "Removes all scene images."}
+  transact :scene-images/remove-all [_]
+  [[:db/retract [:db/ident :root] :root/scene-images]])
+
+;; -- Scene --
+(defmethod
+  ^{:doc "Updates the image being used for the current scene by the given
+          identifying checksum."}
+  transact :scene/change-image
+  [{:keys [data scene]} checksum]
   (let [{:image/keys [width height]} (ds/entity data [:image/checksum checksum])]
-    [[:db/add -1 :db/key canvas]
-     [:db/add -1 :canvas/image -2]
+    [[:db/add -1 :db/key scene]
+     [:db/add -1 :scene/image -2]
      [:db/add -2 :image/checksum checksum]
      [:db/add -2 :image/width width]
      [:db/add -2 :image/height height]]))
 
-(defmethod transact :canvas/change-grid-size
-  [{:keys [canvas]} size]
-  [[:db/add -1 :db/key canvas]
-   [:db/add -1 :canvas/grid-size size]])
+(defmethod
+  ^{:doc "Updates the grid size for the current scene."}
+  transact :scene/change-grid-size
+  [{:keys [scene]} size]
+  [[:db/add -1 :db/key scene]
+   [:db/add -1 :scene/grid-size size]])
 
-(defmethod transact :canvas/draw-grid-size
-  [{:keys [data window canvas]} _ _ size]
-  (let [lookup [:db/key window]
-        select [[:window/scale :default 1] {:window/canvas [{:canvas/image [:image/width]}]}]
-        result (ds/pull data select lookup)
-        {scale :window/scale
-         {scene :canvas/image
-          {width :image/width} :canvas/image} :window/canvas} result
-        size (js/Math.round (/ size scale))]
-    (if (nil? scene)
-      [[:db/add -1 :db/key canvas]
-       [:db/add -1 :canvas/grid-size size]
-       [:db/add -2 :db/key window]
-       [:db/add -2 :window/draw-mode :select]]
-      (let [pattern [size (+ size 1) (- size 1) (+ size 2) (- size 2) (+ size 3) (- size 3) (+ size 4) (- size 4)]
-            next    (reduce (fn [_ n] (when (zero? (mod width n)) (reduced n))) pattern)]
-        [[:db/add -1 :db/key canvas]
-         [:db/add -1 :canvas/grid-size (or next size)]
-         [:db/add -2 :db/key window]
-         [:db/add -2 :window/draw-mode :select]]))))
+(defmethod
+  ^{:doc "Updates whether or not the grid is drawn onto the current scene."}
+  transact :scene/toggle-show-grid
+  [{:keys [scene]} value]
+  [[:db/add -1 :db/key scene]
+   [:db/add -1 :scene/show-grid value]])
 
-(defmethod transact :canvas/toggle-show-grid
-  [{:keys [canvas]} value]
-  [[:db/add -1 :db/key canvas]
-   [:db/add -1 :canvas/show-grid value]])
+(defmethod
+  ^{:doc "Updates whether or not grid snapping is enabled for the current
+          scene."}
+  transact :scene/toggle-snap-grid
+  [{:keys [scene]} value]
+  [[:db/add -1 :db/key scene]
+   [:db/add -1 :scene/snap-grid value]])
 
-(defmethod transact :canvas/toggle-snap-grid
-  [{:keys [canvas]} value]
-  [[:db/add -1 :db/key canvas]
-   [:db/add -1 :canvas/snap-grid value]])
+(defmethod
+  ^{:doc "Updates whether or not dark mode is enabled on the current scene."}
+  transact :scene/toggle-dark-mode
+  [{:keys [scene]} enabled]
+  [[:db/add -1 :db/key scene]
+   [:db/add -1 :scene/dark-mode enabled]])
 
-(defmethod transact :canvas/toggle-dark-mode
-  [{:keys [canvas]} enabled]
-  [[:db/add -1 :db/key canvas]
-   [:db/add -1 :canvas/dark-mode enabled]])
+(defmethod
+  ^{:doc "Updates the lighting option used for the current scene."}
+  transact :scene/change-lighting
+  [{:keys [scene]} value]
+  [[:db/add -1 :db/key scene]
+   [:db/add -1 :scene/lighting value]])
 
-(defmethod transact :canvas/change-lighting
-  [{:keys [canvas]} value]
-  [[:db/add -1 :db/key canvas]
-   [:db/add -1 :canvas/lighting value]])
-
-(defmethod transact :canvas/change-time-of-day
-  [{:keys [canvas]} value]
-  [[:db/add -1 :db/key canvas]
-   [:db/add -1 :canvas/timeofday value]])
+(defmethod
+  ^{:doc "Updates the time of day option used for the current scene."}
+  transact :scene/change-time-of-day
+  [{:keys [scene]} value]
+  [[:db/add -1 :db/key scene]
+   [:db/add -1 :scene/timeofday value]])
 
 (defmethod transact :element/update
   [_ keys attr value]
@@ -325,26 +353,26 @@
     [:db/retractEntity [:db/key key]]))
 
 (defmethod transact :token/create
-  [{:keys [window canvas]} x y checksum]
+  [{:keys [window scene]} x y checksum]
   [[:db/add -1 :db/key (squuid)]
    [:db/add -1 :token/point [x y]]
    [:db/add -1 :token/image -4]
    [:db/add -2 :db/key window]
    [:db/add -2 :window/selected -1]
    [:db/add -2 :window/draw-mode :select]
-   [:db/add -3 :db/key canvas]
-   [:db/add -3 :canvas/tokens -1]
+   [:db/add -3 :db/key scene]
+   [:db/add -3 :scene/tokens -1]
    [:db/add -4 :image/checksum checksum]])
 
 (defmethod transact :token/remove
-  [{:keys [data canvas]} keys]
+  [{:keys [data scene]} keys]
   (let [keys (set keys)
-        cnvs (ds/entity data [:db/key canvas])
+        cnvs (ds/entity data [:db/key scene])
         curr (->> (:initiative/turn cnvs) :db/key)
-        tkns (->> (:canvas/initiative cnvs) (sort initiative-order) (map :db/key))
+        tkns (->> (:scene/initiative cnvs) (sort initiative-order) (map :db/key))
         tkfn (complement (partial contains? (disj keys curr)))
         next (->> (filter tkfn tkns) (find-next (partial = curr)))
-        data {:db/key canvas :initiative/turn {:db/key (or next (first tkns))}}]
+        data {:db/key scene :initiative/turn {:db/key (or next (first tkns))}}]
     (cond-> (for [key keys] [:db/retractEntity [:db/key key]])
       (contains? keys curr) (conj data))))
 
@@ -390,12 +418,12 @@
     {:db/id id :db/key key :aura/radius radius}))
 
 (defmethod transact :shape/create
-  [{:keys [window canvas]} kind vecs]
+  [{:keys [window scene]} kind vecs]
   [[:db/add -1 :db/key (squuid)]
    [:db/add -1 :shape/kind kind]
    [:db/add -1 :shape/vecs vecs]
-   [:db/add -2 :db/key canvas]
-   [:db/add -2 :canvas/shapes -1]
+   [:db/add -2 :db/key scene]
+   [:db/add -2 :scene/shapes -1]
    [:db/add -3 :db/key window]
    [:db/add -3 :window/draw-mode :select]
    [:db/add -3 :window/selected -1]])
@@ -442,15 +470,15 @@
      [:db/add -1 (keyword :bounds w-type) bounds]]))
 
 (defmethod transact :selection/from-rect
-  [{:keys [data window canvas]} vecs]
-  (let [select [{:canvas/tokens [:db/key :token/point]}]
-        result (ds/pull data select [:db/key canvas])
+  [{:keys [data window scene]} vecs]
+  (let [select [{:scene/tokens [:db/key :token/point]}]
+        result (ds/pull data select [:db/key scene])
         bounds (normalize vecs)]
     [{:db/id -1
       :db/key window
       :window/draw-mode :select
       :window/selected
-      (for [[idx token] (sequence (indexed 2) (:canvas/tokens result))
+      (for [[idx token] (sequence (indexed 2) (:scene/tokens result))
             :let  [{[x y] :token/point key :db/key} token]
             :when (within? x y bounds)]
         {:db/id idx :db/key key})}]))
@@ -462,29 +490,29 @@
 
 (defmethod transact :selection/remove
   [{:keys [data window] :as ctx}]
-  (let [select [{:window/selected [:db/key :canvas/_tokens :canvas/_shapes]}]
+  (let [select [{:window/selected [:db/key :scene/_tokens :scene/_shapes]}]
         result (ds/pull data select [:db/key window])
-        groups (group-by (fn [x] (cond (:canvas/_tokens x) :token
-                                       (:canvas/_shapes x) :shape))
+        groups (group-by (fn [x] (cond (:scene/_tokens x) :token
+                                       (:scene/_shapes x) :shape))
                          (:window/selected result))]
     (concat (transact (assoc ctx :event :token/remove) (map :db/key (:token groups)))
             (transact (assoc ctx :event :shape/remove) (map :db/key (:shape groups))))))
 
 (defmethod transact :initiative/toggle
-  [{:keys [data canvas]} keys adding?]
+  [{:keys [data scene]} keys adding?]
   (let [tokens (map (fn [key] [:db/key key]) keys)
         select [{:token/image [:image/checksum]}
                 [:token/flags :default #{}]
                 :db/key
                 :token/label
                 :initiative/suffix]
-        result (ds/pull data [{:canvas/initiative select}] [:db/key canvas])
+        result (ds/pull data [{:scene/initiative select}] [:db/key scene])
         change (into #{} (ds/pull-many data select tokens))
-        exists (into #{} (:canvas/initiative result))]
+        exists (into #{} (:scene/initiative result))]
     (if adding?
       [{:db/id -1
-        :db/key canvas
-        :canvas/initiative
+        :db/key scene
+        :scene/initiative
         (let [merge (union exists change)
               sffxs (suffixes merge)]
           (for [[idx token] (sequence (indexed 2) merge) :let [key (:db/key token)]]
@@ -492,33 +520,33 @@
               {:db/id idx :db/key key :initiative/suffix suffix}
               {:db/id idx :db/key key})))}]
       (apply concat
-             [[:db/add -1 :db/key canvas]]
+             [[:db/add -1 :db/key scene]]
              (for [[idx {key :db/key}] (sequence (indexed 2) change)]
                [[:db/add idx :db/key key]
                 [:db/retract [:db/key key] :initiative/suffix]
                 [:db/retract [:db/key key] :initiative/roll]
                 [:db/retract [:db/key key] :initiative/health]
-                [:db/retract [:db/key canvas] :canvas/initiative idx]])))))
+                [:db/retract [:db/key scene] :scene/initiative idx]])))))
 
 (defmethod transact :initiative/next
-  [{:keys [data canvas]}]
+  [{:keys [data scene]}]
   (let [{curr :initiative/turn
          trns :initiative/turns
          rnds :initiative/rounds
-         tkns :canvas/initiative} (ds/entity data [:db/key canvas])
+         tkns :scene/initiative} (ds/entity data [:db/key scene])
         tkns (->> tkns (sort initiative-order) (map :db/key))]
     (if (nil? rnds)
-      [{:db/key        canvas
-        :initiative/turn   {:db/key (first tkns)}
-        :initiative/turns  0
+      [{:db/key scene
+        :initiative/turn {:db/key (first tkns)}
+        :initiative/turns 0
         :initiative/rounds 1}]
       (if-let [next (find-next (partial = (:db/key curr)) tkns)]
-        [{:db/key       canvas
-          :initiative/turn  {:db/key next}
+        [{:db/key scene
+          :initiative/turn {:db/key next}
           :initiative/turns (inc trns)}]
-        [{:db/key        canvas
-          :initiative/turn   {:db/key (first tkns)}
-          :initiative/turns  (inc trns)
+        [{:db/key scene
+          :initiative/turn {:db/key (first tkns)}
+          :initiative/turns (inc trns)
           :initiative/rounds (inc rnds)}]))))
 
 (defmethod transact :initiative/change-roll
@@ -536,26 +564,26 @@
       [{:db/id -1 :db/key key :initiative/roll parsed}])))
 
 (defmethod transact :initiative/roll-all
-  [{:keys [data canvas]}]
-  (let [select [{:canvas/initiative [:db/key :token/flags :initiative/roll]}]
-        result (ds/pull data select [:db/key canvas])
-        tokens (:canvas/initiative result)]
+  [{:keys [data scene]}]
+  (let [select [{:scene/initiative [:db/key :token/flags :initiative/roll]}]
+        result (ds/pull data select [:db/key scene])
+        tokens (:scene/initiative result)]
     (for [[idx token] (sequence (indexed) tokens)
           :let  [{:keys [db/key token/flags initiative/roll]} token]
           :when (and (nil? roll) (not (contains? flags :player)))]
       {:db/id idx :db/key key :initiative/roll (inc (rand-int 20))})))
 
 (defmethod transact :initiative/reset
-  [{:keys [data canvas]}]
-  (let [result (ds/pull data [{:canvas/initiative [:db/key]}] [:db/key canvas])]
-    (->> (for [[idx token] (sequence (indexed 2) (:canvas/initiative result))
+  [{:keys [data scene]}]
+  (let [result (ds/pull data [{:scene/initiative [:db/key]}] [:db/key scene])]
+    (->> (for [[idx token] (sequence (indexed 2) (:scene/initiative result))
                :let [{key :db/key} token]]
            [[:db/add idx :db/key key]
             [:db/retract [:db/key key] :initiative/roll]])
-         (into [[:db/add -1 :db/key canvas]
-                [:db/retract [:db/key canvas] :initiative/turn]
-                [:db/retract [:db/key canvas] :initiative/turns]
-                [:db/retract [:db/key canvas] :initiative/rounds]] cat))))
+         (into [[:db/add -1 :db/key scene]
+                [:db/retract [:db/key scene] :initiative/turn]
+                [:db/retract [:db/key scene] :initiative/turns]
+                [:db/retract [:db/key scene] :initiative/rounds]] cat))))
 
 (defmethod transact :initiative/change-health
   [{:keys [data]} key f value]
@@ -565,16 +593,16 @@
           [{:db/id -1 :db/key key :initiative/health (f health parsed)}]))))
 
 (defmethod transact :initiative/leave
-  [{:keys [data canvas]}]
-  (let [select [{:canvas/initiative [:db/key]}]
-        result (ds/pull data select [:db/key canvas])
-        tokens (:canvas/initiative result)]
+  [{:keys [data scene]}]
+  (let [select [{:scene/initiative [:db/key]}]
+        result (ds/pull data select [:db/key scene])
+        tokens (:scene/initiative result)]
     (apply concat
-           [[:db/add -1 :db/key canvas]
-            [:db/retract [:db/key canvas] :canvas/initiative]
-            [:db/retract [:db/key canvas] :initiative/turn]
-            [:db/retract [:db/key canvas] :initiative/turns]
-            [:db/retract [:db/key canvas] :initiative/rounds]]
+           [[:db/add -1 :db/key scene]
+            [:db/retract [:db/key scene] :scene/initiative]
+            [:db/retract [:db/key scene] :initiative/turn]
+            [:db/retract [:db/key scene] :initiative/turns]
+            [:db/retract [:db/key scene] :initiative/rounds]]
            (for [[idx {key :db/key}] (sequence (indexed 2) tokens)]
              [[:db/add idx :db/key key]
               [:db/retract [:db/key key] :initiative/roll]
@@ -593,20 +621,6 @@
   [{:keys [local]} panel]
   [{:db/id -1 :db/key local :panel/expanded #{panel}}])
 
-(defmethod transact :scenes/create
-  [_ checksum width height]
-  [[:db/add [:db/ident :root] :root/scene-images -1]
-   [:db/add -1 :image/width width]
-   [:db/add -1 :image/height height]
-   [:db/add -1 :image/checksum checksum]])
-
-(defmethod transact :scenes/remove
-  [_ checksum]
-  [[:db/retractEntity [:image/checksum checksum]]])
-
-(defmethod transact :scenes/remove-all [_]
-  [[:db/retract [:db/ident :root] :root/scene-images]])
-
 (defmethod transact :tokens/create
   [_ checksum width height scope]
   [[:db/add [:db/ident :root] :root/token-images -1]
@@ -622,21 +636,21 @@
   [[:db/retract [:db/ident :root] :root/token-images]])
 
 (defmethod transact :mask/fill
-  [{:keys [canvas]}]
-  [[:db/add -1 :db/key canvas]
+  [{:keys [scene]}]
+  [[:db/add -1 :db/key scene]
    [:db/add -1 :mask/filled? true]
-   [:db/retract [:db/key canvas] :canvas/masks]])
+   [:db/retract [:db/key scene] :scene/masks]])
 
 (defmethod transact :mask/clear
-  [{:keys [canvas]}]
-  [[:db/add -1 :db/key canvas]
+  [{:keys [scene]}]
+  [[:db/add -1 :db/key scene]
    [:db/add -1 :mask/filled? false]
-   [:db/retract [:db/key canvas] :canvas/masks]])
+   [:db/retract [:db/key scene] :scene/masks]])
 
 (defmethod transact :mask/create
-  [{:keys [canvas]} state vecs]
-  [[:db/add -1 :db/key canvas]
-   [:db/add -1 :canvas/masks -2]
+  [{:keys [scene]} state vecs]
+  [[:db/add -1 :db/key scene]
+   [:db/add -1 :scene/masks -2]
    [:db/add -2 :db/key (squuid)]
    [:db/add -2 :mask/enabled? state]
    [:db/add -2 :mask/vecs vecs]])
@@ -682,8 +696,8 @@
 
 (defmethod transact :session/focus
   [{:keys [data]}]
-  (let [select-w [:window/canvas [:window/point :default [0 0]] [:window/scale :default 1]]
-        select-l [:db/key [:bounds/self :default [0 0 0 0]] {:local/windows [:window/canvas] :local/window select-w}]
+  (let [select-w [:window/scene [:window/point :default [0 0]] [:window/scale :default 1]]
+        select-l [:db/key [:bounds/self :default [0 0 0 0]] {:local/windows [:window/scene] :local/window select-w}]
         select-s [{:session/host select-l} {:session/conns select-l}]
         result   (ds/pull data select-s [:db/ident :session])
         {{[_ _ hw hh] :bounds/self
@@ -697,8 +711,8 @@
                :let [prev (dec next)
                      exst (->> (:local/windows conn)
                                (filter (fn [conn]
-                                         (= (:db/key (:window/canvas conn))
-                                            (:db/key (:window/canvas host)))))
+                                         (= (:db/key (:window/scene conn))
+                                            (:db/key (:window/scene host)))))
                                (first)
                                (:db/key))
                      [_ _ cw ch] (:bounds/self conn)
@@ -710,5 +724,5 @@
             [:db/add prev :db/key        (or exst (squuid))]
             [:db/add prev :window/point  [cx cy]]
             [:db/add prev :window/scale  scale]
-            [:db/add prev :window/canvas (:db/id (:window/canvas host))]])
+            [:db/add prev :window/scene (:db/id (:window/scene host))]])
          (into [] cat))))

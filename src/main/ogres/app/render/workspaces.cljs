@@ -16,12 +16,12 @@
     ($ :div.workspaces
       (for [{:keys [db/key window/label]} windows]
         ($ :div {:key key :class (css {:selected (= key (:db/key current))})}
-          ($ :div {:on-click #(dispatch :workspace/change key)}
-            (if (blank? label) ($ :em "New Canvas") (trim label)))
+          ($ :div {:on-click #(dispatch :scenes/change key)}
+            (if (blank? label) ($ :em "New scene") (trim label)))
           ($ :button
             {:type "button"
-             :on-click #(when (js/confirm (str "Close " (when (not (blank? label)) (str label " ")) "canvas?"))
-                          (dispatch :workspace/remove key))
-             :title "Close canvas"}
+             :on-click #(when (js/confirm (str "Close " (when (not (blank? label)) (str label " ")) "scene?"))
+                          (dispatch :scenes/remove key))
+             :title "Close scene"}
             "×")))
-      ($ :button {:type "button" :on-click #(dispatch :workspace/create) :title "Create new canvas"} "+"))))
+      ($ :button {:type "button" :on-click #(dispatch :scenes/create) :title "Create new scene"} "+"))))

@@ -24,7 +24,7 @@
   (into [] (apply comp (partition-all 2) xfs) xs))
 
 (defui ^{:private true} text [{:keys [attrs children]}]
-  ($ :text.canvas-text attrs children))
+  ($ :text.scene-text attrs children))
 
 (defui ^{:private true} drawable [{:keys [transform on-release children]}]
   (let [[state set-state] (use-state [])]
@@ -58,15 +58,15 @@
    {:local/window
     [[:window/scale :default 1]
      [:window/point :default [0 0]]
-     {:window/canvas
-      [[:canvas/snap-grid :default false]]}]}])
+     {:window/scene
+      [[:scene/snap-grid :default false]]}]}])
 
 (defui ^{:private true} polygon [{:keys [on-create]}]
   (let [result (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :window/point
           scale   :window/scale
-          {align :canvas/snap-grid} :window/canvas}
+          {align :scene/snap-grid} :window/scene}
          :local/window} result
         [pairs set-pairs] (use-state [])
         [mouse set-mouse] (use-state [])
@@ -124,39 +124,12 @@
             (fn []
               ($ :path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}))))))))
 
-(defui ^{:private true} draw-grid []
-  (let [dispatch (use-dispatch)
-        result   (use-query query)
-        {[ox oy] :bounds/self
-         {[tx ty] :window/point
-          scale   :window/scale} :local/window} result]
-    ($ drawable
-      {:transform
-       (fn [_ xs]
-         (xs-xfs xs (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)) cat))
-       :on-release
-       (fn [_ xs]
-         (let [[ax ay bx by] (xs-xfs xs (+-xf tx ty) (*-xf scale) cat)
-               size (js/Math.abs (min (- bx ax) (- by ay)))]
-           (if (> size 0)
-             (dispatch :canvas/draw-grid-size ax ay size))))}
-      (fn [{:keys [points]}]
-        (let [[ax ay bx by] (xs-xfs points (+-xf tx ty) (*-xf scale) cat)
-              size (min (- bx ax) (- by ay))]
-          ($ :g
-            ($ :path {:d (join " " ["M" ax ay "h" size "v" size "H" ax "Z"])})
-            ($ text {:attrs {:x bx :y ay :fill "white"}}
-              (-> (/ size scale)
-                  (js/Math.abs)
-                  (js/Math.round)
-                  (str "px")))))))))
-
 (defui ^{:private true} draw-ruler []
   (let [result (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :window/point
           scale   :window/scale
-          {align :canvas/snap-grid} :window/canvas}
+          {align :scene/snap-grid} :window/scene}
          :local/window} result]
     ($ drawable
       {:on-release identity
@@ -183,7 +156,7 @@
         {[ox oy] :bounds/self
          {[tx ty] :window/point
           scale   :window/scale
-          {align :canvas/snap-grid} :window/canvas}
+          {align :scene/snap-grid} :window/scene}
          :local/window} result]
     ($ drawable
       {:transform
@@ -211,7 +184,7 @@
         {[ox oy] :bounds/self
          {[tx ty] :window/point
           scale   :window/scale
-          {align :canvas/snap-grid} :window/canvas}
+          {align :scene/snap-grid} :window/scene}
          :local/window} result]
     ($ drawable
       {:transform
@@ -238,7 +211,7 @@
         {[ox oy] :bounds/self
          {[tx ty] :window/point
           scale   :window/scale
-          {align :canvas/snap-grid} :window/canvas}
+          {align :scene/snap-grid} :window/scene}
          :local/window} result]
     ($ drawable
       {:transform
@@ -299,7 +272,6 @@
 (defui draw [{:keys [mode] :as props}]
   (let [fns {:circle draw-circle
              :cone   draw-cone
-             :grid   draw-grid
              :line   draw-line
              :mask   draw-mask
              :poly   draw-poly

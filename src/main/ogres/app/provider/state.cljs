@@ -8,15 +8,15 @@
 (def schema
   {:db/key            {:db/unique :db.unique/identity}
    :db/ident          {:db/unique :db.unique/identity}
-   :canvas/image      {:db/valueType :db.type/ref}
-   :canvas/initiative {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
-   :canvas/masks      {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
-   :canvas/shapes     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
-   :canvas/tokens     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :scene/image       {:db/valueType :db.type/ref}
+   :scene/initiative  {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
+   :scene/masks       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :scene/shapes      {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :scene/tokens      {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :image/checksum    {:db/unique :db.unique/identity}
    :local/window      {:db/valueType :db.type/ref}
    :local/windows     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
-   :root/canvases     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :root/scenes       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :root/local        {:db/valueType :db.type/ref :db/isComponent true}
    :root/session      {:db/valueType :db.type/ref :db/isComponent true}
    :root/scene-images {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
@@ -24,7 +24,7 @@
    :session/host      {:db/valueType :db.type/ref}
    :session/conns     {:db/valueType :db.type/ref :db.cardinality :db.cardinality/many :db/isComponent true}
    :token/image       {:db/valueType :db.type/ref}
-   :window/canvas     {:db/valueType :db.type/ref}
+   :window/scene      {:db/valueType :db.type/ref}
    :window/selected   {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :initiative/turn   {:db/valueType :db.type/ref}})
 
@@ -40,7 +40,7 @@
    (ds/empty-db schema)
    [[:db/add -1 :db/ident :root]
     [:db/add -1 :root/release env/VERSION]
-    [:db/add -1 :root/canvases -2]
+    [:db/add -1 :root/scenes -2]
     [:db/add -1 :root/local -3]
     [:db/add -1 :root/session -5]
     [:db/add -2 :db/key (squuid)]
@@ -53,7 +53,7 @@
     [:db/add -3 :local/type (local-type)]
     [:db/add -3 :panel/expanded #{:tokens}]
     [:db/add -4 :db/key (squuid)]
-    [:db/add -4 :window/canvas -2]
+    [:db/add -4 :window/scene -2]
     [:db/add -5 :db/ident :session]]))
 
 (def context (create-context (ds/conn-from-db (initial-data))))
@@ -96,17 +96,17 @@
 
 (defn use-dispatch []
   (let [conn    (use-context context)
-        query   [:db/key {:local/window [:db/key {:window/canvas [:db/key]}]}]
+        query   [:db/key {:local/window [:db/key {:window/scene [:db/key]}]}]
         publish (use-publish)
         result  (use-query query)
         {local :db/key
          {window :db/key
-          {canvas :db/key} :window/canvas} :local/window} result]
+          {scene :db/key} :window/scene} :local/window} result]
     (use-callback
      (fn [topic & args]
        (publish {:topic topic :args args})
-       (let [context (hash-map :data @conn :event topic :local local :window window :canvas canvas)
+       (let [context (hash-map :data @conn :event topic :local local :window window :scene scene)
              tx-data (apply transact context args)]
          (if (seq tx-data)
            (let [report (ds/transact! conn tx-data)]
-             (publish {:topic :tx/commit :args (list report)}))))) ^:lint/disable [publish local window canvas])))
+             (publish {:topic :tx/commit :args (list report)}))))) ^:lint/disable [publish local window scene])))

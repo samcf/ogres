@@ -32,7 +32,7 @@
     [{:session/host
       [:db/key
        {:local/window
-        [{:window/canvas
+        [{:window/scene
           [:db/key]}]}]}]}])
 
 (defn merge-initial-state
@@ -63,9 +63,9 @@
                [:db/retract [:db/ident :session] :session/conns -2]]
 
               ;; Maintain local window state when reconnecting and starting
-              ;; with a window that references the same canvas.
-              (if (= (:db/key (:window/canvas (:local/window prev-local)))
-                     (:db/key (:window/canvas (:local/window next-local))))
+              ;; with a window that references the same scene.
+              (if (= (:db/key (:window/scene (:local/window prev-local)))
+                     (:db/key (:window/scene (:local/window next-local))))
                 [[:db/add -3 :db/key (:db/key (:local/window next-local))]
                  [:db/add -3 :window/point (or (:window/point prev-window) [0 0])]
                  [:db/add -3 :window/scale (or (:window/scale prev-window) 1)]] []))]
@@ -115,8 +115,8 @@
              [:db/add -1 :local/window -2]
              [:db/add -1 :local/windows -2]
              [:db/add -2 :db/key (ds/squuid)]
-             [:db/add -2 :window/canvas -3]
-             [:db/add -3 :db/key (-> local :local/window :window/canvas :db/key)]]
+             [:db/add -2 :window/scene -3]
+             [:db/add -3 :db/key (-> local :local/window :window/scene :db/key)]]
             [])
           report (ds/transact! conn (into tx-data tx-data-addtl))]
       (if (= (:local/type local) :host)
@@ -282,7 +282,7 @@
                (ds/entity (ds/db conn) [:db/ident :root])]
            (case [kind type]
              [:host :token] (dispatch :tokens/create checksum width height :private)
-             [:host :scene] (dispatch :scenes/create checksum width height :private)
+             [:host :scene] (dispatch :scene-images/create checksum width height :private)
              ([:conn :token] [:conn :scene])
              (on-send {:type :image :dst (:db/key host) :data data-url})))) [conn dispatch on-send]))
 
@@ -303,7 +303,7 @@
        (fn [{[{tx-data :tx-data}] :args}]
          (on-send {:type :tx :data tx-data})) [on-send]))
 
-    ;; Subscribe to changes to the user's cursor position on the canvas and
+    ;; Subscribe to changes to the user's cursor position on the scene and
     ;; broadcast these changes to the other connections in the session.
     (use-subscribe :cursor/move
       {:chan cursor :rate-limit 80}
