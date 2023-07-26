@@ -1,9 +1,9 @@
 (ns ogres.app.layout
   (:require [ogres.app.hooks :refer [use-query]]
-            [ogres.app.render.scene :refer [render-scene]]
             [ogres.app.render.panel :refer [container]]
+            [ogres.app.render.scene :refer [render-scene]]
+            [ogres.app.render.scenes :refer [scenes]]
             [ogres.app.render.toolbar :refer [toolbar]]
-            [ogres.app.render.workspaces :refer [workspaces]]
             [uix.core :refer [defui $]]))
 
 (def ^{:private true} query
@@ -23,7 +23,7 @@
             ($ :div.layout-scene ($ render-scene)))
           ($ :div.layout {:style {:visibility "hidden"}}
             (if (= type :host)
-              ($ :div.layout-workspaces ($ workspaces)))
+              ($ :div.layout-scenes ($ scenes)))
             ($ :div.layout-scene   ($ render-scene))
             ($ :div.layout-toolbar ($ toolbar))
             ($ :div.layout-panel   ($ container))))))))

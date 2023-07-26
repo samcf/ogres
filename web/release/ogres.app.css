@@ -303,7 +303,7 @@ legend {
       "b c";
 }
 
-.layout-workspaces {
+.layout-scenes {
     grid-area: a;
 }
 
@@ -337,15 +337,15 @@ legend {
     justify-self: end;
 }
 
-/* Workspaces */
-.workspaces {
+/* Scenes */
+.scenes {
     display: flex;
     flex-wrap: wrap;
     font-size: 14px;
     gap: 4px;
 }
 
-.workspaces > div {
+.scenes > div {
     border-color: var(--theme-background-d);
     border-radius: 3px 3px 0 0;
     border-style: solid;
@@ -359,18 +359,18 @@ legend {
     min-width: 0px;
 }
 
-.workspaces > div.selected {
+.scenes > div.selected {
     background-color: var(--theme-background-d);
 }
 
-.workspaces > div.selected > div,
-.workspaces > div > div:hover,
-.workspaces > div > button:hover,
-.workspaces > button:hover {
+.scenes > div.selected > div,
+.scenes > div > div:hover,
+.scenes > div > button:hover,
+.scenes > button:hover {
     color: white;
 }
 
-.workspaces > div > div {
+.scenes > div > div {
     flex: 1;
     overflow: hidden;
     padding: 4px 4px 4px 12px;
@@ -378,7 +378,7 @@ legend {
     white-space: nowrap;
 }
 
-.workspaces > div > button {
+.scenes > div > button {
     background: transparent;
     border: none;
     color: inherit;
@@ -388,7 +388,7 @@ legend {
     padding: 4px 8px;
 }
 
-.workspaces > button {
+.scenes > button {
     background: transparent;
     border-color: var(--theme-background-d);
     border-radius: 3px 3px 0 0;
@@ -1204,19 +1204,19 @@ legend {
     gap: 8px;
 }
 
-.scenes {
+.scenes-form {
     display: grid;
     gap: 4px;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(2, 1fr) min-content;
 }
 
-.scenes figure {
+.scenes-form figure {
     aspect-ratio: 1 / 1;
     border-radius: 4px;
 }
 
-.scenes figure.scenes-scene {
+.scenes-form figure.scenes-form-scene {
     align-items: start;
     background-color: var(--theme-paper-accent);
     background-size: cover;
@@ -1226,11 +1226,11 @@ legend {
     justify-content: end;
 }
 
-.scenes figure.scenes-placeholder {
+.scenes-form figure.scenes-form-placeholder {
     border: 1px dashed hsl(0, 0%, 60%);
 }
 
-.scenes figure > button {
+.scenes-form figure > button {
     align-items: center;
     background: rgba(0, 0, 0, 0.60);
     border-radius: 50%;
@@ -1247,25 +1247,25 @@ legend {
     width: 28px;
 }
 
-.scenes figure > button:hover {
+.scenes-form figure > button:hover {
     background: rgba(0, 0, 0, 0.90);
 }
 
-.scenes figure.scenes-scene:hover {
+.scenes-form figure.scenes-form-scene:hover {
     filter: brightness(1.2);
 }
 
-.scenes figure.scenes-scene:hover > button {
+.scenes-form figure.scenes-form-scene:hover > button {
     visibility: visible;
 }
 
-.scenes nav {
+.scenes-form nav {
     grid-column: 1 / 4;
     grid-row: 3 / 4;
     justify-self: center;
 }
 
-.scenes .prompt {
+.scenes-form .prompt {
     grid-column: 1 / 4;
 }
 

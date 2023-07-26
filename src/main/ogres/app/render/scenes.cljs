@@ -1,20 +1,20 @@
-(ns ogres.app.render.workspaces
+(ns ogres.app.render.scenes
   (:require [clojure.string :refer [blank? trim]]
             [ogres.app.hooks :refer [use-dispatch use-query]]
             [ogres.app.render :refer [css]]
             [uix.core :refer [defui $]]))
 
 (def query
-  [{:local/window [:db/key]}
-   {:local/windows [:db/key :window/label]}])
+  [{:local/camera [:db/key]}
+   {:local/cameras [:db/key :camera/label]}])
 
-(defui workspaces []
+(defui scenes []
   (let [dispatch (use-dispatch)
         result   (use-query query)
-        {current :local/window
-         windows :local/windows} result]
-    ($ :div.workspaces
-      (for [{:keys [db/key window/label]} windows]
+        {current :local/camera
+         cameras :local/cameras} result]
+    ($ :div.scenes
+      (for [{:keys [db/key camera/label]} cameras]
         ($ :div {:key key :class (css {:selected (= key (:db/key current))})}
           ($ :div {:on-click #(dispatch :scenes/change key)}
             (if (blank? label) ($ :em "New scene") (trim label)))

@@ -31,8 +31,8 @@
   [{:root/session
     [{:session/host
       [:db/key
-       {:local/window
-        [{:window/scene
+       {:local/camera
+        [{:camera/scene
           [:db/key]}]}]}]}])
 
 (defn merge-initial-state
@@ -41,7 +41,7 @@
   [next prev]
   (let [prev-local  (ds/entity prev [:db/ident :local])
         next-local  (ds/entity next [:db/key (:db/key prev-local)])
-        prev-window (:local/window prev-local)
+        prev-camera (:local/camera prev-local)
 
         {{{host :db/key} :session/host} :root/session}
         (ds/pull next merge-query [:db/ident :root])
@@ -62,13 +62,13 @@
                [:db/add [:db/ident :root] :root/local -2]
                [:db/retract [:db/ident :session] :session/conns -2]]
 
-              ;; Maintain local window state when reconnecting and starting
-              ;; with a window that references the same scene.
-              (if (= (:db/key (:window/scene (:local/window prev-local)))
-                     (:db/key (:window/scene (:local/window next-local))))
-                [[:db/add -3 :db/key (:db/key (:local/window next-local))]
-                 [:db/add -3 :window/point (or (:window/point prev-window) [0 0])]
-                 [:db/add -3 :window/scale (or (:window/scale prev-window) 1)]] []))]
+              ;; Maintain local camera state when reconnecting and starting
+              ;; with a camera that references the same scene.
+              (if (= (:db/key (:camera/scene (:local/camera prev-local)))
+                     (:db/key (:camera/scene (:local/camera next-local))))
+                [[:db/add -3 :db/key (:db/key (:local/camera next-local))]
+                 [:db/add -3 :camera/point (or (:camera/point prev-camera) [0 0])]
+                 [:db/add -3 :camera/scale (or (:camera/scale prev-camera) 1)]] []))]
     (ds/db-with next tx-data)))
 
 (defmulti handle-message (fn [_ {:keys [type]} _] type))
@@ -112,11 +112,11 @@
              [:db/add -1 :local/loaded? true]
              [:db/add -1 :local/color (next-color @conn session-color-options)]
              [:db/add -1 :session/state :connected]
-             [:db/add -1 :local/window -2]
-             [:db/add -1 :local/windows -2]
+             [:db/add -1 :local/camera -2]
+             [:db/add -1 :local/cameras -2]
              [:db/add -2 :db/key (ds/squuid)]
-             [:db/add -2 :window/scene -3]
-             [:db/add -3 :db/key (-> local :local/window :window/scene :db/key)]]
+             [:db/add -2 :camera/scene -3]
+             [:db/add -3 :db/key (-> local :local/camera :camera/scene :db/key)]]
             [])
           report (ds/transact! conn (into tx-data tx-data-addtl))]
       (if (= (:local/type local) :host)

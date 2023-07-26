@@ -36,9 +36,9 @@
    [:local/tooltips? :default true]
    [:local/sharing? :default false]
    [:local/paused? :default false]
-   {:local/window
-    [[:window/draw-mode :default :select]
-     [:window/scale :default 1]]}])
+   {:local/camera
+    [[:camera/draw-mode :default :select]
+     [:camera/scale :default 1]]}])
 
 (defui toolbar []
   (let [dispatch  (use-dispatch)
@@ -50,8 +50,8 @@
          tooltips? :local/tooltips?
          sharing?  :local/sharing?
          paused?   :local/paused?
-         {scale :window/scale
-          mode  :window/draw-mode} :local/window} result
+         {scale :camera/scale
+          mode  :camera/draw-mode} :local/camera} result
 
         conn? (= type :conn)
 
@@ -61,7 +61,7 @@
                  :type           "button"
                  :key            value
                  :class          (css {:selected (= value mode)})
-                 :on-click       #(dispatch :window/change-mode value)
+                 :on-click       #(dispatch :camera/change-mode value)
                  :on-mouse-enter #(set-tooltip-key (keyword "mode" (name value)))
                  attrs))
 
@@ -88,17 +88,17 @@
         ($ :div.toolbar-group
           ($ :button.toolbar-text
             {:disabled (= scale 1)
-             :on-click #(dispatch :zoom/reset)
+             :on-click #(dispatch :camera/zoom-reset)
              :on-mouse-enter (tooltip-fn :zoom/reset)}
             (-> scale (* 100) (js/Math.trunc) (str "%")))
           ($ :button
             {:disabled (= scale 0.15)
-             :on-click #(dispatch :zoom/out)
+             :on-click #(dispatch :camera/zoom-out)
              :on-mouse-enter (tooltip-fn :zoom/out)}
             ($ icon {:name "zoom-out"}))
           ($ :button
             {:disabled (= scale 4)
-             :on-click #(dispatch :zoom/in)
+             :on-click #(dispatch :camera/zoom-in)
              :on-mouse-enter (tooltip-fn :zoom/in)}
             ($ icon {:name "zoom-in"})))
         ($ :div.toolbar-group

@@ -6,26 +6,26 @@
             [uix.core :refer [defui $ create-context use-context use-callback use-state use-effect]]))
 
 (def schema
-  {:db/key            {:db/unique :db.unique/identity}
-   :db/ident          {:db/unique :db.unique/identity}
+  {:db/ident          {:db/unique :db.unique/identity}
+   :db/key            {:db/unique :db.unique/identity}
+   :root/local        {:db/valueType :db.type/ref :db/isComponent true}
+   :root/scene-images {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :root/scenes       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :root/session      {:db/valueType :db.type/ref :db/isComponent true}
+   :root/token-images {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :session/conns     {:db/valueType :db.type/ref :db.cardinality :db.cardinality/many :db/isComponent true}
+   :session/host      {:db/valueType :db.type/ref}
+   :image/checksum    {:db/unique :db.unique/identity}
+   :local/camera      {:db/valueType :db.type/ref}
+   :local/cameras     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :camera/scene      {:db/valueType :db.type/ref}
+   :camera/selected   {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :scene/image       {:db/valueType :db.type/ref}
    :scene/initiative  {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :scene/masks       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :scene/shapes      {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :scene/tokens      {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
-   :image/checksum    {:db/unique :db.unique/identity}
-   :local/window      {:db/valueType :db.type/ref}
-   :local/windows     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
-   :root/scenes       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
-   :root/local        {:db/valueType :db.type/ref :db/isComponent true}
-   :root/session      {:db/valueType :db.type/ref :db/isComponent true}
-   :root/scene-images {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
-   :root/token-images {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
-   :session/host      {:db/valueType :db.type/ref}
-   :session/conns     {:db/valueType :db.type/ref :db.cardinality :db.cardinality/many :db/isComponent true}
    :token/image       {:db/valueType :db.type/ref}
-   :window/scene      {:db/valueType :db.type/ref}
-   :window/selected   {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :initiative/turn   {:db/valueType :db.type/ref}})
 
 (defn local-type []
@@ -48,12 +48,12 @@
     [:db/add -3 :db/key (squuid)]
     [:db/add -3 :local/loaded? false]
     [:db/add -3 :local/color "#03a9f4"]
-    [:db/add -3 :local/window -4]
-    [:db/add -3 :local/windows -4]
+    [:db/add -3 :local/camera -4]
+    [:db/add -3 :local/cameras -4]
     [:db/add -3 :local/type (local-type)]
     [:db/add -3 :panel/expanded #{:tokens}]
     [:db/add -4 :db/key (squuid)]
-    [:db/add -4 :window/scene -2]
+    [:db/add -4 :camera/scene -2]
     [:db/add -5 :db/ident :session]]))
 
 (def context (create-context (ds/conn-from-db (initial-data))))
@@ -96,17 +96,17 @@
 
 (defn use-dispatch []
   (let [conn    (use-context context)
-        query   [:db/key {:local/window [:db/key {:window/scene [:db/key]}]}]
+        query   [:db/key {:local/camera [:db/key {:camera/scene [:db/key]}]}]
         publish (use-publish)
         result  (use-query query)
         {local :db/key
-         {window :db/key
-          {scene :db/key} :window/scene} :local/window} result]
+         {camera :db/key
+          {scene :db/key} :camera/scene} :local/camera} result]
     (use-callback
      (fn [topic & args]
        (publish {:topic topic :args args})
-       (let [context (hash-map :data @conn :event topic :local local :window window :scene scene)
+       (let [context (hash-map :data @conn :event topic :local local :camera camera :scene scene)
              tx-data (apply transact context args)]
          (if (seq tx-data)
            (let [report (ds/transact! conn tx-data)]
-             (publish {:topic :tx/commit :args (list report)}))))) ^:lint/disable [publish local window scene])))
+             (publish {:topic :tx/commit :args (list report)}))))) ^:lint/disable [publish local camera scene])))

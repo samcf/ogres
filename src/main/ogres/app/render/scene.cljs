@@ -58,8 +58,8 @@
     (number? suffix) (str " " (char (+ suffix 64)))))
 
 (def ^:private query-scene-image
-  [{:local/window
-    [{:window/scene
+  [{:local/camera
+    [{:camera/scene
       [[:scene/grid-size :default 70]
        [:scene/timeofday :default :none]
        {:scene/image [:image/checksum]}]}]}])
@@ -69,8 +69,8 @@
         {{{size        :scene/grid-size
            time-of-day :scene/timeofday
            {checksum   :image/checksum} :scene/image}
-          :window/scene}
-         :local/window} result
+          :camera/scene}
+         :local/camera} result
         url (use-image checksum)]
     ($ :g.scene-image {:transform (str "scale(" (/ grid-size size) ")")}
       ($ :defs {:key time-of-day}
@@ -80,8 +80,8 @@
 
 (def ^:private query-mask-vis
   [:local/type
-   {:local/window
-    [{:window/scene
+   {:local/camera
+    [{:camera/scene
       [[:scene/grid-size :default 70]
        [:scene/lighting :default :revealed]
        {:scene/tokens
@@ -101,8 +101,8 @@
             width     :image/width
             height    :image/height}
            :scene/image}
-          :window/scene}
-         :local/window} result
+          :camera/scene}
+         :local/camera} result
         width  (* width  (/ grid-size size))
         height (* height (/ grid-size size))]
     (if (and checksum (not= visibility :revealed))
@@ -128,9 +128,9 @@
 
 (def ^:private query-mask-fog
   [:local/type
-   {:local/window
-    [[:window/draw-mode :default :select]
-     {:window/scene
+   {:local/camera
+    [[:camera/draw-mode :default :select]
+     {:camera/scene
       [[:scene/grid-size :default 70]
        [:mask/filled? :default false]
        {:scene/image [:image/width :image/height]}
@@ -140,15 +140,15 @@
   (let [dispatch (use-dispatch)
         result   (use-query query-mask-fog)
         {type :local/type
-         {mode :window/draw-mode
+         {mode :camera/draw-mode
           {size    :scene/grid-size
            filled? :mask/filled?
            masks   :scene/masks
            {width  :image/width
             height :image/height}
            :scene/image}
-          :window/scene}
-         :local/window} result
+          :camera/scene}
+         :local/camera} result
         modes #{:mask :mask-toggle :mask-remove}
         width  (* width  (/ grid-size size))
         height (* height (/ grid-size size))]
@@ -177,20 +177,20 @@
 
 (def ^:private query-grid
   [[:bounds/self :default [0 0 0 0]]
-   {:local/window
-    [[:window/point :default [0 0]]
-     [:window/scale :default 1]
-     [:window/draw-mode :default :select]
-     {:window/scene
+   {:local/camera
+    [[:camera/point :default [0 0]]
+     [:camera/scale :default 1]
+     [:camera/draw-mode :default :select]
+     {:camera/scene
       [[:scene/show-grid :default true]]}]}])
 
 (defui render-grid []
   (let [data (use-query query-grid)
         {[_ _ w h] :bounds/self
-         {[cx cy] :window/point
-          mode    :window/draw-mode
-          scale   :window/scale
-          scene   :window/scene} :local/window} data]
+         {[cx cy] :camera/point
+          mode    :camera/draw-mode
+          scale   :camera/scale
+          scene   :camera/scene} :local/camera} data]
     (if (or (:scene/show-grid scene) (= mode :grid))
       (let [w (/ w scale)
             h (/ h scale)
@@ -258,10 +258,10 @@
 
 (def ^:private query-shapes
   [:local/type
-   {:local/window
+   {:local/camera
     [:db/key
-     [:window/scale :default 1]
-     {:window/scene
+     [:camera/scale :default 1]
+     {:camera/scene
       [[:scene/snap-grid :default false]
        {:scene/shapes
         [:db/key
@@ -270,23 +270,23 @@
          [:shape/color :default "#f44336"]
          [:shape/opacity :default 0.25]
          [:shape/pattern :default :solid]
-         {:window/_selected [:db/key]}]}]}]}])
+         {:camera/_selected [:db/key]}]}]}]}])
 
 (defui render-shapes []
   (let [dispatch (use-dispatch)
         result   (use-query query-shapes)
         {type    :local/type
-         window  :local/window
-         {scale  :window/scale
-          scene  :window/scene
-          {snap-grid :scene/snap-grid} :window/scene}
-         :local/window} result
+         camera  :local/camera
+         {scale  :camera/scale
+          scene  :camera/scene
+          {snap-grid :scene/snap-grid} :camera/scene}
+         :local/camera} result
         participant? (or (= type :host) (= type :conn))]
     (for [entity (:scene/shapes scene)
           :let   [key (:db/key entity)
                   {:shape/keys [kind color vecs]} entity
-                  selecting (into #{} (map :db/key) (:window/_selected entity))
-                  selected? (contains? selecting (:db/key window))
+                  selecting (into #{} (map :db/key) (:camera/_selected entity))
+                  selected? (contains? selecting (:db/key camera))
                   [ax ay] vecs]]
       ($ use-portal {:key key :name (if (and participant? selected?) :selected)}
         (fn []
@@ -315,15 +315,15 @@
     ($ :image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"})))
 
 (def ^:private query-token-faces
-  [{:local/window
-    [{:window/scene
+  [{:local/camera
+    [{:camera/scene
       [{:scene/tokens
         [{:token/image
           [:image/checksum]}]}]}]}])
 
 (defui render-token-faces []
   (let [result    (use-query query-token-faces)
-        tokens    (-> result :local/window :window/scene :scene/tokens)
+        tokens    (-> result :local/camera :camera/scene :scene/tokens)
         checksums (into #{} (comp (map :token/image) (map :image/checksum)) tokens)
         attrs     {:width "100%" :height "100%" :patternContentUnits "objectBoundingBox"}]
     ($ :defs
@@ -376,11 +376,11 @@
 
 (def ^:private query-tokens
   [:local/type
-   {:local/window
+   {:local/camera
     [:db/key
-     :window/selected
-     [:window/scale :default 1]
-     {:window/scene
+     :camera/selected
+     [:camera/scale :default 1]
+     {:camera/scene
       [[:scene/snap-grid :default false]
        {:scene/tokens
         [:db/key
@@ -393,13 +393,13 @@
          [:aura/radius :default 0]
          {:token/image [:image/checksum]}
          {:scene/_initiative [:db/key]}
-         {:window/_selected [:db/key]}]}]}]}])
+         {:camera/_selected [:db/key]}]}]}]}])
 
 (defui render-tokens []
   (let [dispatch (use-dispatch)
         result   (use-query query-tokens)
-        {:local/keys  [type window]} result
-        {:window/keys [scale scene]} window
+        {:local/keys  [type camera]} result
+        {:camera/keys [scale scene]} camera
         {:scene/keys  [snap-grid tokens]} scene
 
         flags-xf
@@ -415,7 +415,7 @@
         (->> tokens
              (filter (fn [token] (or (= type :host) (visible? (:token/flags token)))))
              (sort token-comparator)
-             (separate (fn [token] ((into #{} (map :db/key) (:window/_selected token)) (:db/key window)))))]
+             (separate (fn [token] ((into #{} (map :db/key) (:camera/_selected token)) (:db/key camera)))))]
     ($ :<>
       (for [data tokens :let [{key :db/key [ax ay] :token/point} data]]
         ($ react-draggable
@@ -520,13 +520,13 @@
    [:bounds/self :default [0 0 0 0]]
    [:bounds/host :default [0 0 0 0]]
    [:bounds/view :default [0 0 0 0]]
-   {:local/window
+   {:local/camera
     [:db/key
-     :window/modifier
-     [:window/point :default [0 0]]
-     [:window/scale :default 1]
-     [:window/draw-mode :default :select]
-     {:window/scene
+     :camera/modifier
+     [:camera/point :default [0 0]]
+     [:camera/scale :default 1]
+     [:camera/draw-mode :default :select]
+     {:camera/scene
       [[:scene/dark-mode :default false]]}]}])
 
 (defui render-scene []
@@ -539,13 +539,13 @@
          [_ _ vw vh] :bounds/view
          [sx sy _ _] :bounds/self
          {key     :db/key
-          scale   :window/scale
-          mode    :window/draw-mode
-          modif   :window/modifier
-          [cx cy] :window/point
+          scale   :camera/scale
+          mode    :camera/draw-mode
+          modif   :camera/modifier
+          [cx cy] :camera/point
           {dark-mode :scene/dark-mode}
-          :window/scene}
-         :local/window} result
+          :camera/scene}
+         :local/camera} result
         cx (if (= type :view) (->> (- hw vw) (max 0) (* (/ -1 2 scale)) (+ cx)) cx)
         cy (if (= type :view) (->> (- hh vh) (max 0) (* (/ -1 2 scale)) (+ cy)) cy)
         on-translate
@@ -557,7 +557,7 @@
                (dispatch :selection/clear)
                (let [tx (+ cx (* ox (/ scale)))
                      ty (+ cy (* oy (/ scale)))]
-                 (dispatch :window/translate tx ty)))))
+                 (dispatch :camera/translate tx ty)))))
          [dispatch cx cy scale])
         on-cursor-move
         (use-callback

@@ -84,39 +84,63 @@
 
 (defmethod transact :default [] [])
 
-(defmethod transact :window/change-label
-  [{:keys [window]} label]
-  [[:db/add [:db/key window] :window/label label]])
+;; -- Camera --
+(defmethod
+  ^{:doc "Changes the public label for the current camera."}
+  transact :camera/change-label
+  [{:keys [camera]} label]
+  [[:db/add [:db/key camera] :camera/label label]])
 
-(defmethod transact :window/translate
-  [{:keys [window]} x y]
-  [[:db/add -1 :db/key window]
-   [:db/add -1 :window/point [(round x 1) (round y 1)]]])
+(defmethod
+  ^{:doc "Translates the current camera to the point given by `x` and `y`."}
+  transact :camera/translate
+  [{:keys [camera]} x y]
+  [[:db/add -1 :db/key camera]
+   [:db/add -1 :camera/point [(round x 1) (round y 1)]]])
 
-(defmethod transact :window/change-mode
-  [{:keys [data local window]} mode]
-  (let [{curr :window/draw-mode} (ds/entity data [:db/key window])
+(defmethod
+  ^{:doc "Changes the camera draw mode to the given value. The draw mode is
+          used to decide what behavior clicking and dragging on the scene
+          will have, such as drawing a shape or determining the distance
+          between two points."}
+  transact :camera/change-mode
+  [{:keys [data local camera]} mode]
+  (let [{curr :camera/draw-mode} (ds/entity data [:db/key camera])
         {type :local/type}       (ds/entity data [:db/key local])
         allowed? (mode-allowed? mode type)]
     (if allowed?
-      [[:db/add -1 :db/key window]
-       [:db/add -1 :window/draw-mode mode]
+      [[:db/add -1 :db/key camera]
+       [:db/add -1 :camera/draw-mode mode]
        (if (= mode curr)
-         [:db/add -1 :window/draw-mode :select]
-         [:db/retract [:db/key window] :window/selected])]
+         [:db/add -1 :camera/draw-mode :select]
+         [:db/retract [:db/key camera] :camera/selected])]
       [])))
 
-(defmethod transact :window/modifier-start
-  [{:keys [window]} modifier]
-  [[:db/add -1 :db/key window]
-   [:db/add -1 :window/modifier modifier]])
+(defmethod
+  ^{:doc "Changes the current keyboard modifier for the current camera. This
+          modifier is currently only used to determine if the 'Shift' key is
+          depressed so that users can draw a selection box across the scene,
+          selecting more than one token."}
+  transact :camera/modifier-start
+  [{:keys [camera]} modifier]
+  [[:db/add -1 :db/key camera]
+   [:db/add -1 :camera/modifier modifier]])
 
-(defmethod transact :window/modifier-release
-  [{:keys [window]}]
-  [[:db/add -1 :db/key window]
-   [:db/retract [:db/key window] :window/modifier]])
+(defmethod
+  ^{:doc "Releases the given keyboard modifier for the current camera."}
+  transact :camera/modifier-release
+  [{:keys [camera]}]
+  [[:db/add -1 :db/key camera]
+   [:db/retract [:db/key camera] :camera/modifier]])
 
-(defmethod transact :zoom/change
+(defmethod
+  ^{:arglists '([context] [context value] [context value x y])
+    :doc "Changes the zoom value for the current camera by the given value
+          `next` and, optionally, a cursor point given by `x` and `y`.
+          This method preserves the point of the cursor on the scene,
+          adjusting the camera point to ensure that the user feels as if
+          they are zooming in or out from their cursor."}
+  transact :camera/zoom-change
   ([context]
    (transact context 1))
   ([{:keys [data local] :as context} next]
@@ -124,129 +148,145 @@
          result    (ds/pull data select [:db/key local])
          [_ _ w h] (:bounds/self result)]
      (transact context next (/ w 2) (/ h 2))))
-  ([{:keys [data window]} next x y]
-   (let [select [[:window/scale :default 1] [:window/point :default [0 0]]]
-         result (ds/pull data select [:db/key window])
-         {prev :window/scale [cx cy] :window/point} result
+  ([{:keys [data camera]} next x y]
+   (let [select [[:camera/scale :default 1] [:camera/point :default [0 0]]]
+         result (ds/pull data select [:db/key camera])
+         {prev :camera/scale [cx cy] :camera/point} result
          fx (/ next prev)
          dx (/ (- (* x fx) x) next)
          dy (/ (- (* y fx) y) next)]
-     [[:db/add -1 :db/key window]
-      [:db/add -1 :window/point [(round (- cx dx) 1) (round (- cy dy) 1)]]
-      [:db/add -1 :window/scale next]])))
+     [[:db/add -1 :db/key camera]
+      [:db/add -1 :camera/point [(round (- cx dx) 1) (round (- cy dy) 1)]]
+      [:db/add -1 :camera/scale next]])))
 
-(defmethod transact :zoom/delta
-  [{:keys [data window] :as context} delta x y]
-  (let [result (ds/pull data [[:window/scale :default 1]] [:db/key window])
-        next   (-> (:window/scale result)
+(defmethod
+  ^{:arglists '([context delta x y])
+    :doc "Changes the zoom value for the current camera by offsetting it from
+          the given value `delta`. This is useful for zooming with a device
+          that uses fine grained updates such as a mousewheel or a trackpad."}
+  transact :camera/zoom-delta
+  [{:keys [data camera] :as context} delta x y]
+  (let [result (ds/pull data [[:camera/scale :default 1]] [:db/key camera])
+        next   (-> (:camera/scale result)
                    (js/Math.log)
                    (+ delta)
                    (js/Math.exp)
                    (to-precision 2)
                    (constrain 0.15 4))]
-    (transact (assoc context :event :zoom/change) next x y)))
+    (transact (assoc context :event :camera/zoom-change) next x y)))
 
-(defmethod transact :zoom/in
-  [{:keys [data window] :as context}]
-  (let [info (ds/pull data [[:window/scale :default 1]] [:db/key window])
-        prev (:window/scale info)
+(defmethod
+  ^{:doc "Increases the zoom value for the current camera to the next nearest
+          zoom level. These fixed zoom levels are determined by an internal
+          constant."}
+  transact :camera/zoom-in
+  [{:keys [data camera] :as context}]
+  (let [info (ds/pull data [[:camera/scale :default 1]] [:db/key camera])
+        prev (:camera/scale info)
         next (reduce (fn [n s] (if (> s prev) (reduced s) n)) prev zoom-scales)]
-    (transact (assoc context :event :zoom/change) next)))
+    (transact (assoc context :event :camera/zoom-change) next)))
 
-(defmethod transact :zoom/out
-  [{:keys [data window] :as context}]
-  (let [info (ds/pull data [[:window/scale :default 1]] [:db/key window])
-        prev (:window/scale info)
+(defmethod
+  ^{:doc "Decreases the zoom value for the current camera to the nearest
+          previous zoom level. These fixed zoom levels are determined by an
+          internal constant."}
+  transact :camera/zoom-out
+  [{:keys [data camera] :as context}]
+  (let [info (ds/pull data [[:camera/scale :default 1]] [:db/key camera])
+        prev (:camera/scale info)
         next (reduce (fn [n s] (if (< s prev) (reduced s) n)) prev (reverse zoom-scales))]
-    (transact (assoc context :event :zoom/change) next)))
+    (transact (assoc context :event :camera/zoom-change) next)))
 
-(defmethod transact :zoom/reset [context]
-  (transact (assoc context :event :zoom/change) 1))
+(defmethod
+  ^{:doc "Resets the zoom value for the given camera to its default setting of
+          100%."}
+  transact :camera/zoom-reset [context]
+  (transact (assoc context :event :camera/zoom-change) 1))
 
 ;; -- Scenes --
 (defmethod
-  ^{:doc "Creates a new blank scene and corresponding window for the local user
+  ^{:doc "Creates a new blank scene and corresponding camera for the local user
           then switches them to it."}
   transact :scenes/create
   [{:keys [local]}]
   [[:db/add -1 :db/key (squuid)]
    [:db/add -2 :db/key (squuid)]
-   [:db/add [:db/key local] :local/window -1]
-   [:db/add [:db/key local] :local/windows -1]
-   [:db/add -1 :window/scene -2]
+   [:db/add [:db/key local] :local/camera -1]
+   [:db/add [:db/key local] :local/cameras -1]
+   [:db/add -1 :camera/scene -2]
    [:db/add [:db/ident :root] :root/scenes -2]])
 
 (defmethod
-  ^{:doc "Switches to the given scene by the given window identifier."}
+  ^{:doc "Switches to the given scene by the given camera identifier."}
   transact :scenes/change
   [{:keys [local]} key]
   [[:db/add -1 :db/key local]
    [:db/add -2 :db/key key]
-   [:db/add -1 :local/window -2]])
+   [:db/add -1 :local/camera -2]])
 
 (defmethod
-  ^{:doc "Removes the scene and corresponding window for the local user. Also
-          removes all scene windows for any connected users and switches them
+  ^{:doc "Removes the scene and corresponding camera for the local user. Also
+          removes all scene cameras for any connected users and switches them
           to whichever scene the host is now on."}
   transact :scenes/remove
   [{:keys [data local]} key]
-  (let [select-w [:db/key {:window/scene [:db/key]}]
-        select-l [:db/key {:local/windows select-w :local/window select-w}]
+  (let [select-w [:db/key {:camera/scene [:db/key]}]
+        select-l [:db/key {:local/cameras select-w :local/camera select-w}]
         select-r [{:root/local select-l} {:root/session [{:session/conns select-l}]}]
-        select-o [:db/key {:window/scene [:db/key {:window/_scene [:db/key]}]}]
+        select-o [:db/key {:camera/scene [:db/key {:camera/_scene [:db/key]}]}]
 
         {{scene :db/key
-          remove :window/_scene} :window/scene}
+          remove :camera/_scene} :camera/scene}
         (ds/pull data select-o [:db/key key])
 
         {{conns   :session/conns} :root/session
-         {window  :local/window
-          windows :local/windows} :root/local}
+         {camera  :local/camera
+          cameras :local/cameras} :root/local}
         (ds/pull data select-r [:db/ident :root])]
     (cond
-      (= (count windows) 1)
+      (= (count cameras) 1)
       (into [[:db/retractEntity [:db/key scene]]
              [:db/add -1 :db/key (squuid)]
-             [:db/add -1 :window/scene -2]
+             [:db/add -1 :camera/scene -2]
              [:db/add -2 :db/key (squuid)]
-             [:db/add [:db/key local] :local/window -1]
-             [:db/add [:db/key local] :local/windows -1]]
+             [:db/add [:db/key local] :local/camera -1]
+             [:db/add [:db/key local] :local/cameras -1]]
             (comp cat cat)
             (list (for [{:keys [db/key]} remove]
                     [[:db/retractEntity [:db/key key]]])
                   (for [[idx conn] (sequence (indexed 3 2) conns)
                         :let [tmp (dec idx)]]
                     [[:db/add idx :db/key (:db/key conn)]
-                     [:db/add idx :local/windows tmp]
-                     [:db/add idx :local/window tmp]
+                     [:db/add idx :local/cameras tmp]
+                     [:db/add idx :local/camera tmp]
                      [:db/add tmp :db/key (squuid)]
-                     [:db/add tmp :window/scene -2]
-                     [:db/add tmp :window/point [0 0]]
-                     [:db/add tmp :window/scale 1]])))
+                     [:db/add tmp :camera/scene -2]
+                     [:db/add tmp :camera/point [0 0]]
+                     [:db/add tmp :camera/scale 1]])))
 
-      (= key (:db/key window))
-      (let [next (->> windows (filter #(not= (:db/key %) (:db/key window))) (first))]
+      (= key (:db/key camera))
+      (let [next (->> cameras (filter #(not= (:db/key %) (:db/key camera))) (first))]
         (into [[:db/retractEntity [:db/key scene]]
                [:db/add -1 :db/key (:db/key next)]
                [:db/add -2 :db/key local]
-               [:db/add -2 :local/window -1]]
+               [:db/add -2 :local/camera -1]]
               (comp cat cat)
               (list (for [{:keys [db/key]} remove]
                       [[:db/retractEntity [:db/key key]]])
                     (for [[idx conn] (sequence (indexed 3 2) conns)
                           :let [tmp (dec idx)
-                                key (->> (:local/windows conn)
-                                         (filter #(= (:db/key (:window/scene %))
-                                                     (:db/key (:window/scene next))))
+                                key (->> (:local/cameras conn)
+                                         (filter #(= (:db/key (:camera/scene %))
+                                                     (:db/key (:camera/scene next))))
                                          (first)
                                          (:db/key))]]
                       [[:db/add idx :db/key (:db/key conn)]
-                       [:db/add idx :local/windows tmp]
-                       [:db/add idx :local/window tmp]
+                       [:db/add idx :local/cameras tmp]
+                       [:db/add idx :local/camera tmp]
                        [:db/add tmp :db/key (or key (squuid))]
-                       [:db/add tmp :window/scene [:db/key (:db/key (:window/scene next))]]
-                       [:db/add tmp :window/point [0 0]]
-                       [:db/add tmp :window/scale 1]]))))
+                       [:db/add tmp :camera/scene [:db/key (:db/key (:camera/scene next))]]
+                       [:db/add tmp :camera/point [0 0]]
+                       [:db/add tmp :camera/scale 1]]))))
 
       :else
       (into [[:db/retractEntity [:db/key scene]]]
@@ -337,15 +377,15 @@
     (assoc {:db/id id :db/key key} attr value)))
 
 (defmethod transact :element/select
-  [{:keys [data window]} key replace?]
+  [{:keys [data camera]} key replace?]
   (let [lookup [:db/key key]
         entity (ds/entity data lookup)]
-    [[:db/add -1 :db/key window]
+    [[:db/add -1 :db/key camera]
      (if replace?
-       [:db/retract [:db/key window] :window/selected])
-     (if (and (not replace?) (:window/_selected entity))
-       [:db/retract [:db/key window] :window/selected lookup]
-       [:db/add -1 :window/selected lookup])]))
+       [:db/retract [:db/key camera] :camera/selected])
+     (if (and (not replace?) (:camera/_selected entity))
+       [:db/retract [:db/key camera] :camera/selected lookup]
+       [:db/add -1 :camera/selected lookup])]))
 
 (defmethod transact :element/remove
   [_ keys]
@@ -353,13 +393,13 @@
     [:db/retractEntity [:db/key key]]))
 
 (defmethod transact :token/create
-  [{:keys [window scene]} x y checksum]
+  [{:keys [camera scene]} x y checksum]
   [[:db/add -1 :db/key (squuid)]
    [:db/add -1 :token/point [x y]]
    [:db/add -1 :token/image -4]
-   [:db/add -2 :db/key window]
-   [:db/add -2 :window/selected -1]
-   [:db/add -2 :window/draw-mode :select]
+   [:db/add -2 :db/key camera]
+   [:db/add -2 :camera/selected -1]
+   [:db/add -2 :camera/draw-mode :select]
    [:db/add -3 :db/key scene]
    [:db/add -3 :scene/tokens -1]
    [:db/add -4 :image/checksum checksum]])
@@ -418,15 +458,15 @@
     {:db/id id :db/key key :aura/radius radius}))
 
 (defmethod transact :shape/create
-  [{:keys [window scene]} kind vecs]
+  [{:keys [camera scene]} kind vecs]
   [[:db/add -1 :db/key (squuid)]
    [:db/add -1 :shape/kind kind]
    [:db/add -1 :shape/vecs vecs]
    [:db/add -2 :db/key scene]
    [:db/add -2 :scene/shapes -1]
-   [:db/add -3 :db/key window]
-   [:db/add -3 :window/draw-mode :select]
-   [:db/add -3 :window/selected -1]])
+   [:db/add -3 :db/key camera]
+   [:db/add -3 :camera/draw-mode :select]
+   [:db/add -3 :camera/selected -1]])
 
 (defmethod transact :shape/remove
   [_ keys]
@@ -470,31 +510,31 @@
      [:db/add -1 (keyword :bounds w-type) bounds]]))
 
 (defmethod transact :selection/from-rect
-  [{:keys [data window scene]} vecs]
+  [{:keys [data camera scene]} vecs]
   (let [select [{:scene/tokens [:db/key :token/point]}]
         result (ds/pull data select [:db/key scene])
         bounds (normalize vecs)]
     [{:db/id -1
-      :db/key window
-      :window/draw-mode :select
-      :window/selected
+      :db/key camera
+      :camera/draw-mode :select
+      :camera/selected
       (for [[idx token] (sequence (indexed 2) (:scene/tokens result))
             :let  [{[x y] :token/point key :db/key} token]
             :when (within? x y bounds)]
         {:db/id idx :db/key key})}]))
 
 (defmethod transact :selection/clear
-  [{:keys [window]}]
-  [[:db/add -1 :db/key window]
-   [:db/retract [:db/key window] :window/selected]])
+  [{:keys [camera]}]
+  [[:db/add -1 :db/key camera]
+   [:db/retract [:db/key camera] :camera/selected]])
 
 (defmethod transact :selection/remove
-  [{:keys [data window] :as ctx}]
-  (let [select [{:window/selected [:db/key :scene/_tokens :scene/_shapes]}]
-        result (ds/pull data select [:db/key window])
+  [{:keys [data camera] :as ctx}]
+  (let [select [{:camera/selected [:db/key :scene/_tokens :scene/_shapes]}]
+        result (ds/pull data select [:db/key camera])
         groups (group-by (fn [x] (cond (:scene/_tokens x) :token
                                        (:scene/_shapes x) :shape))
-                         (:window/selected result))]
+                         (:camera/selected result))]
     (concat (transact (assoc ctx :event :token/remove) (map :db/key (:token groups)))
             (transact (assoc ctx :event :shape/remove) (map :db/key (:shape groups))))))
 
@@ -696,33 +736,33 @@
 
 (defmethod transact :session/focus
   [{:keys [data]}]
-  (let [select-w [:window/scene [:window/point :default [0 0]] [:window/scale :default 1]]
-        select-l [:db/key [:bounds/self :default [0 0 0 0]] {:local/windows [:window/scene] :local/window select-w}]
+  (let [select-w [:camera/scene [:camera/point :default [0 0]] [:camera/scale :default 1]]
+        select-l [:db/key [:bounds/self :default [0 0 0 0]] {:local/cameras [:camera/scene] :local/camera select-w}]
         select-s [{:session/host select-l} {:session/conns select-l}]
         result   (ds/pull data select-s [:db/ident :session])
         {{[_ _ hw hh] :bounds/self
-          {[hx hy] :window/point} :local/window
-          host :local/window} :session/host
+          {[hx hy] :camera/point} :local/camera
+          host :local/camera} :session/host
          conns :session/conns} result
-        scale (:window/scale host)
+        scale (:camera/scale host)
         mx (- hx (/ hw scale 2))
         my (- hy (/ hh scale 2))]
     (->> (for [[next conn] (sequence (indexed 1 2) conns)
                :let [prev (dec next)
-                     exst (->> (:local/windows conn)
+                     exst (->> (:local/cameras conn)
                                (filter (fn [conn]
-                                         (= (:db/key (:window/scene conn))
-                                            (:db/key (:window/scene host)))))
+                                         (= (:db/key (:camera/scene conn))
+                                            (:db/key (:camera/scene host)))))
                                (first)
                                (:db/key))
                      [_ _ cw ch] (:bounds/self conn)
                      cx (+ mx (/ cw scale 2))
                      cy (+ my (/ ch scale 2))]]
            [[:db/add next :db/key (:db/key conn)]
-            [:db/add next :local/window prev]
-            [:db/add next :local/windows prev]
+            [:db/add next :local/camera prev]
+            [:db/add next :local/cameras prev]
             [:db/add prev :db/key        (or exst (squuid))]
-            [:db/add prev :window/point  [cx cy]]
-            [:db/add prev :window/scale  scale]
-            [:db/add prev :window/scene (:db/id (:window/scene host))]])
+            [:db/add prev :camera/point  [cx cy]]
+            [:db/add prev :camera/scale  scale]
+            [:db/add prev :camera/scene (:db/id (:camera/scene host))]])
          (into [] cat))))

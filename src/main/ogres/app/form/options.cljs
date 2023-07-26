@@ -14,10 +14,10 @@
    [:midnight "Midnight" "moon-stars-fill"]])
 
 (def ^:private query
-  [{:local/window
-    [[:window/label :default ""]
-     [:window/draw-mode :default :select]
-     {:window/scene
+  [{:local/camera
+    [[:camera/label :default ""]
+     [:camera/draw-mode :default :select]
+     {:camera/scene
       [:db/key
        [:scene/dark-mode :default false]
        [:scene/grid-size :default 70]
@@ -31,11 +31,11 @@
 (defui form []
   (let [dispatch (use-dispatch)
         result   (use-query query [:db/ident :local])
-        {window :local/window
-         {scene :window/scene
+        {camera :local/camera
+         {scene :camera/scene
           {{checksum :image/checksum} :scene/image}
-          :window/scene}
-         :local/window} result]
+          :camera/scene}
+         :local/camera} result]
     ($ :section.options
       ($ :section
         ($ :fieldset
@@ -44,11 +44,11 @@
              :placeholder "Name this scene..."
              :maxLength 36
              :spellCheck "false"
-             :value (:window/label window)
+             :value (:camera/label camera)
              :on-change
              (fn [event]
                (let [value (.. event -target -value)]
-                 (dispatch :window/change-label value)))})))
+                 (dispatch :camera/change-label value)))})))
       ($ :section.options-grid
         ($ :header "Grid")
         ($ :form

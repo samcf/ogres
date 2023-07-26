@@ -6,8 +6,8 @@
 
 (def ^:private query-form
   [:local/type
-   {:local/window
-    [{:window/scene
+   {:local/camera
+    [{:camera/scene
       [:db/key
        :initiative/rounds
        {:initiative/turn [:db/key]}
@@ -18,12 +18,12 @@
          :initiative/roll
          :initiative/suffix
          :initiative/health
-         :window/_selected
+         :camera/_selected
          {:token/image [:image/checksum]}]}]}]}])
 
 (def ^:private query-footer
-  [{:local/window
-    [{:window/scene
+  [{:local/camera
+    [{:camera/scene
       [[:initiative/turns :default 0]
        [:initiative/rounds :default 0]
        {:scene/initiative
@@ -95,7 +95,7 @@
 (defui initiant [{:keys [context entity]}]
   (let [dispatch (use-dispatch)
         {type      :local/type
-         {{current :initiative/turn} :window/scene} :local/window} context
+         {{current :initiative/turn} :camera/scene} :local/camera} context
         {key       :db/key
          label     :token/label
          flags     :token/flags
@@ -134,8 +134,8 @@
   (let [result (use-query query-form)
         {type :local/type
          {{tokens :scene/initiative
-           rounds :initiative/rounds} :window/scene}
-         :local/window} result]
+           rounds :initiative/rounds} :camera/scene}
+         :local/camera} result]
     ($ :div.initiative
       (cond (and (not (seq tokens)) (nil? rounds))
             ($ :section
@@ -163,8 +163,8 @@
         {{{turns  :initiative/turns
            rounds :initiative/rounds
            tokens :scene/initiative}
-          :window/scene}
-         :local/window} result
+          :camera/scene}
+         :local/camera} result
         started (>= rounds 1)]
     ($ :<>
       ($ :button.button {:disabled true} "Round " rounds)

@@ -10,11 +10,11 @@
 (def shortcuts
   {["keydown" "Shift"]
    (fn [[_ dispatch]]
-     (dispatch :window/modifier-start :shift))
+     (dispatch :camera/modifier-start :shift))
 
    ["keyup" "Shift"]
    (fn [[_ dispatch]]
-     (dispatch :window/modifier-release))
+     (dispatch :camera/modifier-release))
 
    ["keydown" "Escape"]
    (fn [[_ dispatch]]
@@ -30,43 +30,43 @@
 
    ["keydown" \s]
    (fn [[_ dispatch]]
-     (dispatch :window/change-mode :select))
+     (dispatch :camera/change-mode :select))
 
    ["keydown" \r]
    (fn [[_ dispatch]]
-     (dispatch :window/change-mode :ruler))
+     (dispatch :camera/change-mode :ruler))
 
    ["keydown" \1]
    (fn [[_ dispatch]]
-     (dispatch :window/change-mode :circle))
+     (dispatch :camera/change-mode :circle))
 
    ["keydown" \2]
    (fn [[_ dispatch]]
-     (dispatch :window/change-mode :rect))
+     (dispatch :camera/change-mode :rect))
 
    ["keydown" \3]
    (fn [[_ dispatch]]
-     (dispatch :window/change-mode :cone))
+     (dispatch :camera/change-mode :cone))
 
    ["keydown" \4]
    (fn [[_ dispatch]]
-     (dispatch :window/change-mode :poly))
+     (dispatch :camera/change-mode :poly))
 
    ["keydown" \5]
    (fn [[_ dispatch]]
-     (dispatch :window/change-mode :line))
+     (dispatch :camera/change-mode :line))
 
    ["keydown" \f]
    (fn [[_ dispatch]]
-     (dispatch :window/change-mode :mask))
+     (dispatch :camera/change-mode :mask))
 
    ["keydown" \t]
    (fn [[_ dispatch]]
-     (dispatch :window/change-mode :mask-toggle))
+     (dispatch :camera/change-mode :mask-toggle))
 
    ["keydown" \x]
    (fn [[_ dispatch]]
-     (dispatch :window/change-mode :mask-remove))
+     (dispatch :camera/change-mode :mask-remove))
 
    ["wheel"]
    (fn [[conn dispatch] event]
@@ -80,8 +80,8 @@
              dt (linear -400 400 -0.50 0.50)]
          (if (.-ctrlKey event)
            (do (.preventDefault event)
-               (dispatch :zoom/delta (dt (* -1 8 dy)) cx cy))
-           (dispatch :zoom/delta (dt (* -1 2 dy)) cx cy)))))})
+               (dispatch :camera/zoom-delta (dt (* -1 8 dy)) cx cy))
+           (dispatch :camera/zoom-delta (dt (* -1 2 dy)) cx cy)))))})
 
 (defn event-key [type event]
   (case type

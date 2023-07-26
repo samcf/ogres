@@ -28,12 +28,12 @@
                      (into (subvec data src dst))
                      (take per-page)
                      (map-indexed vector))]
-        ($ :section.scenes
+        ($ :section.scenes-form
           (for [[idx data] seq]
             (if-let [checksum (:image/checksum data)]
               ($ thumbnail {:key idx :checksum checksum}
                 (fn [{:keys [data-url]}]
-                  ($ :figure.scenes-scene
+                  ($ :figure.scenes-form-scene
                     {:style {:background-image (str "url(" data-url ")")}
                      :on-click
                      (fn [event]
@@ -46,12 +46,12 @@
                          (.stopPropagation event)
                          (dispatch :scene-images/remove checksum))}
                       ($ icon {:name "trash3-fill" :size 16})))))
-              ($ :figure.scenes-placeholder {:key idx})))
+              ($ :figure.scenes-form-placeholder {:key idx})))
           ($ pagination
             {:pages pages
              :value (min page pages)
              :on-change set-page})))
-      ($ :section.scenes
+      ($ :section.scenes-form
         ($ :div.prompt
           "Upload one or more images from your"
           ($ :br) "computer to use as a map. Its best"

@@ -55,19 +55,19 @@
 
 (def ^{:private true} query
   [[:bounds/self :default [0 0 0 0]]
-   {:local/window
-    [[:window/scale :default 1]
-     [:window/point :default [0 0]]
-     {:window/scene
+   {:local/camera
+    [[:camera/scale :default 1]
+     [:camera/point :default [0 0]]
+     {:camera/scene
       [[:scene/snap-grid :default false]]}]}])
 
 (defui ^{:private true} polygon [{:keys [on-create]}]
   (let [result (use-query query)
         {[ox oy] :bounds/self
-         {[tx ty] :window/point
-          scale   :window/scale
-          {align :scene/snap-grid} :window/scene}
-         :local/window} result
+         {[tx ty] :camera/point
+          scale   :camera/scale
+          {align :scene/snap-grid} :camera/scene}
+         :local/camera} result
         [pairs set-pairs] (use-state [])
         [mouse set-mouse] (use-state [])
         [ax ay] pairs
@@ -109,8 +109,8 @@
   (let [dispatch (use-dispatch)
         result   (use-query query)
         {[ox oy]  :bounds/self
-         {[tx ty] :window/point
-          scale   :window/scale} :local/window} result]
+         {[tx ty] :camera/point
+          scale   :camera/scale} :local/camera} result]
     ($ drawable
       {:transform
        (fn [_ xs]
@@ -127,10 +127,10 @@
 (defui ^{:private true} draw-ruler []
   (let [result (use-query query)
         {[ox oy] :bounds/self
-         {[tx ty] :window/point
-          scale   :window/scale
-          {align :scene/snap-grid} :window/scene}
-         :local/window} result]
+         {[tx ty] :camera/point
+          scale   :camera/scale
+          {align :scene/snap-grid} :camera/scene}
+         :local/camera} result]
     ($ drawable
       {:on-release identity
        :transform
@@ -154,10 +154,10 @@
   (let [dispatch (use-dispatch)
         result   (use-query query)
         {[ox oy] :bounds/self
-         {[tx ty] :window/point
-          scale   :window/scale
-          {align :scene/snap-grid} :window/scene}
-         :local/window} result]
+         {[tx ty] :camera/point
+          scale   :camera/scale
+          {align :scene/snap-grid} :camera/scene}
+         :local/camera} result]
     ($ drawable
       {:transform
        (fn [event xs]
@@ -182,10 +182,10 @@
   (let [dispatch (use-dispatch)
         result   (use-query query)
         {[ox oy] :bounds/self
-         {[tx ty] :window/point
-          scale   :window/scale
-          {align :scene/snap-grid} :window/scene}
-         :local/window} result]
+         {[tx ty] :camera/point
+          scale   :camera/scale
+          {align :scene/snap-grid} :camera/scene}
+         :local/camera} result]
     ($ drawable
       {:transform
        (fn [event xs]
@@ -209,10 +209,10 @@
   (let [dispatch (use-dispatch)
         result   (use-query query)
         {[ox oy] :bounds/self
-         {[tx ty] :window/point
-          scale   :window/scale
-          {align :scene/snap-grid} :window/scene}
-         :local/window} result]
+         {[tx ty] :camera/point
+          scale   :camera/scale
+          {align :scene/snap-grid} :camera/scene}
+         :local/camera} result]
     ($ drawable
       {:transform
        (fn [event xs]
@@ -236,8 +236,8 @@
   (let [dispatch (use-dispatch)
         result   (use-query query)
         {[ox oy] :bounds/self
-         {[tx ty] :window/point
-          scale   :window/scale} :local/window} result]
+         {[tx ty] :camera/point
+          scale   :camera/scale} :local/camera} result]
     ($ drawable
       {:transform
        (fn [_ xs]
