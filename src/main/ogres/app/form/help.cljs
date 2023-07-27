@@ -26,7 +26,7 @@
              :checked   shortcuts?
              :on-change (fn [event]
                           (let [checked (.. event -target -checked)]
-                            (dispatch :interface/toggle-shortcuts checked)))})
+                            (dispatch :local/toggle-shortcuts checked)))})
           ($ :label {:for "show-shortcuts"} "Show shortcuts"))
         ($ :fieldset.checkbox
           ($ :input
@@ -35,7 +35,7 @@
              :checked   tooltips?
              :on-change (fn [event]
                           (let [checked (.. event -target -checked)]
-                            (dispatch :interface/toggle-tooltips checked)))})
+                            (dispatch :local/toggle-tooltips checked)))})
           ($ :label {:for "show-tooltips"} "Show tooltips")))
       ($ :section
         ($ :header "Data")

@@ -48,7 +48,7 @@
                           "panel-form--expanded" expanded
                           "panel-form--collapsed" (not expanded)})}
             ($ :div.panel-header
-              {:on-click #(dispatch :interface/toggle-panel key)}
+              {:on-click #(dispatch :local/toggle-panel key)}
               ($ :<>
                 ($ icon {:name (:icon form) :size 20})
                 ($ :div.panel-header-label (:label form))

@@ -84,6 +84,45 @@
 
 (defmethod transact :default [] [])
 
+;; -- Local --
+(defmethod
+  ^{:doc "Changes whether or not toolbar shortcuts are displayed for the
+          local user."}
+  transact :local/toggle-shortcuts
+  [{:keys [local]} display?]
+  [{:db/id -1 :db/key local :local/shortcuts? display?}])
+
+(defmethod
+  ^{:doc "Changes whether or not toolbar tooltips are displayed when the
+          local user hovers over them."}
+  transact :local/toggle-tooltips
+  [{:keys [local]} display?]
+  [{:db/id -1 :db/key local :local/tooltips? display?}])
+
+(defmethod
+  ^{:doc "Changes the currently expanded panel form to the value given by
+          `panel`."}
+  transact :local/toggle-panel
+  [{:keys [local]} panel]
+  [{:db/id -1 :db/key local :panel/expanded #{panel}}])
+
+(defmethod
+  ^{:doc "Changes the current keyboard modifier for the local user. This
+          modifier is currently only used to determine if the 'Shift' key is
+          depressed so that users can draw a selection box across the scene,
+          selecting more than one token."}
+  transact :local/modifier-start
+  [{:keys [local]} modifier]
+  [[:db/add -1 :db/key local]
+   [:db/add -1 :local/modifier modifier]])
+
+(defmethod
+  ^{:doc "Releases the given keyboard modifier for the local user."}
+  transact :local/modifier-release
+  [{:keys [local]}]
+  [[:db/add -1 :db/key local]
+   [:db/retract [:db/key local] :local/modifier]])
+
 ;; -- Camera --
 (defmethod
   ^{:doc "Changes the public label for the current camera."}
@@ -115,23 +154,6 @@
          [:db/add -1 :camera/draw-mode :select]
          [:db/retract [:db/key camera] :camera/selected])]
       [])))
-
-(defmethod
-  ^{:doc "Changes the current keyboard modifier for the current camera. This
-          modifier is currently only used to determine if the 'Shift' key is
-          depressed so that users can draw a selection box across the scene,
-          selecting more than one token."}
-  transact :camera/modifier-start
-  [{:keys [camera]} modifier]
-  [[:db/add -1 :db/key camera]
-   [:db/add -1 :camera/modifier modifier]])
-
-(defmethod
-  ^{:doc "Releases the given keyboard modifier for the current camera."}
-  transact :camera/modifier-release
-  [{:keys [camera]}]
-  [[:db/add -1 :db/key camera]
-   [:db/retract [:db/key camera] :camera/modifier]])
 
 (defmethod
   ^{:arglists '([context] [context value] [context value x y])
@@ -648,18 +670,6 @@
               [:db/retract [:db/key key] :initiative/roll]
               [:db/retract [:db/key key] :initiative/health]
               [:db/retract [:db/key key] :initiative/suffix]]))))
-
-(defmethod transact :interface/toggle-shortcuts
-  [{:keys [local]} display?]
-  [{:db/id -1 :db/key local :local/shortcuts? display?}])
-
-(defmethod transact :interface/toggle-tooltips
-  [{:keys [local]} display?]
-  [{:db/id -1 :db/key local :local/tooltips? display?}])
-
-(defmethod transact :interface/toggle-panel
-  [{:keys [local]} panel]
-  [{:db/id -1 :db/key local :panel/expanded #{panel}}])
 
 (defmethod transact :tokens/create
   [_ checksum width height scope]

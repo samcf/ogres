@@ -10,11 +10,11 @@
 (def shortcuts
   {["keydown" "Shift"]
    (fn [[_ dispatch]]
-     (dispatch :camera/modifier-start :shift))
+     (dispatch :local/modifier-start :shift))
 
    ["keyup" "Shift"]
    (fn [[_ dispatch]]
-     (dispatch :camera/modifier-release))
+     (dispatch :local/modifier-release))
 
    ["keydown" "Escape"]
    (fn [[_ dispatch]]

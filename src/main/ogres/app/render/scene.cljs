@@ -516,13 +516,13 @@
 
 (def ^:private query-scene
   [:local/type
+   :local/modifier
    [:local/privileged? :default false]
    [:bounds/self :default [0 0 0 0]]
    [:bounds/host :default [0 0 0 0]]
    [:bounds/view :default [0 0 0 0]]
    {:local/camera
     [:db/key
-     :camera/modifier
      [:camera/point :default [0 0]]
      [:camera/scale :default 1]
      [:camera/draw-mode :default :select]
@@ -534,14 +534,14 @@
         publish  (use-publish)
         result   (use-query query-scene)
         {type        :local/type
-         priv?       :local/privileged?
+         privileged? :local/privileged?
+         modifier    :local/modifier
          [_ _ hw hh] :bounds/host
          [_ _ vw vh] :bounds/view
          [sx sy _ _] :bounds/self
          {key     :db/key
           scale   :camera/scale
           mode    :camera/draw-mode
-          modif   :camera/modifier
           [cx cy] :camera/point
           {dark-mode :scene/dark-mode}
           :camera/scene}
@@ -568,11 +568,11 @@
                      y (- (/ (- (.-clientY event) sy) scale) cy)]
                  (publish {:topic :cursor/move :args [x y]})))))
          [publish sx sy cx cy scale])]
-    ($ :svg.scene {:key key :class (css {:theme--light (not dark-mode) :theme--dark dark-mode :is-host (= type :host) :is-priv priv?})}
+    ($ :svg.scene {:key key :class (css {:theme--light (not dark-mode) :theme--dark dark-mode :is-host (= type :host) :is-priv privileged?})}
       ($ react-draggable {:position #js {:x 0 :y 0} :on-stop on-translate}
         ($ :g {:style {:will-change "transform"} :on-mouse-move on-cursor-move}
           ($ :rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"})
-          (if (and (= mode :select) (= modif :shift))
+          (if (and (= mode :select) (= modifier :shift))
             ($ draw {:mode :select}))
           ($ :g.scene-board {:transform (str "scale(" scale ") translate(" cx ", " cy ")")}
             ($ render-token-faces)
@@ -594,4 +594,4 @@
       (if (contains? draw-modes mode)
         ($ :g {:class (str "scene-drawable scene-drawable-" (name mode))}
           ($ draw {:key mode :mode mode :node nil})))
-      (if priv? ($ render-bounds)))))
+      (if privileged? ($ render-bounds)))))
