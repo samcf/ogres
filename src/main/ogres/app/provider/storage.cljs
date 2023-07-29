@@ -8,9 +8,9 @@
             [ogres.app.timing :refer [debounce]]
             [uix.core :refer [defui $ create-context use-callback use-context use-effect]]))
 
-(def context (create-context))
+(def ^:private context (create-context))
 
-(def ignored-attrs
+(def ^:private ignored-attrs
   #{:local/type
     :local/loaded?
     :local/privileged?
@@ -34,11 +34,7 @@
   (let [store (initialize)]
     ($ (.-Provider context) {:value store} children)))
 
-(defui marshaller
-  "Listens to transactions to the DataScript database and serializes the
-   application state to the browser's IndexedDB store. This is only performed
-   on the host window and only after the application has already initialized
-   the state."
+(defui ^:private marshaller
   []
   (let [conn  (use-context state/context)
         store (use-store)]
@@ -58,10 +54,7 @@
                             (as-> record (.put (.table store "app") record))))) 200))
        (fn [] (ds/unlisten! conn :marshaller)))) []))
 
-(defui unmarshaller
-  "Initializes the DataScript database from the serialized state within the
-   browser's IndexedDB store. This is only run once for both the host and
-   view window."
+(defui ^:private unmarshaller
   []
   (let [conn    (use-context state/context)
         store   (use-store)
@@ -86,8 +79,7 @@
             (fn []
               (ds/transact! conn tx-data)))))) []))
 
-(defui reset-handler
-  []
+(defui ^:private reset-handler []
   (let [store (use-store)]
     (use-subscribe :storage/reset
       (use-callback
@@ -95,7 +87,7 @@
          (.delete store)
          (.reload (.-location js/window))) [store]))))
 
-(defui remove-handler []
+(defui ^:private remove-handler []
   (let [store (use-store)
         on-remove
         (use-callback

@@ -2,14 +2,15 @@
   (:require [clojure.core.async :refer [chan mult tap untap pub sub unsub go-loop timeout put! <! close!]]
             [uix.core :refer [defui $ create-context use-callback use-context use-effect]]))
 
-(defn create-initial-value []
+(defn ^:private create-initial-value []
   (let [ch-src (chan 1)
         ch-pub (chan 1)
         multi  (mult ch-src)]
     (tap multi ch-pub)
     [(pub ch-pub :topic) ch-src multi]))
 
-(def context (create-context (create-initial-value)))
+(def ^:private context
+  (create-context (create-initial-value)))
 
 (defonce context-value (create-initial-value))
 

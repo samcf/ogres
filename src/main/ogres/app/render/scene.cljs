@@ -31,28 +31,30 @@
    :prone         "falling"
    :unconscious   "skull"})
 
-(defn- key-by
+(defn ^:private key-by
   "Returns a map of the given `coll` whose keys are the result of calling `f`
    with each element in the collection and whose values are the element
    itself."
   [f coll]
   (into {} (map (juxt f identity) coll)))
 
-(defn- separate
+(defn ^:private separate
   "Split coll into two sequences, one that matches pred and one that doesn't."
   [pred coll]
   (let [pcoll (map (juxt identity pred) coll)]
     (vec (for [f [filter remove]]
            (map first (f second pcoll))))))
 
-(defn- stop-propagation [event]
+(defn ^:private stop-propagation [event]
   (.stopPropagation event))
 
-(defn- visible? [flags]
+(defn ^:private visible?
+  [flags]
   (or (contains? flags :player)
       (not (contains? flags :hidden))))
 
-(defn- label [{:keys [token/label initiative/suffix]}]
+(defn ^:private label
+  [{:keys [token/label initiative/suffix]}]
   (cond-> ""
     (string? label) (str label)
     (number? suffix) (str " " (char (+ suffix 64)))))
@@ -64,7 +66,7 @@
        [:scene/timeofday :default :none]
        {:scene/image [:image/checksum]}]}]}])
 
-(defui render-scene-image []
+(defui ^:private render-scene-image []
   (let [result (use-query query-scene-image)
         {{{size        :scene/grid-size
            time-of-day :scene/timeofday
@@ -91,7 +93,7 @@
          [:token/point :default [0 0]]]}
        {:scene/image [:image/checksum :image/width :image/height]}]}]}])
 
-(defui render-mask-vis []
+(defui ^:private render-mask-vis []
   (let [result (use-query query-mask-vis)
         {type :local/type
          {{visibility :scene/lighting
@@ -136,7 +138,7 @@
        {:scene/image [:image/width :image/height]}
        {:scene/masks [:db/key :mask/vecs :mask/enabled?]}]}]}])
 
-(defui render-mask-fog []
+(defui ^:private render-mask-fog []
   (let [dispatch (use-dispatch)
         result   (use-query query-mask-fog)
         {type :local/type
@@ -184,7 +186,7 @@
      {:camera/scene
       [[:scene/show-grid :default true]]}]}])
 
-(defui render-grid []
+(defui ^:private render-grid []
   (let [data (use-query query-grid)
         {[_ _ w h] :bounds/self
          {[cx cy] :camera/point
@@ -206,11 +208,12 @@
               ($ :path {:d (join " " ["M" 0 0 "H" grid-size "V" grid-size])})))
           ($ :path {:d (join " " ["M" sx sy "H" ax "V" ay "H" bx "Z"]) :fill "url(#grid)"}))))))
 
-(defn- poly-xf [x y]
+(defn ^:private poly-xf [x y]
   (comp (partition-all 2)
         (mapcat (fn [[ax ay]] [(- ax x) (- ay y)]))))
 
-(defui render-shape-circle [props]
+(defui ^:private render-shape-circle
+  [props]
   (let [{:keys [entity attrs]} props
         {:keys [shape/vecs shape/color shape/opacity]} entity
         [ax ay bx by] vecs]
@@ -218,7 +221,8 @@
       (->> {:cx 0 :cy 0 :r (chebyshev ax ay bx by) :fill-opacity opacity :stroke color}
            (merge attrs)))))
 
-(defui render-shape-rect [props]
+(defui ^:private render-shape-rect
+  [props]
   (let [{:keys [entity attrs]} props
         {:keys [shape/vecs shape/color shape/opacity]} entity
         [ax ay bx by] vecs]
@@ -226,13 +230,15 @@
       (->> {:d (join " " ["M" 0 0 "H" (- bx ax) "V" (- by ay) "H" 0 "Z"]) :fill-opacity opacity :stroke color}
            (merge attrs)))))
 
-(defui render-shape-line [props]
+(defui ^:private render-shape-line
+  [props]
   (let [{:keys [entity]} props
         {:keys [shape/vecs shape/color]} entity
         [ax ay bx by] vecs]
     ($ :line {:x1 0 :y1 0 :x2 (- bx ax) :y2 (- by ay) :stroke color :stroke-width 4 :stroke-linecap "round"})))
 
-(defui render-shape-cone [props]
+(defui ^:private render-shape-cone
+  [props]
   (let [{:keys [entity attrs]} props
         {:keys [shape/vecs shape/color shape/opacity]} entity
         [ax ay bx by] vecs]
@@ -240,14 +246,16 @@
       (->> {:points (join " " (triangle 0 0 (- bx ax) (- by ay))) :fill-opacity opacity :stroke color}
            (merge attrs)))))
 
-(defui render-shape-poly [props]
+(defui ^:private render-shape-poly
+  [props]
   (let [{:keys [entity attrs]} props
         {:keys [shape/vecs shape/color shape/opacity]} entity
         [ax ay] (into [] (take 2) vecs)
         pairs   (into [] (poly-xf ax ay) vecs)]
     ($ :polygon (assoc attrs :points (join " " pairs) :fill-opacity opacity :stroke color))))
 
-(defui render-shape [{:keys [entity] :as props}]
+(defui ^:private render-shape
+  [{:keys [entity] :as props}]
   (let [shape-fns {:circle render-shape-circle
                    :rect   render-shape-rect
                    :line   render-shape-line
@@ -272,7 +280,7 @@
          [:shape/pattern :default :solid]
          {:camera/_selected [:db/key]}]}]}]}])
 
-(defui render-shapes []
+(defui ^:private render-shapes []
   (let [dispatch (use-dispatch)
         result   (use-query query-shapes)
         {type    :local/type
@@ -310,7 +318,8 @@
                     ($ shape-context-menu
                       {:shape entity})))))))))))
 
-(defui render-token-face [{:keys [checksum]}]
+(defui ^:private render-token-face
+  [{:keys [checksum]}]
   (let [url (use-image checksum)]
     ($ :image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"})))
 
@@ -321,7 +330,7 @@
         [{:token/image
           [:image/checksum]}]}]}]}])
 
-(defui render-token-faces []
+(defui ^:private render-token-faces []
   (let [result    (use-query query-token-faces)
         tokens    (-> result :local/camera :camera/scene :scene/tokens)
         checksums (into #{} (comp (map :token/image) (map :image/checksum)) tokens)
@@ -337,7 +346,8 @@
         ($ :pattern (merge attrs {:key checksum :id (str "token-face-" checksum)})
           ($ render-token-face {:checksum checksum}))))))
 
-(defui render-token [{:keys [data]}]
+(defui ^:private render-token
+  [{:keys [data]}]
   ($ :<>
     (let [radius (* grid-size (/ (:aura/radius data) 5))]
       (if (> radius 0)
@@ -368,7 +378,8 @@
             ($ :div.scene-token-label
               ($ :span (label data)))))))))
 
-(defn- token-comparator [a b]
+(defn ^:private token-comparator
+  [a b]
   (let [[ax ay] (:token/point a)
         [bx by] (:token/point b)]
     (compare [(:token/size b) by bx]
@@ -395,7 +406,7 @@
          {:scene/_initiative [:db/key]}
          {:camera/_selected [:db/key]}]}]}]}])
 
-(defui render-tokens []
+(defui ^:private render-tokens []
   (let [dispatch (use-dispatch)
         result   (use-query query-tokens)
         {:local/keys  [type camera]} result
@@ -462,7 +473,7 @@
                        :style {:pointer-events "none"}}
                       ($ token-context-menu {:tokens selected :type type}))))))))))))
 
-(defui render-bounds []
+(defui ^:private render-bounds []
   (let [result (use-query [:bounds/host :bounds/view])
         {[_ _ hw hh] :bounds/host
          [_ _ vw vh] :bounds/view} result
@@ -470,7 +481,8 @@
     ($ :g.scene-bounds {:transform (str "translate(" ox " , " oy ")")}
       ($ :rect {:x 0 :y 0 :width vw :height vh :rx 8}))))
 
-(defui render-cursor [{[x y] :coord color :color}]
+(defui ^:private render-cursor
+  [{[x y] :coord color :color}]
   (let [[point set-point] (use-state nil)
         on-animate-cursor (use-callback
                            (fn [point]
@@ -492,7 +504,7 @@
      [:session/share-cursor :default true]
      [:local/color :default "royalBlue"]]}])
 
-(defui render-cursors []
+(defui ^:private render-cursors []
   (let [[coords set-coords] (use-state {})
         result (use-query query-cursors [:db/ident :session])
         {conns :session/conns

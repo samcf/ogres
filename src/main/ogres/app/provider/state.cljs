@@ -35,7 +35,7 @@
           (string? (.get params "join"))   :conn
           :else                            :host)))
 
-(defn initial-data []
+(defn ^:private initial-data []
   (ds/db-with
    (ds/empty-db schema)
    [[:db/add -1 :db/ident :root]
@@ -56,9 +56,11 @@
     [:db/add -4 :camera/scene -2]
     [:db/add -5 :db/ident :session]]))
 
-(def context (create-context (ds/conn-from-db (initial-data))))
+(def context
+  (create-context (ds/conn-from-db (initial-data))))
 
-(defonce context-value (ds/conn-from-db (initial-data)))
+(defonce ^:private context-value
+  (ds/conn-from-db (initial-data)))
 
 (defui provider
   "Provides a DataScript in-memory database to the application and causes
@@ -66,7 +68,8 @@
   [{:keys [children]}]
   ($ (.-Provider context) {:value context-value} children))
 
-(defn listening? [data]
+(defn ^:private listening?
+  [data]
   (let [select [:local/type :local/paused?]
         {:keys [local/type local/paused?]} (ds/pull data select [:db/ident :local])]
     (or (= type :host) (not paused?))))

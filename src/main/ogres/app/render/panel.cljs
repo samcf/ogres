@@ -9,7 +9,7 @@
             [ogres.app.render :refer [css icon]]
             [uix.core :refer [defui $]]))
 
-(def ^{:private true} panel-forms
+(def ^:private panel-forms
   {:host [{:key :session    :label "Friends"    :icon "people-fill"}
           {:key :scenes     :label "Maps"       :icon "images"}
           {:key :tokens     :label "Tokens"     :icon "person-circle"}
@@ -21,7 +21,7 @@
           {:key :initiative :label "Initiative" :icon "hourglass-split"}
           {:key :help       :label "Help"       :icon "question-diamond"}]})
 
-(def ^{:private true} components
+(def ^:private components
   {:scene      {:form options/form}
    :help       {:form help/form}
    :initiative {:form initiative/form :footer initiative/footer}
@@ -29,7 +29,7 @@
    :session    {:header session/header :form session/form :footer session/footer}
    :tokens     {:form tokens/form :footer tokens/footer}})
 
-(def ^{:private true} query
+(def ^:private query
   [[:local/type :default :conn]
    [:panel/expanded :default #{}]])
 

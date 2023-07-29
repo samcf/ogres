@@ -6,7 +6,7 @@
             [ogres.app.render.toolbar :refer [toolbar]]
             [uix.core :refer [defui $]]))
 
-(def ^{:private true} query
+(def ^:private query
   [[:local/type :default :conn]
    [:local/loaded? :default false]
    [:local/shortcuts? :default true]

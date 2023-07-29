@@ -4,14 +4,15 @@
             [ogres.app.render :refer [css]]
             [uix.core :refer [defui $]]))
 
-(defn ^{:private true} close-prompt [label]
+(defn ^:private close-prompt
+  [label]
   (str "Are you sure you want to close "
        (if (blank? label)
          (str "this scene")
          (str "'" label "'"))
        "? This action cannot be undone."))
 
-(def query
+(def ^:private query
   [{:local/camera [:db/key]}
    {:local/cameras [:db/key :camera/label]}])
 

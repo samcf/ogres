@@ -3,7 +3,7 @@
   (:require [uix.core :refer [defui $ create-context use-context use-state use-callback]]
             [uix.dom :refer [create-portal]]))
 
-(def context (create-context))
+(def ^:private context (create-context))
 
 (defui provider
   "Context provider that allows the user to define portal targets and associate

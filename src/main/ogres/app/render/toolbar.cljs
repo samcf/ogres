@@ -3,10 +3,12 @@
             [ogres.app.render :refer [css icon]]
             [uix.core :refer [defui $ use-callback use-ref use-state]]))
 
-(defui ^{:private true} shortcut [{:keys [name]}]
+(defui ^:private shortcut
+  [{:keys [name]}]
   ($ :div.toolbar-shortcut name))
 
-(defui ^{:private true} tooltip [{:keys [tooltip]}]
+(defui ^:private tooltip
+  [{:keys [tooltip]}]
   (case tooltip
     :zoom/reset  "Reset to 100% zoom."
     :zoom/out    ($ :span "Use the " ($ :code "Mousewheel") " or pinch the trackpad to zoom in and out.")
@@ -30,7 +32,7 @@
                    ($ :a {:href   "https://github.com/samcf/ogres.app/wiki#player-window"
                           :target "_blank"} "Learn more") ".")))
 
-(def ^{:private true} query
+(def ^:private query
   [:session/_host
    [:local/type :default :conn]
    [:local/tooltips? :default true]

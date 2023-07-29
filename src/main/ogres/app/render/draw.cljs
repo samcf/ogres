@@ -6,27 +6,28 @@
             [react-draggable]
             [uix.core :refer [defui $ use-state]]))
 
-(defn- px->ft [px size] (js/Math.round (* (/ px size) 5)))
+(defn ^:private px->ft [px size]
+  (js/Math.round (* (/ px size) 5)))
 
-(defn- round [x n]
+(defn ^:private round [x n]
   (* (js/Math.round (/ x n)) n))
 
-(defn- +-xf [x y]
+(defn ^:private +-xf [x y]
   (map (fn [[ax ay]] [(+ ax x) (+ ay y)])))
 
-(defn- *-xf [n]
+(defn ^:private *-xf [n]
   (map (fn [[x y]] [(* x n) (* y n)])))
 
-(defn- r-xf [n]
+(defn ^:private r-xf [n]
   (map (fn [[x y]] [(round x n) (round y n)])))
 
-(defn- xs-xfs [xs & xfs]
+(defn ^:private xs-xfs [xs & xfs]
   (into [] (apply comp (partition-all 2) xfs) xs))
 
-(defui ^{:private true} text [{:keys [attrs children]}]
+(defui ^:private text [{:keys [attrs children]}]
   ($ :text.scene-text attrs children))
 
-(defui ^{:private true} drawable [{:keys [transform on-release children]}]
+(defui ^:private drawable [{:keys [transform on-release children]}]
   (let [[state set-state] (use-state [])]
     ($ :<>
       ($ react-draggable
@@ -53,7 +54,7 @@
         (if (seq points)
           (children {:event event :points (transform event points)}))))))
 
-(def ^{:private true} query
+(def ^:private query
   [[:bounds/self :default [0 0 0 0]]
    {:local/camera
     [[:camera/scale :default 1]
@@ -61,7 +62,8 @@
      {:camera/scene
       [[:scene/snap-grid :default false]]}]}])
 
-(defui ^{:private true} polygon [{:keys [on-create]}]
+(defui ^:private polygon
+  [{:keys [on-create]}]
   (let [result (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
@@ -105,7 +107,7 @@
         {:points (join " " (if closed? pairs (into pairs mouse)))
          :style  {:pointer-events "none"}}))))
 
-(defui ^{:private true} draw-select []
+(defui ^:private draw-select []
   (let [dispatch (use-dispatch)
         result   (use-query query)
         {[ox oy]  :bounds/self
@@ -124,7 +126,7 @@
             (fn []
               ($ :path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}))))))))
 
-(defui ^{:private true} draw-ruler []
+(defui ^:private draw-ruler []
   (let [result (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
@@ -150,7 +152,7 @@
                 (px->ft (* grid-size scale))
                 (str "ft."))))))))
 
-(defui ^{:private true} draw-circle []
+(defui ^:private draw-circle []
   (let [dispatch (use-dispatch)
         result   (use-query query)
         {[ox oy] :bounds/self
@@ -178,7 +180,7 @@
             ($ text {:attrs {:x ax :y ay :fill "white"}}
               (-> radius (px->ft (* grid-size scale)) (str "ft. radius")))))))))
 
-(defui ^{:private true} draw-rect []
+(defui ^:private draw-rect []
   (let [dispatch (use-dispatch)
         result   (use-query query)
         {[ox oy] :bounds/self
@@ -205,7 +207,7 @@
                     h (px->ft (js/Math.abs (- by ay)) (* grid-size scale))]
                 (str w "ft. x " h "ft.")))))))))
 
-(defui ^{:private true} draw-line []
+(defui ^:private draw-line []
   (let [dispatch (use-dispatch)
         result   (use-query query)
         {[ox oy] :bounds/self
@@ -232,7 +234,7 @@
                   (px->ft (* grid-size scale))
                   (str "ft.")))))))))
 
-(defui ^{:private true} draw-cone []
+(defui ^:private draw-cone []
   (let [dispatch (use-dispatch)
         result   (use-query query)
         {[ox oy] :bounds/self
@@ -255,14 +257,14 @@
                   (px->ft (* grid-size scale))
                   (str "ft.")))))))))
 
-(defui ^{:private true} draw-poly []
+(defui ^:private draw-poly []
   (let [dispatch (use-dispatch)]
     ($ polygon
       {:on-create
        (fn [_ xs]
          (dispatch :shape/create :poly xs))})))
 
-(defui ^{:private true} draw-mask []
+(defui ^:private draw-mask []
   (let [dispatch (use-dispatch)]
     ($ polygon
       {:on-create

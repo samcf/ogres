@@ -4,7 +4,8 @@
             [ogres.app.provider.storage :refer [initialize]]
             [uix.core :refer [defui $ create-error-boundary]]))
 
-(defn- create-range [min max val]
+(defn ^:private create-range
+  [min max val]
   (cond (< (- max min) 7)
         (range min (inc max))
         (<= val (+ min 3))

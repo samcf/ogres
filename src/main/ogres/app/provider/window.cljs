@@ -7,19 +7,19 @@
             [ogres.app.timing :refer [debounce]]
             [uix.core :refer [defui $ create-context use-callback use-context use-state use-effect]]))
 
-(def context (create-context))
+(def ^:private context (create-context))
 
-(def reader (t/reader :json {:handlers dst/read-handlers}))
-(def writer (t/writer :json {:handlers dst/write-handlers}))
+(def ^:private reader (t/reader :json {:handlers dst/read-handlers}))
+(def ^:private writer (t/writer :json {:handlers dst/write-handlers}))
 
-(defn bounds->vector
+(defn ^:private bounds->vector
   [bounds]
   [(.-x bounds)
    (.-y bounds)
    (.-width bounds)
    (.-height bounds)])
 
-(defui initialize
+(defui ^:private initialize
   "Registers a DataScript listener in order to manage the view window, the
    player's view of the scene." []
   (let [dispatch             (use-dispatch)
@@ -34,7 +34,7 @@
             (dispatch :share/toggle true))
           (reset))))))
 
-(defui dispatcher
+(defui ^:private dispatcher
   "Registers a DataScript listener in order to forward transactions from the
    host window to the view window." []
   (let [{:keys [view]} (use-context context)]
@@ -45,7 +45,7 @@
          (js/CustomEvent. "AppStateTx")
          (.dispatchEvent view))))))
 
-(defui listener
+(defui ^:private listener
   "Registers an event handler to listen for application state changes in the
    form of serialized EDN DataScript transactions. Unmarshals and transacts
    those against the local DataScript connection." []
@@ -58,7 +58,7 @@
           (t/read reader)
           (ds/transact! conn))) [conn]))))
 
-(defui bounds
+(defui ^:private bounds
   "Registers event handlers to watch for changes in the scene dimensions in
    order to put those dimensions in the application state. Dimensions are
    of the form [x y width height]."
@@ -89,7 +89,7 @@
          (.observe observer scene)
          (fn [] (.unobserve observer scene)))) ^:lint/disable [scene])))
 
-(defui closers
+(defui ^:private closers
   "Registers event handlers to listen for the host or view windows being
    closed."
   []

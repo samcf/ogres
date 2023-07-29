@@ -4,10 +4,10 @@
             [ogres.app.provider.state :refer [context]]
             [uix.core :refer [defui use-callback use-context]]))
 
-(defn linear [dx dy rx ry]
+(defn ^:private linear [dx dy rx ry]
   (fn [n] (+ (* (/ (- n dx) (- dy dx)) (- ry rx)) rx)))
 
-(def shortcuts
+(def ^:private shortcuts
   {["keydown" "Shift"]
    (fn [[_ dispatch]]
      (dispatch :local/modifier-start :shift))
@@ -83,13 +83,13 @@
                (dispatch :camera/zoom-delta (dt (* -1 8 dy)) cx cy))
            (dispatch :camera/zoom-delta (dt (* -1 2 dy)) cx cy)))))})
 
-(defn event-key [type event]
+(defn ^:private event-key [type event]
   (case type
     "keydown" [type (.-key event)]
     "keyup"   [type (.-key event)]
     "wheel"   [type]))
 
-(defn allow-event? [event]
+(defn ^:private allow-event? [event]
   (let [target (.-target event)]
     (not (or (.-repeat event)
              (.-metaKey event)

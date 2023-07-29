@@ -11,14 +11,14 @@
 (def ^:private zoom-scales
   [0.15 0.30 0.50 0.75 0.90 1 1.25 1.50 2 3 4])
 
-(defn- find-next
+(defn ^:private find-next
   "Finds the element in the given collection which passes the given predicate
    and returns the element that appears after it. Returns nil if no element
    passes the predicate or if the element found is the last in the collection."
   [pred xs]
   (first (next (drop-while (complement pred) xs))))
 
-(defn- indexed
+(defn ^:private indexed
   "Returns a transducer which decorates each element with a decreasing
    negative index suitable for use as temporary ids in a DataScript
    transaction. Optionally receives an offset integer to begin counting and
@@ -30,7 +30,7 @@
   ([offset step]
    (map-indexed (fn [idx val] [(-> (* idx step) (+ offset) (* -1)) val]))))
 
-(defn- suffix-token-key
+(defn ^:private suffix-token-key
   "Returns a grouping key for the given token that will match other similarly
    identifiable tokens."
   [token]
@@ -38,7 +38,7 @@
          {checksum :image/checksum} :token/image} token]
     [label checksum]))
 
-(defn- suffixes
+(defn ^:private suffixes
   "Returns a map of `{entity key => suffix}` for the given token entities.
    Each suffix represents a unique and stable identity for a token within
    the group of tokens by which it shares a label. Suffixes are intended to
@@ -60,23 +60,23 @@
                    (assoc result (:db/key token) (+ (offset group) (index group) 1)))))
         result))))
 
-(defn- round [x n]
+(defn ^:private round [x n]
   (* (js/Math.round (/ x n)) n))
 
-(defn- to-precision [n p]
+(defn ^:private to-precision [n p]
   (js/Number (.toFixed (js/Number.parseFloat n) p)))
 
-(defn- constrain [n min max]
+(defn ^:private constrain [n min max]
   (clojure.core/max (clojure.core/min n max) min))
 
-(defn- mode-allowed? [mode type]
+(defn ^:private mode-allowed? [mode type]
   (not (and (contains? #{:mask :mask-toggle :mask-remove} mode)
             (not= type :host))))
 
-(defn- trans-xf [x y]
+(defn ^:private trans-xf [x y]
   (comp (partition-all 2) (drop 1) (map (fn [[ax ay]] [(+ ax x) (+ ay y)])) cat))
 
-(defn- initiative-order [a b]
+(defn ^:private initiative-order [a b]
   (let [f (juxt :initiative/roll :db/key)]
     (compare (f b) (f a))))
 

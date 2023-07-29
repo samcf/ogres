@@ -10,15 +10,15 @@
             [ogres.app.provider.state :as provider.state]
             [uix.core :refer [defui use-context use-state use-callback use-effect]]))
 
-(def reader (transit/reader :json {:handlers dst/read-handlers}))
-(def writer (transit/writer :json {:handlers dst/write-handlers}))
-(def ^{:private true} interval-heartbeat 20000)
-(def ^{:private true} interval-reconnect 5000)
+(def ^:private reader (transit/reader :json {:handlers dst/read-handlers}))
+(def ^:private writer (transit/writer :json {:handlers dst/write-handlers}))
+(def ^:private interval-heartbeat 20000)
+(def ^:private interval-reconnect 5000)
 
-(def ^{:private true} session-color-options
+(def ^:private session-color-options
   #{"#f44336" "#2196f3" "#8bc34a" "#673ab7" "#ff9800" "#009688" "#3f51b5" "#9c27b0" "#ff5722"})
 
-(defn ^{:private true} next-color [data colors]
+(defn ^:private next-color [data colors]
   (let [unused (->> (ds/entity data [:db/ident :session])
                     (:session/conns)
                     (into #{} (map :local/color))
@@ -27,7 +27,7 @@
       (first (shuffle unused))
       (first (shuffle colors)))))
 
-(def merge-query
+(def ^:private merge-query
   [{:root/session
     [{:session/host
       [:db/key
@@ -35,7 +35,7 @@
         [{:camera/scene
           [:db/key]}]}]}]}])
 
-(defn merge-initial-state
+(defn ^:private merge-initial-state
   "Returns a new DataScript database with the current local state `prev` mixed
    into the incoming initial state `next`."
   [next prev]
@@ -71,7 +71,8 @@
                  [:db/add -3 :camera/scale (or (:camera/scale prev-camera) 1)]] []))]
     (ds/db-with next tx-data)))
 
-(defmulti handle-message (fn [_ {:keys [type]} _] type))
+(defmulti ^:private handle-message
+  (fn [_ {:keys [type]} _] type))
 
 (defmethod handle-message :default
   [_ _ _])

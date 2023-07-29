@@ -30,7 +30,7 @@
      {:session/host [:db/key :local/color]}
      [:session/share-cursors :default true]]}])
 
-(defn- session-url [room-key]
+(defn ^:private session-url [room-key]
   (str (.. js/window -location -origin) "?r=" env/VERSION "&join=" room-key))
 
 (defui header []

@@ -4,16 +4,9 @@
             [ogres.app.provider.storage :refer [use-store]]
             [uix.core :refer [use-callback use-state use-effect]]))
 
-(def cache (atom {}))
+(def ^:private cache (atom {}))
 
-(defn create-checksum [bytes]
-  (let [hash (Md5.)]
-    (.update hash bytes)
-    (reduce
-     (fn [s b]
-       (str s (.slice (str "0" (.toString b 16)) -2))) "" (.digest hash))))
-
-(defn create-data-url [file]
+(defn ^:private create-data-url [file]
   (-> (js/Promise.
        (fn [resolve]
          (let [reader (js/FileReader.)]
@@ -21,13 +14,13 @@
            (.addEventListener reader "load" resolve))))
       (.then (fn [event] (js/Promise.resolve (.. event -target -result))))))
 
-(defn create-object-url [data-url]
+(defn ^:private create-object-url [data-url]
   (-> (.fetch js/window data-url)
       (.then (fn [r] (.blob r)))
       (.then (fn [b] (->> (js/File. #js [b] "image" #js {:type (.-type b)})
                           (js/URL.createObjectURL))))))
 
-(defmulti process-image :type)
+(defmulti ^:private process-image :type)
 
 (defmethod process-image :token
   [{:keys [image]}]
@@ -94,6 +87,13 @@
      (let [image (js/Image.)]
        (.addEventListener image "load" (fn [] (this-as element (resolve element))))
        (set! (.-src image) url)))))
+
+(defn create-checksum [bytes]
+  (let [hash (Md5.)]
+    (.update hash bytes)
+    (reduce
+     (fn [s b]
+       (str s (.slice (str "0" (.toString b 16)) -2))) "" (.digest hash))))
 
 (defn use-image-uploader [{:keys [type]}]
   (let [publish (use-publish)

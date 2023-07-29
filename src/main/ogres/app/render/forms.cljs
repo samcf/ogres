@@ -5,7 +5,7 @@
             [ogres.app.render.pattern :refer [pattern]]
             [uix.core :as uix :refer [defui $ use-effect use-ref use-state]]))
 
-(def conditions
+(def ^:private conditions
   [[:player "people-fill"]
    [:blinded "eye-slash-fill"]
    [:charmed "arrow-through-heart-fill"]
@@ -17,10 +17,11 @@
    [:incapacitated "emoji-dizzy"]
    [:unconscious "skull"]])
 
-(defn stop-propagation [event]
+(defn ^:private stop-propagation [event]
   (.stopPropagation event))
 
-(defui context-menu [{:keys [render-toolbar children]}]
+(defui ^:private context-menu
+  [{:keys [render-toolbar children]}]
   (let [[selected set-selected] (use-state nil)
         props {:selected  selected
                :on-change (fn [form]
@@ -35,7 +36,8 @@
           {:class (str "context-menu-form-" (name selected))}
           (children props))))))
 
-(defui checkbox [{:keys [checked on-change children]}]
+(defui ^:private checkbox
+  [{:keys [checked on-change children]}]
   (let [input (use-ref)
         indtr (= checked :indeterminate)
         [key] (use-state (random-uuid))]
@@ -49,7 +51,7 @@
                 (fn [event]
                   (on-change (.. event -target -checked)))})})))
 
-(defui token-form-label
+(defui ^:private token-form-label
   [{:keys [values on-change on-close]
     :or   {values    (constantly (list))
            on-change identity
@@ -75,7 +77,7 @@
          :placeholder "Press 'Enter' to submit..."
          :on-change #(set-input-val (.. %1 -target -value))}))))
 
-(defui token-form-details
+(defui ^:private token-form-details
   [{:keys [on-change values]
     :or   {values    (constantly (list))
            on-change identity}}]
@@ -105,7 +107,8 @@
              (let [next (if (> (count values) 1) 5 (+ (first values) 5))]
                (on-change tx-name next)))} "+")))))
 
-(defui token-form-conds [props]
+(defui ^:private token-form-conds
+  [props]
   (let [fqs (frequencies (reduce into [] ((:values props) :token/flags [])))
         ids ((:values props) :db/key)]
     (for [[flag icon-name] conditions]
@@ -120,7 +123,7 @@
             ($ :label {:for key :data-tooltip (capitalize (name flag))}
               ($ icon {:name icon-name :size 22}))))))))
 
-(def ^{:private true} token-form
+(def ^:private token-form
   {:label token-form-label
    :details token-form-details
    :conditions token-form-conds})
@@ -167,7 +170,8 @@
                           ([f] (vs f #{}))
                           ([f init] (into init (map f) tokens)))}))))))
 
-(defui shape-form-color [{:keys [on-change values]}]
+(defui ^:private shape-form-color
+  [{:keys [on-change values]}]
   ($ :fieldset
     ($ :input
       {:type "range" :min 0 :max 1 :step 0.10
@@ -179,14 +183,15 @@
           {:key color :style {:background-color color}
            :on-click #(on-change :element/update :shape/color color)})))))
 
-(defui shape-form-pattern [{:keys [on-change]}]
+(defui ^:private shape-form-pattern
+  [{:keys [on-change]}]
   (for [pattern-name [:solid :lines :circles :crosses :caps :waves]]
     (let [id (str "template-pattern-" (name pattern-name))]
       ($ :svg {:key pattern-name :width "100%" :on-click #(on-change :element/update :shape/pattern pattern-name)}
         ($ :defs ($ pattern {:id id :name pattern-name}))
         ($ :rect {:x 0 :y 0 :width "100%" :height "100%" :fill (str "url(#" id ")")})))))
 
-(def shape-form
+(def ^:private shape-form
   {:color shape-form-color
    :pattern shape-form-pattern})
 

@@ -11,7 +11,8 @@
 (def ^:private query
   [{:root/scene-images [:image/checksum]}])
 
-(defui thumbnail [{:keys [checksum children]}]
+(defui ^:private thumbnail
+  [{:keys [checksum children]}]
   (let [data-url (use-image checksum)]
     (children {:data-url data-url})))
 

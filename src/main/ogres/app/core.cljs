@@ -15,7 +15,7 @@
             ["@dnd-kit/core" :refer [DndContext]
              :rename {DndContext dnd-context}]))
 
-(defui app []
+(defui ^:private app []
   ($ :<>
     ($ Helmet
       ($ :link {:rel "stylesheet" :href (str PATH "/reset.css")})

@@ -23,20 +23,24 @@
       [[:camera/scale :default 1]
        [:camera/point :default [0 0]]]}]}])
 
-(defui image [{:keys [checksum children]}]
+(defui ^:private image
+  [{:keys [checksum children]}]
   (let [data-url (use-image checksum)]
     (children {:data-url data-url})))
 
-(defui draggable [{:keys [id children]}]
+(defui ^:private draggable
+  [{:keys [id children]}]
   (let [options (use-draggable #js {"id" id})]
     (children {:options options})))
 
-(defui token [{:keys [checksum children]}]
+(defui ^:private token
+  [{:keys [checksum children]}]
   (let [data-url (use-image checksum)
         options  (use-draggable #js {"id" checksum})]
     (children {:data-url data-url :options options})))
 
-(defui drag-handler [props]
+(defui ^:private drag-handler
+  [props]
   (let [{:keys [on-create on-remove]
          :or   {on-create identity
                 on-remove identity}} props
@@ -74,7 +78,8 @@
                     :style {:background-image (str "url(" data-url ")")}})))))
      (.querySelector js/document "#root"))))
 
-(defui tokens [props]
+(defui ^:private tokens
+  [props]
   (let [option (use-droppable #js {"id" "trash"})]
     ($ :<>
       (for [[idx data] (sequence (map-indexed vector) (:data props))]
@@ -101,7 +106,8 @@
         {:ref (.-setNodeRef option)}
         ($ icon {:name "trash3-fill" :size 26})))))
 
-(defui paginated [props]
+(defui ^:private paginated
+  [props]
   (let [{:keys [data limit] :or {data [] limit 10}} props
         [page set-page] (use-state 1)
         limit (dec limit)
@@ -118,7 +124,7 @@
          :value (max (min pages page) 1)
          :on-change set-page}))))
 
-(defn- xf-scope [scope]
+(defn ^:private xf-scope [scope]
   (filter (fn [entity] (= (:image/scope entity) scope))))
 
 (defui form []

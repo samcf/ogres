@@ -29,19 +29,23 @@
        {:scene/initiative
         [:db/key]}]}]}])
 
-(defn- initiative-order [a b]
+(defn ^:private initiative-order
+  [a b]
   (let [f (juxt :initiative/roll :db/key)]
     (compare (f b) (f a))))
 
-(defn- format-time [seconds]
+(defn ^:private format-time
+  [seconds]
   (str (-> (mod seconds 3600) (/ 60) (js/Math.floor) (.toString) (.padStart 2 "0")) ":"
        (-> (mod seconds   60)        (js/Math.floor) (.toString) (.padStart 2 "0"))))
 
-(defn- visible? [flags]
+(defn ^:private visible?
+  [flags]
   (or (contains? flags :player)
       (not (contains? flags :hidden))))
 
-(defui roll-form [{:keys [value on-change]}]
+(defui ^:private roll-form
+  [{:keys [value on-change]}]
   (let [input (use-ref) [editing set-editing form] (use-modal)]
     ($ :div.initiant-roll
       ($ :div.initiant-roll-label
@@ -64,7 +68,8 @@
              :placeholder "Roll" :default-value value})
           ($ :button {:type "submit"} "✓"))))))
 
-(defui health-form [{:keys [value on-change]}]
+(defui ^:private health-form
+  [{:keys [value on-change]}]
   (let [input (use-ref) [editing set-editing form] (use-modal)]
     ($ :div.initiant-health {:class (css {:active (or editing (number? value))})}
       (if editing
@@ -92,7 +97,8 @@
         (if (number? value)
           ($ :div.initiant-health-label value))))))
 
-(defui initiant [{:keys [context entity]}]
+(defui ^:private initiant
+  [{:keys [context entity]}]
   (let [dispatch (use-dispatch)
         {type      :local/type
          {{current :initiative/turn} :camera/scene} :local/camera} context
