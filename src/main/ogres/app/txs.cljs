@@ -2,7 +2,6 @@
   (:require [datascript.core :as ds :refer [squuid]]
             [clojure.set :refer [union]]
             [clojure.string :refer [trim]]
-            [ogres.app.const :refer [grid-size]]
             [ogres.app.geom :refer [normalize within?]]))
 
 (def ^:private suffix-max-xf
@@ -365,14 +364,6 @@
    [:db/add -1 :scene/show-grid value]])
 
 (defmethod
-  ^{:doc "Updates whether or not grid snapping is enabled for the current
-          scene."}
-  transact :scene/toggle-snap-grid
-  [{:keys [scene]} value]
-  [[:db/add -1 :db/key scene]
-   [:db/add -1 :scene/snap-grid value]])
-
-(defmethod
   ^{:doc "Updates whether or not dark mode is enabled on the current scene."}
   transact :scene/toggle-dark-mode
   [{:keys [scene]} enabled]
@@ -439,10 +430,9 @@
       (contains? keys curr) (conj data))))
 
 (defmethod transact :token/translate
-  [_ token x y align?]
-  (let [radius (if align? (/ grid-size 2) 1)]
-    [[:db/add -1 :db/key token]
-     [:db/add -1 :token/point [(round x radius) (round y radius)]]]))
+  [_ token x y]
+  [[:db/add -1 :db/key token]
+   [:db/add -1 :token/point [(round x 1) (round y 1)]]])
 
 (defmethod transact :token/change-flag
   [{:keys [data]} keys flag add?]
@@ -452,12 +442,11 @@
       {:db/id id :db/key key :token/flags ((if add? conj disj) flags flag)})))
 
 (defmethod transact :token/translate-all
-  [{:keys [data]} keys x y align?]
+  [{:keys [data]} keys x y]
   (let [lookup (map (fn [key] [:db/key key]) keys)
-        tokens (ds/pull-many data [:db/key :token/point] lookup)
-        radius (if align? (/ grid-size 2) 1)]
+        tokens (ds/pull-many data [:db/key :token/point] lookup)]
     (for [[id {key :db/key [tx ty] :token/point}] (sequence (indexed) tokens)]
-      {:db/id id :db/key key :token/point [(round (+ x tx) radius) (round (+ y ty) radius)]})))
+      {:db/id id :db/key key :token/point [(round (+ x tx) 1) (round (+ y ty) 1)]})))
 
 (defmethod transact :token/change-label
   [_ keys value]
@@ -496,11 +485,13 @@
     [:db/retractEntity [:db/key key]]))
 
 (defmethod transact :shape/translate
-  [{:keys [data]} key x y align?]
-  (let [{[ax ay] :shape/vecs vecs :shape/vecs} (ds/pull data [:shape/vecs] [:db/key key])
-        r (if align? (/ grid-size 2) 1)
-        x (round x r)
-        y (round y r)]
+  [{:keys [data]} key x y]
+  (let [select [:shape/vecs]
+        result (ds/pull data select [:db/key key])
+        {[ax ay] :shape/vecs
+         vecs    :shape/vecs} result
+        x (round x 1)
+        y (round y 1)]
     [[:db/add -1 :db/key key]
      [:db/add -1 :shape/vecs (into [x y] (trans-xf (- x ax) (- y ay)) vecs)]]))
 

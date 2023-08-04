@@ -9,17 +9,11 @@
 (defn ^:private px->ft [px size]
   (js/Math.round (* (/ px size) 5)))
 
-(defn ^:private round [x n]
-  (* (js/Math.round (/ x n)) n))
-
 (defn ^:private +-xf [x y]
   (map (fn [[ax ay]] [(+ ax x) (+ ay y)])))
 
 (defn ^:private *-xf [n]
   (map (fn [[x y]] [(* x n) (* y n)])))
-
-(defn ^:private r-xf [n]
-  (map (fn [[x y]] [(round x n) (round y n)])))
 
 (defn ^:private xs-xfs [xs & xfs]
   (into [] (apply comp (partition-all 2) xfs) xs))
@@ -36,40 +30,34 @@
          (fn [event]
            (.stopPropagation event)
            (let [src [(.-clientX event) (.-clientY event)]]
-             (set-state [event (into src src)])))
+             (set-state (into src src))))
          :on-drag
-         (fn [event data]
+         (fn [_ data]
            (set-state
-            (fn [[_ [ax ay]]]
-              [event (into [ax ay] [(+ ax (.-x data)) (+ ay (.-y data))])])))
+            (fn [[ax ay]]
+              (into [ax ay] [(+ ax (.-x data)) (+ ay (.-y data))]))))
          :on-stop
-         (fn [event]
-           (let [[_ xs] state]
-             (set-state [])
-             (on-release event (transform event xs))))}
+         (fn []
+           (set-state [])
+           (on-release (transform state)))}
         ($ :rect
           {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"
            :style {:will-change "transform"}}))
-      (let [[event points] state]
-        (if (seq points)
-          (children {:event event :points (transform event points)}))))))
+      (if (seq state)
+        (children {:points (transform state)})))))
 
 (def ^:private query
   [[:bounds/self :default [0 0 0 0]]
    {:local/camera
     [[:camera/scale :default 1]
-     [:camera/point :default [0 0]]
-     {:camera/scene
-      [[:scene/snap-grid :default false]]}]}])
+     [:camera/point :default [0 0]]]}])
 
 (defui ^:private polygon
   [{:keys [on-create]}]
   (let [result (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
-          scale   :camera/scale
-          {align :scene/snap-grid} :camera/scene}
-         :local/camera} result
+          scale :camera/scale} :local/camera} result
         [pairs set-pairs] (use-state [])
         [mouse set-mouse] (use-state [])
         [ax ay] pairs
@@ -85,9 +73,7 @@
          :on-mouse-move
          (fn [event]
            (let [dst [(.-clientX event) (.-clientY event)]]
-             (if (not= align (.-metaKey event))
-               (set-mouse (xs-xfs dst (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)) (r-xf grid-size) (+-xf tx ty) (*-xf scale) cat))
-               (set-mouse (xs-xfs dst (+-xf (- ox) (- oy)) cat)))))
+             (set-mouse (xs-xfs dst (+-xf (- ox) (- oy)) cat))))
          :on-click
          (fn [event]
            (if closed?
@@ -115,10 +101,10 @@
           scale   :camera/scale} :local/camera} result]
     ($ drawable
       {:transform
-       (fn [_ xs]
+       (fn [xs]
          (xs-xfs xs (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)) cat))
        :on-release
-       (fn [_ xs]
+       (fn [xs]
          (dispatch :selection/from-rect xs))}
       (fn [{:keys [points]}]
         (let [[ax ay bx by] (xs-xfs points (+-xf tx ty) (*-xf scale) cat)]
@@ -129,21 +115,12 @@
 (defui ^:private draw-ruler []
   (let [result (use-query query)
         {[ox oy] :bounds/self
-         {[tx ty] :camera/point
-          scale   :camera/scale
-          {align :scene/snap-grid} :camera/scene}
-         :local/camera} result]
+         {scale  :camera/scale} :local/camera} result]
     ($ drawable
       {:on-release identity
        :transform
-       (fn [event xs]
-         (if (not= align (.-metaKey event))
-           (xs-xfs
-            xs
-            (+-xf (- ox) (- oy)) (*-xf (/ scale))
-            (+-xf (- tx) (- ty)) (r-xf (/ grid-size 2))
-            (+-xf tx ty) (*-xf scale) cat)
-           (xs-xfs xs (+-xf (- ox) (- oy)) cat)))}
+       (fn [xs]
+         (xs-xfs xs (+-xf (- ox) (- oy)) cat))}
       (fn [{[ax ay bx by] :points}]
         ($ :g
           ($ :line {:x1 ax :y1 ay :x2 bx :y2 by})
@@ -157,20 +134,14 @@
         result   (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
-          scale   :camera/scale
-          {align :scene/snap-grid} :camera/scene}
-         :local/camera} result]
+          scale :camera/scale} :local/camera} result]
     ($ drawable
       {:transform
-       (fn [event xs]
+       (fn [xs]
          (let [[ax ay bx by] (xs-xfs xs (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)) cat)]
-           (if (not= align (.-metaKey event))
-             (let [[ax ay] (xs-xfs [ax ay] (r-xf (/ grid-size 2)) cat)
-                   [bx by] (xs-xfs [bx by] (r-xf grid-size) cat)]
-               [ax ay bx by])
-             [ax ay bx by])))
+           [ax ay bx by]))
        :on-release
-       (fn [_ xs]
+       (fn [xs]
          (dispatch :shape/create :circle xs))}
       (fn [{:keys [points]}]
         (let [[ax ay bx by] (xs-xfs points (+-xf tx ty) (*-xf scale) cat)
@@ -185,18 +156,15 @@
         result   (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
-          scale   :camera/scale
-          {align :scene/snap-grid} :camera/scene}
+          scale   :camera/scale}
          :local/camera} result]
     ($ drawable
       {:transform
-       (fn [event xs]
+       (fn [xs]
          (let [xf (comp (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)))]
-           (if (not= align (.-metaKey event))
-             (xs-xfs xs xf (r-xf (/ grid-size 2)) cat)
-             (xs-xfs xs xf cat))))
+           (xs-xfs xs xf cat)))
        :on-release
-       (fn [_ xs]
+       (fn [xs]
          (dispatch :shape/create :rect xs))}
       (fn [{:keys [points]}]
         (let [[ax ay bx by] (xs-xfs points (+-xf tx ty) (*-xf scale) cat)]
@@ -212,18 +180,14 @@
         result   (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
-          scale   :camera/scale
-          {align :scene/snap-grid} :camera/scene}
-         :local/camera} result]
+          scale   :camera/scale} :local/camera} result]
     ($ drawable
       {:transform
-       (fn [event xs]
+       (fn [xs]
          (let [xf (comp (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)))]
-           (if (not= align (.-metaKey event))
-             (xs-xfs xs xf (r-xf (/ grid-size 2)) cat)
-             (xs-xfs xs xf cat))))
+           (xs-xfs xs xf cat)))
        :on-release
-       (fn [_ xs]
+       (fn [xs]
          (dispatch :shape/create :line xs))}
       (fn [{:keys [points]}]
         (let [[ax ay bx by] (xs-xfs points (+-xf tx ty) (*-xf scale) cat)]
@@ -242,11 +206,11 @@
           scale   :camera/scale} :local/camera} result]
     ($ drawable
       {:transform
-       (fn [_ xs]
+       (fn [xs]
          (let [xf (comp (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)))]
            (xs-xfs xs xf cat)))
        :on-release
-       (fn [_ xs]
+       (fn [xs]
          (dispatch :shape/create :cone xs))}
       (fn [{:keys [points]}]
         (let [[ax ay bx by] (xs-xfs points (+-xf tx ty) (*-xf scale) cat)]

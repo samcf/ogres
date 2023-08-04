@@ -271,7 +271,7 @@ legend {
 .options-grid form {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
+    gap: 4px;
 }
 
 .options-grid input[type="checkbox"] + [data-tooltip]:hover:after,

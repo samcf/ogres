@@ -270,8 +270,7 @@
     [:db/key
      [:camera/scale :default 1]
      {:camera/scene
-      [[:scene/snap-grid :default false]
-       {:scene/shapes
+      [{:scene/shapes
         [:db/key
          :shape/kind
          :shape/vecs
@@ -286,8 +285,7 @@
         {type    :local/type
          camera  :local/camera
          {scale  :camera/scale
-          scene  :camera/scene
-          {snap-grid :scene/snap-grid} :camera/scene}
+          scene  :camera/scene}
          :local/camera} result
         participant? (or (= type :host) (= type :conn))]
     (for [entity (:scene/shapes scene)
@@ -303,10 +301,10 @@
              :position #js {:x ax :y ay}
              :on-start stop-propagation
              :on-stop
-             (fn [event data]
+             (fn [_ data]
                (let [ox (.-x data) oy (.-y data)]
                  (if (> (euclidean ax ay ox oy) 0)
-                   (dispatch :shape/translate key ox oy (not= snap-grid (.-metaKey event)))
+                   (dispatch :shape/translate key ox oy)
                    (dispatch :element/select key true))))}
             (let [id (random-uuid)]
               ($ :g {:class (css {:scene-shape true :selected selected? (str "scene-shape-" (name kind)) true})}
@@ -392,8 +390,7 @@
      :camera/selected
      [:camera/scale :default 1]
      {:camera/scene
-      [[:scene/snap-grid :default false]
-       {:scene/tokens
+      [{:scene/tokens
         [:db/key
          [:initiative/suffix :default nil]
          [:token/point :default [0 0]]
@@ -408,10 +405,9 @@
 
 (defui ^:private render-tokens []
   (let [dispatch (use-dispatch)
-        result   (use-query query-tokens)
-        {:local/keys  [type camera]} result
-        {:camera/keys [scale scene]} camera
-        {:scene/keys  [snap-grid tokens]} scene
+        result (use-query query-tokens)
+        {type :local/type camera :local/camera} result
+        {scale :camera/scale scene :camera/scene} camera
 
         flags-xf
         (comp (map name)
@@ -423,7 +419,7 @@
           (into {} flags-xf (:token/flags token)))
 
         [selected tokens]
-        (->> tokens
+        (->> (:scene/tokens scene)
              (filter (fn [token] (or (= type :host) (visible? (:token/flags token)))))
              (sort token-comparator)
              (separate (fn [token] ((into #{} (map :db/key) (:camera/_selected token)) (:db/key camera)))))]
@@ -440,7 +436,7 @@
              (let [bx (.-x data) by (.-y data)]
                (if (= (euclidean ax ay bx by) 0)
                  (dispatch :element/select key (not (.-shiftKey event)))
-                 (dispatch :token/translate key bx by (not= (.-metaKey event) snap-grid)))))}
+                 (dispatch :token/translate key bx by))))}
           ($ :g.scene-token {:class (css (token-css data))}
             ($ render-token {:data data}))))
       (if (seq selected)
@@ -458,7 +454,7 @@
                      (if (and (= ox 0) (= oy 0))
                        (let [key (.. event -target (closest ".scene-token[data-key]") -dataset -key)]
                          (dispatch :element/select (uuid key) (not (.-shiftKey event))))
-                       (dispatch :token/translate-all keys ox oy (not= (.-metaKey event) snap-grid)))))}
+                       (dispatch :token/translate-all keys ox oy))))}
                 ($ :g.scene-selected {:key keys}
                   (for [data selected :let [{key :db/key [x y] :token/point} data]]
                     ($ :g.scene-token

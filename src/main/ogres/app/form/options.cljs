@@ -23,7 +23,6 @@
        [:scene/grid-size :default 70]
        [:scene/lighting :default :revealed]
        [:scene/show-grid :default true]
-       [:scene/snap-grid :default false]
        [:scene/timeofday :default :none]
        {:scene/image
         [:image/checksum]}]}]}])
@@ -64,18 +63,6 @@
                    (dispatch :scene/toggle-show-grid checked)))})
             ($ :label {:for "show-grid"}
               ($ icon {:name "grid-fill" :size 16})))
-          ($ :fieldset
-            ($ :label "Align to grid")
-            ($ :input
-              {:id "align-grid"
-               :type "checkbox"
-               :checked (:scene/snap-grid scene)
-               :on-change
-               (fn [event]
-                 (let [checked (.. event -target -checked)]
-                   (dispatch :scene/toggle-snap-grid checked)))})
-            ($ :label {:for "align-grid"}
-              ($ icon {:name "bounding-box" :size 16})))
           ($ :fieldset
             ($ :label "Use dark grid")
             ($ :input
