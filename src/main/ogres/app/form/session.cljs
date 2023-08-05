@@ -2,6 +2,7 @@
   (:require [ogres.app.env :as env]
             [ogres.app.hooks :refer [use-dispatch use-query]]
             [ogres.app.render :refer [css icon]]
+            [ogres.app.util :refer [comp-fn]]
             [uix.core :refer [defui $]]))
 
 (def ^:private query-header
@@ -100,7 +101,7 @@
           ($ :header (str "Players" " [" (count conns) "]"))
           ($ :div.session-players
             (if (seq conns)
-              (let [xf (filter (fn [entity] (= (:local/type entity) :conn)))]
+              (let [xf (filter (comp-fn = :local/type :conn))]
                 (for [conn (->> (conj conns local) (sequence xf) (sort-by :db/key))]
                   ($ :div.session-player {:key (:db/key conn)}
                     ($ :div.session-player-color {:style {:background-color (:local/color conn)}})

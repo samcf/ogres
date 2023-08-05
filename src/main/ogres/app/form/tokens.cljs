@@ -1,6 +1,7 @@
 (ns ogres.app.form.tokens
   (:require [ogres.app.hooks :refer [use-dispatch use-image use-image-uploader use-query]]
             [ogres.app.render :refer [css icon pagination]]
+            [ogres.app.util :refer [separate comp-fn]]
             [uix.core :as uix :refer [defui $ use-callback use-ref use-state]]
             [uix.dom :refer [create-portal]]
             ["@dnd-kit/core"
@@ -124,17 +125,14 @@
          :value (max (min pages page) 1)
          :on-change set-page}))))
 
-(defn ^:private xf-scope [scope]
-  (filter (fn [entity] (= (:image/scope entity) scope))))
-
 (defui form []
   (let [dispatch  (use-dispatch)
         result    (use-query query-form [:db/ident :root])
         {data :root/token-images
          {type :local/type} :root/local} result
-        data-pub  (into [:default] (xf-scope :public) data)
-        data-prv  (into [] (xf-scope :private) data)
-        on-scope  (use-callback (fn []) [])
+        [pub prv] (separate (comp-fn = :image/scope :public) data)
+        data-pub  (into [:default] (reverse pub))
+        data-prv  (vec (reverse prv))
         on-remove (use-callback (fn [key] (dispatch :tokens/remove key)) [dispatch])
         on-create (use-callback
                    (fn [checksum element delta]
@@ -162,8 +160,7 @@
           ($ paginated {:data data-pub :limit 30})))
       ($ drag-handler
         {:on-create on-create
-         :on-remove on-remove
-         :on-scope  on-scope}))))
+         :on-remove on-remove}))))
 
 (defui footer []
   (let [dispatch (use-dispatch)

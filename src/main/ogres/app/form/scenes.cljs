@@ -19,7 +19,7 @@
 (defui form []
   (let [dispatch (use-dispatch)
         result   (use-query query [:db/ident :root])
-        data     (vec (:root/scene-images result))
+        data     (vec (reverse (:root/scene-images result)))
         pages    (int (js/Math.ceil (/ (count data) per-page)))
         [page set-page] (use-state 1)]
     (if (seq data)

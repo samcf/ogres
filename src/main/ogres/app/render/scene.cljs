@@ -8,6 +8,7 @@
             [ogres.app.render.draw :refer [draw]]
             [ogres.app.render.forms :refer [token-context-menu shape-context-menu]]
             [ogres.app.render.pattern :refer [pattern]]
+            [ogres.app.util :refer [key-by separate]]
             [react-draggable]
             [uix.core :as uix :refer [defui $ use-callback use-layout-effect use-state]]))
 
@@ -30,20 +31,6 @@
    :player        "people-fill"
    :prone         "falling"
    :unconscious   "skull"})
-
-(defn ^:private key-by
-  "Returns a map of the given `coll` whose keys are the result of calling `f`
-   with each element in the collection and whose values are the element
-   itself."
-  [f coll]
-  (into {} (map (juxt f identity) coll)))
-
-(defn ^:private separate
-  "Split coll into two sequences, one that matches pred and one that doesn't."
-  [pred coll]
-  (let [pcoll (map (juxt identity pred) coll)]
-    (vec (for [f [filter remove]]
-           (map first (f second pcoll))))))
 
 (defn ^:private stop-propagation [event]
   (.stopPropagation event))
@@ -505,7 +492,7 @@
         result (use-query query-cursors [:db/ident :session])
         {conns :session/conns
          share :session/share-cursors} result
-        conns    (key-by :db/key conns)]
+        conns (key-by :db/key conns)]
     (use-subscribe :cursor/moved
       (use-callback
        (fn [{[uuid x y] :args}]

@@ -5,7 +5,7 @@
             [ogres.app.env :as env]
             [ogres.app.provider.events :refer [use-subscribe]]
             [ogres.app.provider.state :as state :refer [use-query]]
-            [ogres.app.timing :refer [debounce]]
+            [ogres.app.util :refer [debounce]]
             [uix.core :refer [defui $ create-context use-callback use-context use-effect]]))
 
 (def ^:private context (create-context))

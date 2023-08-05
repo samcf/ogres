@@ -4,7 +4,7 @@
             [datascript.transit :as dst]
             [ogres.app.hooks :refer [use-event-listener use-subscribe use-dispatch use-query]]
             [ogres.app.provider.state :as provider.state]
-            [ogres.app.timing :refer [debounce]]
+            [ogres.app.util :refer [debounce]]
             [uix.core :refer [defui $ create-context use-callback use-context use-state use-effect]]))
 
 (def ^:private context (create-context))

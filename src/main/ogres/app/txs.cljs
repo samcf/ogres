@@ -2,7 +2,8 @@
   (:require [datascript.core :as ds :refer [squuid]]
             [clojure.set :refer [union]]
             [clojure.string :refer [trim]]
-            [ogres.app.geom :refer [normalize within?]]))
+            [ogres.app.geom :refer [normalize within?]]
+            [ogres.app.util :refer [comp-fn]]))
 
 (def ^:private suffix-max-xf
   (map (fn [[label tokens]] [label (apply max (map :initiative/suffix tokens))])))
@@ -286,9 +287,10 @@
                      [:db/add tmp :camera/scale 1]])))
 
       (= key (:db/key camera))
-      (let [next (->> cameras (filter #(not= (:db/key %) (:db/key camera))) (first))]
+      (let [host-cam (first (filter (comp-fn not= :db/key (:db/key camera)) cameras))
+            host-scn (:db/key (:camera/scene host-cam))]
         (into [[:db/retractEntity [:db/key scene]]
-               [:db/add -1 :db/key (:db/key next)]
+               [:db/add -1 :db/key (:db/key host-cam)]
                [:db/add -2 :db/key local]
                [:db/add -2 :local/camera -1]]
               (comp cat cat)
@@ -296,16 +298,14 @@
                       [[:db/retractEntity [:db/key key]]])
                     (for [[idx conn] (sequence (indexed 3 2) conns)
                           :let [tmp (dec idx)
-                                key (->> (:local/cameras conn)
-                                         (filter #(= (:db/key (:camera/scene %))
-                                                     (:db/key (:camera/scene next))))
-                                         (first)
-                                         (:db/key))]]
+                                cam (->> (:local/cameras conn)
+                                         (filter (comp-fn = (comp :db/key :camera/scene) host-scn))
+                                         (first))]]
                       [[:db/add idx :db/key (:db/key conn)]
                        [:db/add idx :local/cameras tmp]
                        [:db/add idx :local/camera tmp]
-                       [:db/add tmp :db/key (or key (squuid))]
-                       [:db/add tmp :camera/scene [:db/key (:db/key (:camera/scene next))]]
+                       [:db/add tmp :db/key (or (:db/key cam) (squuid))]
+                       [:db/add tmp :camera/scene [:db/key host-scn]]
                        [:db/add tmp :camera/point [0 0]]
                        [:db/add tmp :camera/scale 1]]))))
 
