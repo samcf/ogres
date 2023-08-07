@@ -481,17 +481,24 @@
           ($ icon {:name "cursor-fill" :size 32}))))))
 
 (def ^:private query-cursors
-  [[:session/share-cursors :default true]
-   {:session/conns
-    [:db/key
-     [:session/share-cursor :default true]
-     [:local/color :default "royalBlue"]]}])
+  [{:root/local
+    [{:local/camera
+      [{:camera/scene [:db/key]}]}]}
+   {:root/session
+    [[:session/share-cursors :default true]
+     {:session/conns
+      [:db/key
+       [:session/share-cursor :default true]
+       [:local/color :default "royalBlue"]
+       {:local/camera
+        [{:camera/scene [:db/key]}]}]}]}])
 
 (defui ^:private render-cursors []
   (let [[coords set-coords] (use-state {})
-        result (use-query query-cursors [:db/ident :session])
-        {conns :session/conns
-         share :session/share-cursors} result
+        result (use-query query-cursors [:db/ident :root])
+        {{{{scene :db/key} :camera/scene} :local/camera} :root/local
+         {conns :session/conns
+          share :session/share-cursors} :root/session} result
         conns (key-by :db/key conns)]
     (use-subscribe :cursor/moved
       (use-callback
@@ -504,9 +511,10 @@
       ($ :g.scene-cursors
         (for [[uuid point] coords
               :let  [local (conns uuid)
-                     color (:local/color local)
-                     share (:session/share-cursor local)]
-              :when (and local share)]
+                     {color :local/color
+                      share :session/share-cursor
+                      {{key :db/key} :camera/scene} :local/camera} local]
+              :when (and local share (= scene key))]
           ($ render-cursor {:key uuid :coord point :color color}))))))
 
 (def ^:private query-scene
