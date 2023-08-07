@@ -11,7 +11,7 @@
 
 (def ^:private panel-forms
   {:host [{:key :session    :label "Friends"    :icon "people-fill"}
-          {:key :scenes     :label "Maps"       :icon "images"}
+          {:key :scenes     :label "Scenes"     :icon "images"}
           {:key :tokens     :label "Tokens"     :icon "person-circle"}
           {:key :scene      :label "Options"    :icon "wrench-adjustable-circle"}
           {:key :initiative :label "Initiative" :icon "hourglass-split"}
