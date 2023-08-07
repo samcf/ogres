@@ -488,7 +488,7 @@
     [[:session/share-cursors :default true]
      {:session/conns
       [:db/key
-       [:session/share-cursor :default true]
+       [:local/share-cursor :default true]
        [:local/color :default "royalBlue"]
        {:local/camera
         [{:camera/scene [:db/key]}]}]}]}])
@@ -512,7 +512,7 @@
         (for [[uuid point] coords
               :let  [local (conns uuid)
                      {color :local/color
-                      share :session/share-cursor
+                      share :local/share-cursor
                       {{key :db/key} :camera/scene} :local/camera} local]
               :when (and local share (= scene key))]
           ($ render-cursor {:key uuid :coord point :color color}))))))

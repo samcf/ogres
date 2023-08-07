@@ -733,7 +733,7 @@
 
 (defmethod transact :session/toggle-share-my-cursor
   [{:keys [local]} enabled]
-  [{:db/id -1 :db/key local :session/share-cursor enabled}])
+  [{:db/id -1 :db/key local :local/share-cursor enabled}])
 
 (defmethod transact :session/focus
   [{:keys [data]}]

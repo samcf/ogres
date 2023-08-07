@@ -24,7 +24,7 @@
      :local/type
      :local/color
      [:session/state :default :initial]
-     [:session/share-cursor :default true]]}
+     [:local/share-cursor :default true]]}
    {:root/session
     [:session/room
      {:session/conns [:db/key :local/color :local/type]}
@@ -53,13 +53,13 @@
 (defui form []
   (let [dispatch (use-dispatch)
         result   (use-query query-form [:db/ident :root])
-        {{host          :session/host
-          conns         :session/conns
-          share-cursors :session/share-cursors} :root/session
-         {share-cursor :session/share-cursor
-          state        :session/state
-          type         :local/type
-          key          :db/key} :root/local
+        {{host    :session/host
+          conns   :session/conns
+          cursors :session/share-cursors} :root/session
+         {share :local/share-cursor
+          state :session/state
+          type  :local/type
+          key   :db/key} :root/local
          local :root/local} result]
     (if (or (= state :connected) (= state :disconnected) (= state :connecting))
       ($ :section.session
@@ -69,7 +69,7 @@
             ($ :input
               {:id "share-cursors"
                :type "checkbox"
-               :checked share-cursors
+               :checked cursors
                :disabled (not= type :host)
                :on-change
                (fn [event]
@@ -80,7 +80,7 @@
             ($ :input
               {:id "share-my-cursor"
                :type "checkbox"
-               :checked share-cursor
+               :checked share
                :disabled false
                :on-change
                (fn [event]
