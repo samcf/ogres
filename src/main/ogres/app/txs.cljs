@@ -144,15 +144,11 @@
           between two points."}
   transact :camera/change-mode
   [{:keys [data local camera]} mode]
-  (let [{curr :camera/draw-mode} (ds/entity data [:db/key camera])
-        {type :local/type}       (ds/entity data [:db/key local])
+  (let [{type :local/type}       (ds/entity data [:db/key local])
         allowed? (mode-allowed? mode type)]
     (if allowed?
       [[:db/add -1 :db/key camera]
-       [:db/add -1 :camera/draw-mode mode]
-       (if (= mode curr)
-         [:db/add -1 :camera/draw-mode :select]
-         [:db/retract [:db/key camera] :camera/selected])]
+       [:db/add -1 :camera/draw-mode mode]]
       [])))
 
 (defmethod
