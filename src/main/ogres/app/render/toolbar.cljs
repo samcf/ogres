@@ -10,25 +10,28 @@
 (defui ^:private tooltip
   [{:keys [tooltip]}]
   (case tooltip
+    :copy/cut    "Copy the selected tokens and remove them from the scene."
+    :copy/copy   "Copy the selected tokens."
+    :copy/paste  "Place copied tokens onto the scene."
     :zoom/reset  "Reset to 100% zoom."
-    :zoom/out    ($ :span "Use the " ($ :code "Mousewheel") " or pinch the trackpad to zoom in and out.")
-    :zoom/in     ($ :span "Use the " ($ :code "Mousewheel") " or pinch the trackpad to zoom in and out.")
-    :mode/select ($ :span "Hold " ($ :code "Shift") " and drag to select multiple tokens.")
+    :zoom/out    ($ :span "Use the Mousewheel or pinch the trackpad to zoom in and out.")
+    :zoom/in     ($ :span "Use the Mousewheel or pinch the trackpad to zoom in and out.")
+    :mode/select ($ :span "Hold Shift and drag to select multiple tokens.")
     :mode/ruler  "Measure the distance between two points."
-    :mode/circle "Draw a circle, starting from its center."
+    :mode/circle "Draw a circle starting from its center."
     :mode/rect   "Draw a rectangle from one corner to the other."
     :mode/cone   "Draw a cone whose length is equal to its width."
     :mode/line   "Draw a line from one point to another."
-    :mode/poly   "Draw any shape by clicking each point and closing it at the first point."
-    :mode/mask   ($ :span "Create a new mask by drawing a polygon; hold " ($ :code "Shift") " to reveal a masked area.")
+    :mode/poly   "Draw a polygon by clicking each point and closing it at the first point."
+    :mode/mask   ($ :span "Create a new mask by drawing a polygon; hold Shift to reveal a masked area.")
     :mode/mask-toggle "Toggle a mask on or off."
     :mode/mask-remove "Remove a mask."
-    :mask/hide   "Remove all masks and then mask the entire scene."
-    :mask/show   "Remove all masks and reveal the entire scene."
+    :mask/hide   "Remove all masks then mask the entire scene."
+    :mask/show   "Remove all masks then reveal the entire scene."
     :scene/focus "Focus the current view, moving everyone to this scene and position."
-    :share/play  "Resumes updates to the player window."
-    :share/pause "Pauses updates to the player window. Good time to setup an ambush!"
-    :share/open  ($ :span "Open or close the player window. "
+    :share/play  "Resume updates to the player window."
+    :share/pause "Pause updates to the player window."
+    :share/open  ($ :span "Open the player window. "
                    ($ :a {:href   "https://github.com/samcf/ogres.app/wiki#player-window"
                           :target "_blank"} "Learn more") ".")))
 
@@ -82,89 +85,98 @@
          (if (not (.contains @container (.-target event)))
            (set-tooltip-key nil))) []))
 
-    ($ :div.toolbar {:ref container}
+    ($ :.toolbar {:ref container}
       (if tooltip-key
-        ($ :div.toolbar-tooltip
+        ($ :.toolbar-tooltip
           ($ tooltip {:tooltip tooltip-key})))
-      ($ :div.toolbar-groups
-        ($ :div.toolbar-group
-          ($ :button.toolbar-text
-            {:disabled (= scale 1)
-             :on-click #(dispatch :camera/zoom-reset)
-             :on-mouse-enter (tooltip-fn :zoom/reset)}
-            (-> scale (* 100) (js/Math.trunc) (str "%")))
-          ($ :button
-            {:disabled (= scale 0.15)
-             :on-click #(dispatch :camera/zoom-out)
-             :on-mouse-enter (tooltip-fn :zoom/out)}
-            ($ icon {:name "zoom-out"}))
-          ($ :button
-            {:disabled (= scale 4)
-             :on-click #(dispatch :camera/zoom-in)
-             :on-mouse-enter (tooltip-fn :zoom/in)}
-            ($ icon {:name "zoom-in"})))
-        ($ :div.toolbar-group
-          ($ :button (mode-attrs :select)
-            ($ icon {:name "cursor-fill"})
-            ($ shortcut {:name "S"}))
-          ($ :button (mode-attrs :ruler)
-            ($ icon {:name "rulers"})
-            ($ shortcut {:name "R"}))
-          ($ :button (mode-attrs :circle)
-            ($ icon {:name "circle"})
-            ($ shortcut {:name "1"}))
-          ($ :button (mode-attrs :rect)
-            ($ icon {:name "square"})
-            ($ shortcut {:name "2"}))
-          ($ :button (mode-attrs :cone)
-            ($ icon {:name "triangle"})
-            ($ shortcut {:name "3"}))
-          ($ :button (mode-attrs :poly)
-            ($ icon {:name "star"})
-            ($ shortcut {:name "4"}))
-          ($ :button (mode-attrs :line)
-            ($ icon {:name "slash-lg"})
-            ($ shortcut {:name "5"})))
-        ($ :div.toolbar-group
-          ($ :button (mode-attrs :mask :disabled conn?)
-            ($ icon {:name "star-half"})
-            ($ shortcut {:name "F"}))
-          ($ :button (mode-attrs :mask-toggle :disabled conn?)
-            ($ icon {:name "magic"})
-            ($ shortcut {:name "T"}))
-          ($ :button (mode-attrs :mask-remove :disabled conn?)
-            ($ icon {:name "eraser-fill"})
-            ($ shortcut {:name "X"}))
-          ($ :button
-            {:disabled conn?
-             :on-click #(dispatch :mask/fill)
-             :on-mouse-enter (tooltip-fn :mask/hide)}
-            ($ icon {:name "eye-slash-fill"}))
-          ($ :button
-            {:disabled conn?
-             :on-click #(dispatch :mask/clear)
-             :on-mouse-enter (tooltip-fn :mask/show)}
-            ($ icon {:name "eye-fill"})))
-        ($ :div.toolbar-group
-          ($ :button
-            {:class (css {:active sharing?})
-             :disabled conn?
-             :on-click #(dispatch :share/initiate)
-             :on-mouse-enter (tooltip-fn :share/open)}
-            ($ icon {:name "pip" :size 22}))
-          ($ :button
-            {:disabled (or conn? (not sharing?) (not paused?))
-             :on-click #(dispatch :share/switch)
-             :on-mouse-enter (tooltip-fn :share/play)}
-            ($ icon {:name "play-fill" :size 22}))
-          ($ :button
-            {:disabled (or conn? (not sharing?) paused?)
-             :on-click #(dispatch :share/switch)
-             :on-mouse-enter (tooltip-fn :share/pause)}
-            ($ icon {:name "pause-fill" :size 22})))
-        ($ :div.toolbar-group
-          ($ :button.toolbar-text
-            {:disabled (not (and (= type :host) (not (nil? (:session/_host result)))))
-             :on-click #(dispatch :session/focus)
-             :on-mouse-enter (tooltip-fn :scene/focus)}
-            ($ icon {:name "camera2" :size 22}) "Focus"))))))
+      ($ :.toolbar-groups
+
+        ($ :button (mode-attrs :select)
+          ($ icon {:name "cursor-fill"})
+          ($ shortcut {:name "S"}))
+        ($ :button
+          {:on-mouse-enter (tooltip-fn :copy/cut)}
+          ($ icon {:name "scissors"})
+          ($ shortcut {:name "⌘+X"}))
+        ($ :button
+          {:on-mouse-enter (tooltip-fn :copy/copy)}
+          ($ icon {:name "files"})
+          ($ shortcut {:name "⌘+C"}))
+        ($ :button
+          {:on-mouse-enter (tooltip-fn :copy/paste)}
+          ($ icon {:name "clipboard2-plus"})
+          ($ shortcut {:name "⌘+V"}))
+        ($ :button (mode-attrs :ruler)
+          ($ icon {:name "rulers"})
+          ($ shortcut {:name "R"}))
+        ($ :button (mode-attrs :circle)
+          ($ icon {:name "circle"})
+          ($ shortcut {:name "1"}))
+        ($ :button (mode-attrs :rect)
+          ($ icon {:name "square"})
+          ($ shortcut {:name "2"}))
+        ($ :button (mode-attrs :cone)
+          ($ icon {:name "triangle"})
+          ($ shortcut {:name "3"}))
+        ($ :button (mode-attrs :poly)
+          ($ icon {:name "star"})
+          ($ shortcut {:name "4"}))
+        ($ :button (mode-attrs :line)
+          ($ icon {:name "slash-lg"})
+          ($ shortcut {:name "5"}))
+        ($ :button
+          {:class (css {:active sharing?})
+           :disabled conn?
+           :on-click #(dispatch :share/initiate)
+           :on-mouse-enter (tooltip-fn :share/open)}
+          ($ icon {:name "pip" :size 22}))
+        ($ :button
+          {:disabled (or conn? (not sharing?) (not paused?))
+           :on-click #(dispatch :share/switch)
+           :on-mouse-enter (tooltip-fn :share/play)}
+          ($ icon {:name "play-fill" :size 22}))
+        ($ :button
+          {:disabled (or conn? (not sharing?) paused?)
+           :on-click #(dispatch :share/switch)
+           :on-mouse-enter (tooltip-fn :share/pause)}
+          ($ icon {:name "pause-fill" :size 22}))
+        ($ :button
+          {:disabled (= scale 0.15)
+           :on-click #(dispatch :camera/zoom-out)
+           :on-mouse-enter (tooltip-fn :zoom/out)}
+          ($ icon {:name "zoom-out"}))
+        ($ :button
+          {:disabled (= scale 1)
+           :style {:grid-column "span 3"}
+           :on-click #(dispatch :camera/zoom-reset)
+           :on-mouse-enter (tooltip-fn :zoom/reset)}
+          (-> scale (* 100) (js/Math.trunc) (str "%")))
+        ($ :button
+          {:disabled (= scale 4)
+           :on-click #(dispatch :camera/zoom-in)
+           :on-mouse-enter (tooltip-fn :zoom/in)}
+          ($ icon {:name "zoom-in"}))
+        ($ :button (mode-attrs :mask :disabled conn?)
+          ($ icon {:name "star-half"})
+          ($ shortcut {:name "F"}))
+        ($ :button (mode-attrs :mask-toggle :disabled conn?)
+          ($ icon {:name "magic"})
+          ($ shortcut {:name "T"}))
+        ($ :button (mode-attrs :mask-remove :disabled conn?)
+          ($ icon {:name "eraser-fill"})
+          ($ shortcut {:name "X"}))
+        ($ :button
+          {:disabled conn?
+           :on-click #(dispatch :mask/fill)
+           :on-mouse-enter (tooltip-fn :mask/hide)}
+          ($ icon {:name "eye-slash-fill"}))
+        ($ :button
+          {:disabled conn?
+           :on-click #(dispatch :mask/clear)
+           :on-mouse-enter (tooltip-fn :mask/show)}
+          ($ icon {:name "eye-fill"}))
+        ($ :button
+          {:disabled (not (and (= type :host) (not (nil? (:session/_host result)))))
+           :on-click #(dispatch :session/focus)
+           :on-mouse-enter (tooltip-fn :scene/focus)}
+          ($ icon {:name "camera2" :size 22}))))))
