@@ -1,6 +1,7 @@
 (ns ogres.app.render.toolbar
   (:require [ogres.app.hooks :refer [use-event-listener use-dispatch use-query]]
             [ogres.app.render :refer [css icon]]
+            [ogres.app.util :refer [comp-fn]]
             [uix.core :refer [defui $ use-callback use-ref use-state]]))
 
 (defui ^:private shortcut
@@ -37,12 +38,14 @@
 
 (def ^:private query
   [:session/_host
+   :local/clipboard
    [:local/type :default :conn]
    [:local/tooltips? :default true]
    [:local/sharing? :default false]
    [:local/paused? :default false]
    {:local/camera
-    [[:camera/draw-mode :default :select]
+    [{:camera/selected [:scene/_tokens]}
+     [:camera/draw-mode :default :select]
      [:camera/scale :default 1]]}])
 
 (defui toolbar []
@@ -55,8 +58,10 @@
          tooltips? :local/tooltips?
          sharing?  :local/sharing?
          paused?   :local/paused?
-         {scale :camera/scale
-          mode  :camera/draw-mode} :local/camera} result
+         clipboard :local/clipboard
+         {scale    :camera/scale
+          mode     :camera/draw-mode
+          selected :camera/selected} :local/camera} result
 
         conn? (= type :conn)
 
@@ -77,7 +82,10 @@
 
         element
         (if (and (not (nil? tooltip-key)) tooltips?)
-          js/window nil)]
+          js/window nil)
+
+        copyable
+        (some (comp-fn contains? identity :scene/_tokens) selected)]
 
     (use-event-listener element "mouseover"
       (use-callback
@@ -90,20 +98,25 @@
         ($ :.toolbar-tooltip
           ($ tooltip {:tooltip tooltip-key})))
       ($ :.toolbar-groups
-
         ($ :button (mode-attrs :select)
           ($ icon {:name "cursor-fill"})
           ($ shortcut {:name "S"}))
         ($ :button
-          {:on-mouse-enter (tooltip-fn :copy/cut)}
+          {:disabled (nil? copyable)
+           :on-click #(dispatch :clipboard/copy true)
+           :on-mouse-enter (tooltip-fn :copy/cut)}
           ($ icon {:name "scissors"})
           ($ shortcut {:name "⌘+X"}))
         ($ :button
-          {:on-mouse-enter (tooltip-fn :copy/copy)}
+          {:disabled (nil? copyable)
+           :on-click #(dispatch :clipboard/copy false)
+           :on-mouse-enter (tooltip-fn :copy/copy)}
           ($ icon {:name "files"})
           ($ shortcut {:name "⌘+C"}))
         ($ :button
-          {:on-mouse-enter (tooltip-fn :copy/paste)}
+          {:disabled (nil? clipboard)
+           :on-click #(dispatch :clipboard/paste)
+           :on-mouse-enter (tooltip-fn :copy/paste)}
           ($ icon {:name "clipboard2-plus"})
           ($ shortcut {:name "⌘+V"}))
         ($ :button (mode-attrs :ruler)

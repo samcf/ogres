@@ -3,7 +3,8 @@
             [clojure.set :refer [union]]
             [clojure.string :refer [trim]]
             [ogres.app.geom :refer [normalize within?]]
-            [ogres.app.util :refer [comp-fn]]))
+            [ogres.app.util :refer [comp-fn]]
+            [ogres.app.const :refer [grid-size]]))
 
 (def ^:private suffix-max-xf
   (map (fn [[label tokens]] [label (apply max (map :initiative/suffix tokens))])))
@@ -762,4 +763,67 @@
             [:db/add prev :camera/point  [cx cy]]
             [:db/add prev :camera/scale  scale]
             [:db/add prev :camera/scene (:db/id (:camera/scene host))]])
+         (into [] cat))))
+
+;; -- Clipboard --
+(defmethod
+  ^{:doc "Copy the currently selected tokens to the clipboard. Optionally
+          removes them from the current scene if cut? is passed as true.
+          The clipboard contains a template for the token data, and not
+          references to the tokens themselves since those references
+          don't exist after they are pruned from the scene. Only some token
+          data is copied; transient state like that related to initiative is
+          not preserved."}
+  transact :clipboard/copy
+  ([context]
+   (transact context false))
+  ([{:keys [data local camera]} cut?]
+   (let [attrs  [:token/label :token/flags :token/light :token/size :aura/radius :token/image]
+         select [{:camera/selected (into attrs [:db/key :scene/_tokens {:token/image [:image/checksum]}])}]
+         result (ds/pull data select [:db/key camera])
+         tokens (filter (comp-fn contains? identity :scene/_tokens) (:camera/selected result))
+         copies (into [] (map (comp-fn select-keys identity attrs)) tokens)]
+     (cond-> []
+       (seq tokens)
+       (into [[:db/add -1 :db/key local]
+              [:db/add -1 :local/clipboard copies]])
+       (and (seq tokens) cut?)
+       (into (for [{key :db/key} tokens]
+               [:db/retractEntity [:db/key key]]))))))
+
+(def ^:private clipboard-paste-select
+  [{:root/local
+    [[:local/clipboard :default []]
+     [:bounds/self :default [0 0 0 0]]
+     {:local/camera
+      [[:camera/scale :default 1]
+       [:camera/point :default [0 0]]]}]}
+   {:root/token-images [:image/checksum]}])
+
+(defmethod
+  ^{:doc "Creates tokens on the current scene from the data stored in the local
+          user's clipboard. Attempts to sort and stagger tokens horizontally
+          so that they're not all created directly on top of each other.
+          Clipboard data is not pruned after pasting."}
+  transact :clipboard/paste
+  [{:keys [data camera scene]}]
+  (let [result (ds/pull data clipboard-paste-select [:db/ident :root])
+        {{clipboard :local/clipboard
+          [_ _ lw lh] :bounds/self
+          {scale :camera/scale
+           [cx cy] :camera/point} :local/camera} :root/local
+         images :root/token-images} result
+        hashes (into #{} (map :image/checksum) images)
+        tx (+ (- cx) (/ lw scale 2))
+        ty (+ (- cy) (/ lh scale 2))]
+    (->> (for [[temp [indx token]]
+               (->> (sort-by (juxt (comp :hidden :token/flags) (comp - :token/size)) clipboard)
+                    (sequence (comp (map-indexed vector) (indexed 3))))
+               :let [hash (:image/checksum (:token/image token))
+                     data (merge token {:db/id       temp
+                                        :db/key      (squuid)
+                                        :token/point [(+ tx (* indx grid-size)) ty]
+                                        :token/image [:image/checksum (if (hashes hash) hash "default")]})]]
+           [{:db/id -1 :db/key camera :camera/selected temp}
+            {:db/id -2 :db/key scene :scene/tokens data}])
          (into [] cat))))
