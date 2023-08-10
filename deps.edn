@@ -4,7 +4,7 @@
            com.pitch/uix.core                    {:mvn/version "0.9.1"}
            com.pitch/uix.dom                     {:mvn/version "0.9.1"}
            datascript-transit/datascript-transit {:mvn/version "0.3.0" :exclusions  [com.cognitect/transit-clj com.cognitect/transit-cljs]}
-           datascript/datascript                 {:mvn/version "1.4.2"}
+           datascript/datascript                 {:mvn/version "1.5.1"}
            io.pedestal/pedestal.jetty            {:mvn/version "0.5.10"}
            io.pedestal/pedestal.service          {:mvn/version "0.5.10"}
            jstrutz/hashids                       {:mvn/version "1.0.1"}
