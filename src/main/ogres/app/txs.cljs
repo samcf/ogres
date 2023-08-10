@@ -2,7 +2,7 @@
   (:require [datascript.core :as ds :refer [squuid]]
             [clojure.set :refer [union]]
             [clojure.string :refer [trim]]
-            [ogres.app.geom :refer [normalize within?]]
+            [ogres.app.geom :refer [bounding-box normalize within?]]
             [ogres.app.util :refer [comp-fn]]))
 
 (def ^:private suffix-max-xf
@@ -144,15 +144,11 @@
           between two points."}
   transact :camera/change-mode
   [{:keys [data local camera]} mode]
-  (let [{curr :camera/draw-mode} (ds/entity data [:db/key camera])
-        {type :local/type}       (ds/entity data [:db/key local])
+  (let [{type :local/type}       (ds/entity data [:db/key local])
         allowed? (mode-allowed? mode type)]
     (if allowed?
       [[:db/add -1 :db/key camera]
-       [:db/add -1 :camera/draw-mode mode]
-       (if (= mode curr)
-         [:db/add -1 :camera/draw-mode :select]
-         [:db/retract [:db/key camera] :camera/selected])]
+       [:db/add -1 :camera/draw-mode mode]]
       [])))
 
 (defmethod
@@ -766,4 +762,69 @@
             [:db/add prev :camera/point  [cx cy]]
             [:db/add prev :camera/scale  scale]
             [:db/add prev :camera/scene (:db/id (:camera/scene host))]])
+         (into [] cat))))
+
+;; -- Clipboard --
+(defmethod
+  ^{:doc "Copy the currently selected tokens to the clipboard. Optionally
+          removes them from the current scene if cut? is passed as true.
+          The clipboard contains a template for the token data, and not
+          references to the tokens themselves since those references
+          don't exist after they are pruned from the scene. Only some token
+          data is copied; transient state like that related to initiative is
+          not preserved."}
+  transact :clipboard/copy
+  ([context]
+   (transact context false))
+  ([{:keys [data local camera]} cut?]
+   (let [attrs  [:token/label :token/flags :token/light :token/size :aura/radius :token/image :token/point]
+         select [{:camera/selected (into attrs [:db/key :scene/_tokens {:token/image [:image/checksum]}])}]
+         result (ds/pull data select [:db/key camera])
+         tokens (filter (comp-fn contains? identity :scene/_tokens) (:camera/selected result))
+         copies (into [] (map (comp-fn select-keys identity attrs)) tokens)]
+     (cond-> []
+       (seq tokens)
+       (into [[:db/add -1 :db/key local]
+              [:db/add -1 :local/clipboard copies]])
+       (and (seq tokens) cut?)
+       (into (for [{key :db/key} tokens]
+               [:db/retractEntity [:db/key key]]))))))
+
+(def ^:private clipboard-paste-select
+  [{:root/local
+    [[:local/clipboard :default []]
+     [:bounds/self :default [0 0 0 0]]
+     {:local/camera
+      [[:camera/scale :default 1]
+       [:camera/point :default [0 0]]]}]}
+   {:root/token-images [:image/checksum]}])
+
+(defmethod
+  ^{:doc "Creates tokens on the current scene from the data stored in the local
+          user's clipboard. Attempts to preserve the relative position of
+          the tokens when they were copied but in the center of the user's
+          viewport. Clipboard data is not pruned after pasting."}
+  transact :clipboard/paste
+  [{:keys [data camera scene]}]
+  (let [result (ds/pull data clipboard-paste-select [:db/ident :root])
+        {{clipboard :local/clipboard
+          [_ _ sw sh] :bounds/self
+          {scale :camera/scale
+           [cx cy] :camera/point} :local/camera} :root/local
+         images :root/token-images} result
+        hashes (into #{} (map :image/checksum) images)
+        [ax ay bx by] (apply bounding-box (map :token/point clipboard))
+        sx (+ (- cx) (/ sw scale 2))
+        sy (+ (- cy) (/ sh scale 2))
+        ox (/ (- ax bx) 2)
+        oy (/ (- ay by) 2)]
+    (->> (for [[temp token] (sequence (indexed 3) clipboard)
+               :let [[tx ty] (:token/point token)
+                     hash    (:image/checksum (:token/image token))
+                     data    (merge token {:db/id       temp
+                                           :db/key      (squuid)
+                                           :token/image [:image/checksum (or (hashes hash) "default")]
+                                           :token/point [(+ sx tx ox (- ax)) (+ sy ty oy (- ay))]})]]
+           [{:db/id -1 :db/key camera :camera/selected temp}
+            {:db/id -2 :db/key scene :scene/tokens data}])
          (into [] cat))))

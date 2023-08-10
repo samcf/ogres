@@ -326,7 +326,7 @@ legend {
 
 .layout-toolbar {
     display: flex;
-    padding: 16px;
+    padding: 8px;
     align-items: flex-end;
     justify-content: center;
     z-index: 1;
@@ -404,24 +404,52 @@ legend {
     pointer-events: all;
 }
 
+.toolbar-tooltip {
+    backdrop-filter: blur(3px);
+    background-color: var(--theme-background-d);
+    border: 1px solid hsl(204, 5%, 21%);
+    border-radius: 3px;
+    color: hsl(0, 0%, 70%);
+    font-size: 13px;
+    margin-bottom: 4px;
+    padding: 4px 8px;
+    text-align: center;
+}
+
+.toolbar-shortcut {
+    bottom: -4px;
+    font-size: 11px;
+    left: 0px;
+    line-height: 1;
+    position: absolute;
+    z-index: 1;
+    display: none;
+}
+
 .toolbar-groups {
-    display: flex;
-    gap: 12px;
+    background-color: var(--theme-background-d);
+    border-radius: 4px;
+    border: 1px solid hsl(204, 5%, 21%);
+    display: grid;
+    gap: 2px;
+    grid-template-rows: repeat(2, 1fr);
+    grid-template-columns: repeat(13, 1fr);
+    padding: 2px;
 }
 
 .toolbar button {
+    background-color: hsl(208deg 21% 20%);
     align-items: center;
-    background: none;
-    border: 1px solid transparent;
-    color: hsl(0, 0%, 70%);
+    height: 38px;
+    border-radius: 3px;
+    border: none;
+    color: hsl(0, 0%, 80%);
     display: flex;
     font-family: var(--font-stack-transitional);
-    gap: 8px;
-    height: 38px;
     justify-content: center;
-    min-width: 40px;
     position: relative;
-    transition: color 80ms ease-in-out;
+    min-width: 38px;
+    border: 1px solid hsl(208deg 21% 20%);
 }
 
 .toolbar button:disabled {
@@ -437,46 +465,21 @@ legend {
     color: var(--theme-text-link);
 }
 
-.toolbar button:not(:disabled, .selected, .active):hover {
-    color: hsl(0, 0%, 100%);
+.toolbar button:not(:disabled):hover {
+    background-color: hsl(208deg 21% 30%);
+    border-color: hsl(208deg 21% 30%);
+}
+
+.toolbar button:not(:disabled):hover > .toolbar-shortcut {
+    display: inline;
+}
+
+.toolbar button:not(:disabled):active {
+    border-color: hsl(208deg 21% 50%);
 }
 
 .toolbar button svg {
     pointer-events: none;
-}
-
-.toolbar-tooltip {
-    backdrop-filter: blur(3px);
-    background-color: rgba(23, 33, 37, 0.70);
-    border-radius: 3px;
-    color: hsl(0, 0%, 70%);
-    font-size: 13px;
-    margin-bottom: 4px;
-    padding: 4px 8px;
-    text-align: center;
-}
-
-.toolbar-group {
-    border: 1px solid rgba(40, 53, 62, 0.50);
-    background-color: rgba(23, 33, 37, 1);
-    display: flex;
-}
-
-.toolbar-text {
-    width: 80px;
-}
-
-.toolbar-shortcut {
-    background-color: var(--theme-background-d);
-    border-radius: 4px;
-    border: 1px solid var(--theme-background-d);
-    font-size: 10px;
-    height: 10px;
-    left: -4px;
-    line-height: 1;
-    position: absolute;
-    top: -4px;
-    width: 10px;
 }
 
 /* Token Templates */
@@ -1614,9 +1617,7 @@ legend {
 }
 
 /* Shared */
-.scene,
-.toolbar-group,
-.toolbar-group button {
+.scene {
     border-radius: 3px;
 }
 
