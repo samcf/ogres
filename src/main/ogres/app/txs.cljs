@@ -2,9 +2,8 @@
   (:require [datascript.core :as ds :refer [squuid]]
             [clojure.set :refer [union]]
             [clojure.string :refer [trim]]
-            [ogres.app.geom :refer [normalize within?]]
-            [ogres.app.util :refer [comp-fn]]
-            [ogres.app.const :refer [grid-size]]))
+            [ogres.app.geom :refer [bounding-box normalize within?]]
+            [ogres.app.util :refer [comp-fn]]))
 
 (def ^:private suffix-max-xf
   (map (fn [[label tokens]] [label (apply max (map :initiative/suffix tokens))])))
@@ -778,7 +777,7 @@
   ([context]
    (transact context false))
   ([{:keys [data local camera]} cut?]
-   (let [attrs  [:token/label :token/flags :token/light :token/size :aura/radius :token/image]
+   (let [attrs  [:token/label :token/flags :token/light :token/size :aura/radius :token/image :token/point]
          select [{:camera/selected (into attrs [:db/key :scene/_tokens {:token/image [:image/checksum]}])}]
          result (ds/pull data select [:db/key camera])
          tokens (filter (comp-fn contains? identity :scene/_tokens) (:camera/selected result))
@@ -809,21 +808,23 @@
   [{:keys [data camera scene]}]
   (let [result (ds/pull data clipboard-paste-select [:db/ident :root])
         {{clipboard :local/clipboard
-          [_ _ lw lh] :bounds/self
+          [_ _ sw sh] :bounds/self
           {scale :camera/scale
            [cx cy] :camera/point} :local/camera} :root/local
          images :root/token-images} result
         hashes (into #{} (map :image/checksum) images)
-        tx (+ (- cx) (/ lw scale 2))
-        ty (+ (- cy) (/ lh scale 2))]
-    (->> (for [[temp [indx token]]
-               (->> (sort-by (juxt (comp :hidden :token/flags) (comp - :token/size)) clipboard)
-                    (sequence (comp (map-indexed vector) (indexed 3))))
-               :let [hash (:image/checksum (:token/image token))
-                     data (merge token {:db/id       temp
-                                        :db/key      (squuid)
-                                        :token/point [(+ tx (* indx grid-size)) ty]
-                                        :token/image [:image/checksum (if (hashes hash) hash "default")]})]]
+        [ax ay bx by] (apply bounding-box (map :token/point clipboard))
+        sx (+ (- cx) (/ sw scale 2))
+        sy (+ (- cy) (/ sh scale 2))
+        ox (/ (- ax bx) 2)
+        oy (/ (- ay by) 2)]
+    (->> (for [[temp token] (sequence (indexed 3) clipboard)
+               :let [[tx ty] (:token/point token)
+                     hash    (:image/checksum (:token/image token))
+                     data    (merge token {:db/id       temp
+                                           :db/key      (squuid)
+                                           :token/image [:image/checksum (if (hashes hash) hash "default")]
+                                           :token/point [(+ sx tx ox (- ax)) (+ sy ty oy (- ay))]})]]
            [{:db/id -1 :db/key camera :camera/selected temp}
             {:db/id -2 :db/key scene :scene/tokens data}])
          (into [] cat))))
