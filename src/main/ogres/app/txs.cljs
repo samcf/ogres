@@ -823,7 +823,7 @@
                      hash    (:image/checksum (:token/image token))
                      data    (merge token {:db/id       temp
                                            :db/key      (squuid)
-                                           :token/image [:image/checksum (if (hashes hash) hash "default")]
+                                           :token/image [:image/checksum (or (hashes hash) "default")]
                                            :token/point [(+ sx tx ox (- ax)) (+ sy ty oy (- ay))]})]]
            [{:db/id -1 :db/key camera :camera/selected temp}
             {:db/id -2 :db/key scene :scene/tokens data}])
