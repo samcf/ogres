@@ -9,64 +9,90 @@
 
 (def ^:private shortcuts
   {["keydown" "Shift"]
-   (fn [[_ dispatch]]
-     (dispatch :local/modifier-start :shift))
+   (fn [[_ dispatch] event]
+     (if (not (.-metaKey event))
+       (dispatch :local/modifier-start :shift)))
 
    ["keyup" "Shift"]
-   (fn [[_ dispatch]]
-     (dispatch :local/modifier-release))
+   (fn [[_ dispatch] event]
+     (if (not (.-metaKey event))
+       (dispatch :local/modifier-release)))
 
    ["keydown" "Escape"]
-   (fn [[_ dispatch]]
-     (dispatch :selection/clear))
+   (fn [[_ dispatch] event]
+     (if (not (.-metaKey event))
+       (dispatch :selection/clear)))
 
    ["keydown" "Delete"]
-   (fn [[_ dispatch]]
-     (dispatch :selection/remove))
+   (fn [[_ dispatch] event]
+     (if (not (.-metaKey event))
+       (dispatch :selection/remove)))
 
    ["keydown" "Backspace"]
-   (fn [[_ dispatch]]
-     (dispatch :selection/remove))
+   (fn [[_ dispatch] event]
+     (if (not (.-metaKey event))
+       (dispatch :selection/remove)))
 
    ["keydown" \s]
-   (fn [[_ dispatch]]
-     (dispatch :camera/change-mode :select))
+   (fn [[_ dispatch] event]
+     (if (not (.-metaKey event))
+       (dispatch :camera/change-mode :select)))
 
    ["keydown" \r]
-   (fn [[_ dispatch]]
-     (dispatch :camera/change-mode :ruler))
+   (fn [[_ dispatch] event]
+     (if (not (.-metaKey event))
+       (dispatch :camera/change-mode :ruler)))
 
    ["keydown" \1]
-   (fn [[_ dispatch]]
-     (dispatch :camera/change-mode :circle))
+   (fn [[_ dispatch] event]
+     (if (not (.-metaKey event))
+       (dispatch :camera/change-mode :circle)))
 
    ["keydown" \2]
-   (fn [[_ dispatch]]
-     (dispatch :camera/change-mode :rect))
+   (fn [[_ dispatch] event]
+     (if (not (.-metaKey event))
+       (dispatch :camera/change-mode :rect)))
 
    ["keydown" \3]
-   (fn [[_ dispatch]]
-     (dispatch :camera/change-mode :cone))
+   (fn [[_ dispatch] event]
+     (if (not (.-metaKey event))
+       (dispatch :camera/change-mode :cone)))
 
    ["keydown" \4]
-   (fn [[_ dispatch]]
-     (dispatch :camera/change-mode :poly))
+   (fn [[_ dispatch] event]
+     (if (not (.-metaKey event))
+       (dispatch :camera/change-mode :poly)))
 
    ["keydown" \5]
-   (fn [[_ dispatch]]
-     (dispatch :camera/change-mode :line))
+   (fn [[_ dispatch] event]
+     (if (not (.-metaKey event))
+       (dispatch :camera/change-mode :line)))
 
    ["keydown" \f]
-   (fn [[_ dispatch]]
-     (dispatch :camera/change-mode :mask))
+   (fn [[_ dispatch] event]
+     (if (not (.-metaKey event))
+       (dispatch :camera/change-mode :mask)))
 
    ["keydown" \t]
-   (fn [[_ dispatch]]
-     (dispatch :camera/change-mode :mask-toggle))
+   (fn [[_ dispatch] event]
+     (if (not (.-metaKey event))
+       (dispatch :camera/change-mode :mask-toggle)))
 
    ["keydown" \x]
-   (fn [[_ dispatch]]
-     (dispatch :camera/change-mode :mask-remove))
+   (fn [[_ dispatch] event]
+     (if (.-metaKey event)
+       (dispatch :clipboard/copy true)
+       (dispatch :camera/change-mode :mask-remove)))
+
+   ["keydown" \c]
+   (fn [[_ dispatch] event]
+     (if (.-metaKey event)
+       (dispatch :clipboard/copy false)))
+
+   ["keydown" \v]
+   (fn [[_ dispatch] event]
+     (if (.-metaKey event)
+       (dispatch :clipboard/paste)))
 
    ["wheel"]
    (fn [[conn dispatch] event]
@@ -92,7 +118,6 @@
 (defn ^:private allow-event? [event]
   (let [target (.-target event)]
     (not (or (.-repeat event)
-             (.-metaKey event)
              (and (not= (.-type event) "wheel") (.-ctrlKey event))
              (and (not= (.-key event) "Shift") (.-shiftKey event))
              (and (instance? js/HTMLInputElement target)
