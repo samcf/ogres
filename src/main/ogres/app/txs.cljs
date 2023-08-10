@@ -801,9 +801,9 @@
 
 (defmethod
   ^{:doc "Creates tokens on the current scene from the data stored in the local
-          user's clipboard. Attempts to sort and stagger tokens horizontally
-          so that they're not all created directly on top of each other.
-          Clipboard data is not pruned after pasting."}
+          user's clipboard. Attempts to preserve the relative position of
+          the tokens when they were copied but in the center of the user's
+          viewport. Clipboard data is not pruned after pasting."}
   transact :clipboard/paste
   [{:keys [data camera scene]}]
   (let [result (ds/pull data clipboard-paste-select [:db/ident :root])
