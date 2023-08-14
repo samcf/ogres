@@ -23,13 +23,18 @@
 (def ^:private condition->icon
   {:blinded       "eye-slash-fill"
    :charmed       "arrow-through-heart-fill"
+   :defeaned      "ear-fill"
    :exhausted     "moon-stars-fill"
    :frightened    "black-cat"
    :grappled      "fist"
    :incapacitated "emoji-dizzy"
    :invisible     "incognito"
+   :petrified     "gem"
    :player        "people-fill"
+   :poisoned      "droplet-fill"
    :prone         "falling"
+   :restrained    "spiderweb"
+   :stunned       "stars"
    :unconscious   "skull"})
 
 (defn ^:private stop-propagation [event]
