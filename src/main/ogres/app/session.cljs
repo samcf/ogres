@@ -4,7 +4,7 @@
             [clojure.core.async :refer [chan sliding-buffer]]
             [datascript.core :as ds]
             [datascript.transit :as dst]
-            [ogres.app.env :as env]
+            [ogres.app.const :refer [SOCKET-URL]]
             [ogres.app.hooks :refer [use-event-listener use-subscribe use-dispatch use-publish use-interval use-store]]
             [ogres.app.provider.image :refer [create-checksum create-image-element]]
             [ogres.app.provider.state :as provider.state]
@@ -238,8 +238,8 @@
          (let [host (ds/entity @conn [:db/ident :local])
                conn (js/WebSocket.
                      (if (:session/last-room host)
-                       (str env/SOCKET-URL "?host=" (:session/last-room host))
-                       env/SOCKET-URL))]
+                       (str SOCKET-URL "?host=" (:session/last-room host))
+                       SOCKET-URL))]
            (set-socket conn))) [conn]))
 
     ;; Subscribe to requests to join the session, creating a WebSocket
@@ -251,7 +251,7 @@
                params (js/URLSearchParams. search)
                room   (.get params "join")]
            (if (not (nil? room))
-             (let [conn (js/WebSocket. (str env/SOCKET-URL "?join=" room))]
+             (let [conn (js/WebSocket. (str SOCKET-URL "?join=" room))]
                (set-socket conn))))) []))
 
     ;; Subscribe to regular heartbeat events, rebroadcasting it to the other

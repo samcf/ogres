@@ -1,5 +1,5 @@
 (ns ogres.app.form.help
-  (:require [ogres.app.env :refer [VERSION]]
+  (:require [ogres.app.const :refer [VERSION]]
             [ogres.app.hooks :refer [use-dispatch use-query]]
             [uix.core :refer [defui $]]))
 

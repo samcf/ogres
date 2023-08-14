@@ -1,5 +1,5 @@
 (ns ogres.app.core
-  (:require [ogres.app.env              :refer [PATH]]
+  (:require [ogres.app.const            :refer [PATH]]
             [ogres.app.layout           :refer [layout]]
             [ogres.app.provider.events  :as events]
             [ogres.app.provider.portal  :as portal]

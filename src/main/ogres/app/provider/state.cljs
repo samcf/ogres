@@ -1,6 +1,6 @@
 (ns ogres.app.provider.state
   (:require [datascript.core :as ds :refer [squuid]]
-            [ogres.app.env :as env]
+            [ogres.app.const :refer [VERSION]]
             [ogres.app.provider.events :refer [use-publish]]
             [ogres.app.txs :refer [transact]]
             [uix.core :refer [defui $ create-context use-context use-callback use-state use-effect]]))
@@ -39,7 +39,7 @@
   (ds/db-with
    (ds/empty-db schema)
    [[:db/add -1 :db/ident :root]
-    [:db/add -1 :root/release env/VERSION]
+    [:db/add -1 :root/release VERSION]
     [:db/add -1 :root/scenes -2]
     [:db/add -1 :root/local -3]
     [:db/add -1 :root/session -5]

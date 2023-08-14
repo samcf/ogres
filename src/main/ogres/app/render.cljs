@@ -1,6 +1,6 @@
 (ns ogres.app.render
   (:require [clojure.string :refer [join]]
-            [ogres.app.env :as env]
+            [ogres.app.const :refer [PATH]]
             [ogres.app.provider.storage :refer [initialize]]
             [uix.core :refer [defui $ create-error-boundary]]))
 
@@ -23,7 +23,7 @@
 
 (defui icon [{:keys [name size] :or {size 22}}]
   ($ :svg {:class "icon" :width size :height size :fill "currentColor"}
-    ($ :use {:href (str env/PATH "/icons.svg" "#icon-" name)})))
+    ($ :use {:href (str PATH "/icons.svg" "#icon-" name)})))
 
 (def error-boundary
   (create-error-boundary

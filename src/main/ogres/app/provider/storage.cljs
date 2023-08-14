@@ -2,7 +2,7 @@
   (:require [datascript.core :as ds]
             [datascript.transit :as dt]
             [dexie]
-            [ogres.app.env :as env]
+            [ogres.app.const :refer [VERSION]]
             [ogres.app.provider.events :refer [use-subscribe]]
             [ogres.app.provider.state :as state :refer [use-query]]
             [ogres.app.util :refer [debounce]]
@@ -50,7 +50,7 @@
                             (ds/filter (fn [_ [_ attr _ _]] (not (contains? ignored-attrs attr))))
                             (ds/datoms :eavt)
                             (dt/write-transit-str)
-                            (as-> marshalled #js {:release env/VERSION :updated (* -1 (.now js/Date)) :data marshalled})
+                            (as-> marshalled #js {:release VERSION :updated (* -1 (.now js/Date)) :data marshalled})
                             (as-> record (.put (.table store "app") record))))) 200))
        (fn [] (ds/unlisten! conn :marshaller)))) []))
 
@@ -63,7 +63,7 @@
     (use-effect
      (fn []
        (-> (.table store "app")
-           (.get env/VERSION)
+           (.get VERSION)
            (.then
             (fn [record]
               (if (nil? record)

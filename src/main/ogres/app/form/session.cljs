@@ -1,5 +1,5 @@
 (ns ogres.app.form.session
-  (:require [ogres.app.env :as env]
+  (:require [ogres.app.const :refer [VERSION]]
             [ogres.app.hooks :refer [use-dispatch use-query]]
             [ogres.app.render :refer [css icon]]
             [ogres.app.util :refer [comp-fn]]
@@ -32,7 +32,7 @@
      [:session/share-cursors :default true]]}])
 
 (defn ^:private session-url [room-key]
-  (str (.. js/window -location -origin) "?r=" env/VERSION "&join=" room-key))
+  (str (.. js/window -location -origin) "?r=" VERSION "&join=" room-key))
 
 (defui header []
   (let [result (use-query query-header [:db/ident :root])
