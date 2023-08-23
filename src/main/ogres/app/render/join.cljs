@@ -1,8 +1,8 @@
 (ns ogres.app.render.join
-  (:require [clojure.string :refer [blank? trim upper-case]]
-            [ogres.app.render :refer [icon]]
+  (:require [clojure.string :refer [upper-case]]
+            [ogres.app.render :refer [css icon]]
             [ogres.app.hooks :refer [use-query]]
-            [uix.core :refer [defui $ use-state use-callback]]
+            [uix.core :refer [defui $ use-state use-callback use-ref]]
             [uix.dom :refer [create-portal]]))
 
 (def ^:private join-query
@@ -14,14 +14,15 @@
 
 (defui ^:private prompt
   [{:keys [on-close] :or {on-close identity}}]
-  (let [[input set-input] (use-state "")
-        on-submit         (use-callback
-                           (fn [event]
-                             (.preventDefault event)
-                             (let [params (js/URLSearchParams. #js {"release" "latest" "join" (trim input)})
-                                   origin (.. js/window -location -origin)
-                                   href   (str origin "?" (.toString params))]
-                               (set! (.. js/window -location -href) href))) [input])]
+  (let [[code set-code] (use-state "")
+        input           (use-ref)
+        on-submit       (use-callback
+                         (fn [event]
+                           (.preventDefault event)
+                           (let [params (js/URLSearchParams. #js {"release" "latest" "join" code})
+                                 origin (.. js/window -location -origin)
+                                 href   (str origin "?" (.toString params))]
+                             (set! (.. js/window -location -href) href))) [code])]
     ($ :.modal.join-modal
       ($ :.modal-container
         ($ :form {:on-submit on-submit}
@@ -29,21 +30,26 @@
             ($ :.modal-icon
               ($ icon {:name "globe-americas" :size 36}))
             ($ :.modal-body
-              ($ :.modal-heading "Join lobby")
-              ($ :.modal-paragraph
-                "Enter the room code given to you by the host." ($ :br)
-                "The code is not case-sensitive.")
-              ($ :input
-                {:type "text" :value input :auto-focus true
-                 :style {:height 36 :font-size 16}
-                 :on-change
-                 (fn [event]
-                   (set-input (upper-case (.. event -target -value))))})))
+              ($ :.modal-heading "Join Room")
+              ($ :.modal-paragraph "Enter the 4-letter room code given to you by the host.")
+              ($ :.join-code
+                {:on-click #(.focus @input)}
+                ($ :input.join-input
+                  {:ref        input
+                   :type       "text"
+                   :value      code
+                   :auto-focus true
+                   :max-length 4
+                   :on-change  (fn [event] (-> (.. event -target -value) upper-case set-code))})
+                ($ :.join-codes
+                  (for [indx (range 4) :let [active (= indx (count code))]]
+                    ($ :div {:key indx :class (css {:active active})}
+                      (nth code indx nil)))))))
           ($ :.modal-footer
             ($ :button.button
               {:type "button" :on-click #(on-close)} "Close")
             ($ :button.button.button-primary
-              {:type "submit" :disabled (blank? input)} "Join")))))))
+              {:type "submit" :disabled (not= (count code) 4)} "Join")))))))
 
 (defui join []
   (let [[modal set-modal] (use-state false)

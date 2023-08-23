@@ -2,11 +2,11 @@
   (:gen-class)
   (:import [java.io ByteArrayOutputStream ByteArrayInputStream]
            [java.time Instant])
-  (:require [clojure.core.async :as async :refer [go <! >! >!! close! timeout]]
+  (:require [clojure.string :refer [upper-case]]
+            [clojure.core.async :as async :refer [go <! >! >!! close! timeout]]
             [cognitect.transit :as transit]
             [datascript.core :as ds]
             [datascript.transit :refer [read-handlers write-handlers]]
-            [hashids.core :as hash]
             [io.pedestal.http :as server]
             [io.pedestal.http.jetty.websockets :as ws]))
 
@@ -15,17 +15,11 @@
 
 (def sessions (atom {}))
 
-(def ^:constant epoch 1692780000)
-
-(def hash-options
-  {:alphabet   "ACDEFGHJKMNPQRSTUVWXYZ23456789"
-   :salt       "ogres.app"
-   :min-length 4})
-
 (defn room-create-key []
-  (let [time (- (.getEpochSecond (Instant/now)) epoch)
-        rand (rand-int 4096)]
-    (hash/encode hash-options [time rand])))
+  (let [keys (:rooms @sessions)]
+    (loop []
+      (let [code (->> (datascript.core/squuid) (str) (take-last 4) (apply str) (upper-case))]
+        (if (contains? keys code) (recur) code)))))
 
 (defn room-create
   [sessions room conn chan]

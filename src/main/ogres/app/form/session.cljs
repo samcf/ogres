@@ -44,8 +44,7 @@
         (if code
           ($ :section
             ($ :header "Room Code")
-            ($ :fieldset
-              ($ :input {:type "text" :disabled true :value code}))))
+            ($ :code.session-code code)))
         ($ :section
           ($ :header "Options")
           ($ :fieldset.checkbox
