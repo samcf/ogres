@@ -3,6 +3,9 @@
             [ogres.app.hooks :refer [use-dispatch use-query]]
             [uix.core :refer [defui $]]))
 
+(def ^:private confirm-delete
+  "Are you sure you want to delete your local data? This will revert this app to its original state.")
+
 (def ^:private resource-links
   [["https://github.com/samcf/ogres" "GitHub repository page" "Source Code"]
    ["https://github.com/samcf/ogres/discussions" "Ask a Question" "Ask a Question"]
@@ -46,7 +49,10 @@
            around even if you close the browser or restart your computer.")
         ($ :br)
         ($ :button.button.button-danger
-          {:on-click #(dispatch :storage/reset)
+          {:on-click
+           (fn []
+             (if-let [_ (js/confirm confirm-delete)]
+               (dispatch :storage/reset)))
            :style {:margin-bottom 8}}
           "Delete Local Data")
         ($ :p "Click this button to delete all application data, restoring this
