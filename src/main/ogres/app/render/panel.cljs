@@ -26,7 +26,7 @@
    :help       {:form help/form}
    :initiative {:form initiative/form :footer initiative/footer}
    :scenes     {:form scenes/form :footer scenes/footer}
-   :session    {:header session/header :form session/form :footer session/footer}
+   :session    {:form session/form :footer session/footer}
    :tokens     {:form tokens/form :footer tokens/footer}})
 
 (def ^:private query

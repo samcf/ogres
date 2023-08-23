@@ -131,6 +131,7 @@ a:visited {
 
     /* Spacing */
     padding: 6px 10px;
+    min-height: 32px;
 
     /* Text */
     font-family: var(--font-stack-transitional);
@@ -299,23 +300,28 @@ legend {
     grid-template-columns: 1fr min-content;
     grid-template-rows: min-content 1fr;
     grid-template-areas:
-      "a a"
-      "b c";
+      "scenes join"
+      "canvas side";
 }
 
 .layout-scenes {
-    grid-area: a;
+    grid-area: scenes;
 }
 
 .layout-scene,
 .layout-modal,
 .layout-toolbar,
 .layout-tokens {
-    grid-area: b;
+    grid-area: canvas;
+}
+
+.layout-join {
+    grid-area: join;
+    margin-left: 8px;
 }
 
 .layout-panel {
-    grid-area: c;
+    grid-area: side;
 }
 
 .layout-modal,
@@ -337,12 +343,80 @@ legend {
     justify-self: end;
 }
 
+/* Join */
+.join > button {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    margin-left: auto;
+    width: 100%;
+}
+
+.join-modal button {
+    min-width: 72px;
+    justify-content: center;
+}
+
+/* Modal */
+.modal {
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.65);
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+    z-index: 1;
+}
+
+.modal-container {
+    background-color: var(--theme-background-d);
+    border-radius: 4px;
+    border: 1px solid hsl(208deg 21% 20%);
+    box-sizing: border-box;
+    width: 512px;
+}
+
+.modal-content {
+    box-sizing: border-box;
+    display: flex;
+    gap: 1rem;
+    padding: 2rem 1rem;
+}
+
+.modal-body {
+    flex: 1;
+}
+
+.modal-heading {
+    font-weight: bold;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.modal-paragraph {
+    font-size: 14px;
+    line-height: 1.4;
+    margin-bottom: 1rem;
+}
+
+.modal-footer {
+    align-items: center;
+    background-color: hsl(208deg 21% 20%);
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    padding: 8px 12px;
+}
+
 /* Scenes */
 .scenes {
     display: flex;
     flex-wrap: wrap;
     font-size: 14px;
     gap: 4px;
+    height: 100%;
 }
 
 .scenes > div {
@@ -1572,6 +1646,11 @@ legend {
 }
 
 /* Session Form */
+.panel-form-session .panel-header {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
 .panel-form-session .panel-container-footer {
     display: grid;
     grid-template-columns: 1fr min-content min-content;

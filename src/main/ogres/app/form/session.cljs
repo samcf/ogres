@@ -1,16 +1,9 @@
 (ns ogres.app.form.session
   (:require [ogres.app.const :refer [VERSION]]
             [ogres.app.hooks :refer [use-dispatch use-query]]
-            [ogres.app.render :refer [css icon]]
+            [ogres.app.render :refer [icon]]
             [ogres.app.util :refer [comp-fn]]
             [uix.core :refer [defui $]]))
-
-(def ^:private query-header
-  [{:root/local
-    [[:local/type :default :conn]
-     [:session/state :default :initial]]}
-   {:root/session
-    [{:session/conns [:db/key]}]}])
 
 (def ^:private query-footer
   [{:root/local
@@ -34,26 +27,11 @@
 (defn ^:private session-url [room-key]
   (str (.. js/window -location -origin) "?r=" VERSION "&join=" room-key))
 
-(defui header []
-  (let [result (use-query query-header [:db/ident :root])
-        {{type  :local/type
-          state :session/state} :root/local
-         {conns :session/conns} :root/session} result]
-    (case [type state]
-      ([:host :connecting] [:conn :connecting])
-      ($ :.session-status {:class (css {state true})} "Status: Connecting")
-      ([:conn :connected] [:host :connected])
-      ($ :.session-status {:class (css {state true})} "Status: Connected [" (inc (count conns)) "]")
-      [:host :disconnected]
-      ($ :.session-status {:class (css {state true})} "Status: Disconnected")
-      [:conn :disconnected]
-      ($ :.session-status {:class (css {state true})} "Status: Reconnecting...")
-      nil)))
-
 (defui form []
   (let [dispatch (use-dispatch)
         result   (use-query query-form [:db/ident :root])
-        {{host    :session/host
+        {{code    :session/room
+          host    :session/host
           conns   :session/conns
           cursors :session/share-cursors} :root/session
          {share :local/share-cursor
@@ -61,8 +39,13 @@
           type  :local/type
           key   :db/key} :root/local
          local :root/local} result]
-    (if (or (= state :connected) (= state :disconnected) (= state :connecting))
+    (if (#{:connecting :connected :disconnected} state)
       ($ :section.session
+        (if code
+          ($ :section
+            ($ :header "Room Code")
+            ($ :fieldset
+              ($ :input {:type "text" :disabled true :value code}))))
         ($ :section
           ($ :header "Options")
           ($ :fieldset.checkbox
@@ -112,8 +95,8 @@
       ($ :section.session
         ($ :div.prompt
           "Invite your friends to this virtual tabletop"
-          ($ :br) "by clicking the 'Create Room' button above"
-          ($ :br) "and sharing the URL with them.")))))
+          ($ :br) "by clicking the 'Create Room' button"
+          ($ :br) "and sharing the room code or URL with them.")))))
 
 (defui footer []
   (let [dispatch (use-dispatch)

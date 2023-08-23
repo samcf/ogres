@@ -15,11 +15,17 @@
 
 (def sessions (atom {}))
 
+(def ^:constant epoch 1692780000)
+
+(def hash-options
+  {:alphabet   "ACDEFGHJKMNPQRSTUVWXYZ23456789"
+   :salt       "ogres.app"
+   :min-length 4})
+
 (defn room-create-key []
-  (let [opts {:min-length 8 :salt "ogres.app"}
-        time (.getEpochSecond (Instant/now))
+  (let [time (- (.getEpochSecond (Instant/now)) epoch)
         rand (rand-int 4096)]
-    (hash/encode opts [time rand])))
+    (hash/encode hash-options [time rand])))
 
 (defn room-create
   [sessions room conn chan]

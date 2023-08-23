@@ -4,6 +4,7 @@
             [ogres.app.render.scene :refer [render-scene]]
             [ogres.app.render.scenes :refer [scenes]]
             [ogres.app.render.toolbar :refer [toolbar]]
+            [ogres.app.render.join :refer [join]]
             [uix.core :refer [defui $]]))
 
 (def ^:private query
@@ -24,6 +25,7 @@
           ($ :div.layout {:style {:visibility "hidden"}}
             (if (= type :host)
               ($ :div.layout-scenes ($ scenes)))
+            ($ :div.layout-join    ($ join))
             ($ :div.layout-scene   ($ render-scene))
             ($ :div.layout-toolbar ($ toolbar))
             ($ :div.layout-panel   ($ container))))))))
