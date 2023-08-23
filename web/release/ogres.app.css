@@ -1198,6 +1198,15 @@ legend {
     margin: 5px 0 0 4px;
 }
 
+.panel-header-chevron {
+    color: #777;
+    margin: 5px 8px 0px auto;
+    background-color: #ddd;
+    height: 18px;
+    padding: 2px;
+    border-radius: 2px;
+}
+
 .panel-content {
     border-radius: 0 0 3px 3px;
     box-sizing: border-box;

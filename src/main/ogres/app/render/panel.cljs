@@ -53,7 +53,11 @@
                 ($ icon {:name (:icon form) :size 20})
                 ($ :div.panel-header-label (:label form))
                 (if-let [component (-> components key :header)]
-                  ($ component))))
+                  ($ component))
+                ($ :div.panel-header-chevron
+                  ($ icon
+                    {:name (if expanded "chevron-double-up" "chevron-double-down")
+                     :size 18}))))
             (if expanded
               ($ :div.panel-content
                 ($ :div.panel-container
