@@ -447,16 +447,17 @@ legend {
     display: flex;
     flex-wrap: wrap;
     font-size: 14px;
-    gap: 4px;
+    gap: 2px;
     height: 100%;
 }
 
 .scenes > div {
+    background-color: hsl(200, 16%, 16%);
     border-color: var(--theme-background-d);
     border-radius: 3px 3px 0 0;
     border-style: solid;
-    border-width: 1px 1px 0px 1px;
-    color: rgb(180, 180, 180);
+    border-width: 0;
+    color: rgb(140, 140, 140);
     cursor: pointer;
     display: flex;
     flex: 1;
@@ -466,13 +467,18 @@ legend {
 }
 
 .scenes > div.selected {
-    background-color: var(--theme-background-d);
+    background-color: hsl(200, 20%, 12%);
 }
 
-.scenes > div.selected > div,
-.scenes > div > div:hover,
-.scenes > div > button:hover,
-.scenes > button:hover {
+.scenes > div.selected > div {
+    color: white;
+}
+
+.scenes > div:not(.selected):hover {
+    background-color: hsl(200, 20%, 14%);
+}
+
+.scenes > div > button:hover {
     color: white;
 }
 
@@ -485,24 +491,35 @@ legend {
 }
 
 .scenes > div > button {
+    align-items: center;
     background: transparent;
     border: none;
     color: inherit;
     cursor: pointer;
-    font-size: 16px;
+    display: flex;
+    justify-content: center;
     outline: none;
-    padding: 4px 8px;
+    visibility: hidden;
+}
+
+.scenes > div:hover > button {
+    visibility: visible;
 }
 
 .scenes > button {
-    background: transparent;
-    border-color: var(--theme-background-d);
+    background-color: hsl(200, 20%, 12%);
+    background-color: hsl(200, 16%, 16%);
     border-radius: 3px 3px 0 0;
     border-style: solid;
-    border-width: 1px 1px 0 1px;
+    border-width: 0;
     color: rgb(180, 180, 180);
     cursor: pointer;
     width: 30px;
+}
+
+.scenes > button:hover {
+    background-color: var(--theme-background-d);
+    color: white;
 }
 
 /* Toolbar */
