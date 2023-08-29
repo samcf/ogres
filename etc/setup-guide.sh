@@ -32,3 +32,9 @@ apt install openjdk-18-jre-headless
 scp etc/ogres.app.service "$dst":/etc/systemd/system
 systemctl daemon-reload
 systemctl restart ogres.app.service
+
+# renew the ssl certificate by stopping the nginx service, running the certbot
+# command to renew, and starting the nginx service again
+nginx -s stop
+sudo certbot renew
+nginx -c ogres.app.conf
