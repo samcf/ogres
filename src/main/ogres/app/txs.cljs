@@ -86,13 +86,6 @@
 
 ;; -- Local --
 (defmethod
-  ^{:doc "Changes whether or not toolbar shortcuts are displayed for the
-          local user."}
-  transact :local/toggle-shortcuts
-  [{:keys [local]} display?]
-  [{:db/id -1 :db/key local :local/shortcuts? display?}])
-
-(defmethod
   ^{:doc "Changes whether or not toolbar tooltips are displayed when the
           local user hovers over them."}
   transact :local/toggle-tooltips

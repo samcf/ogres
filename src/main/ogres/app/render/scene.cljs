@@ -325,12 +325,12 @@
         tokens    (-> result :local/camera :camera/scene :scene/tokens)
         checksums (into #{} (comp (map :token/image) (map :image/checksum)) tokens)
         attrs     {:width "100%" :height "100%" :patternContentUnits "objectBoundingBox"}]
-    ($ :defs
-      ($ :pattern (merge attrs {:id "token-face-default" :viewBox "-2 -2 16 16" :fill "#f2f2eb"})
-        ($ :rect {:x -2 :y -2 :width 16 :height 16 :fill "hsl(208deg 21% 20%)"})
+    ($ :defs {:style {:color "white"}}
+      ($ :pattern (merge attrs {:id "token-face-default" :viewBox "-2 -2 16 16"})
+        ($ :rect {:x -2 :y -2 :width 16 :height 16 :fill "black"})
         ($ icon {:name "dnd" :size 12}))
-      ($ :pattern (merge attrs {:id "token-face-deceased" :viewBox "-2 -2 16 16" :fill "#f2f2eb"})
-        ($ :rect {:x -2 :y -2 :width 16 :height 16 :fill "hsl(208deg 21% 20%)"})
+      ($ :pattern (merge attrs {:id "token-face-deceased" :viewBox "-2 -2 16 16"})
+        ($ :rect {:x -2 :y -2 :width 16 :height 16 :fill "black"})
         ($ icon {:name "skull" :size 12}))
       (for [checksum checksums]
         ($ :pattern (merge attrs {:key checksum :id (str "token-face-" checksum)})
@@ -432,7 +432,7 @@
           ($ :g.scene-token {:class (css (token-css data))}
             ($ render-token {:data data}))))
       (if (seq selected)
-        (let [keys (map :db/key selected)
+        (let [keys (into (sorted-set) (map :db/key) selected)
               [ax _ bx by] (apply bounding-box (map :token/point selected))]
           ($ use-portal {:name (if (or (= type :host) (= type :conn)) :selected)}
             (fn []
@@ -446,7 +446,7 @@
                      (if (and (= ox 0) (= oy 0))
                        (let [key (.. event -target (closest ".scene-token[data-key]") -dataset -key)]
                          (dispatch :element/select (uuid key) (not (.-shiftKey event))))
-                       (dispatch :token/translate-all keys ox oy))))}
+                       (dispatch :token/translate-all (seq keys) ox oy))))}
                 ($ :g.scene-selected {:key keys}
                   (for [data selected :let [{key :db/key [x y] :token/point} data]]
                     ($ :g.scene-token
@@ -535,7 +535,7 @@
      [:camera/scale :default 1]
      [:camera/draw-mode :default :select]
      {:camera/scene
-      [[:scene/dark-mode :default false]]}]}])
+      [[:scene/dark-mode :default true]]}]}])
 
 (defui render-scene []
   (let [dispatch (use-dispatch)

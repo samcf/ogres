@@ -36,7 +36,7 @@
                persists, click the button below to delete your local data. This
                may resolve your issue.")
            ($ :br)
-           ($ :button.button.button-danger
+           ($ :button.button
              {:on-click
               (fn []
                 (.delete store)

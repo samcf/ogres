@@ -84,33 +84,29 @@
 
 (defui ^:private token-form-details
   [{:keys [on-change values]
-    :or   {values    (constantly (list))
-           on-change identity}}]
-  (for [[label tx-name attr min def]
-        [["Size" :token/change-size :token/size 5 5]
-         ["Light" :token/change-light :token/light 0 15]
-         ["Aura" :token/change-aura :aura/radius 0 0]]]
-    (let [values (values attr)]
-      ($ :div {:key label}
-        ($ :legend label)
+    :or   {values (constantly (list)) on-change identity}}]
+  (for [[label tx attr min max default]
+        [["Size"  :token/change-size  :token/size  5 25  5]
+         ["Aura"  :token/change-aura  :aura/radius 0 50  0]
+         ["Light" :token/change-light :token/light 0 50 15]]]
+    (let [values (values attr)
+          candid (first (into (sorted-set-by >) values))]
+      ($ :fieldset {:key label}
+        ($ :div label)
+        ($ :input
+          {:type      "range"
+           :min       min
+           :max       max
+           :step      5
+           :value     (or candid default)
+           :on-change (fn [event]
+                        (let [value (.. event -target -value)]
+                          (on-change tx (js/Number value))))})
         ($ :span
           (cond
-            (> (count values) 1) "Multiple..."
-            (= (count values) 0) (str def "ft.")
-            (= (first values) 0) "None"
-            (= (count values) 1) (str (first values) "ft.")))
-        ($ :button.button
-          {:type "button"
-           :on-click
-           (fn []
-             (let [next (if (> (count values) 1) min (max (- (first values) 5) min))]
-               (on-change tx-name next)))} "-")
-        ($ :button.button
-          {:type "button"
-           :on-click
-           (fn []
-             (let [next (if (> (count values) 1) 5 (+ (first values) 5))]
-               (on-change tx-name next)))} "+")))))
+            (=  (first values) 0) "None"
+            (>= (count values) 1) (str candid "ft.")
+            (=  (count values) 0) (str default "ft.")))))))
 
 (defui ^:private token-form-conds
   [props]
@@ -124,7 +120,7 @@
                           (= (get fqs flag 0) (count ids)) true
                           :else :indeterminate)}
         (fn [{:keys [key input]}]
-          ($ :div input
+          ($ :<> input
             ($ :label {:for key :data-tooltip (capitalize (name flag))}
               ($ icon {:name icon-name :size 22}))))))))
 
@@ -143,7 +139,7 @@
            (for [[form icon-name tooltip]
                  [[:label "fonts" "Label"]
                   [:details "sliders" "Options"]
-                  [:conditions "flag-fill" "Conditions"]]]
+                  [:conditions "arrow-through-heart-fill" "Conditions"]]]
              ($ :button
                {:key form :type "button" :data-tooltip tooltip
                 :class (css {:selected (= selected form)})

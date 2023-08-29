@@ -43,12 +43,12 @@
                    :on-change  (fn [event] (-> (.. event -target -value) upper-case set-code))})
                 ($ :.join-codes
                   (for [indx (range 4) :let [active (= indx (count code))]]
-                    ($ :div {:key indx :class (css {:active active})}
+                    ($ :div {:key indx :class (css {:active (> (count code) indx) :focused active})}
                       (nth code indx nil)))))))
           ($ :.modal-footer
             ($ :button.button
               {:type "button" :on-click #(on-close)} "Close")
-            ($ :button.button.button-primary
+            ($ :button.button
               {:type "submit" :disabled (not= (count code) 4)} "Join")))))))
 
 (defui join []
@@ -60,10 +60,10 @@
           conns :session/conns} :root/session} result]
     ($ :div.join
       (case state
-        :initial      ($ :button.button.button-primary {:on-click #(set-modal true)} status-icon "Join with code")
+        :initial      ($ :button.button {:on-click #(set-modal true)} status-icon "Join with code")
         :connecting   ($ :button.button {:disabled true} status-icon "Connecting...")
         :connected    ($ :button.button {:disabled true} status-icon "Connected / " code " / [" (inc (count conns)) "]")
-        :disconnected ($ :button.button.button-danger {:disabled true} status-icon "Disconnected")
+        :disconnected ($ :button.button {:disabled true} status-icon "Disconnected")
         ($ :button.button {:disabled true} status-icon "Status not known"))
       (if modal
         (create-portal

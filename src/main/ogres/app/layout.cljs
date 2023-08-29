@@ -10,14 +10,11 @@
 (def ^:private query
   [[:local/type :default :conn]
    [:local/loaded? :default false]
-   [:local/shortcuts? :default true]
    [:local/tooltips? :default true]])
 
 (defui layout []
-  (let [{:local/keys [loaded? type shortcuts? tooltips?]} (use-query query)]
-    ($ :div.root {:data-view-type      (name type)
-                  :data-show-shortcuts shortcuts?
-                  :data-show-tooltips  tooltips?}
+  (let [{:local/keys [loaded? type tooltips?]} (use-query query)]
+    ($ :div.root {:data-view-type (name type) :data-show-tooltips tooltips?}
       (if loaded?
         (if (= type :view)
           ($ :div.layout {:style {:visibility "hidden"}}

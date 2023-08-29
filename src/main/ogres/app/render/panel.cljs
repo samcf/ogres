@@ -6,7 +6,7 @@
             [ogres.app.form.options :as options]
             [ogres.app.form.help    :as help]
             [ogres.app.form.initiative :as initiative]
-            [ogres.app.render :refer [css icon]]
+            [ogres.app.render :refer [icon]]
             [uix.core :refer [defui $]]))
 
 (def ^:private panel-forms
@@ -37,33 +37,21 @@
   (let [dispatch (use-dispatch)
         result   (use-query query)
         forms    (panel-forms (:local/type result))]
-    ($ :section.panel
-      ($ :div.panel-forms
-        (for [form forms
-              :let [key (:key form)
-                    expanded (contains? (:panel/expanded result) key)]]
-          ($ :div.panel-form
-            {:key key
-             :class (css {(str "panel-form-" (name key)) true
-                          "panel-form--expanded" expanded
-                          "panel-form--collapsed" (not expanded)})}
-            ($ :div.panel-header
+    ($ :nav.panel
+      ($ :ul.forms
+        (for [form forms :let [key (:key form) expanded (contains? (:panel/expanded result) key)]]
+          ($ :li {:key key :class "form" :data-form (name key) :data-expanded expanded}
+            ($ :div.form-header
               {:on-click #(dispatch :local/toggle-panel key)}
               ($ :<>
                 ($ icon {:name (:icon form) :size 20})
-                ($ :div.panel-header-label (:label form))
-                (if-let [component (-> components key :header)]
-                  ($ component))
-                ($ :div.panel-header-chevron
-                  ($ icon
-                    {:name (if expanded "chevron-double-up" "chevron-double-down")
-                     :size 18}))))
+                ($ :div.form-label (:label form))
+                ($ :div.form-chevron
+                  ($ icon {:name (if expanded "chevron-double-up" "chevron-double-down") :size 18}))))
             (if expanded
-              ($ :div.panel-content
-                ($ :div.panel-container
+              ($ :div.form-container
+                ($ :div.form-content
                   (if-let [component (-> components key :form)]
-                    ($ :div.panel-container-content
-                      ($ component)))
+                    ($ :div.form-body ($ component)))
                   (if-let [component (-> components key :footer)]
-                    ($ :div.panel-container-footer
-                      ($ component))))))))))))
+                    ($ :div.form-footer ($ component))))))))))))

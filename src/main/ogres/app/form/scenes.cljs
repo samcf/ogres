@@ -29,13 +29,14 @@
                      (into (subvec data src dst))
                      (take per-page)
                      (map-indexed vector))]
-        ($ :section.scenes-form
+        ($ :section.scene-gallery
           (for [[idx data] seq]
             (if-let [checksum (:image/checksum data)]
               ($ thumbnail {:key idx :checksum checksum}
                 (fn [{:keys [data-url]}]
-                  ($ :figure.scenes-form-scene
+                  ($ :figure.scene-gallery-item
                     {:style {:background-image (str "url(" data-url ")")}
+                     :data-type "image"
                      :on-click
                      (fn [event]
                        (.stopPropagation event)
@@ -47,12 +48,12 @@
                          (.stopPropagation event)
                          (dispatch :scene-images/remove checksum))}
                       ($ icon {:name "trash3-fill" :size 16})))))
-              ($ :figure.scenes-form-placeholder {:key idx})))
+              ($ :figure.scene-gallery-item {:key idx :data-type "placeholder"})))
           ($ pagination
             {:pages pages
              :value (min page pages)
              :on-change set-page})))
-      ($ :section.scenes-form
+      ($ :section.scene-gallery
         ($ :div.prompt
           "Upload one or more images from your"
           ($ :br) "computer to use as a map. Its best"
@@ -66,7 +67,7 @@
         upload   (use-image-uploader {:type :scene})
         input    (use-ref)]
     ($ :<>
-      ($ :button.button.button-neutral
+      ($ :button.button
         {:type     "button"
          :title    "Upload map image"
          :on-click #(.click (deref input))}
@@ -78,7 +79,7 @@
                (upload file))
              (set! (.. event -target -value) ""))})
         ($ icon {:name "camera-fill" :size 16}) "Select Files")
-      ($ :button.button.button-danger
+      ($ :button.button
         {:type     "button"
          :title    "Remove all"
          :disabled (empty? scenes)

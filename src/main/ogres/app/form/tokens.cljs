@@ -1,6 +1,6 @@
 (ns ogres.app.form.tokens
   (:require [ogres.app.hooks :refer [use-dispatch use-image use-image-uploader use-query]]
-            [ogres.app.render :refer [css icon pagination]]
+            [ogres.app.render :refer [icon pagination]]
             [ogres.app.util :refer [separate comp-fn]]
             [uix.core :as uix :refer [defui $ use-callback use-ref use-state]]
             [uix.dom :refer [create-portal]]
@@ -70,17 +70,19 @@
     (create-portal
      ($ drag-overlay {:drop-animation nil}
        (cond (= active "default")
-             ($ :figure.tokens-default ($ icon {:name "dnd"}))
+             ($ :figure.token-gallery-item
+               {:data-type "default"}
+               ($ icon {:name "dnd"}))
              (string? active)
              ($ image {:checksum active}
                (fn [{:keys [data-url]}]
-                 ($ :figure.tokens-template
-                   {:class (css {:is-deleting delete})
+                 ($ :figure.token-gallery-item
+                   {:data-type "image"
+                    :data-delete delete
                     :style {:background-image (str "url(" data-url ")")}})))))
      (.querySelector js/document "#root"))))
 
-(defui ^:private tokens
-  [props]
+(defui ^:private gallery [props]
   (let [option (use-droppable #js {"id" "trash"})]
     ($ :<>
       (for [[idx data] (sequence (map-indexed vector) (:data props))]
@@ -88,23 +90,25 @@
               (let [checksum (:image/checksum data)]
                 ($ token {:key checksum :checksum checksum}
                   (fn [{:keys [data-url ^js/object options]}]
-                    ($ :figure.tokens-template
-                      {:ref   (.-setNodeRef options)
+                    ($ :figure.token-gallery-item
+                      {:ref (.-setNodeRef options)
+                       :data-type "image"
                        :style {:background-image (str "url(" data-url ")")}
                        :on-pointer-down (.. options -listeners -onPointerDown)
                        :on-key-down     (.. options -listeners -onKeyDown)}))))
               (= data :default)
               ($ draggable {:key idx :id "default"}
                 (fn [{:keys [^js/object options]}]
-                  ($ :figure.tokens-default
+                  ($ :figure.token-gallery-item
                     {:ref (.-setNodeRef options)
+                     :data-type "default"
                      :on-pointer-down (.. options -listeners -onPointerDown)
-                     :on-key-down     (.. options -listeners -onKeyDown)}
+                     :on-key-down (.. options -listeners -onKeyDown)}
                     ($ icon {:name "dnd"}))))
               (= data :placeholder)
-              ($ :figure.tokens-placeholder {:key idx})))
-      ($ :figure.tokens-trashcan
-        {:ref (.-setNodeRef option)}
+              ($ :figure.token-gallery-item {:key idx :data-type "placeholder"})))
+      ($ :figure.token-gallery-item
+        {:ref (.-setNodeRef option) :data-type "trash"}
         ($ icon {:name "trash3-fill" :size 26})))))
 
 (defui ^:private paginated
@@ -119,7 +123,7 @@
                    (concat (subvec data start stop))
                    (take limit))]
     ($ :<>
-      ($ tokens {:data data})
+      ($ gallery {:data data})
       ($ pagination
         {:pages (max pages 1)
          :value (max (min pages page) 1)
@@ -151,12 +155,15 @@
       (if (= type :host)
         ($ :<>
           ($ :header "Public [" (count data-pub) "]")
-          ($ :section.tokens.host.public
+          ($ :section.token-gallery
+            {:data-type "host" :data-scope "public"}
             ($ paginated {:data data-pub :limit 10}))
           ($ :header "Private [" (count data-prv) "]")
-          ($ :section.tokens.host.private
+          ($ :section.token-gallery
+            {:data-type "host" :data-scope "private"}
             ($ paginated {:data data-prv :limit 20})))
-        ($ :section.tokens.conn.public
+        ($ :section.token-gallery
+          {:data-type "conn" :data-scope "public"}
           ($ paginated {:data data-pub :limit 30})))
       ($ drag-handler
         {:on-create on-create
@@ -171,7 +178,7 @@
         upload   (use-image-uploader {:type :token})
         input    (use-ref)]
     ($ :<>
-      ($ :button.button.button-neutral
+      ($ :button.button
         {:type     "button"
          :title    "Upload token image"
          :on-click #(.click (deref input))}
@@ -183,7 +190,7 @@
                (upload file))
              (set! (.. event -target -value) ""))})
         ($ icon {:name "camera-fill" :size 16}) "Select Files")
-      ($ :button.button.button-danger
+      ($ :button.button
         {:type     "button"
          :title    "Remove all"
          :disabled (or (= type :conn) (empty? images))
