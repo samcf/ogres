@@ -1,7 +1,7 @@
 (ns ogres.app.render.scenes
   (:require [clojure.string :refer [blank? trim]]
             [ogres.app.hooks :refer [use-dispatch use-query]]
-            [ogres.app.render :refer [css icon]]
+            [ogres.app.render :refer [icon]]
             [uix.core :refer [defui $]]))
 
 (defn ^:private close-prompt
@@ -26,7 +26,7 @@
         (for [{:keys [db/key camera/label]} cameras]
           ($ :li.scenes-scene
             {:key key
-             :class (css {:selected (= key (:db/key current))})
+             :data-selected (= (:db/key current) key)
              :on-click #(dispatch :scenes/change key)}
             ($ :.scenes-scene-label
               (if (blank? label) "New scene" (trim label)))
@@ -42,4 +42,4 @@
           ($ :button
             {:type "button"
              :title "Create new scene"
-             :on-click #(dispatch :scenes/create)} ($ icon {:name "plus"})))))))
+             :on-click #(dispatch :scenes/create)} ($ icon {:name "plus" :size 18})))))))

@@ -3,6 +3,36 @@
     --font-stack-system: system-ui, sans-serif;
     --font-stack-transitional: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, serif;
     --font-stack-mono: 'Nimbus Mono PS', 'Courier New', 'Cutive Mono', monospace;
+
+    --color-black-900: #000000;
+    --color-black-700: #333333;
+    --color-black-500: #666666;
+    --color-black-300: #CCCCCC;
+    --color-black-100: #F2F2F2;
+
+    --color-prime-900: #79bd8f;
+    --color-prime-700: #79bd8f;
+    --color-prime-500: hsl(140, 35%, 60%);
+    --color-prime-300: #79bd8f;
+    --color-prime-100: #79bd8f;
+
+    --color-blues-900: hsl(200, 20%, 12%);
+    --color-blues-700: hsl(208, 26%, 22%);
+    --color-blues-500: hsl(208, 20%, 28%);
+    --color-blues-300: hsl(208, 20%, 34%);
+    --color-blues-100: red;
+
+    --color-accent-paper-900: red;
+    --color-accent-paper-700: red;
+    --color-accent-paper-500: red;
+    --color-accent-paper-300: red;
+    --color-accent-paper-100: red;
+
+    --color-accent-danger-900: red;
+    --color-accent-danger-700: red;
+    --color-accent-danger-500: red;
+    --color-accent-danger-300: red;
+    --color-accent-danger-100: red;
 }
 
 html, body, #root, .root {
@@ -10,7 +40,7 @@ html, body, #root, .root {
 }
 
 body {
-    background-color: #f2f2f2;
+    background-color: var(--color-blues-500);
     background-image: var(--pattern-dots);
     font-family: var(--font-stack-transitional);
     font-size: 16px;
@@ -341,23 +371,19 @@ legend {
 /* Scenes */
 .scenes {
     height: 100%;
+    color: var(--color-black-300);
 }
 
 .scenes ul {
     display: flex;
-    gap: 2px;
+    gap: 1px;
     height: 100%;
     margin: 0;
 }
 
-.scenes .scenes-scene {
-    align-items: center;
-    background-color: white;
-    border-color: black;
-    border-radius: 2px 2px 0 0;
-    border-style: solid;
-    border-width: 1px 1px 0 1px;
-    color: black;
+.scenes-scene {
+    background-color: var(--color-blues-700);
+    border-radius: 3px 3px 0 0;
     cursor: pointer;
     display: flex;
     flex: 1;
@@ -369,12 +395,16 @@ legend {
     min-width: 0px;
 }
 
-.scenes .scenes-scene.selected {
-    background-color: black;
-    color: white;
+.scenes-scene:hover .scenes-scene-remove {
+    visibility: visible;
 }
 
-.scenes .scenes-scene-label {
+.scenes-scene[data-selected="true"] {
+    background-color: var(--color-blues-900);
+    color: var(--color-black-100);
+}
+
+.scenes-scene-label {
     flex: 1;
     overflow: hidden;
     padding: 4px 4px 4px 12px;
@@ -382,59 +412,41 @@ legend {
     white-space: nowrap;
 }
 
-.scenes .scenes-scene-remove {
+.scenes-scene-remove {
+    color: var(--color-black-300);
     align-items: center;
     background-color: transparent;
     border: none;
-    color: black;
     cursor: pointer;
     display: flex;
-    height: 100%;
     visibility: hidden;
 }
 
-.scenes .scenes-scene:hover .scenes-scene-remove {
-    visibility: visible;
-}
-
-.scenes .scenes-scene.selected:hover .scenes-scene-remove {
-    color: white;
-}
-
-.scenes .scenes-create {
+.scenes-create {
     align-items: center;
-    align-self: center;
-    align-self: flex-start;
-    width: 26px;
-    height: 26px;
-    background-color: white;
-    border-radius: 3px;
-    border: 1px solid black;
+    background-color: var(--color-blues-700);
+    border-radius: 3px 3px 0 0;
     display: flex;
     justify-content: center;
-    margin-left: 1px;
 }
 
-.scenes .scenes-create button {
+.scenes-create button {
     align-items: center;
     background: none;
     border: none;
+    color: var(--color-black-100);
     display: flex;
     justify-content: center;
     outline: none;
 }
 
-.scenes .scenes-create:hover {
-    background-color: black;
-    color: white;
+.scenes-scene:hover,
+.scenes-create:hover {
+    background-color: var(--color-blues-900);
 }
 
-.scenes .scenes-create:hover button {
-    color: white;
-}
-
-.scenes .scenes-create,
-.scenes .scenes-create button {
+.scenes-create,
+.scenes-create button {
     cursor: pointer;
 }
 
@@ -444,31 +456,33 @@ legend {
 }
 
 .toolbar-tooltip {
-    background-color: white;
-    border: 1px solid black;
+    background-color: var(--color-blues-900);
+    border-radius: 2px;
+    border: 1px solid var(--color-blues-700);
+    color: var(--color-black-100);
     font-size: 13px;
     margin-bottom: 4px;
     padding: 4px 8px;
-    border-radius: 2px;
     text-align: center;
 }
 
 .toolbar-groups {
-    background-color: white;
-    border-radius: 2px;
-    border: 1px solid black;
+    background-color: var(--color-blues-900);
+    border-radius: 3px;
+    border: 1px solid var(--color-blues-700);
     box-shadow: 4px 4px 0 0 rgba(0, 0, 0, .15);
     display: grid;
-    gap: 2px;
+    gap: 1px;
     grid-template-columns: repeat(13, 1fr);
     grid-template-rows: repeat(2, 1fr);
-    padding: 3px;
+    padding: 2px;
 }
 
 .toolbar button {
     align-items: center;
+    background-color: var(--color-blues-700);
     border-color: transparent;
-    border-radius: 2px;
+    border-radius: 1px;
     border-style: solid;
     border-width: 1px;
     display: flex;
@@ -479,27 +493,27 @@ legend {
 }
 
 .toolbar button:disabled {
-    border-color: #eee;
+    color: var(--color-black-500);
 }
 
 .toolbar button:not(:disabled) {
     cursor: pointer;
-    background-color: #f2f2f2;
+    color: var(--color-black-300);
 }
 
 .toolbar button.active,
 .toolbar button.selected {
-    background-color: black;
-    color: white;
+    background-color: var(--color-blues-500);
+    color: var(--color-prime-500);
 }
 
 .toolbar button:not(:disabled, .active, .selected):hover,
 .toolbar button:not(:disabled, .active, .selected):active {
-    background-color: #e2e2e2;
+    background-color: var(--color-blues-500);
 }
 
 .toolbar button:not(:disabled):active {
-    border-color: black;
+    border-color: var(--color-prime-500);
 }
 
 .toolbar button svg {
@@ -526,9 +540,10 @@ legend {
 
 /* Scene */
 .scene {
-    background-color: white;
-    border: 1px solid black;
-    border-radius: 0 2px 2px 2px;
+    border: 1px solid var(--color-blues-900);
+    background-color: var(--color-blues-900);
+    border-radius: 0 4px 4px 4px;
+    box-shadow: 4px 4px 0 0 rgba(0, 0, 0, .15);
     box-sizing: border-box;
     height: 100%;
     pointer-events: all;
