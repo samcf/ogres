@@ -535,7 +535,7 @@
      [:camera/scale :default 1]
      [:camera/draw-mode :default :select]
      {:camera/scene
-      [[:scene/dark-mode :default true]]}]}])
+      [[:scene/dark-mode :default false]]}]}])
 
 (defui render-scene []
   (let [dispatch (use-dispatch)

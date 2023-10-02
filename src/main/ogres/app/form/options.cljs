@@ -19,7 +19,7 @@
      [:camera/draw-mode :default :select]
      {:camera/scene
       [:db/key
-       [:scene/dark-mode :default true]
+       [:scene/dark-mode :default false]
        [:scene/grid-size :default 70]
        [:scene/lighting :default :revealed]
        [:scene/show-grid :default true]
