@@ -48,12 +48,15 @@
     :or   {pages 10 value 1 on-change identity}}]
   ($ :nav {:role "navigation"}
     ($ :ol.pagination
-      ($ :li {:on-click #(on-change (dec value)) :class (css {:selectable (> value 1)})}
+      ($ :li {:on-click #(on-change (dec value)) :data-selectable (> value 1)}
         ($ icon {:name "chevron-left" :size 16}))
       (for [[idx term] (->> (create-range 1 pages value) (map-indexed vector))]
-        ($ :li {:key idx
-                :class (css {:selected (= term value) :selectable (and (not= term value) (not= term :space))})
-                :on-click #(on-change term)}
+        ($ :li
+          {:key idx
+           :data-selectable (and (not= term value) (not= term :space))
+           :data-selected   (= term value)
+           :on-click #(on-change term)}
           (if (= term :space) \… term)))
-      ($ :li {:on-click #(on-change (inc value)) :class (css {:selectable (< value pages)})}
+      ($ :li
+        {:on-click #(on-change (inc value)) :data-selectable (< value pages)}
         ($ icon {:name "chevron-right" :size 16})))))

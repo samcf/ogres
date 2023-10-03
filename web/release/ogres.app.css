@@ -1149,17 +1149,19 @@ legend {
 .pagination {
     align-items: center;
     display: flex;
-    gap: 2px;
+    gap: 3px;
 }
 
 .pagination li {
     align-items: center;
-    border-color: transparent;
+    background-color: var(--color-black-100);
+    border-color: var(--color-black-900);
     border-radius: 3px;
     border-style: solid;
     border-width: 1px;
+    box-shadow: 1px 1px 0 0 rgba(0, 0, 0, .10);
     box-sizing: border-box;
-    color: #999;
+    color: var(--color-black-300);
     cursor: default;
     display: flex;
     font-size: 14px;
@@ -1169,28 +1171,25 @@ legend {
     width: 32px;
 }
 
-.pagination li:not(.selected, .selectable) {
-    border-color: #ccc;
+.pagination li[data-selectable="false"] {
+    border-color: var(--color-black-300);
 }
 
-.pagination .selected {
-    background-color: black;
-    color: white;
+.pagination li:is([data-selected="true"]) {
+    background-color: var(--color-black-900);
+    border-color: var(--color-black-900);
+    color: var(--color-black-100);
 }
 
-.pagination .selectable {
-    background-color: #ddd;
-    color: black;
+.pagination li:is([data-selectable="true"]) {
+    background-color: var(--color-black-100);
+    color: var(--color-black-900);
     cursor: pointer;
     pointer-events: all;
 }
 
-.pagination .selectable:hover {
-    background-color: #bbb;
-}
-
-.pagination .selectable:active {
-    border-color: black;
+.pagination li:is([data-selectable="true"]):hover {
+    background-color: var(--color-black-300);
 }
 
 /* Scene Management */
