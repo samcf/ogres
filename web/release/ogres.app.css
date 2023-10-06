@@ -1032,8 +1032,9 @@ legend {
 
 .forms {
     background-color: white;
-    border-radius: 0 0 2px 2px;
+    border-radius: 0 0 4px 4px;
     border: 1px solid black;
+    box-shadow: 4px 4px 0 0 rgba(0, 0, 0, .15);
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -1059,16 +1060,16 @@ legend {
     cursor: pointer;
 }
 
-.form[data-expanded="false"]:hover .form-header {
-    background-color: #eee;
-}
-
 .form[data-expanded="true"] {
     flex: 1 0 auto;
 }
 
+.form[data-expanded="true"] .form-header {
+    border-bottom-color: var(--color-black-300);
+}
+
 .form-header {
-    border-bottom: 1px solid black;
+    border-bottom: 1px solid var(--color-black-900);
     display: flex;
     font-size: 14px;
     gap: 4px;
@@ -1095,7 +1096,7 @@ legend {
     box-sizing: border-box;
     flex: 1;
     font-size: 12px;
-    border-bottom: 1px solid black;
+    border-bottom: 1px solid var(--color-black-900);
 }
 
 .form-content {
@@ -1106,7 +1107,8 @@ legend {
 }
 
 .form-body {
-    background-color: #f9f9f9;
+    background-color: var(--color-black-100);
+    border-radius: 0 0 4px 4px;
     flex: 1 0 auto;
     height: 0vh;
     min-height: 100%;
@@ -1115,10 +1117,14 @@ legend {
 }
 
 .form-footer {
-    border-top: 1px solid black;
+    border-top: 1px solid var(--color-black-300);
     bottom: 0;
     padding: 8px;
     position: sticky;
+}
+
+.form-body .pagination {
+    margin-top: 6px;
 }
 
 /* Initiative Form */
@@ -1227,6 +1233,7 @@ legend {
 }
 
 .scene-gallery-item[data-type="placeholder"] {
+    background-color: var(--color-black-100);
     border-style: dashed;
 }
 
@@ -1330,6 +1337,7 @@ legend {
 }
 
 .token-gallery-item[data-type="placeholder"] {
+    background-color: var(--color-black-100);
     border-style: dashed;
 }
 
