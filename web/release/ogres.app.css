@@ -933,8 +933,8 @@ legend {
 /* Tooltips */
 [data-tooltip]:not(:disabled):hover:after {
     background-color: var(--color-blues-900);
-    border: 1px solid var(--color-blues-700);
     border-radius: 3px;
+    border: 1px solid var(--color-blues-700);
     color: white;
     content: attr(data-tooltip);
     font-size: 11px;
@@ -942,6 +942,7 @@ legend {
     padding: 2px 4px;
     pointer-events: none;
     position: absolute;
+    text-transform: uppercase;
     top: -20px;
 }
 
