@@ -27,6 +27,12 @@
     --color-danger-500: hsl(6, 73%, 60%);
     --color-danger-300: hsl(6, 73%, 60%);
     --color-danger-100: hsl(6, 73%, 60%);
+
+    --color-paper-100: hsl(60, 30%, 98%);
+    --color-paper-300: hsl(60, 30%, 96%);
+    --color-paper-500: hsl(60, 21%, 94%);
+    --color-paper-700: hsl(60, 21%, 92%);
+    --color-paper-900: hsl(60, 21%, 90%);
 }
 
 html, body, #root, .root {
@@ -1030,7 +1036,7 @@ legend {
 }
 
 .forms {
-    background-color: white;
+    background-color: var(--color-paper-300);
     border-radius: 0 0 4px 4px;
     border: 1px solid black;
     box-shadow: 4px 4px 0 0 rgba(0, 0, 0, .15);
@@ -1086,6 +1092,7 @@ legend {
 }
 
 .form-chevron {
+    color: var(--color-black-500);
     height: 18px;
     margin: 5px 8px 0px auto;
     padding: 2px;
@@ -1106,7 +1113,7 @@ legend {
 }
 
 .form-body {
-    background-color: var(--color-black-100);
+    background-color: var(--color-paper-500);
     border-radius: 0 0 4px 4px;
     flex: 1 0 auto;
     height: 0vh;
@@ -1180,17 +1187,17 @@ legend {
     border-color: var(--color-black-300);
 }
 
+.pagination li:is([data-selectable="true"]) {
+    background-color: var(--color-paper-500);
+    color: var(--color-black-900);
+    cursor: pointer;
+    pointer-events: all;
+}
+
 .pagination li:is([data-selected="true"]) {
     background-color: var(--color-black-900);
     border-color: var(--color-black-900);
     color: var(--color-black-100);
-}
-
-.pagination li:is([data-selectable="true"]) {
-    background-color: var(--color-black-100);
-    color: var(--color-black-900);
-    cursor: pointer;
-    pointer-events: all;
 }
 
 /* Scene Management */
