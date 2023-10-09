@@ -1,6 +1,6 @@
 (ns ogres.app.render.join
   (:require [clojure.string :refer [upper-case]]
-            [ogres.app.render :refer [css icon]]
+            [ogres.app.render :refer [icon]]
             [ogres.app.hooks :refer [use-query]]
             [uix.core :refer [defui $ use-state use-callback use-ref]]
             [uix.dom :refer [create-portal]]))
@@ -42,8 +42,8 @@
                    :max-length 4
                    :on-change  (fn [event] (-> (.. event -target -value) upper-case set-code))})
                 ($ :.join-codes
-                  (for [indx (range 4) :let [active (= indx (count code))]]
-                    ($ :div {:key indx :class (css {:active (> (count code) indx) :focused active})}
+                  (for [indx (range 4) :let [focused (= indx (count code))]]
+                    ($ :div {:key indx :data-focused focused}
                       (nth code indx nil)))))))
           ($ :.modal-footer
             ($ :button.button

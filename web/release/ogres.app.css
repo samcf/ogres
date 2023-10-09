@@ -303,8 +303,9 @@ legend {
 
 .join-codes > div {
     align-items: center;
-    border-radius: 3px;
-    border: 1px solid #aaa;
+    background-color: var(--color-blues-700);
+    border-radius: 2px;
+    border: 1px solid var(--color-blues-300);
     cursor: text;
     display: flex;
     font-size: 1.4rem;
@@ -313,9 +314,8 @@ legend {
     width: 48px;
 }
 
-.join-codes > div.active,
-.join-input:focus + .join-codes > div.focused {
-    border-color: black;
+.join-input:focus + .join-codes > [data-focused="true"] {
+    border-color: var(--color-prime-500);
 }
 
 /* Modal */
@@ -333,10 +333,12 @@ legend {
 }
 
 .modal-container {
-    background-color: white;
-    border-radius: 3px;
+    background-color: var(--color-blues-900);
+    border-radius: 2px;
     border: 1px solid black;
+    box-shadow: 3px 3px 0 0 rgba(0, 0, 0, .35);
     box-sizing: border-box;
+    color: var(--color-black-100);
     width: 512px;
 }
 
@@ -365,7 +367,8 @@ legend {
 
 .modal-footer {
     align-items: center;
-    background-color: #eee;
+    background-color: var(--color-blues-700);
+    border-radius: 0 0 2px 2px;
     display: flex;
     gap: 6px;
     justify-content: flex-end;
