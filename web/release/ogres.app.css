@@ -10,29 +10,23 @@
     --color-black-300: #CCCCCC;
     --color-black-100: #F2F2F2;
 
-    --color-prime-900: #79bd8f;
-    --color-prime-700: #79bd8f;
-    --color-prime-500: hsl(140, 35%, 60%);
-    --color-prime-300: #79bd8f;
-    --color-prime-100: #79bd8f;
+    --color-prime-900: hsl(140.00, 20.80%, 19.80%);
+    --color-prime-700: hsl(140.50, 21.60%, 34.50%);
+    --color-prime-500: hsl(140.00, 35%, 60%);
+    --color-prime-300: hsl(140.00, 21.50%, 64.50%);
+    --color-prime-100: hsl(141.80, 21.15%, 79.60%);
 
     --color-blues-900: hsl(200, 20%, 12%);
     --color-blues-700: hsl(208, 26%, 22%);
     --color-blues-500: hsl(208, 20%, 28%);
     --color-blues-300: hsl(208, 20%, 34%);
-    --color-blues-100: red;
+    --color-blues-100: hsl(208, 20%, 34%);
 
-    --color-accent-paper-900: red;
-    --color-accent-paper-700: red;
-    --color-accent-paper-500: red;
-    --color-accent-paper-300: red;
-    --color-accent-paper-100: red;
-
-    --color-accent-danger-900: red;
-    --color-accent-danger-700: red;
-    --color-accent-danger-500: red;
-    --color-accent-danger-300: red;
-    --color-accent-danger-100: red;
+    --color-danger-900: hsl(6, 73%, 60%);
+    --color-danger-700: hsl(6, 73%, 60%);
+    --color-danger-500: hsl(6, 73%, 60%);
+    --color-danger-300: hsl(6, 73%, 60%);
+    --color-danger-100: hsl(6, 73%, 60%);
 }
 
 html, body, #root, .root {
@@ -158,6 +152,11 @@ legend {
     gap: 12px;
 }
 
+.options-group {
+    display: flex;
+    gap: 4px;
+}
+
 .options label {
     text-transform: uppercase;
 }
@@ -182,35 +181,34 @@ legend {
     cursor: pointer;
 }
 
-.options input:is([type="checkbox"], [type="radio"]):checked + label {
-    background-color: black;
-    color: white;
+.options input:is([type="checkbox"], [type="radio"]):not(:disabled):checked + label {
+    background-color: var(--color-prime-500);
+    border-color: var(--color-prime-500);
+    color: var(--color-prime-900);
+}
+
+.options input:is([type="checkbox"], [type="radio"]):not(:disabled, :checked) + label {
+    border-color: var(--color-black-300);
+    color: var(--color-black-500);
+}
+
+.options input:is([type="checkbox"], [type="radio"]):not(:disabled, :checked):active + label {
+    border-color: var(--color-prime-700);
 }
 
 .options input:is([type="checkbox"], [type="radio"]):disabled + label {
-    border-color: lightgray;
-    color: darkgray;
+    border-color: var(--color-black-300);
+    color: var(--color-black-500);
 }
 
-.options input[type="checkbox"]:checked:disabled + label {
-    background-color: lightgray;
-    color: lightgray;
+.options input:is([type="checkbox"], [type="radio"]):disabled:checked + label {
+    background-color: var(--color-black-300);
+    color: var(--color-black-500);
+    border-color: var(--color-black-300);
 }
 
-.options input[type="radio"]:checked:disabled + label {
-    background-color: lightgray;
-    color: darkgray;
-    border-color: lightgray;
-}
-
-.options input[type="checkbox"]:disabled + [data-tooltip]:after,
-.options input[type="radio"]:disabled + [data-tooltip]:after {
+.options input:is([type="checkbox"], [type="radio"]):disabled + [data-tooltip]:after {
     display: none;
-}
-
-.options-group {
-    display: flex;
-    gap: 4px;
 }
 
 /* Layout */
@@ -736,50 +734,43 @@ legend {
 }
 
 .context-menu {
-    background-color: white;
+    background-color: var(--color-blues-700);
     border-radius: 2px;
-    border: 1px solid black;
-    box-shadow: 4px 4px 0 0 rgba(0, 0, 0, .15);
+    box-shadow: 3px 3px 0 0 rgba(0, 0, 0, .35);
     box-sizing: border-box;
     margin: 24px auto;
-    max-width: 241px;
+    max-width: 234px;
     pointer-events: all;
     position: relative;
+    border: 1px solid var(--color-blues-900);
 }
 
 .context-menu-toolbar {
     display: flex;
-    gap: 3px;
     justify-content: space-between;
-    padding: 4px 4px;
+    padding: 3px 3px;
 }
 
 .context-menu-toolbar > button {
     align-items: center;
     aspect-ratio: 1 / 1;
-    background: white;
+    background: transparent;
     border-color: transparent;
     border-radius: 2px;
     border-style: solid;
     border-width: 1px;
     box-sizing: border-box;
-    color: black;
+    color: var(--color-black-300);
     display: flex;
     justify-content: center;
 }
 
 .context-menu-toolbar > button:hover {
-    background-color: #eee;
+    color: var(--color-black-100);
 }
 
-.context-menu-toolbar > button:active {
-    border-color: black;
-}
-
-.context-menu-toolbar > button.selected {
-    border-color: transparent;
-    background-color: black;
-    color: white;
+.context-menu-toolbar > button[data-selected="true"] {
+    background-color: var(--color-blues-900);
 }
 
 .context-menu-toolbar > button:not(:disabled) {
@@ -789,7 +780,7 @@ legend {
 .context-menu-form {
     font-size: 12px;
     padding: 3px;
-    border-top: 1px solid black;
+    border-top: 1px solid var(--color-blues-900);
 }
 
 .context-menu-form-label form {
@@ -816,7 +807,14 @@ legend {
 }
 
 .context-menu-form-label input[type="text"] {
+    background-color: transparent;
     border: none;
+    color: var(--color-black-100);
+    font-family: var(--font-stack-transitional);
+}
+
+.context-menu-form-label input[type="text"]::placeholder {
+    color: var(--color-black-300);
 }
 
 .context-menu-form-modal {
@@ -828,6 +826,7 @@ legend {
 }
 
 .context-menu-form-details {
+    color: var(--color-black-100);
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -867,12 +866,13 @@ legend {
 .context-menu-form-conditions label {
     align-items: center;
     aspect-ratio: 1 / 1;
-    background-color: #fff;
-    border-color: #eee;
+    background-color: var(--color-blues-500);
+    border-color: var(--color-blues-700);
     border-radius: 2px;
     border-style: solid;
     border-width: 1px;
     box-sizing: border-box;
+    color: var(--color-black-100);
     cursor: pointer;
     display: flex;
     justify-content: center;
@@ -880,16 +880,12 @@ legend {
 }
 
 .context-menu-form-conditions input:is(:checked) + label {
-    background-color: black;
-    color: white;
+    color: var(--color-danger-500);
 }
 
-.context-menu-form-conditions input:is(:active, :checked, :indeterminate) + label {
-    border-color: black;
-}
-
-.context-menu-form-conditions input:not(:checked) + label:hover {
-    background-color: #eee;
+.context-menu-form-conditions input:is(:checked, :indeterminate) + label {
+    border-color: var(--color-blues-900);
+    background-color: var(--color-blues-900);
 }
 
 .context-menu-form-color input[type="range"] {
@@ -905,7 +901,8 @@ legend {
 
 .context-menu-form-colors > div {
     aspect-ratio: 1 / 1;
-    border: 1px solid black;
+    border: 1px solid var(--color-black-700);
+    border-radius: 2px;
 }
 
 .context-menu-form-pattern {
@@ -917,16 +914,18 @@ legend {
 
 .context-menu-form-pattern svg {
     aspect-ratio: 1 / 1;
-    border: 1px solid black;
+    background-color: var(--color-blues-900);
+    border: 1px solid var(--color-black-900);
     box-sizing: border-box;
+    color: var(--color-black-300);
     cursor: pointer;
 }
 
 /* Tooltips */
 [data-tooltip]:not(:disabled):hover:after {
-    background-color: black;
+    background-color: var(--color-blues-900);
+    border: 1px solid var(--color-blues-700);
     border-radius: 3px;
-    border: 1px solid white;
     color: white;
     content: attr(data-tooltip);
     font-size: 11px;
@@ -934,7 +933,7 @@ legend {
     padding: 2px 4px;
     pointer-events: none;
     position: absolute;
-    top: -24px;
+    top: -20px;
 }
 
 /* Masks */
@@ -1192,10 +1191,6 @@ legend {
     color: var(--color-black-900);
     cursor: pointer;
     pointer-events: all;
-}
-
-.pagination li:is([data-selectable="true"]):hover {
-    background-color: var(--color-black-300);
 }
 
 /* Scene Management */
