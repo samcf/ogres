@@ -479,7 +479,7 @@ legend {
     border: 1px solid var(--color-blues-700);
     box-shadow: 4px 4px 0 0 rgba(0, 0, 0, .15);
     display: grid;
-    gap: 1px;
+    gap: 2px;
     grid-template-columns: repeat(13, 1fr);
     grid-template-rows: repeat(2, 1fr);
     padding: 2px;
@@ -489,7 +489,7 @@ legend {
     align-items: center;
     background-color: var(--color-blues-700);
     border-color: transparent;
-    border-radius: 1px;
+    border-radius: 2px;
     border-style: solid;
     border-width: 1px;
     display: flex;
@@ -511,7 +511,7 @@ legend {
 .toolbar button.active,
 .toolbar button[data-selected="true"] {
     background-color: var(--color-blues-500);
-    color: var(--color-prime-500);
+    color: var(--color-danger-500);
 }
 
 .toolbar button:not(:disabled, [data-active="true"], [data-selected="true"]):hover,
@@ -520,7 +520,7 @@ legend {
 }
 
 .toolbar button:not(:disabled):active {
-    border-color: var(--color-prime-500);
+    border-color: var(--color-blues-300);
 }
 
 .toolbar button svg {
