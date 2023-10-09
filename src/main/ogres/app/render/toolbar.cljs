@@ -1,6 +1,6 @@
 (ns ogres.app.render.toolbar
   (:require [ogres.app.hooks :refer [use-event-listener use-dispatch use-query]]
-            [ogres.app.render :refer [css icon]]
+            [ogres.app.render :refer [icon]]
             [ogres.app.util :refer [comp-fn]]
             [uix.core :refer [defui $ use-callback use-ref use-state]]))
 
@@ -66,7 +66,7 @@
           (apply hash-map
                  :type           "button"
                  :key            value
-                 :class          (css {:selected (= value mode)})
+                 :data-selected  (= value mode)
                  :on-click       #(dispatch :camera/change-mode value)
                  :on-mouse-enter #(set-tooltip-key (keyword "mode" (name value)))
                  attrs))
@@ -128,8 +128,8 @@
           ($ icon {:name "slash-lg"}))
         ($ :button
           {:type "button"
-           :class (css {:active sharing?})
            :disabled conn?
+           :data-active sharing?
            :on-click #(dispatch :share/initiate)
            :on-mouse-enter (tooltip-fn :share/open)}
           ($ icon {:name "pip" :size 22}))

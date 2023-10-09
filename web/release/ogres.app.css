@@ -502,13 +502,13 @@ legend {
 }
 
 .toolbar button.active,
-.toolbar button.selected {
+.toolbar button[data-selected="true"] {
     background-color: var(--color-blues-500);
     color: var(--color-prime-500);
 }
 
-.toolbar button:not(:disabled, .active, .selected):hover,
-.toolbar button:not(:disabled, .active, .selected):active {
+.toolbar button:not(:disabled, [data-active="true"], [data-selected="true"]):hover,
+.toolbar button:not(:disabled, [data-active="true"], [data-selected="true"]):active {
     background-color: var(--color-blues-500);
 }
 
