@@ -1,12 +1,8 @@
 (ns ogres.app.render.toolbar
   (:require [ogres.app.hooks :refer [use-event-listener use-dispatch use-query]]
-            [ogres.app.render :refer [css icon]]
+            [ogres.app.render :refer [icon]]
             [ogres.app.util :refer [comp-fn]]
             [uix.core :refer [defui $ use-callback use-ref use-state]]))
-
-(defui ^:private shortcut
-  [{:keys [name]}]
-  ($ :div.toolbar-shortcut name))
 
 (defui ^:private tooltip
   [{:keys [tooltip]}]
@@ -70,7 +66,7 @@
           (apply hash-map
                  :type           "button"
                  :key            value
-                 :class          (css {:selected (= value mode)})
+                 :data-selected  (= value mode)
                  :on-click       #(dispatch :camera/change-mode value)
                  :on-mouse-enter #(set-tooltip-key (keyword "mode" (name value)))
                  attrs))
@@ -99,97 +95,96 @@
           ($ tooltip {:tooltip tooltip-key})))
       ($ :.toolbar-groups
         ($ :button (mode-attrs :select)
-          ($ icon {:name "cursor-fill"})
-          ($ shortcut {:name "S"}))
+          ($ icon {:name "cursor-fill"}))
         ($ :button
-          {:disabled (nil? copyable)
+          {:type "button"
+           :disabled (nil? copyable)
            :on-click #(dispatch :clipboard/copy true)
            :on-mouse-enter (tooltip-fn :copy/cut)}
-          ($ icon {:name "scissors"})
-          ($ shortcut {:name "⌘+X"}))
+          ($ icon {:name "scissors"}))
         ($ :button
-          {:disabled (nil? copyable)
+          {:type "button"
+           :disabled (nil? copyable)
            :on-click #(dispatch :clipboard/copy false)
            :on-mouse-enter (tooltip-fn :copy/copy)}
-          ($ icon {:name "files"})
-          ($ shortcut {:name "⌘+C"}))
+          ($ icon {:name "files"}))
         ($ :button
-          {:disabled (nil? clipboard)
+          {:type "button"
+           :disabled (nil? clipboard)
            :on-click #(dispatch :clipboard/paste)
            :on-mouse-enter (tooltip-fn :copy/paste)}
-          ($ icon {:name "clipboard2-plus"})
-          ($ shortcut {:name "⌘+V"}))
+          ($ icon {:name "clipboard2-plus"}))
         ($ :button (mode-attrs :ruler)
-          ($ icon {:name "rulers"})
-          ($ shortcut {:name "R"}))
+          ($ icon {:name "rulers"}))
         ($ :button (mode-attrs :circle)
-          ($ icon {:name "circle"})
-          ($ shortcut {:name "1"}))
+          ($ icon {:name "circle"}))
         ($ :button (mode-attrs :rect)
-          ($ icon {:name "square"})
-          ($ shortcut {:name "2"}))
+          ($ icon {:name "square"}))
         ($ :button (mode-attrs :cone)
-          ($ icon {:name "triangle"})
-          ($ shortcut {:name "3"}))
+          ($ icon {:name "triangle"}))
         ($ :button (mode-attrs :poly)
-          ($ icon {:name "star"})
-          ($ shortcut {:name "4"}))
+          ($ icon {:name "star"}))
         ($ :button (mode-attrs :line)
-          ($ icon {:name "slash-lg"})
-          ($ shortcut {:name "5"}))
+          ($ icon {:name "slash-lg"}))
         ($ :button
-          {:class (css {:active sharing?})
+          {:type "button"
            :disabled conn?
+           :data-active sharing?
            :on-click #(dispatch :share/initiate)
            :on-mouse-enter (tooltip-fn :share/open)}
           ($ icon {:name "pip" :size 22}))
         ($ :button
-          {:disabled (or conn? (not sharing?) (not paused?))
+          {:type "button"
+           :disabled (or conn? (not sharing?) (not paused?))
            :on-click #(dispatch :share/switch)
            :on-mouse-enter (tooltip-fn :share/play)}
           ($ icon {:name "play-fill" :size 22}))
         ($ :button
-          {:disabled (or conn? (not sharing?) paused?)
+          {:type "button"
+           :disabled (or conn? (not sharing?) paused?)
            :on-click #(dispatch :share/switch)
            :on-mouse-enter (tooltip-fn :share/pause)}
           ($ icon {:name "pause-fill" :size 22}))
         ($ :button
-          {:disabled (= scale 0.15)
+          {:type "button"
+           :disabled (= scale 0.15)
            :on-click #(dispatch :camera/zoom-out)
            :on-mouse-enter (tooltip-fn :zoom/out)}
           ($ icon {:name "zoom-out"}))
         ($ :button
-          {:disabled (= scale 1)
+          {:type "button"
+           :disabled (= scale 1)
            :style {:grid-column "span 3"}
            :on-click #(dispatch :camera/zoom-reset)
            :on-mouse-enter (tooltip-fn :zoom/reset)}
           (-> scale (* 100) (js/Math.trunc) (str "%")))
         ($ :button
-          {:disabled (= scale 4)
+          {:type "button"
+           :disabled (= scale 4)
            :on-click #(dispatch :camera/zoom-in)
            :on-mouse-enter (tooltip-fn :zoom/in)}
           ($ icon {:name "zoom-in"}))
         ($ :button (mode-attrs :mask :disabled conn?)
-          ($ icon {:name "star-half"})
-          ($ shortcut {:name "F"}))
+          ($ icon {:name "star-half"}))
         ($ :button (mode-attrs :mask-toggle :disabled conn?)
-          ($ icon {:name "magic"})
-          ($ shortcut {:name "T"}))
+          ($ icon {:name "magic"}))
         ($ :button (mode-attrs :mask-remove :disabled conn?)
-          ($ icon {:name "eraser-fill"})
-          ($ shortcut {:name "X"}))
+          ($ icon {:name "eraser-fill"}))
         ($ :button
-          {:disabled conn?
+          {:type "button"
+           :disabled conn?
            :on-click #(dispatch :mask/fill)
            :on-mouse-enter (tooltip-fn :mask/hide)}
           ($ icon {:name "eye-slash-fill"}))
         ($ :button
-          {:disabled conn?
+          {:type "button"
+           :disabled conn?
            :on-click #(dispatch :mask/clear)
            :on-mouse-enter (tooltip-fn :mask/show)}
           ($ icon {:name "eye-fill"}))
         ($ :button
-          {:disabled (not (and (= type :host) (not (nil? (:session/_host result)))))
+          {:type "button"
+           :disabled (not (and (= type :host) (not (nil? (:session/_host result)))))
            :on-click #(dispatch :session/focus)
            :on-mouse-enter (tooltip-fn :scene/focus)}
           ($ icon {:name "camera2" :size 22}))))))

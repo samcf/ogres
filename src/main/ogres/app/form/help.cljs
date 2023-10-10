@@ -12,25 +12,15 @@
    ["https://github.com/samcf/ogres/wiki" "Project wiki" "Wiki"]])
 
 (def ^:private query
-  [[:local/shortcuts? :default true]
-   [:local/tooltips? :default true]])
+  [[:local/tooltips? :default true]])
 
 (defui form []
   (let [dispatch (use-dispatch)
         result   (use-query query)
-        {:local/keys [shortcuts? tooltips?]} result]
+        {:local/keys [tooltips?]} result]
     ($ :section.help
       ($ :section
         ($ :header "Interface preferences")
-        ($ :fieldset.checkbox
-          ($ :input
-            {:id        "show-shortcuts"
-             :type      "checkbox"
-             :checked   shortcuts?
-             :on-change (fn [event]
-                          (let [checked (.. event -target -checked)]
-                            (dispatch :local/toggle-shortcuts checked)))})
-          ($ :label {:for "show-shortcuts"} "Show shortcuts"))
         ($ :fieldset.checkbox
           ($ :input
             {:id        "show-tooltips"

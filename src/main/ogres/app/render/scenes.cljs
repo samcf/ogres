@@ -1,7 +1,7 @@
 (ns ogres.app.render.scenes
   (:require [clojure.string :refer [blank? trim]]
             [ogres.app.hooks :refer [use-dispatch use-query]]
-            [ogres.app.render :refer [css icon]]
+            [ogres.app.render :refer [icon]]
             [uix.core :refer [defui $]]))
 
 (defn ^:private close-prompt
@@ -21,16 +21,25 @@
         result   (use-query query)
         {current :local/camera
          cameras :local/cameras} result]
-    ($ :div.scenes
-      (for [{:keys [db/key camera/label]} cameras]
-        ($ :div {:key key :class (css {:selected (= key (:db/key current))})}
-          ($ :div {:on-click #(dispatch :scenes/change key)}
-            (if (blank? label) "New scene" (trim label)))
+    ($ :nav.scenes
+      ($ :ul
+        (for [{:keys [db/key camera/label]} cameras]
+          ($ :li.scenes-scene
+            {:key key
+             :data-selected (= (:db/key current) key)
+             :on-click #(dispatch :scenes/change key)}
+            ($ :.scenes-scene-label
+              (if (blank? label) "New scene" (trim label)))
+            ($ :button.scenes-scene-remove
+              {:type "button" :title "Remove scene"
+               :on-click
+               (fn [event]
+                 (.stopPropagation event)
+                 (if (js/confirm (close-prompt label))
+                   (dispatch :scenes/remove key)))}
+              ($ icon {:name "x-circle-fill" :size 16}))))
+        ($ :li.scenes-create
           ($ :button
-            {:type "button" :title "Remove scene"
-             :on-click
-             (fn []
-               (if (js/confirm (close-prompt label))
-                 (dispatch :scenes/remove key)))}
-            ($ icon {:name "x-circle-fill" :size 16}))))
-      ($ :button {:type "button" :on-click #(dispatch :scenes/create) :title "Create new scene"} "+"))))
+            {:type "button"
+             :title "Create new scene"
+             :on-click #(dispatch :scenes/create)} ($ icon {:name "plus" :size 18})))))))

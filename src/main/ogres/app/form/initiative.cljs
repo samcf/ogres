@@ -1,7 +1,7 @@
 (ns ogres.app.form.initiative
   (:require [clojure.string :refer [join capitalize blank?]]
             [ogres.app.hooks :refer [use-dispatch use-image use-modal use-query]]
-            [ogres.app.render :refer [css icon]]
+            [ogres.app.render :refer [icon]]
             [uix.core :refer [defui $ use-ref]]))
 
 (def ^:private query-form
@@ -44,11 +44,11 @@
   (or (contains? flags :player)
       (not (contains? flags :hidden))))
 
-(defui ^:private roll-form
+(defui ^:private form-dice
   [{:keys [value on-change]}]
   (let [input (use-ref) [editing set-editing form] (use-modal)]
-    ($ :div.initiant-roll
-      ($ :div.initiant-roll-label
+    ($ :div.initiative-token-roll
+      ($ :div.initiative-token-roll-label
         {:on-click
          (fn [event]
            (.stopPropagation event)
@@ -56,8 +56,9 @@
            (.requestAnimationFrame js/window #(if-let [node (deref input)] (.select node))))}
         (or value "?"))
       (if editing
-        ($ :form.initiant-form
+        ($ :form.initiative-token-form
           {:ref form
+           :data-type "roll"
            :on-submit
            (fn [event]
              (.preventDefault event)
@@ -68,13 +69,21 @@
              :placeholder "Roll" :default-value value})
           ($ :button {:type "submit"} "✓"))))))
 
-(defui ^:private health-form
+(defui ^:private form-hp
   [{:keys [value on-change]}]
   (let [input (use-ref) [editing set-editing form] (use-modal)]
-    ($ :div.initiant-health {:class (css {:active (or editing (number? value))})}
+    ($ :div.initiative-token-health
+      {:data-active (or editing (number? value))}
+      ($ :.initiative-token-form-health-control
+        {:on-click
+         (fn [event]
+           (.stopPropagation event)
+           (set-editing not))}
+        (or value "HP"))
       (if editing
-        ($ :form.initiant-form
+        ($ :form.initiative-token-form
           {:ref form
+           :data-type "health"
            :on-submit
            (fn [event]
              (.preventDefault event)
@@ -87,17 +96,9 @@
                :on-click
                (fn []
                  (on-change f (.-value @input))
-                 (set-editing not))} k))))
-      ($ :div.initiant-health-icon
-        {:on-click
-         (fn [event]
-           (.stopPropagation event)
-           (set-editing not))}
-        ($ icon {:name "suit-heart-fill" :size 38})
-        (if (number? value)
-          ($ :div.initiant-health-label value))))))
+                 (set-editing not))} k)))))))
 
-(defui ^:private initiant
+(defui ^:private token
   [{:keys [context entity]}]
   (let [dispatch (use-dispatch)
         {type      :local/type
@@ -108,29 +109,30 @@
          suffix    :initiative/suffix
          {checksum :image/checksum} :token/image} entity
         data-url (use-image checksum)]
-    ($ :div.initiant {:class (css {:current (= (:db/key current) (:db/key entity))})}
+    ($ :li.initiative-token
+      {:data-current (= (:db/key current) (:db/key entity))}
       (if data-url
-        ($ :div.initiant-image
+        ($ :div.initiative-token-image
           {:style {:background-image (str "url(" data-url ")")}
            :on-click #(dispatch :element/select key true)})
-        ($ :div.initiant-pattern
+        ($ :div.initiative-token-pattern
           {:on-click #(dispatch :element/select key true)}
           ($ icon {:name "dnd" :size 36})))
-      ($ roll-form
+      ($ form-dice
         {:value (:initiative/roll entity)
          :on-change
          (fn [value]
            (dispatch :initiative/change-roll key value))})
       (if suffix
-        ($ :div.initiant-suffix (char (+ suffix 64))))
-      ($ :div.initiant-info
+        ($ :div.initiative-token-suffix (char (+ suffix 64))))
+      ($ :div.initiative-token-info
         (if (not (blank? label))
-          ($ :div.initiant-label label))
-        ($ :div.initiant-flags
+          ($ :div.initiative-token-label label))
+        ($ :div.initiative-token-flags
           (if (seq flags)
-            ($ :em (join ", " (mapv (comp capitalize name) flags))))))
+            (join ", " (mapv (comp capitalize name) flags)))))
       (if (or (= type :host) (contains? flags :player))
-        ($ health-form
+        ($ form-hp
           {:value (:initiative/health entity)
            :on-change
            (fn [f v]
@@ -142,23 +144,24 @@
          {{tokens :scene/initiative
            rounds :initiative/rounds} :camera/scene}
          :local/camera} result]
-    ($ :div.initiative
+    ($ :section.initiative
       (cond (and (not (seq tokens)) (nil? rounds))
             ($ :section
               ($ :div.prompt
                 "Begin initiative by selecting"
                 ($ :br) "one or more tokens and clicking"
                 ($ :br) "the hourglass icon."))
+
             (and (not (seq tokens)) (>= rounds 1))
             ($ :div.prompt
               "Initiative is still running"
               ($ :br) "but there are no tokens participating.")
+
             (seq tokens)
-            ($ :div.initiative-list
+            ($ :ol.initiative-list
               (for [entity (sort initiative-order tokens)
-                    :when  (or (= type :host)
-                               (visible? (:token/flags entity)))]
-                ($ initiant
+                    :when  (or (= type :host) (visible? (:token/flags entity)))]
+                ($ token
                   {:key     (:db/key entity)
                    :context result
                    :entity  entity})))))))
@@ -173,23 +176,19 @@
          :local/camera} result
         started (>= rounds 1)]
     ($ :<>
-      ($ :button.button {:disabled true} "Round " rounds)
-      ($ :button.button {:disabled true} "Time "
+      ($ :button.button.button-neutral {:disabled true} "Round " rounds)
+      ($ :button.button.button-neutral {:disabled true} "Time "
         ($ :span {:style {:text-transform "lowercase"}} (format-time (* turns 6))))
       ($ :button.button.button-primary
-        {:disabled (empty? tokens)
-         :on-click #(dispatch :initiative/next)}
+        {:disabled (empty? tokens) :on-click #(dispatch :initiative/next)}
         ($ icon {:name "play-fill" :size 16})
         (if (<= rounds 0) "Start" "Next"))
       ($ :button.button.button-neutral
-        {:disabled (empty? tokens)
-         :on-click #(dispatch :initiative/roll-all)}
+        {:disabled (empty? tokens) :on-click #(dispatch :initiative/roll-all)}
         ($ icon {:name "dice-5-fill" :size 16}) "Randomize")
       ($ :button.button.button-neutral
-        {:disabled (not started)
-         :on-click #(dispatch :initiative/reset)}
+        {:disabled (empty? tokens) :on-click #(dispatch :initiative/reset)}
         ($ icon {:name "arrow-counterclockwise" :size 16}) "Reset")
       ($ :button.button.button-danger
-        {:disabled (not started)
-         :on-click #(dispatch :initiative/leave)}
+        {:disabled (not started) :on-click #(dispatch :initiative/leave)}
         ($ icon {:name "x-circle-fill" :size 16}) "Leave"))))

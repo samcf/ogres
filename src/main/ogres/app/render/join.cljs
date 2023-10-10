@@ -1,6 +1,6 @@
 (ns ogres.app.render.join
   (:require [clojure.string :refer [upper-case]]
-            [ogres.app.render :refer [css icon]]
+            [ogres.app.render :refer [icon]]
             [ogres.app.hooks :refer [use-query]]
             [uix.core :refer [defui $ use-state use-callback use-ref]]
             [uix.dom :refer [create-portal]]))
@@ -42,12 +42,12 @@
                    :max-length 4
                    :on-change  (fn [event] (-> (.. event -target -value) upper-case set-code))})
                 ($ :.join-codes
-                  (for [indx (range 4) :let [active (= indx (count code))]]
-                    ($ :div {:key indx :class (css {:active active})}
+                  (for [indx (range 4) :let [focused (= indx (count code))]]
+                    ($ :div {:key indx :data-focused focused}
                       (nth code indx nil)))))))
           ($ :.modal-footer
-            ($ :button.button
-              {:type "button" :on-click #(on-close)} "Close")
+            ($ :button.button.button-neutral
+              {:type "button" :on-click #(on-close)} "Cancel")
             ($ :button.button.button-primary
               {:type "submit" :disabled (not= (count code) 4)} "Join")))))))
 
@@ -60,10 +60,10 @@
           conns :session/conns} :root/session} result]
     ($ :div.join
       (case state
-        :initial      ($ :button.button.button-primary {:on-click #(set-modal true)} status-icon "Join with code")
+        :initial      ($ :button.button {:on-click #(set-modal true)} status-icon "Join with code")
         :connecting   ($ :button.button {:disabled true} status-icon "Connecting...")
         :connected    ($ :button.button {:disabled true} status-icon "Connected / " code " / [" (inc (count conns)) "]")
-        :disconnected ($ :button.button.button-danger {:disabled true} status-icon "Disconnected")
+        :disconnected ($ :button.button {:disabled true} status-icon "Disconnected")
         ($ :button.button {:disabled true} status-icon "Status not known"))
       (if modal
         (create-portal
