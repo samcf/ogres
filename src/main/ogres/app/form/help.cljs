@@ -38,7 +38,7 @@
            don't clear your browser's cache, all your changes will stick
            around even if you close the browser or restart your computer.")
         ($ :br)
-        ($ :button.button
+        ($ :button.button.button-danger
           {:on-click
            (fn []
              (if-let [_ (js/confirm confirm-delete)]

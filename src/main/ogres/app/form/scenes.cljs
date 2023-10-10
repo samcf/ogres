@@ -67,7 +67,7 @@
         upload   (use-image-uploader {:type :scene})
         input    (use-ref)]
     ($ :<>
-      ($ :button.button
+      ($ :button.button.button-neutral
         {:type     "button"
          :title    "Upload map image"
          :on-click #(.click (deref input))}
@@ -79,7 +79,7 @@
                (upload file))
              (set! (.. event -target -value) ""))})
         ($ icon {:name "camera-fill" :size 16}) "Select Files")
-      ($ :button.button
+      ($ :button.button.button-danger
         {:type     "button"
          :title    "Remove all"
          :disabled (empty? scenes)

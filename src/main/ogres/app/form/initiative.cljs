@@ -176,19 +176,19 @@
          :local/camera} result
         started (>= rounds 1)]
     ($ :<>
-      ($ :button.button {:disabled true} "Round " rounds)
-      ($ :button.button {:disabled true} "Time "
+      ($ :button.button.button-neutral {:disabled true} "Round " rounds)
+      ($ :button.button.button-neutral {:disabled true} "Time "
         ($ :span {:style {:text-transform "lowercase"}} (format-time (* turns 6))))
-      ($ :button.button
+      ($ :button.button.button-primary
         {:disabled (empty? tokens) :on-click #(dispatch :initiative/next)}
         ($ icon {:name "play-fill" :size 16})
         (if (<= rounds 0) "Start" "Next"))
-      ($ :button.button
+      ($ :button.button.button-neutral
         {:disabled (empty? tokens) :on-click #(dispatch :initiative/roll-all)}
         ($ icon {:name "dice-5-fill" :size 16}) "Randomize")
-      ($ :button.button
+      ($ :button.button.button-neutral
         {:disabled (empty? tokens) :on-click #(dispatch :initiative/reset)}
         ($ icon {:name "arrow-counterclockwise" :size 16}) "Reset")
-      ($ :button.button
+      ($ :button.button.button-danger
         {:disabled (not started) :on-click #(dispatch :initiative/leave)}
         ($ icon {:name "x-circle-fill" :size 16}) "Leave"))))

@@ -46,9 +46,9 @@
                     ($ :div {:key indx :data-focused focused}
                       (nth code indx nil)))))))
           ($ :.modal-footer
-            ($ :button.button
-              {:type "button" :on-click #(on-close)} "Close")
-            ($ :button.button
+            ($ :button.button.button-neutral
+              {:type "button" :on-click #(on-close)} "Cancel")
+            ($ :button.button.button-primary
               {:type "submit" :disabled (not= (count code) 4)} "Join")))))))
 
 (defui join []

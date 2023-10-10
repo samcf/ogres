@@ -178,7 +178,7 @@
         upload   (use-image-uploader {:type :token})
         input    (use-ref)]
     ($ :<>
-      ($ :button.button
+      ($ :button.button.button-neutral
         {:type     "button"
          :title    "Upload token image"
          :on-click #(.click (deref input))}
@@ -190,7 +190,7 @@
                (upload file))
              (set! (.. event -target -value) ""))})
         ($ icon {:name "camera-fill" :size 16}) "Select Files")
-      ($ :button.button
+      ($ :button.button.button-danger
         {:type     "button"
          :title    "Remove all"
          :disabled (or (= type :conn) (empty? images))

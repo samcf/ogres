@@ -101,34 +101,46 @@ fieldset.checkbox + fieldset {
 /* Buttons */
 .button {
     align-items: center;
-    background-color: white;
+    background-color: var(--color-paper-500);
     border-radius: 2px;
     border: 1px solid transparent;
-    box-shadow: 3px 3px 0 0 rgba(0, 0, 0, .15);
+    box-shadow: 2px 2px 0 0 rgba(0, 0, 0, .15);
     display: flex;
+    font-family: var(--font-stack-transitional);
+    font-size: 12px;
     gap: 4px;
     min-height: 32px;
     padding: 6px 10px;
     text-transform: uppercase;
+    transition: transform 70ms ease-in-out;
 }
 
 .button:disabled {
-    border-color: #bbb;
-    color: #bbb;
+    border-color: var(--color-black-300);
+    color: var(--color-black-300);
 }
 
 .button:not(:disabled) {
     cursor: pointer;
-    border-color: black;
-}
-
-.button:not(:disabled):hover {
-    background-color: black;
-    color: white;
 }
 
 .button:not(:disabled):active {
-    box-shadow: 2px 2px 0 0 rgba(0, 0, 0, .15);
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 0 rgba(0, 0, 0, .15);
+}
+
+.button-primary:not(:disabled) {
+    background-color: var(--color-prime-500);
+    color: var(--color-black-100);
+}
+
+.button-neutral:not(:disabled) {
+    border-color: var(--color-black-500);
+}
+
+.button-danger:not(:disabled) {
+    background-color: var(--color-danger-500);
+    color: var(--color-black-100);
 }
 
 /* Other Styles */
@@ -273,12 +285,24 @@ legend {
 /* Join */
 .join > button {
     border-bottom-width: 0;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
+    border-color: var(--color-black-900);
+    border-radius: 4px 4px 0 0;
     box-shadow: none;
     color: black;
+    gap: 8px;
     margin-left: auto;
     width: 100%;
+}
+
+.join > button:not(:disabled) {
+    background-color: var(--color-prime-500);
+    color: var(--color-black-100);
+}
+
+.join > button:disabled {
+    background-color: var(--color-black-100);
+    border-color: var(--color-black-900);
+    color: var(--color-black-500);
 }
 
 .join-modal button {
@@ -1171,7 +1195,7 @@ legend {
 .pagination li {
     align-items: center;
     background-color: var(--color-black-100);
-    border-color: var(--color-black-900);
+    border-color: var(--color-blues-700);
     border-radius: 3px;
     border-style: solid;
     border-width: 1px;
@@ -1199,8 +1223,8 @@ legend {
 }
 
 .pagination li:is([data-selected="true"]) {
-    background-color: var(--color-black-900);
-    border-color: var(--color-black-900);
+    background-color: var(--color-blues-700);
+    border-color: var(--color-blues-900);
     color: var(--color-black-100);
 }
 

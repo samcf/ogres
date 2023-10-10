@@ -103,7 +103,7 @@
         {{state :session/state type :local/type} :root/local
          {room-key :session/room} :root/session} result]
     ($ :<>
-      ($ :button.button
+      ($ :button.button.button-primary
         {:type "button"
          :title "Create room"
          :on-click #(dispatch :session/request)
@@ -118,13 +118,13 @@
           [:conn :connected]    "Connected"
           [:conn :disconnected] "Reconnecting"
           [:conn :connecting]   "Reconnecting"))
-      ($ :button.button
+      ($ :button.button.button-neutral
         {:type "button"
          :title "Copy the room URL"
          :disabled (not= state :connected)
          :on-click #(.. js/window -navigator -clipboard (writeText (session-url room-key)))}
         ($ icon {:name "clipboard" :size 18}) "Copy")
-      ($ :button.button
+      ($ :button.button.button-danger
         {:type "button"
          :title "Disconnect"
          :disabled (or (not= state :connected) (not= type :host))
