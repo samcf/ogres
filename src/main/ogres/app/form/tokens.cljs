@@ -148,7 +148,7 @@
                            [tx ty] [(.-x rect) (.-y rect)]
                            [dx dy] [(.-x delta) (.-y delta)]
                            [mx my] [(- (+ tx dx (/ tw 2)) bx) (- (+ ty dy (/ th 2)) by)]
-                           [sx sy] [(- (* mx (/ scale)) cx) (- (* my (/ scale)) cy)]]
+                           [sx sy] [(+ (/ mx scale) cx) (+ (/ my scale) cy)]]
                        (if (and (<= bx mx (+ bx bw)) (<= by my (+ by bh)))
                          (dispatch :token/create sx sy checksum)))) [dispatch result])]
     ($ :<>

@@ -167,7 +167,7 @@
          dx (/ (- (* x fx) x) next)
          dy (/ (- (* y fx) y) next)]
      [[:db/add -1 :db/key camera]
-      [:db/add -1 :camera/point [(round (- cx dx) 1) (round (- cy dy) 1)]]
+      [:db/add -1 :camera/point [(round (+ cx dx) 1) (round (+ cy dy) 1)]]
       [:db/add -1 :camera/scale next]])))
 
 (defmethod
@@ -735,8 +735,8 @@
           host :local/camera} :session/host
          conns :session/conns} result
         scale (:camera/scale host)
-        mx (- hx (/ hw scale 2))
-        my (- hy (/ hh scale 2))]
+        mx (+ (/ hw scale 2) hx)
+        my (+ (/ hh scale 2) hy)]
     (->> (for [[next conn] (sequence (indexed 1 2) conns)
                :let [prev (dec next)
                      exst (->> (:local/cameras conn)
@@ -746,8 +746,8 @@
                                (first)
                                (:db/key))
                      [_ _ cw ch] (:bounds/self conn)
-                     cx (+ mx (/ cw scale 2))
-                     cy (+ my (/ ch scale 2))]]
+                     cx (- mx (/ cw scale 2))
+                     cy (- my (/ ch scale 2))]]
            [[:db/add next :db/key (:db/key conn)]
             [:db/add next :local/camera prev]
             [:db/add next :local/cameras prev]
@@ -807,8 +807,8 @@
          images :root/token-images} result
         hashes (into #{} (map :image/checksum) images)
         [ax ay bx by] (apply bounding-box (map :token/point clipboard))
-        sx (+ (- cx) (/ sw scale 2))
-        sy (+ (- cy) (/ sh scale 2))
+        sx (+ (/ sw scale 2) cx)
+        sy (+ (/ sh scale 2) cy)
         ox (/ (- ax bx) 2)
         oy (/ (- ay by) 2)]
     (->> (for [[temp token] (sequence (indexed 3) clipboard)

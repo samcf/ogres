@@ -9,19 +9,19 @@
 (defn ^:private px->ft [px size]
   (js/Math.round (* (/ px size) 5)))
 
-(defn ^:private +-xf [x y]
+(defn ^:private +' [x y]
   (map (fn [[ax ay]] [(+ ax x) (+ ay y)])))
 
-(defn ^:private *-xf [n]
+(defn ^:private *' [n]
   (map (fn [[x y]] [(* x n) (* y n)])))
 
-(defn ^:private xs-xfs [xs & xfs]
+(defn ^:private convert [xs & xfs]
   (into [] (apply comp (partition-all 2) xfs) xs))
 
 (defui ^:private text [{:keys [attrs children]}]
   ($ :text.scene-text attrs children))
 
-(defui ^:private drawable [{:keys [transform on-release children]}]
+(defui ^:private drawable [{:keys [on-release children]}]
   (let [[state set-state] (use-state [])]
     ($ :<>
       ($ react-draggable
@@ -39,12 +39,12 @@
          :on-stop
          (fn []
            (set-state [])
-           (on-release (transform state)))}
+           (on-release state))}
         ($ :rect
           {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"
            :style {:will-change "transform"}}))
       (if (seq state)
-        (children {:points (transform state)})))))
+        (children {:points state})))))
 
 (def ^:private query
   [[:bounds/self :default [0 0 0 0]]
@@ -73,12 +73,11 @@
          :on-mouse-move
          (fn [event]
            (let [dst [(.-clientX event) (.-clientY event)]]
-             (set-mouse (xs-xfs dst (+-xf (- ox) (- oy)) cat))))
+             (set-mouse (convert dst (+' (- ox) (- oy)) cat))))
          :on-click
          (fn [event]
            (if closed?
-             (let [xf (comp (*-xf (/ scale)) (+-xf (- tx) (- ty)))
-                   xs (xs-xfs pairs xf cat)]
+             (let [xs (convert pairs (*' (/ scale)) (+' tx ty) cat)]
                (set-pairs [])
                (on-create event xs))
              (set-pairs #(conj %1 mx my))))})
@@ -100,14 +99,12 @@
          {[tx ty] :camera/point
           scale   :camera/scale} :local/camera} result]
     ($ drawable
-      {:transform
-       (fn [xs]
-         (xs-xfs xs (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)) cat))
-       :on-release
-       (fn [xs]
-         (dispatch :selection/from-rect xs))}
+      {:on-release
+       (fn [points]
+         (let [points (convert points (+' (- ox) (- oy)) (*' (/ scale)) (+' tx ty) cat)]
+           (dispatch :selection/from-rect points)))}
       (fn [{:keys [points]}]
-        (let [[ax ay bx by] (xs-xfs points (+-xf tx ty) (*-xf scale) cat)]
+        (let [[ax ay bx by] (convert points (+' (- ox) (- oy)) cat)]
           ($ use-portal {:name :multiselect}
             (fn []
               ($ :path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}))))))))
@@ -117,17 +114,15 @@
         {[ox oy] :bounds/self
          {scale  :camera/scale} :local/camera} result]
     ($ drawable
-      {:on-release identity
-       :transform
-       (fn [xs]
-         (xs-xfs xs (+-xf (- ox) (- oy)) cat))}
-      (fn [{[ax ay bx by] :points}]
-        ($ :g
-          ($ :line {:x1 ax :y1 ay :x2 bx :y2 by})
-          ($ text {:attrs {:x (- bx 48) :y (- by 8) :fill "white"}}
-            (-> (chebyshev ax ay bx by)
-                (px->ft (* grid-size scale))
-                (str "ft."))))))))
+      {:on-release identity}
+      (fn [{:keys [points]}]
+        (let [[ax ay bx by] (convert points (+' (- ox) (- oy)) cat)]
+          ($ :g
+            ($ :line {:x1 ax :y1 ay :x2 bx :y2 by})
+            ($ text {:attrs {:x (- bx 48) :y (- by 8) :fill "white"}}
+              (-> (chebyshev ax ay bx by)
+                  (px->ft (* grid-size scale))
+                  (str "ft.")))))))))
 
 (defui ^:private draw-circle []
   (let [dispatch (use-dispatch)
@@ -136,15 +131,12 @@
          {[tx ty] :camera/point
           scale :camera/scale} :local/camera} result]
     ($ drawable
-      {:transform
-       (fn [xs]
-         (let [[ax ay bx by] (xs-xfs xs (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)) cat)]
-           [ax ay bx by]))
-       :on-release
-       (fn [xs]
-         (dispatch :shape/create :circle xs))}
+      {:on-release
+       (fn [points]
+         (let [points (convert points (+' (- ox) (- oy)) (*' (/ scale)) (+' tx ty) cat)]
+           (dispatch :shape/create :circle points)))}
       (fn [{:keys [points]}]
-        (let [[ax ay bx by] (xs-xfs points (+-xf tx ty) (*-xf scale) cat)
+        (let [[ax ay bx by] (convert points (+' (- ox) (- oy)) cat)
               radius (chebyshev ax ay bx by)]
           ($ :g
             ($ :circle {:cx ax :cy ay :r radius})
@@ -159,15 +151,12 @@
           scale   :camera/scale}
          :local/camera} result]
     ($ drawable
-      {:transform
-       (fn [xs]
-         (let [xf (comp (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)))]
-           (xs-xfs xs xf cat)))
-       :on-release
-       (fn [xs]
-         (dispatch :shape/create :rect xs))}
+      {:on-release
+       (fn [points]
+         (let [points (convert points (+' (- ox) (- oy)) (*' (/ scale)) (+' tx ty) cat)]
+           (dispatch :shape/create :rect points)))}
       (fn [{:keys [points]}]
-        (let [[ax ay bx by] (xs-xfs points (+-xf tx ty) (*-xf scale) cat)]
+        (let [[ax ay bx by] (convert points (+' (- ox) (- oy)) cat)]
           ($ :g
             ($ :path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])})
             ($ text {:attrs {:x (+ ax 8) :y (- ay 8) :fill "white"}}
@@ -182,15 +171,12 @@
          {[tx ty] :camera/point
           scale   :camera/scale} :local/camera} result]
     ($ drawable
-      {:transform
-       (fn [xs]
-         (let [xf (comp (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)))]
-           (xs-xfs xs xf cat)))
-       :on-release
-       (fn [xs]
-         (dispatch :shape/create :line xs))}
+      {:on-release
+       (fn [points]
+         (let [points (convert points (+' (- ox) (- oy)) (*' (/ scale)) (+' tx ty) cat)]
+           (dispatch :shape/create :line points)))}
       (fn [{:keys [points]}]
-        (let [[ax ay bx by] (xs-xfs points (+-xf tx ty) (*-xf scale) cat)]
+        (let [[ax ay bx by] (convert points (+' (- ox) (- oy)) cat)]
           ($ :g
             ($ :line {:x1 ax :y1 ay :x2 bx :y2 by})
             ($ text {:attrs {:x (+ ax 8) :y (- ay 8) :fill "white"}}
@@ -205,15 +191,12 @@
          {[tx ty] :camera/point
           scale   :camera/scale} :local/camera} result]
     ($ drawable
-      {:transform
-       (fn [xs]
-         (let [xf (comp (+-xf (- ox) (- oy)) (*-xf (/ scale)) (+-xf (- tx) (- ty)))]
-           (xs-xfs xs xf cat)))
-       :on-release
-       (fn [xs]
-         (dispatch :shape/create :cone xs))}
+      {:on-release
+       (fn [points]
+         (let [points (convert points (+' (- ox) (- oy)) (*' (/ scale)) (+' tx ty) cat)]
+           (dispatch :shape/create :cone points)))}
       (fn [{:keys [points]}]
-        (let [[ax ay bx by] (xs-xfs points (+-xf tx ty) (*-xf scale) cat)]
+        (let [[ax ay bx by] (convert points (+' (- ox) (- oy)) cat)]
           ($ :g
             ($ :polygon {:points (join " " (triangle ax ay bx by))})
             ($ text {:attrs {:x (+ bx 16) :y (+ by 16) :fill "white"}}
@@ -232,17 +215,16 @@
   (let [dispatch (use-dispatch)]
     ($ polygon
       {:on-create
-       (fn [event xs]
-         (dispatch :mask/create (not (.-shiftKey event)) xs))})))
+       (fn [event points]
+         (dispatch :mask/create (not (.-shiftKey event)) points))})))
 
 (defui draw [{:keys [mode] :as props}]
-  (let [fns {:circle draw-circle
-             :cone   draw-cone
-             :line   draw-line
-             :mask   draw-mask
-             :poly   draw-poly
-             :rect   draw-rect
-             :ruler  draw-ruler
-             :select draw-select}]
-    (if-let [component (fns mode)]
-      ($ component props))))
+  (case mode
+    :circle ($ draw-circle props)
+    :cone   ($ draw-cone props)
+    :line   ($ draw-line props)
+    :mask   ($ draw-mask props)
+    :poly   ($ draw-poly props)
+    :rect   ($ draw-rect props)
+    :ruler  ($ draw-ruler props)
+    :select ($ draw-select props)))

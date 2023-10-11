@@ -186,19 +186,17 @@
           scale   :camera/scale
           scene   :camera/scene} :local/camera} data]
     (if (or (:scene/show-grid scene) (= mode :grid))
-      (let [w (/ w scale)
-            h (/ h scale)
-            [sx sy ax ay bx]
-            [(- (* w -3) cx)
-             (- (* h -3) cy)
-             (- (* w  3) cx)
-             (- (* h  3) cy)
-             (- (* w -3) cx)]]
+      (let [wd (/ w scale)
+            ht (/ h scale)
+            ax (+ (* wd -3) cx)
+            ay (+ (* ht -3) cy)
+            bx (+ (* wd  3) cx)
+            by (+ (* ht  3) cy)]
         ($ :g {:class "scene-grid"}
           ($ :defs
             ($ :pattern {:id "grid" :width grid-size :height grid-size :patternUnits "userSpaceOnUse"}
               ($ :path {:d (join " " ["M" 0 0 "H" grid-size "V" grid-size])})))
-          ($ :path {:d (join " " ["M" sx sy "H" ax "V" ay "H" bx "Z"]) :fill "url(#grid)"}))))))
+          ($ :path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"]) :fill "url(#grid)"}))))))
 
 (defn ^:private poly-xf [x y]
   (comp (partition-all 2)
@@ -554,8 +552,8 @@
           {dark-mode :scene/dark-mode}
           :camera/scene}
          :local/camera} result
-        cx (if (= type :view) (->> (- hw vw) (max 0) (* (/ -1 2 scale)) (+ cx)) cx)
-        cy (if (= type :view) (->> (- hh vh) (max 0) (* (/ -1 2 scale)) (+ cy)) cy)
+        cx (if (= type :view) (->> (- hw vw) (max 0) (* (/ -1 2 scale)) (- cx)) cx)
+        cy (if (= type :view) (->> (- hh vh) (max 0) (* (/ -1 2 scale)) (- cy)) cy)
         on-translate
         (use-callback
          (fn [_ data]
@@ -563,17 +561,17 @@
                  oy (.-y data)]
              (if (and (= ox 0) (= oy 0))
                (dispatch :selection/clear)
-               (let [tx (+ cx (* ox (/ scale)))
-                     ty (+ cy (* oy (/ scale)))]
-                 (dispatch :camera/translate tx ty)))))
+               (let [tx (- (/ ox scale) cx)
+                     ty (- (/ oy scale) cy)]
+                 (dispatch :camera/translate (- tx) (- ty))))))
          [dispatch cx cy scale])
         on-cursor-move
         (use-callback
          (fn [event]
            (let [transform (.. event -currentTarget (getAttribute "transform"))]
              (if (= transform "translate(0,0)")
-               (let [x (- (/ (- (.-clientX event) sx) scale) cx)
-                     y (- (/ (- (.-clientY event) sy) scale) cy)]
+               (let [x (+ (/ (- (.-clientX event) sx) scale) cx)
+                     y (+ (/ (- (.-clientY event) sy) scale) cy)]
                  (publish {:topic :cursor/move :args [x y]})))))
          [publish sx sy cx cy scale])]
     ($ :svg.scene {:key key :class (css {:theme--light (not dark-mode) :theme--dark dark-mode :is-host (= type :host) :is-priv privileged?})}
@@ -582,7 +580,7 @@
           ($ :rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"})
           (if (and (= mode :select) (= modifier :shift))
             ($ draw {:mode :select}))
-          ($ :g.scene-board {:transform (str "scale(" scale ") translate(" cx ", " cy ")")}
+          ($ :g.scene-board {:transform (str "scale(" scale ") translate(" (- cx) ", " (- cy) ")")}
             ($ render-token-faces)
             ($ render-scene-image)
             ($ render-grid)
