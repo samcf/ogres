@@ -1,6 +1,5 @@
 (ns ogres.app.render
-  (:require [clojure.string :refer [join]]
-            [ogres.app.const :refer [PATH]]
+  (:require [ogres.app.const :refer [PATH]]
             [ogres.app.provider.storage :refer [initialize]]
             [uix.core :refer [defui $ create-error-boundary]]))
 
@@ -14,12 +13,6 @@
         [min :space (- max 4) (- max 3) (- max 2) (- max 1) max]
         :else
         [min :space (- val 1) val (+ val 1) :space max]))
-
-(def ^:private css-xf
-  (comp (filter (comp identity val)) (map key) (map name)))
-
-(defn css [class-names]
-  (join " " (sequence css-xf class-names)))
 
 (defui icon [{:keys [name size] :or {size 22}}]
   ($ :svg {:class "icon" :width size :height size :fill "currentColor"}

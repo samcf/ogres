@@ -4,7 +4,7 @@
             [ogres.app.const :refer [grid-size]]
             [ogres.app.geom :refer [bounding-box chebyshev euclidean triangle]]
             [ogres.app.hooks :refer [create-portal use-subscribe use-cursor use-dispatch use-image use-portal use-publish use-query]]
-            [ogres.app.render :refer [css icon]]
+            [ogres.app.render :refer [icon]]
             [ogres.app.render.draw :refer [draw]]
             [ogres.app.render.forms :refer [token-context-menu shape-context-menu]]
             [ogres.app.render.pattern :refer [pattern]]
@@ -100,7 +100,7 @@
         width  (* width  (/ grid-size size))
         height (* height (/ grid-size size))]
     (if (and checksum (not= visibility :revealed))
-      ($ :g.scene-mask {:class (css {:is-dimmed (= visibility :dimmed)})}
+      ($ :g.scene-mask {:data-visibility (name visibility)}
         ($ :defs
           ($ pattern {:id "mask-pattern" :name :lines :color "black"})
           ($ :radialGradient {:id "mask-gradient"}
@@ -297,7 +297,7 @@
                    (dispatch :shape/translate key ox oy)
                    (dispatch :element/select key true))))}
             (let [id (random-uuid)]
-              ($ :g {:class (css {:scene-shape true :selected selected? (str "scene-shape-" (name kind)) true})}
+              ($ :g.scene-shape {:data-selected selected? :class (str "scene-shape-" (name kind))}
                 ($ :defs
                   ($ pattern {:id id :name (:shape/pattern entity) :color color}))
                 ($ render-shape {:entity entity :attrs {:fill (str "url(#" id ")")}})
@@ -398,16 +398,9 @@
         result (use-query query-tokens)
         {type :local/type camera :local/camera} result
         {scale :camera/scale scene :camera/scene} camera
-
-        flags-xf
-        (comp (map name)
-              (map (fn [s] (str "flag--" s)))
-              (map (fn [s] [s true])))
-
-        token-css
+        flags-fn
         (fn [token]
-          (into {} flags-xf (:token/flags token)))
-
+          (join " " (map name (:token/flags token))))
         [selected tokens]
         (->> (:scene/tokens scene)
              (filter (fn [token] (or (= type :host) (visible? (:token/flags token)))))
@@ -427,7 +420,7 @@
                (if (= (euclidean ax ay bx by) 0)
                  (dispatch :element/select key (not (.-shiftKey event)))
                  (dispatch :token/translate key bx by))))}
-          ($ :g.scene-token {:class (css (token-css data))}
+          ($ :g.scene-token {:data-flags (flags-fn data)}
             ($ render-token {:data data}))))
       (if (seq selected)
         (let [keys (into (sorted-set) (map :db/key) selected)
@@ -448,7 +441,10 @@
                 ($ :g.scene-selected {:key keys}
                   (for [data selected :let [{key :db/key [x y] :token/point} data]]
                     ($ :g.scene-token
-                      {:key key :class (css (token-css data)) :data-key key :transform (str "translate(" x "," y ")")}
+                      {:key key
+                       :data-key   key
+                       :data-flags (flags-fn data)
+                       :transform  (str "translate(" x "," y ")")}
                       ($ render-token {:data data})))
                   (if (or (= type :host) (= type :conn))
                     ($ :foreignObject
@@ -574,7 +570,10 @@
                      y (+ (/ (- (.-clientY event) sy) scale) cy)]
                  (publish {:topic :cursor/move :args [x y]})))))
          [publish sx sy cx cy scale])]
-    ($ :svg.scene {:key key :class (css {:theme--light (not dark-mode) :theme--dark dark-mode :is-host (= type :host) :is-priv privileged?})}
+    ($ :svg.scene
+      {:key key
+       :data-user-type (name type)
+       :data-theme (if dark-mode "dark" "light")}
       ($ react-draggable {:position #js {:x 0 :y 0} :on-stop on-translate}
         ($ :g {:style {:will-change "transform"} :on-mouse-move on-cursor-move}
           ($ :rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"})

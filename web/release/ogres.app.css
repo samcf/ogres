@@ -587,13 +587,13 @@ legend {
     pointer-events: none;
 }
 
-.scene.theme--light {
+.scene[data-theme="light"] {
     --scene-stroke: rgba(255, 255, 255, 1);
     --scene-text: rgba(255, 255, 255, 1);
     --scene-text-outline: rgba(0, 0, 0, 1);
 }
 
-.scene.theme--dark {
+.scene[data-theme="dark"] {
     --scene-stroke: rgba(0, 0, 0, 1);
     --scene-text: rgba(0, 0, 0, 1);
     --scene-text-outline: rgba(255, 255, 255, 1);
@@ -620,8 +620,7 @@ legend {
 }
 
 /* Scene Tokens */
-.scene-token.flag--hidden circle,
-.scene-token.flag--invisible circle {
+.scene-token:is([data-flags*="hidden"], [data-flags*="invisible"]) circle {
     fill-opacity: 0.70;
 }
 
@@ -702,10 +701,10 @@ legend {
 .scene-shape:hover > path,
 .scene-shape:hover > line,
 .scene-shape:hover > polygon,
-.scene-shape.selected > circle,
-.scene-shape.selected > path,
-.scene-shape.selected > line,
-.scene-shape.selected > polygon {
+.scene-shape[data-selected="true"] > circle,
+.scene-shape[data-selected="true"] > path,
+.scene-shape[data-selected="true"] > line,
+.scene-shape[data-selected="true"] > polygon {
     stroke-dasharray: 4px;
     animation: stroke-animation 1s linear infinite;
 }
@@ -983,15 +982,15 @@ legend {
     fill-opacity: 0;
 }
 
-.scene-mask.is-dimmed .scene-mask-background {
+.scene-mask[data-visibility="dimmed"] .scene-mask-background {
     fill-opacity: 0.75;
 }
 
-.scene.is-host .scene-mask-background {
+.scene[data-user-type="host"] .scene-mask-background {
     fill-opacity: 0.40;
 }
 
-.scene.is-host .scene-mask-pattern {
+.scene[data-user-type="host"] .scene-mask-pattern {
     fill-opacity: 0.30;
 }
 
@@ -1642,10 +1641,10 @@ legend {
 .root[data-view-type="view"] .scene-shape:hover > path,
 .root[data-view-type="view"] .scene-shape:hover > line,
 .root[data-view-type="view"] .scene-shape:hover > polygon,
-.root[data-view-type="view"] .scene-shape.selected > circle,
-.root[data-view-type="view"] .scene-shape.selected > path,
-.root[data-view-type="view"] .scene-shape.selected > line,
-.root[data-view-type="view"] .scene-shape.selected > polygon {
+.root[data-view-type="view"] .scene-shape[data-selected="true"] > circle,
+.root[data-view-type="view"] .scene-shape[data-selected="true"] > path,
+.root[data-view-type="view"] .scene-shape[data-selected="true"] > line,
+.root[data-view-type="view"] .scene-shape[data-selected="true"] > polygon {
     stroke-dasharray: none;
     animation: none;
 }
