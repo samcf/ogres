@@ -397,7 +397,7 @@
 (defmethod transact :token/create
   [{:keys [camera scene]} x y checksum]
   [[:db/add -1 :db/key (squuid)]
-   [:db/add -1 :token/point [x y]]
+   [:db/add -1 :token/point [(round x 1) (round y 1)]]
    [:db/add -1 :token/image -4]
    [:db/add -2 :db/key camera]
    [:db/add -2 :camera/selected -1]
