@@ -659,6 +659,11 @@
    [:db/add -1 :image/height height]
    [:db/add -1 :image/checksum checksum]])
 
+(defmethod transact :tokens/change-scope
+  [_ checksum scope]
+  [[:db/add -1 :image/checksum checksum]
+   [:db/add -1 :image/scope scope]])
+
 (defmethod transact :tokens/remove [_ checksum]
   [[:db/retractEntity [:image/checksum checksum]]])
 
