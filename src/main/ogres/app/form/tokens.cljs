@@ -146,12 +146,17 @@
                      (let [{{[bx by bw bh] :bounds/self
                              {[cx cy] :camera/point
                               scale :camera/scale} :local/camera} :root/local} result
-                           rect    (.getBoundingClientRect element)
-                           [tw th] [(.-width rect) (.-height rect)]
-                           [tx ty] [(.-x rect) (.-y rect)]
-                           [dx dy] [(.-x delta) (.-y delta)]
-                           [mx my] [(- (+ tx dx (/ tw 2)) bx) (- (+ ty dy (/ th 2)) by)]
-                           [sx sy] [(+ (/ mx scale) cx) (+ (/ my scale) cy)]]
+                           rect (.getBoundingClientRect element)
+                           tw (.-width rect)
+                           th (.-height rect)
+                           tx (.-x rect)
+                           ty (.-y rect)
+                           dx (.-x delta)
+                           dy (.-y delta)
+                           mx (- (+ tx dx (/ tw 2)) bx)
+                           my (- (+ ty dy (/ th 2)) by)
+                           sx (+ (/ mx scale) cx)
+                           sy (+ (/ my scale) cy)]
                        (if (and (<= bx mx (+ bx bw)) (<= by my (+ by bh)))
                          (dispatch :token/create sx sy checksum)))) [dispatch result])]
     ($ :<>
