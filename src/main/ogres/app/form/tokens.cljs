@@ -137,10 +137,10 @@
         drop-pub  (use-droppable #js {"id" "scope-pub"})
         drop-prv  (use-droppable #js {"id" "scope-prv"})
         on-remove (use-callback
-                   (fn [key] (dispatch :tokens/remove key)) [dispatch])
+                   (fn [checksum] (dispatch :tokens/remove checksum)) [dispatch])
         on-scope  (use-callback
                    (fn [checksum scope]
-                     (dispatch :tokens/change-scope checksum scope)) [dispatch result])
+                     (dispatch :tokens/change-scope checksum scope)) [dispatch])
         on-create (use-callback
                    (fn [checksum element delta]
                      (let [{{[bx by bw bh] :bounds/self
