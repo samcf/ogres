@@ -659,6 +659,14 @@
    [:db/add -1 :image/height height]
    [:db/add -1 :image/checksum checksum]])
 
+(defmethod
+  ^{:doc "Change the scope of the token image by the given checksum to the
+          given scope, typically `:public` or `:private`."}
+  transact :tokens/change-scope
+  [_ checksum scope]
+  [[:db/add -1 :image/checksum checksum]
+   [:db/add -1 :image/scope scope]])
+
 (defmethod transact :tokens/remove [_ checksum]
   [[:db/retractEntity [:image/checksum checksum]]])
 

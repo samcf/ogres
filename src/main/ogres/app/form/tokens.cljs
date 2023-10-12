@@ -1,5 +1,6 @@
 (ns ogres.app.form.tokens
-  (:require [ogres.app.hooks :refer [use-dispatch use-image use-image-uploader use-query]]
+  (:require [goog.object :refer [getValueByKeys]]
+            [ogres.app.hooks :refer [use-dispatch use-image use-image-uploader use-query]]
             [ogres.app.render :refer [icon pagination]]
             [ogres.app.util :refer [separate comp-fn]]
             [uix.core :as uix :refer [defui $ use-callback use-ref use-state]]
@@ -42,44 +43,40 @@
 
 (defui ^:private drag-handler
   [props]
-  (let [{:keys [on-create on-remove]
+  (let [{:keys [on-create on-remove on-scope]
          :or   {on-create identity
-                on-remove identity}} props
-        [delete set-delete] (use-state false)
+                on-remove identity
+                on-scope identity}} props
         [active set-active] (use-state nil)]
     (use-dnd-monitor
      #js {"onDragStart"
           (fn [event]
             (set-active (.. event -active -id)))
-          "onDragMove"
-          (fn [event]
-            (if (and (.-over event) (not= (.-id (.-active event)) "default"))
-              (set-delete true)
-              (set-delete false)))
           "onDragEnd"
           (fn [event]
-            (if (and (.-over event) (not= (.-id (.-active event)) "default"))
-              (do (on-remove active)
-                  (set-active nil)
-                  (set-delete false))
-              (let [target (.. event -activatorEvent -target)
-                    delta  (.-delta event)]
-                (on-create active target delta)
-                (set-active nil)
-                (set-delete false))))})
+            (let [drag (getValueByKeys event #js ["active" "id"])
+                  drop (getValueByKeys event #js ["over" "id"])]
+              (if (and (not (nil? drop)) (not= drag "default"))
+                (case drop
+                  "scope-pub" (on-scope drag :public)
+                  "scope-prv" (on-scope drag :private)
+                  "trash" (on-remove drag))
+                (let [target (.. event -activatorEvent -target)
+                      delta  (.-delta event)]
+                  (on-create drag target delta)))
+              (set-active nil)))})
     (create-portal
      ($ drag-overlay {:drop-animation nil}
-       (cond (= active "default")
-             ($ :figure.token-gallery-item
-               {:data-type "default"}
-               ($ icon {:name "dnd"}))
-             (string? active)
-             ($ image {:checksum active}
-               (fn [{:keys [data-url]}]
-                 ($ :figure.token-gallery-item
-                   {:data-type "image"
-                    :data-delete delete
-                    :style {:background-image (str "url(" data-url ")")}})))))
+       (if (= active "default")
+         ($ :figure.token-gallery-item
+           {:data-type "default"}
+           ($ icon {:name "dnd"}))
+         (if (not (nil? active))
+           ($ image {:checksum active}
+             (fn [{:keys [data-url]}]
+               ($ :figure.token-gallery-item
+                 {:data-type "image"
+                  :style {:background-image (str "url(" data-url ")")}}))))))
      (.querySelector js/document "#root"))))
 
 (defui ^:private gallery [props]
@@ -137,7 +134,13 @@
         [pub prv] (separate (comp-fn = :image/scope :public) data)
         data-pub  (into [:default] (reverse pub))
         data-prv  (vec (reverse prv))
-        on-remove (use-callback (fn [key] (dispatch :tokens/remove key)) [dispatch])
+        drop-pub  (use-droppable #js {"id" "scope-pub"})
+        drop-prv  (use-droppable #js {"id" "scope-prv"})
+        on-remove (use-callback
+                   (fn [checksum] (dispatch :tokens/remove checksum)) [dispatch])
+        on-scope  (use-callback
+                   (fn [checksum scope]
+                     (dispatch :tokens/change-scope checksum scope)) [dispatch])
         on-create (use-callback
                    (fn [checksum element delta]
                      (let [{{[bx by bw bh] :bounds/self
@@ -156,18 +159,19 @@
         ($ :<>
           ($ :header "Public [" (count data-pub) "]")
           ($ :section.token-gallery
-            {:data-type "host" :data-scope "public"}
+            {:ref (.-setNodeRef drop-pub) :data-type "host" :data-scope "public"}
             ($ paginated {:data data-pub :limit 10}))
           ($ :header "Private [" (count data-prv) "]")
           ($ :section.token-gallery
-            {:data-type "host" :data-scope "private"}
+            {:ref (.-setNodeRef drop-prv) :data-type "host" :data-scope "private"}
             ($ paginated {:data data-prv :limit 20})))
         ($ :section.token-gallery
-          {:data-type "conn" :data-scope "public"}
+          {:ref (.-setNodeRef drop-pub) :data-type "conn" :data-scope "public"}
           ($ paginated {:data data-pub :limit 30})))
       ($ drag-handler
         {:on-create on-create
-         :on-remove on-remove}))))
+         :on-remove on-remove
+         :on-scope on-scope}))))
 
 (defui footer []
   (let [dispatch (use-dispatch)
