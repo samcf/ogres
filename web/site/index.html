@@ -8,8 +8,8 @@
   <link rel="stylesheet" href="dist/styles.css">
 </head>
 
-<body class="text-slate-300 font-sans min-h-screen bg-grid">
-  <article class="p-4 lg:px-44 md:p-8 lg:p-16">
+<body class="text-slate-300 font-sans min-h-screen bg-grid tracking-wide marker:text-sky-300">
+  <article class="container mx-auto px-4 py-8">
     <nav class="ml-auto flex gap-6 uppercase text-slate-300 text-sm justify-end z-10 relative">
       <a class="hover:text-slate-100" target="_blank" href="https://github.com/samcf/ogres" title="GitHub repository">
         <svg xmlns="http://www.w3.org/2000/svg" class="inline" width="16" height="16" fill="currentColor"
@@ -23,26 +23,39 @@
       <a class="hover:text-slate-100" target="_blank" href="https://github.com/samcf/ogres/discussions"
         title="Report a problem">Support</a>
     </nav>
-    <div class="lg:grid grid-cols-2 gap-4">
+    <div class="lg:grid grid-cols-2 gap-8">
       <div>
-        <section>
+        <section class="mt-8">
           <h1 class="font-title text-6xl text-slate-200"><span class="md:block">Ogres</span> Tabletop</h1>
-          <p class="py-2 text-slate-300 text-lg max-w-xl leading-tight">
+          <p class="py-2 text-slate-300 text-lg leading-tight">
             Free and open-source <span class="italic text-sm text-slate-400">(AGPL-3.0)</span> virtual tabletop that you
             and your friends can run in the browser.
             <span class="font-bold text-slate-200">No sign-ups and no ads</span>. Just launch the app below to get
             started.
           </p>
-          <a href="https://ogres.app" title="Launch application"
-            class="block md:inline-block px-4 py-2 mt-2 bg-blue-800 hover:bg-blue-600 border border-blue-500 rounded-sm text-lg font-title text-slate-200 text-center shadow-lg active:translate-y-0.5">
-            Launch
-          </a>
+          <div class="flex flex-col gap-2 mt-3">
+            <a href="https://ogres.app"
+              class="px-4 py-2 bg-blue-800 hover:bg-blue-600 border border-blue-500 rounded-sm text-lg font-title text-slate-200 text-center shadow-lg active:translate-y-0.5">
+              Launch
+            </a>
+            <div class="font-bold flex justify-center italic">OR</div>
+            <form method="get" action="/app" class="flex items-stretch justify-between gap-1 flex-1">
+              <input type="hidden" name="release" value="latest" />
+              <input type="text" name="join" pattern="\w{4,4}" maxlength="4" required autocomplete="off"
+                spellcheck="false" placeholder="4-letter room code"
+                class="bg-blue-900 rounded-sm border border-blue-500 px-3 outline-none text-slate-50 font-mono uppercase flex-auto focus:border-blue-300 placeholder:normal-case text-sm" />
+              <button type="submit"
+                class="px-4 py-2 flex-auto disabled:opacity-50 bg-blue-800 enabled:hover:bg-blue-600 border border-blue-500 rounded-sm text-lg font-title text-slate-200 text-center shadow-lg enabled:active:translate-y-0.5">
+                Join
+              </button>
+            </form>
+          </div>
         </section>
         <section class="my-8 clear-both">
           <h2 class="font-title text-2xl">Features</h2>
           <ul class="list-disc list-inside text-md leading-relaxed">
-            <li>Instantly start preparing your game with no sign-ups or ads</li>
-            <li>Start an online collaborative lobby for your friends</li>
+            <li>Instantly start preparing your game; no sign-ups or ads</li>
+            <li>Start an online collaborative session for your friends</li>
             <li>Prepare and manage multiple scenes at once</li>
             <li>Built-in initiative tracker for streamlined encounters</li>
             <li>Adjust time of day between day, dusk, and midnight</li>
@@ -54,8 +67,8 @@
         <section class="my-8">
           <h2 class="font-title text-2xl">Limitations</h2>
           <ul class="list-disc list-inside text-md leading-relaxed">
-            <li>No support for 3D maps, tokens, or dice rolling</li>
             <li>Basic lighting system</li>
+            <li>No support for 3D maps, tokens, or dice rolling</li>
             <li>No embedded rules knowledge</li>
             <li>No video, audio, or music capabilities</li>
             <li>No integration with D&DBeyond or other services</li>
