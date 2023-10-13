@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en-US" class="bg-slate-900 bg-gradient min-h-full">
+
+<head>
+  <meta charset="utf-8">
+  <title>Ogres Tabletop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Free and open-source virtual tabletop to help run your online tabletop games.">
+  <meta name="og:title" content="Ogres Tabletop &ndash; free and open-source virtual tabletop">
+  <meta name="og:type" content="website">
+  <meta name="og:url" content="https://ogres.app">
+  <meta name="og:image" content="share-town-center.png">
+  <meta name="og:description" content="Free and open-source virtual tabletop to help run your online tabletop games.">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧅</text></svg>">
+  <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="text-slate-300 font-sans min-h-screen bg-grid tracking-wide marker:text-sky-300">
+  <article class="container mx-auto px-4 py-8">
+    <nav class="ml-auto flex gap-6 uppercase text-slate-300 text-sm justify-end z-10 relative">
+      <a class="hover:text-slate-100" target="_blank" href="https://github.com/samcf/ogres" title="GitHub repository">
+        <svg xmlns="http://www.w3.org/2000/svg" class="inline" width="16" height="16" fill="currentColor"
+          viewBox="0 0 16 16">
+          <path
+            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
+        </svg>
+        Code</a>
+      <a class="hover:text-slate-100" target="_blank" href="https://github.com/samcf/ogres/wiki"
+        title="Project wiki">Wiki</a>
+      <a class="hover:text-slate-100" target="_blank" href="https://github.com/samcf/ogres/discussions"
+        title="Report a problem">Support</a>
+    </nav>
+    <div class="lg:grid grid-cols-2 gap-8">
+      <div>
+        <section class="mt-8">
+          <h1 class="font-title text-6xl text-slate-200"><span class="md:block">Ogres</span> Tabletop</h1>
+          <p class="py-2 text-slate-300 text-lg leading-tight">
+            Free and open-source <span class="italic text-sm text-slate-400">(AGPL-3.0)</span> virtual tabletop that you
+            and your friends can run in the browser.
+            <span class="font-bold text-slate-200">No sign-ups and no ads</span>. Just launch the app below to get
+            started.
+          </p>
+          <div class="flex flex-col gap-2 mt-3">
+            <a href="/app"
+              class="px-4 py-2 bg-blue-800 hover:bg-blue-600 border border-blue-500 rounded-sm text-lg font-title text-slate-200 text-center shadow-lg active:translate-y-0.5">
+              Launch
+            </a>
+            <div class="font-bold flex justify-center italic">OR</div>
+            <form method="get" action="/app" class="flex items-stretch justify-between gap-1 flex-1">
+              <input type="hidden" name="release" value="latest" />
+              <input type="text" name="join" pattern="\w{4,4}" maxlength="4" required autocomplete="off"
+                spellcheck="false" placeholder="4-letter room code"
+                class="bg-blue-900 rounded-sm border border-blue-500 px-3 outline-none text-slate-50 font-mono uppercase flex-auto focus:border-blue-300 placeholder:normal-case text-sm" />
+              <button type="submit"
+                class="px-4 py-2 flex-auto disabled:opacity-50 bg-blue-800 enabled:hover:bg-blue-600 border border-blue-500 rounded-sm text-lg font-title text-slate-200 text-center shadow-lg enabled:active:translate-y-0.5">
+                Join
+              </button>
+            </form>
+          </div>
+        </section>
+        <section class="my-8 clear-both">
+          <h2 class="font-title text-2xl">Features</h2>
+          <ul class="list-disc list-inside text-md leading-relaxed">
+            <li>Instantly start preparing your game; no sign-ups or ads</li>
+            <li>Start an online collaborative session for your friends</li>
+            <li>Prepare and manage multiple scenes at once</li>
+            <li>Built-in initiative tracker for streamlined encounters</li>
+            <li>Adjust time of day between day, dusk, and midnight</li>
+            <li>Easy to use for other game systems</li>
+            <li>Polygonal fog tool</li>
+            <li>... and much more planned!</li>
+          </ul>
+        </section>
+        <section class="my-8">
+          <h2 class="font-title text-2xl">Limitations</h2>
+          <ul class="list-disc list-inside text-md leading-relaxed">
+            <li>Basic lighting system</li>
+            <li>No support for 3D maps, tokens, or dice rolling</li>
+            <li>No embedded rules knowledge</li>
+            <li>No video, audio, or music capabilities</li>
+            <li>No integration with D&DBeyond or other services</li>
+            <li>Not optimized for phones or tablets</li>
+          </ul>
+        </section>
+      </div>
+      <div>
+        <section class="my-4 lg:my-16">
+          <figure alt="Screenshot of the Ogres Tabletop application">
+            <a href="screenshot.png" target="_blank">
+              <img src="screenshot.png" />
+            </a>
+          </figure>
+        </section>
+      </div>
+    </div>
+    <footer class="text-xs text-slate-400 lg:mt-12">
+      Created by Sam Ferrell &lt;<a href="mailto:mail@samcf.me">mail@samcf.me</a>&gt;</footer>
+    </footer>
+  </article>
+</body>
+
+</html>

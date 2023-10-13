@@ -1,0 +1,6 @@
+{
+  "name": "ogres-website",
+  "devDependencies": {
+    "tailwindcss": "^3.3.3"
+  }
+}
