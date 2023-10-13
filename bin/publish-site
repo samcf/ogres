@@ -1,0 +1,20 @@
+#!/bin/sh
+set -o errexit -o nounset
+
+# Example
+# $ sh bin/publish-site user@192.0.2.235
+
+src="$PWD"
+dst=$1
+tmp=$(mktemp -d -t ogres.app)
+
+# copy contents of site/web to temp directory
+cp -r "$src"/site/web/. "$tmp"
+
+# copy contents of temp directory to remote server
+cd "$tmp"
+rsync -rv . "$dst":/srv/ogres.site/ --exclude=.git
+
+# cleanup temp directory
+cd "$src"
+rm -rf "$tmp"
