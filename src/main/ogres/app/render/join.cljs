@@ -19,9 +19,9 @@
         on-submit       (use-callback
                          (fn [event]
                            (.preventDefault event)
-                           (let [params (js/URLSearchParams. #js {"release" "latest" "join" code})
+                           (let [params (js/URLSearchParams. #js {"r" "latest" "join" code})
                                  origin (.. js/window -location -origin)
-                                 href   (str origin "?" (.toString params))]
+                                 href   (str origin "/play/" "?" (.toString params))]
                              (set! (.. js/window -location -href) href))) [code])]
     ($ :.modal.join-modal
       ($ :.modal-container
