@@ -2,5 +2,9 @@
   "name": "ogres-website",
   "devDependencies": {
     "tailwindcss": "^3.3.3"
+  },
+  "scripts": {
+    "start": "npx tailwindcss -i styles.css -o web/styles.css --watch",
+    "build": "npx tailwindcss -i styles.css -o web/styles.css --minify"
   }
 }
