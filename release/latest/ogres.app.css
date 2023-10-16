@@ -1,5 +1,5 @@
 :root {
-    --pattern-dots: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 4 4'%3E%3Cpath fill='%23666' opacity='0.4' d='M1 3h1v1H1V3zm2-2h1v1H3V1z'%3E%3C/path%3E%3C/svg%3E");
+    --pattern-diamonds: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.12'%3E%3Cpath opacity='.5' d='M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9z'/%3E%3Cpath d='M6 5V0H5v5H0v1h5v94h1V6h94V5H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
     --font-stack-system: system-ui, sans-serif;
     --font-stack-transitional: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, serif;
     --font-stack-mono: 'Nimbus Mono PS', 'Courier New', 'Cutive Mono', monospace;
@@ -17,10 +17,11 @@
     --color-prime-100: hsl(141.80, 21.15%, 79.60%);
 
     --color-blues-900: hsl(200, 20%, 12%);
+    --color-blues-800: hsl(200, 20%, 16%);
     --color-blues-700: hsl(208, 26%, 22%);
     --color-blues-500: hsl(208, 20%, 28%);
     --color-blues-300: hsl(208, 20%, 34%);
-    --color-blues-100: hsl(208, 20%, 34%);
+    --color-blues-100: hsl(208, 20%, 38%);
 
     --color-danger-900: hsl(6, 73%, 60%);
     --color-danger-700: hsl(6, 73%, 60%);
@@ -40,8 +41,7 @@ html, body, #root, .root {
 }
 
 body {
-    background-color: var(--color-blues-500);
-    background-image: var(--pattern-dots);
+    background: var(--pattern-diamonds), var(--color-blues-500);
     font-family: var(--font-stack-transitional);
     font-size: 16px;
     line-height: 1.5;
@@ -105,6 +105,7 @@ fieldset.checkbox + fieldset {
     border-radius: 2px;
     border: 1px solid transparent;
     box-shadow: 2px 2px 0 0 rgba(0, 0, 0, .15);
+    color: var(--color-blues-900);
     display: flex;
     font-family: var(--font-stack-transitional);
     font-size: 12px;
@@ -414,7 +415,11 @@ legend {
 
 .scenes-scene {
     background-color: var(--color-blues-700);
-    border-radius: 3px 3px 0 0;
+    border-color: var(--color-blues-900);
+    border-radius: 2px 2px 0 0;
+    border-style: solid;
+    border-width: 1px 1px 0 1px;
+    color: var(--color-black-300);
     cursor: pointer;
     display: flex;
     flex: 1;
@@ -456,7 +461,10 @@ legend {
 .scenes-create {
     align-items: center;
     background-color: var(--color-blues-700);
-    border-radius: 3px 3px 0 0;
+    border-color: var(--color-blues-900);
+    border-radius: 2px 2px 0 0;
+    border-style: solid;
+    border-width: 1px 1px 0 1px;
     display: flex;
     justify-content: center;
 }
@@ -473,7 +481,7 @@ legend {
 
 .scenes-scene:hover,
 .scenes-create:hover {
-    background-color: var(--color-blues-900);
+    background-color: var(--color-blues-800);
 }
 
 .scenes-create,
@@ -571,7 +579,7 @@ legend {
 
 /* Scene */
 .scene {
-    border: 1px solid var(--color-blues-900);
+    border: 1px solid black;
     background-color: var(--color-blues-900);
     border-radius: 0 4px 4px 4px;
     box-shadow: 4px 4px 0 0 rgba(0, 0, 0, .15);
@@ -631,11 +639,12 @@ legend {
 }
 
 .scene-token-label > span {
-    background-color: black;
+    background-color: var(--color-blues-700);
+    border: 1px solid var(--color-blues-900);
     border-radius: 2px;
-    color: white;
+    color: var(--color-black-100);
     font-size: 12px;
-    line-height: 1.3;
+    line-height: 1.2;
     padding: 0 4px;
 }
 
@@ -654,7 +663,9 @@ legend {
 }
 
 .scene-token-flags circle {
-    fill: black;
+    fill: var(--color-blues-700);
+    stroke: var(--color-blues-900);
+    stroke-width: 1;
 }
 
 @keyframes ring-pulse {
@@ -960,6 +971,7 @@ legend {
     border: 1px solid var(--color-blues-700);
     color: white;
     content: attr(data-tooltip);
+    font-family: var(--font-stack-transitional);
     font-size: 11px;
     line-height: 1;
     padding: 2px 4px;
@@ -1076,6 +1088,7 @@ legend {
 }
 
 .form {
+    color: var(--color-blues-900);
     display: flex;
     flex-direction: column;
 }
@@ -1270,7 +1283,7 @@ legend {
     align-items: center;
     background: white;
     border: none;
-    color: black;
+    color: var(--color-blues-900);
     cursor: pointer;
     display: flex;
     height: 28px;
@@ -1284,8 +1297,8 @@ legend {
 }
 
 .scene-gallery-item > button:hover {
-    background-color: black;
-    color: white;
+    background-color: var(--color-blues-900);
+    color: var(--color-black-100);
 }
 
 .scene-gallery-item[data-type="image"]:hover {
@@ -1338,7 +1351,7 @@ legend {
 .token-gallery-item {
     align-items: center;
     aspect-ratio: 1 / 1;
-    border-color: black;
+    border-color: var(--color-blues-900);
     border-radius: 50%;
     border-style: solid;
     border-width: 1px;
@@ -1347,7 +1360,9 @@ legend {
 }
 
 .token-gallery-item[data-type="default"] {
-    background-color: black;
+    background-color: var(--color-blues-700);
+    border-width: 0;
+    box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 0.80);
 }
 
 .token-gallery-item[data-type="default"] svg {
@@ -1357,10 +1372,10 @@ legend {
 }
 
 .token-gallery-item[data-type="image"] {
-    background-color: black;
+    background-color: var(--color-blues-900);
     background-size: contain;
     border-width: 0;
-    box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 1);
+    box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 0.80);
     opacity: 1;
     transition: opacity 80ms ease-in-out;
 }
@@ -1375,7 +1390,7 @@ legend {
 }
 
 .token-gallery-item[data-type="trash"] svg {
-    color: black;
+    color: var(--color-blues-900);
 }
 
 .token-gallery-item:is([data-type="default"], [data-type="image"]) {
@@ -1439,10 +1454,11 @@ legend {
 .initiative-token-image,
 .initiative-token-pattern {
     aspect-ratio: 1;
-    background-color: white;
+    background-color: var(--color-blues-700);
+    color: var(--color-black-100);
     background-size: cover;
     border-radius: 2px;
-    border: 1px solid black;
+    border: 1px solid var(--color-blues-900);
     box-sizing: border-box;
     cursor: pointer;
     grid-area: a;
@@ -1462,9 +1478,9 @@ legend {
 .initiative-token-roll-label,
 .initiative-token-suffix {
     align-items: center;
-    background-color: black;
+    background-color: var(--color-blues-700);
     border-radius: 2px;
-    border: 1px solid black;
+    border: 1px solid var(--color-blues-900);
     color: white;
     display: flex;
     grid-area: a;
