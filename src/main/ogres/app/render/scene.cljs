@@ -325,10 +325,10 @@
         attrs     {:width "100%" :height "100%" :patternContentUnits "objectBoundingBox"}]
     ($ :defs {:style {:color "white"}}
       ($ :pattern (merge attrs {:id "token-face-default" :viewBox "-2 -2 16 16"})
-        ($ :rect {:x -2 :y -2 :width 16 :height 16 :fill "black"})
+        ($ :rect {:x -2 :y -2 :width 16 :height 16 :fill "var(--color-blues-700)"})
         ($ icon {:name "dnd" :size 12}))
       ($ :pattern (merge attrs {:id "token-face-deceased" :viewBox "-2 -2 16 16"})
-        ($ :rect {:x -2 :y -2 :width 16 :height 16 :fill "black"})
+        ($ :rect {:x -2 :y -2 :width 16 :height 16 :fill "var(--color-blues-700)"})
         ($ icon {:name "skull" :size 12}))
       (for [checksum checksums]
         ($ :pattern (merge attrs {:key checksum :id (str "token-face-" checksum)})
