@@ -21,7 +21,8 @@
                            (.preventDefault event)
                            (let [params (js/URLSearchParams. #js {"r" "latest" "join" code})
                                  origin (.. js/window -location -origin)
-                                 href   (str origin "/play/" "?" (.toString params))]
+                                 path   (.. js/window -location -pathname)
+                                 href   (str origin path "?" (.toString params))]
                              (set! (.. js/window -location -href) href))) [code])]
     ($ :.modal.join-modal
       ($ :.modal-container

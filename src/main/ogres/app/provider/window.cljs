@@ -27,8 +27,10 @@
     (use-subscribe :share/initiate
       (fn []
         (if (nil? view)
-          (let [url (.. js/window -location -origin)
-                url (str url "?share=true")
+          (let [params (js/URLSearchParams. #js {"share" true})
+                origin (.. js/window -location -origin)
+                path   (.. js/window -location -pathname)
+                url (str origin path "?" (.toString params))
                 win (.open js/window url "ogres.app" "width=640,height=640")]
             (reset win)
             (dispatch :share/toggle true))
