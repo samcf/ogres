@@ -25,7 +25,7 @@
      [:session/share-cursors :default true]]}])
 
 (defn ^:private session-url [room-key]
-  (str (.. js/window -location -origin) "?r=" VERSION "&join=" room-key))
+  (str (.. js/window -location -origin) "/play/?r=" VERSION "&join=" room-key))
 
 (defui form []
   (let [dispatch (use-dispatch)
