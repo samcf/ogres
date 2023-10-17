@@ -117,6 +117,8 @@
              [:db/add -1 :local/cameras -2]
              [:db/add -2 :db/key (ds/squuid)]
              [:db/add -2 :camera/scene -3]
+             [:db/add -2 :camera/point (-> local :local/camera :camera/point)]
+             [:db/add -2 :camera/scale (-> local :local/camera :camera/scale)]
              [:db/add -3 :db/key (-> local :local/camera :camera/scene :db/key)]]
             [])
           report (ds/transact! conn (into tx-data tx-data-addtl))]
