@@ -49,6 +49,12 @@ body {
     user-select: none;
 }
 
+a:link,
+a:visited {
+    text-decoration: none;
+    color: inherit;
+}
+
 header {
     display: flex;
     align-items: center;
@@ -281,6 +287,25 @@ legend {
 .layout-tokens {
     padding: 16px;
     justify-self: end;
+}
+
+/* Error Layout */
+.layout-error {
+    display: flex;
+    justify-content: center;
+    margin: 64px 32px;
+}
+
+.layout-error-content {
+    background-color: var(--color-blues-900);
+    border-radius: 4px;
+    box-shadow: 4px 4px 0 0 rgba(0, 0, 0, .15);
+    color: var(--color-black-100);
+    display: flex;
+    font-size: 14px;
+    gap: 16px;
+    max-width: 512px;
+    padding: 32px;
 }
 
 /* Join */
@@ -998,14 +1023,6 @@ legend {
     fill-opacity: 0.75;
 }
 
-.scene[data-user-type="host"] .scene-mask-background {
-    fill-opacity: 0.40;
-}
-
-.scene[data-user-type="host"] .scene-mask-pattern {
-    fill-opacity: 0.30;
-}
-
 .scene-mask-polygon {
     fill: transparent;
     pointer-events: fill;
@@ -1016,6 +1033,14 @@ legend {
 .scene-mask-polygon:hover {
     cursor: pointer;
     stroke: orange;
+}
+
+[data-user-type="host"] .scene-mask-background {
+    fill-opacity: 0.40;
+}
+
+[data-user-type="host"] .scene-mask-pattern {
+    fill-opacity: 0.30;
 }
 
 /* Forms */
@@ -1653,28 +1678,28 @@ legend {
 }
 
 /* Global */
-.root[data-view-type="view"] .scene-shape:hover > circle,
-.root[data-view-type="view"] .scene-shape:hover > path,
-.root[data-view-type="view"] .scene-shape:hover > line,
-.root[data-view-type="view"] .scene-shape:hover > polygon,
-.root[data-view-type="view"] .scene-shape[data-selected="true"] > circle,
-.root[data-view-type="view"] .scene-shape[data-selected="true"] > path,
-.root[data-view-type="view"] .scene-shape[data-selected="true"] > line,
-.root[data-view-type="view"] .scene-shape[data-selected="true"] > polygon {
+[data-user-type="view"] .scene-shape:hover > circle,
+[data-user-type="view"] .scene-shape:hover > path,
+[data-user-type="view"] .scene-shape:hover > line,
+[data-user-type="view"] .scene-shape:hover > polygon,
+[data-user-type="view"] .scene-shape[data-selected="true"] > circle,
+[data-user-type="view"] .scene-shape[data-selected="true"] > path,
+[data-user-type="view"] .scene-shape[data-selected="true"] > line,
+[data-user-type="view"] .scene-shape[data-selected="true"] > polygon {
     stroke-dasharray: none;
     animation: none;
 }
 
-.root[data-view-type="view"] {
+[data-user-type="view"] {
     grid-template-areas: "b";
     grid-template-columns: 1fr;
     grid-template-rows: 1fr;
 }
 
-.root[data-view-type="view"] .scene {
+[data-user-type="view"] .scene {
     pointer-events: none;
 }
 
-.root[data-show-tooltips="false"] .toolbar-tooltip {
+[data-tooltips="false"] .toolbar-tooltip {
     display: none !important;
 }

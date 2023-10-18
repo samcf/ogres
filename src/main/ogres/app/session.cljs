@@ -110,7 +110,7 @@
           (if (= (:local/type local) :host)
             [[:db/add -1 :db/key (:uuid data)]
              [:db/add -1 :local/type :conn]
-             [:db/add -1 :local/loaded? true]
+             [:db/add -1 :local/status :ready]
              [:db/add -1 :local/color (next-color @conn session-color-options)]
              [:db/add -1 :session/state :connected]
              [:db/add -1 :local/camera -2]
@@ -319,6 +319,14 @@
       (use-callback
        (fn []
          (dispatch :session/disconnected)) [dispatch]))
+
+    ;; Listen to the "error" event on the WebSocket object.
+    (use-event-listener socket "error"
+      (use-callback
+       (fn []
+         (let [local (ds/entity (ds/db conn) [:db/ident :local])]
+           (if (= (:local/type local) :conn)
+             (dispatch :local/change-status :disconnected)))) [conn dispatch]))
 
     ;; Listen to the "message" event on the WebSocket object and forward the
     ;; event details to the appropriate handler.
