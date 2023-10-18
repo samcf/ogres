@@ -48,11 +48,12 @@
       ($ :section
         ($ :header "Keyboard Shortcuts")
         ($ :table.shortcuts
-          (for [shortcut shortcuts]
-            ($ :tr {:key (:name shortcut)}
-              ($ :td
-                ($ :div.shortcut (map (fn [s] ($ :div (str s))) (interpose \+ (:keys shortcut)))))
-              ($ :td (str (:desc shortcut)))))))
+          ($ :tbody
+            (for [shortcut shortcuts]
+              ($ :tr {:key (:name shortcut)}
+                ($ :td
+                  ($ :.shortcut (map (fn [s] ($ :code {:key (str s)} (str s))) (interpose \+ (:keys shortcut)))))
+                ($ :td (str (:desc shortcut))))))))
       ($ :section
         ($ :header "Resources")
         ($ :ul {:style {:color "var(--color-danger-500)"}}

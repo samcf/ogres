@@ -523,15 +523,36 @@ legend {
     pointer-events: all;
 }
 
+.toolbar code {
+    background-color: var(--color-blues-700);
+    min-width: 20px;
+    padding: 0 4px;
+    text-align: center;
+    border-radius: 2px;
+}
+
+.toolbar a:link,
+.toolbar a:visited {
+    color: var(--color-danger-500);
+}
+
 .toolbar-tooltip {
     background-color: var(--color-blues-900);
     border-radius: 2px;
     border: 1px solid var(--color-blues-700);
     color: var(--color-black-100);
+    display: flex;
     font-size: 13px;
+    gap: 8px;
     margin-bottom: 4px;
     padding: 4px 8px;
-    text-align: center;
+}
+
+.toolbar-shortcut {
+    align-items: center;
+    display: flex;
+    gap: 2px;
+    text-transform: capitalize;
 }
 
 .toolbar-groups {
@@ -1694,7 +1715,7 @@ legend {
     gap: 2px;
 }
 
-.shortcuts .shortcut div {
+.shortcuts .shortcut code {
     text-transform: capitalize;
 }
 
