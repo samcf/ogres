@@ -1,15 +1,17 @@
 (ns ogres.app.form.help
   (:require [ogres.app.const :refer [VERSION]]
             [ogres.app.hooks :refer [use-dispatch use-query]]
+            [ogres.app.shortcut :refer [shortcuts]]
             [uix.core :refer [defui $]]))
 
 (def ^:private confirm-delete
-  "Are you sure you want to delete your local data? This will revert this app to its original state.")
+  "Are you sure you want to reset your local data? This will revert this app to its original state.")
 
 (def ^:private resource-links
-  [["https://github.com/samcf/ogres" "GitHub repository page" "Source Code"]
-   ["https://github.com/samcf/ogres/discussions" "Ask a Question" "Ask a Question"]
-   ["https://github.com/samcf/ogres/wiki" "Project wiki" "Wiki"]])
+  [["https://ogres.app" "Application home" "Home"]
+   ["https://github.com/samcf/ogres" "Project repository" "Code"]
+   ["https://github.com/samcf/ogres/wiki" "Project wiki" "Wiki"]
+   ["https://github.com/samcf/ogres/discussions" "Project discussion" "Support"]])
 
 (def ^:private query
   [[:local/tooltips? :default true]])
@@ -31,27 +33,29 @@
                             (dispatch :local/toggle-tooltips checked)))})
           ($ :label {:for "show-tooltips"} "Show tooltips")))
       ($ :section
-        ($ :header "Data")
-        ($ :p "All application data is saved locally on your browser, including
-           any images you upload for maps or tokens. Any changes you make
-           are automatically saved. As long as you use the same browser and
-           don't clear your browser's cache, all your changes will stick
-           around even if you close the browser or restart your computer.")
+        ($ :header "Version" " [ " VERSION " ]")
+        ($ :p "To upgrade to the latest version of this app, click the button
+               below to delete your local data and reload the page."
+          ($ :span " ")
+          ($ :strong "This will remove all uploaded images and destroy all created scenes."))
         ($ :br)
         ($ :button.button.button-danger
           {:on-click
            (fn []
              (if-let [_ (js/confirm confirm-delete)]
-               (dispatch :storage/reset)))
-           :style {:margin-bottom 8}}
-          "Delete Local Data")
-        ($ :p "Click this button to delete all application data, restoring this
-           application to its original empty state. All your work and images
-           will be removed.")
-        ($ :br)
-        ($ :p "Current version: " ($ :code VERSION)))
+               (dispatch :storage/reset)))}
+          "Reset local data"))
+      ($ :section
+        ($ :header "Keyboard Shortcuts")
+        ($ :table.shortcuts
+          ($ :tbody
+            (for [shortcut shortcuts]
+              ($ :tr {:key (:name shortcut)}
+                ($ :td
+                  ($ :.shortcut (map (fn [s] ($ :code {:key (str s)} (str s))) (interpose \+ (:keys shortcut)))))
+                ($ :td (str (:desc shortcut))))))))
       ($ :section
         ($ :header "Resources")
-        ($ :ul {:style {:color "var(--color-danger-500)" :list-style-type "disc" :margin-left "1rem"}}
-          (for [[url title label] resource-links]
-            ($ :li {:key url} ($ :a {:href url :title title :target "_blank"} label))))))))
+        ($ :ul {:style {:color "var(--color-danger-500)"}}
+          (for [[url title] resource-links]
+            ($ :li {:key url} ($ :a {:href url :title title :target "_blank"} url))))))))

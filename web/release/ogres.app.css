@@ -49,6 +49,10 @@ body {
     user-select: none;
 }
 
+strong {
+    font-weight: bold;
+}
+
 a:link,
 a:visited {
     text-decoration: none;
@@ -519,15 +523,36 @@ legend {
     pointer-events: all;
 }
 
+.toolbar code {
+    background-color: var(--color-blues-700);
+    min-width: 20px;
+    padding: 0 4px;
+    text-align: center;
+    border-radius: 2px;
+}
+
+.toolbar a:link,
+.toolbar a:visited {
+    color: var(--color-danger-500);
+}
+
 .toolbar-tooltip {
     background-color: var(--color-blues-900);
     border-radius: 2px;
     border: 1px solid var(--color-blues-700);
     color: var(--color-black-100);
+    display: flex;
     font-size: 13px;
+    gap: 8px;
     margin-bottom: 4px;
     padding: 4px 8px;
-    text-align: center;
+}
+
+.toolbar-shortcut {
+    align-items: center;
+    display: flex;
+    gap: 2px;
+    text-transform: capitalize;
 }
 
 .toolbar-groups {
@@ -1675,6 +1700,29 @@ legend {
     display: grid;
     grid-template-columns: 1fr min-content min-content;
     gap: 8px;
+}
+
+/* Shortcuts Table */
+.shortcuts {
+    border-collapse: collapse;
+    font-size: 12px;
+    width: 100%;
+}
+
+.shortcuts .shortcut {
+    display: flex;
+    font-family: var(--font-stack-mono);
+    gap: 2px;
+}
+
+.shortcuts .shortcut code {
+    text-transform: capitalize;
+}
+
+.shortcuts td {
+    box-sizing: border-box;
+    border: 1px solid var(--color-blues-700);
+    padding: 2px 4px;
 }
 
 /* Global */

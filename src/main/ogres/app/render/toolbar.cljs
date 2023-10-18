@@ -1,8 +1,12 @@
 (ns ogres.app.render.toolbar
   (:require [ogres.app.hooks :refer [use-event-listener use-dispatch use-query]]
             [ogres.app.render :refer [icon]]
+            [ogres.app.shortcut :refer [shortcuts]]
             [ogres.app.util :refer [comp-fn]]
             [uix.core :refer [defui $ use-callback use-ref use-state]]))
+
+(def ^:private shortcut-keys
+  (into {} (map (juxt :name :keys)) shortcuts))
 
 (defui ^:private tooltip
   [{:keys [tooltip]}]
@@ -11,16 +15,15 @@
     :copy/copy   "Copy the selected tokens."
     :copy/paste  "Place copied tokens onto the scene."
     :zoom/reset  "Reset to 100% zoom."
-    :zoom/out    ($ :span "Use the mousewheel or pinch the trackpad to zoom in and out.")
-    :zoom/in     ($ :span "Use the mousewheel or pinch the trackpad to zoom in and out.")
-    :mode/select ($ :span "Hold shift and drag to select multiple tokens.")
+    :zoom/zoom   ($ :span "Zoom in or out.")
+    :mode/select ($ :span "Hold " ($ :code "Shift") " and drag to select multiple tokens.")
     :mode/ruler  "Measure the distance between two points."
     :mode/circle "Draw a circle starting from its center."
     :mode/rect   "Draw a rectangle from one corner to the other."
     :mode/cone   "Draw a cone whose length is equal to its width."
     :mode/line   "Draw a line from one point to another."
     :mode/poly   "Draw a polygon by clicking each point and closing it at the first point."
-    :mode/mask   ($ :span "Create a new mask by drawing a polygon; hold shift to reveal a masked area.")
+    :mode/mask   ($ :span "Create a new mask by drawing a polygon; hold " ($ :code "Shift") " to reveal a masked area.")
     :mode/mask-toggle "Toggle a mask on or off."
     :mode/mask-remove "Remove a mask."
     :mask/hide   "Remove all masks then mask the entire scene."
@@ -92,6 +95,9 @@
     ($ :.toolbar {:ref container}
       (if tooltip-key
         ($ :.toolbar-tooltip
+          (if-let [shortcut (shortcut-keys tooltip-key)]
+            ($ :.toolbar-shortcut
+              (map (fn [s] ($ :code {:key (str s)} s)) shortcut)))
           ($ tooltip {:tooltip tooltip-key})))
       ($ :.toolbar-groups
         ($ :button (mode-attrs :select)
@@ -149,7 +155,7 @@
           {:type "button"
            :disabled (= scale 0.15)
            :on-click #(dispatch :camera/zoom-out)
-           :on-mouse-enter (tooltip-fn :zoom/out)}
+           :on-mouse-enter (tooltip-fn :zoom/zoom)}
           ($ icon {:name "zoom-out"}))
         ($ :button
           {:type "button"
@@ -162,7 +168,7 @@
           {:type "button"
            :disabled (= scale 4)
            :on-click #(dispatch :camera/zoom-in)
-           :on-mouse-enter (tooltip-fn :zoom/in)}
+           :on-mouse-enter (tooltip-fn :zoom/zoom)}
           ($ icon {:name "zoom-in"}))
         ($ :button (mode-attrs :mask :disabled conn?)
           ($ icon {:name "star-half"}))

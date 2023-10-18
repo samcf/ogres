@@ -7,7 +7,26 @@
 (defn ^:private linear [dx dy rx ry]
   (fn [n] (+ (* (/ (- n dx) (- dy dx)) (- ry rx)) rx)))
 
-(def ^:private shortcuts
+(def shortcuts
+  [{:name :mode/select      :keys [\s]            :desc "Select: Pan, select, and move tokens"}
+   {:name :select/many      :keys [\s "Shift"]    :desc "Select: Hold to select multiple tokens"}
+   {:name :select/clear     :keys ["Escape"]      :desc "Select: Clear selection"}
+   {:name :select/remove    :keys ["Delete"]      :desc "Select: Remove selected tokens"}
+   {:name :copy/cut         :keys [\⌘ \x]         :desc "Copy: Copy and remove the selected tokens"}
+   {:name :copy/copy        :keys [\⌘ \c]         :desc "Copy: Copy the selected tokens"}
+   {:name :copy/paste       :keys [\⌘ \v]         :desc "Copy: Paste the copied tokens onto the scene"}
+   {:name :zoom/zoom        :keys ["Mouse wheel"] :desc "Zoom: Zoom in or out"}
+   {:name :mode/ruler       :keys [\r]            :desc "Mode: Ruler tool"}
+   {:name :mode/circle      :keys [\1]            :desc "Mode: Draw a circle"}
+   {:name :mode/rect        :keys [\2]            :desc "Mode: Draw a rectangle"}
+   {:name :mode/cone        :keys [\3]            :desc "Mode: Draw a cone"}
+   {:name :mode/poly        :keys [\4]            :desc "Mode: Draw a polygon"}
+   {:name :mode/line        :keys [\5]            :desc "Mode: Draw a line"}
+   {:name :mode/mask        :keys [\f]            :desc "Mode: Draw a fog shape"}
+   {:name :mode/mask-toggle :keys [\t]            :desc "Mode: Reveal or obscure a fog shape"}
+   {:name :mode/mask-remove :keys [\x]            :desc "Mode: Remove a fog shape"}])
+
+(def ^:private handler
   {["keydown" "Shift"]
    (fn [[_ dispatch] event]
      (if (not (.-metaKey event))
@@ -131,17 +150,17 @@
       (use-callback
        (fn [event]
          (if (allow-event? event)
-           (if-let [f (shortcuts (event-key "keyup" event))]
+           (if-let [f (handler (event-key "keyup" event))]
              (f [conn dispatch] event)))) [conn dispatch]))
     (use-event-listener "keydown"
       (use-callback
        (fn [event]
          (if (allow-event? event)
-           (if-let [f (shortcuts (event-key "keydown" event))]
+           (if-let [f (handler (event-key "keydown" event))]
              (f [conn dispatch] event)))) [conn dispatch]))
     (use-event-listener "wheel"
       (use-callback
        (fn [event]
          (if (allow-event? event)
-           (if-let [f (shortcuts (event-key "wheel" event))]
+           (if-let [f (handler (event-key "wheel" event))]
              (f [conn dispatch] event)))) [conn dispatch]))))
