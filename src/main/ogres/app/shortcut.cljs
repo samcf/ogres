@@ -7,7 +7,26 @@
 (defn ^:private linear [dx dy rx ry]
   (fn [n] (+ (* (/ (- n dx) (- dy dx)) (- ry rx)) rx)))
 
-(def ^:private shortcuts
+(def shortcuts
+  [{:name :select :keys [\s] :desc "Move the camera and select tokens"}
+   {:name :multi-select :keys [\s "Shift"] :desc "Hold and drag to select multiple tokens"}
+   {:name :cut :keys [\⌘ \x] :desc "Copy and remove the selected tokens"}
+   {:name :copy :keys [\⌘ \c] :desc "Copy the selected tokens"}
+   {:name :paste :keys [\⌘ \v] :desc "Paste the copied tokens onto the scene"}
+   {:name :zoom :keys ["Mouse wheel"] :desc "Zoom in or out"}
+   {:name :clear :keys ["Escape"] :desc "Clear selection"}
+   {:name :remove :keys ["Delete"] :desc "Remove selected tokens"}
+   {:name :ruler :keys [\r] :desc "Ruler tool"}
+   {:name :circle :keys [\1] :desc "Draw a circle"}
+   {:name :rect :keys [\2] :desc "Draw a rectangle"}
+   {:name :cone :keys [\3] :desc "Draw a cone"}
+   {:name :poly :keys [\4] :desc "Draw a polygon"}
+   {:name :line :keys [\5] :desc "Draw a line"}
+   {:name :fog  :keys [\f] :desc "Draw a fog shape"}
+   {:name :fog-toggle :keys [\t] :desc "Reveal or obscure a fog shape"}
+   {:name :fog-remove :keys [\x] :desc "Remove a fog shape"}])
+
+(def ^:private handler
   {["keydown" "Shift"]
    (fn [[_ dispatch] event]
      (if (not (.-metaKey event))
@@ -131,17 +150,17 @@
       (use-callback
        (fn [event]
          (if (allow-event? event)
-           (if-let [f (shortcuts (event-key "keyup" event))]
+           (if-let [f (handler (event-key "keyup" event))]
              (f [conn dispatch] event)))) [conn dispatch]))
     (use-event-listener "keydown"
       (use-callback
        (fn [event]
          (if (allow-event? event)
-           (if-let [f (shortcuts (event-key "keydown" event))]
+           (if-let [f (handler (event-key "keydown" event))]
              (f [conn dispatch] event)))) [conn dispatch]))
     (use-event-listener "wheel"
       (use-callback
        (fn [event]
          (if (allow-event? event)
-           (if-let [f (shortcuts (event-key "wheel" event))]
+           (if-let [f (handler (event-key "wheel" event))]
              (f [conn dispatch] event)))) [conn dispatch]))))

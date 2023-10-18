@@ -49,6 +49,10 @@ body {
     user-select: none;
 }
 
+strong {
+    font-weight: bold;
+}
+
 a:link,
 a:visited {
     text-decoration: none;
@@ -1675,6 +1679,29 @@ legend {
     display: grid;
     grid-template-columns: 1fr min-content min-content;
     gap: 8px;
+}
+
+/* Shortcuts Table */
+.shortcuts {
+    border-collapse: collapse;
+    font-size: 12px;
+    width: 100%;
+}
+
+.shortcuts .shortcut {
+    display: flex;
+    font-family: var(--font-stack-mono);
+    gap: 2px;
+}
+
+.shortcuts .shortcut div {
+    text-transform: capitalize;
+}
+
+.shortcuts td {
+    box-sizing: border-box;
+    border: 1px solid var(--color-blues-700);
+    padding: 2px 4px;
 }
 
 /* Global */
