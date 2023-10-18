@@ -52,6 +52,6 @@
         ($ :p "Current version: " ($ :code VERSION)))
       ($ :section
         ($ :header "Resources")
-        ($ :ul
+        ($ :ul {:style {:color "var(--color-danger-500)" :list-style-type "disc" :margin-left "1rem"}}
           (for [[url title label] resource-links]
             ($ :li {:key url} ($ :a {:href url :title title :target "_blank"} label))))))))

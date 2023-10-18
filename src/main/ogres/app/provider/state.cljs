@@ -46,7 +46,7 @@
     [:db/add -2 :db/key (squuid)]
     [:db/add -3 :db/ident :local]
     [:db/add -3 :db/key (squuid)]
-    [:db/add -3 :local/loaded? false]
+    [:db/add -3 :local/status :none]
     [:db/add -3 :local/color "#03a9f4"]
     [:db/add -3 :local/camera -4]
     [:db/add -3 :local/cameras -4]

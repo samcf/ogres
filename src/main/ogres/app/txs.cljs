@@ -86,6 +86,16 @@
 
 ;; -- Local --
 (defmethod
+  ^{:doc "Change the rendering status of the given local user. This status
+          is used to decide what the top-level rendering mode is in order
+          to, for example, render an error page when a WebSocket connection
+          has failed."}
+  transact :local/change-status
+  [{:keys [local]} status]
+  [[:db/add -1 :db/key local]
+   [:db/add -1 :local/status status]])
+
+(defmethod
   ^{:doc "Changes whether or not toolbar tooltips are displayed when the
           local user hovers over them."}
   transact :local/toggle-tooltips

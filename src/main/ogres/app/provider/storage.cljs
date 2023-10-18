@@ -12,7 +12,7 @@
 
 (def ^:private ignored-attrs
   #{:local/type
-    :local/loaded?
+    :local/status
     :local/privileged?
     :local/sharing?
     :local/paused?
@@ -43,7 +43,7 @@
        (ds/listen! conn :marshaller
                    (debounce
                     (fn [{:keys [db-after]}]
-                      (if (:local/loaded? (ds/entity db-after [:db/ident :local]))
+                      (if (= (:local/status (ds/entity db-after [:db/ident :local])) :ready)
                         (-> db-after
                             (ds/db-with [[:db/retract [:db/ident :session] :session/host]
                                          [:db/retract [:db/ident :session] :session/conns]])
@@ -58,7 +58,7 @@
   []
   (let [conn    (use-context state/context)
         store   (use-store)
-        tx-data [[:db/add [:db/ident :local] :local/loaded? true]
+        tx-data [[:db/add [:db/ident :local] :local/status :ready]
                  [:db/add [:db/ident :local] :local/type (state/local-type)]]]
     (use-effect
      (fn []

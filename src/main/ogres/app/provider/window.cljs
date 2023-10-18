@@ -110,7 +110,7 @@
   []
   (let [[screen set-screen] (use-state nil)
         dispatch (use-dispatch)
-        result   (use-query [:local/type :local/loaded?])
+        result   (use-query [:local/type :local/status])
         on-reset (use-callback
                   (fn
                     ([] (when-let [element screen]
@@ -118,7 +118,7 @@
                           (dispatch :share/toggle false)
                           (set-screen nil)))
                     ([element] (set-screen element))) [dispatch screen])]
-    (if (:local/loaded? result)
+    (if (= (:local/status result) :ready)
       ($ (.-Provider context) {:value {:view screen :reset on-reset}}
         (case (:local/type result)
           :host ($ :<>
