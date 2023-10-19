@@ -315,6 +315,12 @@
   (let [url (use-image checksum)]
     ($ :image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"})))
 
+(defui ^:private render-token-plates []
+  ($ :defs
+    ($ :linearGradient {:id "token-base-player" :x1 0 :y1 0 :x2 1 :y2 1}
+      ($ :stop {:style {:stop-color "#fcd34d"} :offset "0%"})
+      ($ :stop {:style {:stop-color "#b45309"} :offset "100%"}))))
+
 (def ^:private query-token-faces
   [{:local/camera
     [{:camera/scene
@@ -588,6 +594,7 @@
           (if (and (= mode :select) (= modifier :shift))
             ($ draw {:mode :select}))
           ($ :g.scene-board {:transform (str "scale(" scale ") translate(" (- cx) ", " (- cy) ")")}
+            ($ render-token-plates)
             ($ render-token-faces)
             ($ render-scene-image)
             ($ render-grid)
