@@ -522,8 +522,9 @@
      [:db/add -1 (keyword :bounds w-type) bounds]]))
 
 (defmethod transact :selection/from-rect
-  [{:keys [data camera scene]} vecs]
-  (let [select [{:scene/tokens [:db/key :token/point]}]
+  [{:keys [data local camera scene]} vecs]
+  (let [select [{:scene/tokens [:db/key :token/point [:token/flags :default #{}]]}]
+        local  (ds/pull data [:local/type] [:db/key local])
         result (ds/pull data select [:db/key scene])
         bounds (normalize vecs)]
     [{:db/id -1
@@ -531,8 +532,10 @@
       :camera/draw-mode :select
       :camera/selected
       (for [[idx token] (sequence (indexed 2) (:scene/tokens result))
-            :let  [{[x y] :token/point key :db/key} token]
-            :when (within? x y bounds)]
+            :let  [{[x y] :token/point flags :token/flags key :db/key} token]
+            :when (and (within? x y bounds)
+                       (or (= (:local/type local) :host)
+                           (not (flags :hidden))))]
         {:db/id idx :db/key key})}]))
 
 (defmethod transact :selection/clear
