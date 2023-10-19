@@ -691,7 +691,7 @@ legend {
 .scene-token-label > span {
     background-color: var(--color-blues-900);
     border-radius: 1px;
-    box-shadow: 0 1px 3px 1px rgba(24, 33, 37, 0.60);
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.90);
     color: var(--color-black-100);
     font-size: 12px;
     line-height: 1.2;
@@ -700,7 +700,7 @@ legend {
 
 .scene-token-shape {
     cursor: pointer;
-    filter: drop-shadow(1px 1px 0.75px rgba(24, 33, 37, 1));
+    filter: drop-shadow(1px 1px 0.50px rgba(0, 0, 0, 0.90));
 }
 
 [data-flags*="player"] .scene-token-shape {
@@ -718,9 +718,8 @@ legend {
 }
 
 .scene-token-flags circle {
-    fill: var(--color-blues-700);
-    stroke: var(--color-blues-900);
-    stroke-width: 1;
+    fill: var(--color-blues-900);
+    filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.80));
 }
 
 @keyframes ring-pulse {
