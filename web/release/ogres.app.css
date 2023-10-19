@@ -1052,12 +1052,20 @@ legend {
     fill: black;
 }
 
+[data-visibility="dimmed"] .scene-mask-background {
+    fill-opacity: 0.75;
+}
+
+[data-user-type="host"] .scene-mask-background {
+    fill-opacity: 0.60;
+}
+
 .scene-mask-pattern {
     fill-opacity: 0;
 }
 
-.scene-mask[data-visibility="dimmed"] .scene-mask-background {
-    fill-opacity: 0.75;
+[data-user-type="host"] .scene-mask-pattern {
+    fill-opacity: 0.30;
 }
 
 .scene-mask-polygon {
@@ -1070,14 +1078,6 @@ legend {
 .scene-mask-polygon:hover {
     cursor: pointer;
     stroke: orange;
-}
-
-[data-user-type="host"] .scene-mask-background {
-    fill-opacity: 0.40;
-}
-
-[data-user-type="host"] .scene-mask-pattern {
-    fill-opacity: 0.30;
 }
 
 /* Forms */
