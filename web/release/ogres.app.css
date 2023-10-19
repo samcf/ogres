@@ -973,8 +973,7 @@ legend {
 .context-menu-form-conditions label {
     align-items: center;
     aspect-ratio: 1 / 1;
-    background-color: var(--color-blues-500);
-    border-color: var(--color-blues-700);
+    border-color: var(--color-blues-500);
     border-radius: 2px;
     border-style: solid;
     border-width: 1px;
@@ -991,8 +990,7 @@ legend {
 }
 
 .context-menu-form-conditions input:is(:checked, :indeterminate) + label {
-    border-color: var(--color-blues-900);
-    background-color: var(--color-blues-900);
+    background-color: var(--color-blues-500);
 }
 
 .context-menu-form-color input[type="range"] {
