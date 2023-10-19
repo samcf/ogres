@@ -37,6 +37,10 @@
    :stunned       "stars"
    :unconscious   "skull"})
 
+(defn ^:private click-allowed? [event]
+  (or (= (.-button event) 0)
+      (= (.-button event) 1)))
+
 (defn ^:private stop-propagation [event]
   (.stopPropagation event))
 
@@ -574,7 +578,11 @@
       {:key key
        :data-user-type (name type)
        :data-theme (if dark-mode "dark" "light")}
-      ($ react-draggable {:position #js {:x 0 :y 0} :on-stop on-translate}
+      ($ react-draggable
+        {:allow-any-click true
+         :position        #js {:x 0 :y 0}
+         :on-start        click-allowed?
+         :on-stop         on-translate}
         ($ :g {:style {:will-change "transform"} :on-mouse-move on-cursor-move}
           ($ :rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"})
           (if (and (= mode :select) (= modifier :shift))
