@@ -28,6 +28,7 @@
    :frightened    "black-cat"
    :grappled      "fist"
    :incapacitated "emoji-dizzy"
+   :initiative    "hourglass-split"
    :invisible     "incognito"
    :petrified     "gem"
    :player        "people-fill"
@@ -344,6 +345,18 @@
         ($ :pattern (merge attrs {:key checksum :id (str "token-face-" checksum)})
           ($ render-token-face {:checksum checksum}))))))
 
+(defn ^:private token-flags [data]
+  (let [{[{turn :initiative/turn}] :scene/_initiative} data]
+    (cond-> (:token/flags data)
+      (:scene/_initiative data)         (conj :initiative)
+      (= (:db/key data) (:db/key turn)) (conj :turn))))
+
+(defn ^:private token-conditions [data]
+  (let [xform (comp (map key) (filter (complement #{:initiative})))
+        order (into [:initiative] xform condition->icon)
+        exclu #{:player :hidden :unconscious}]
+    (take 4 (filter (difference (token-flags data) exclu) order))))
+
 (defui ^:private render-token
   [{:keys [data]}]
   ($ :<>
@@ -360,14 +373,11 @@
       ($ :g.scene-token-container {:transform (str "scale(" scale ")")}
         ($ :circle.scene-token-ring {:cx 0 :cy 0 :style {:r radii :fill "transparent"}})
         ($ :circle.scene-token-shape {:cx 0 :cy 0 :r radii :fill (str "url(#" pttrn ")")})
-        (for [[deg flag] (->> #{:player :hidden :unconscious}
-                              (difference flags)
-                              (take 4)
-                              (mapv vector [115 70 -115 -70]))
+        (for [[deg flag] (mapv vector [-120 120 -65 65] (token-conditions data))
               :let [rn (* (/ js/Math.PI 180) deg)
                     cx (* (js/Math.sin rn) radii)
                     cy (* (js/Math.cos rn) radii)]]
-          ($ :g.scene-token-flags {:key flag :transform (str "translate(" cx ", " cy ")")}
+          ($ :g.scene-token-flags {:key flag :data-flag flag :transform (str "translate(" cx ", " cy ")")}
             ($ :circle {:cx 0 :cy 0 :r 12})
             ($ :g {:transform (str "translate(" -8 ", " -8 ")")}
               ($ icon {:name (condition->icon flag) :size 16}))))
@@ -400,7 +410,7 @@
          [:token/light :default 15]
          [:aura/radius :default 0]
          {:token/image [:image/checksum]}
-         {:scene/_initiative [:db/key]}
+         {:scene/_initiative [:db/key {:initiative/turn [:db/key]}]}
          {:camera/_selected [:db/key]}]}]}]}])
 
 (defui ^:private render-tokens []
@@ -408,9 +418,7 @@
         result (use-query query-tokens)
         {type :local/type camera :local/camera} result
         {scale :camera/scale scene :camera/scene} camera
-        flags-fn
-        (fn [token]
-          (join " " (map name (:token/flags token))))
+        flags-fn (fn [token] (->> (token-flags token) (map name) (join " ")))
         [selected tokens]
         (->> (:scene/tokens scene)
              (filter (fn [token] (or (= type :host) (visible? (:token/flags token)))))
