@@ -10,7 +10,8 @@ pom.xml.asc
 *.jar
 *.log
 .calva
-.clj-kondo/.cache
+.clj-kondo
+!.clj-kondo/config.edn
 .cpcache
 .joyride
 .lsp
