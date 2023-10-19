@@ -699,7 +699,7 @@ legend {
 }
 
 .scene-token:is([data-flags*="hidden"], [data-flags*="invisible"]) circle {
-    fill-opacity: 0.70;
+    fill-opacity: 0.50;
 }
 
 .scene-token-label {
