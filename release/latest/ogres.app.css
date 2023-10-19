@@ -62,9 +62,9 @@ a:visited {
 header {
     display: flex;
     align-items: center;
+    font-size: 12px;
     text-transform: uppercase;
     margin-bottom: 8px;
-    font-size: 12px;
 }
 
 header:before,
@@ -1050,7 +1050,7 @@ legend {
 }
 
 .scene-mask-background {
-    fill: black;
+    fill: var(--color-blues-900);
 }
 
 [data-visibility="dimmed"] .scene-mask-background {
