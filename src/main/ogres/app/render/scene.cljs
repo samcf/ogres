@@ -363,7 +363,7 @@
               ($ icon {:name (condition->icon flag) :size 16}))))
         (if (seq (label data))
           ($ :foreignObject.context-menu-object {:x -200 :y (- radii 8) :width 400 :height 32}
-            ($ :div.scene-token-label
+            ($ :.scene-token-label
               ($ :span (label data)))))))))
 
 (defn ^:private token-comparator

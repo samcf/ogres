@@ -54,7 +54,7 @@
              :value (min page pages)
              :on-change set-page})))
       ($ :section.scene-gallery
-        ($ :div.prompt
+        ($ :.prompt
           "Upload one or more images from your"
           ($ :br) "computer to use as a map. Its best"
           ($ :br) "to use files below 2MB for an optimal"

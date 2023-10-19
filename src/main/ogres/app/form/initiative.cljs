@@ -47,8 +47,8 @@
 (defui ^:private form-dice
   [{:keys [value on-change]}]
   (let [input (use-ref) [editing set-editing form] (use-modal)]
-    ($ :div.initiative-token-roll
-      ($ :div.initiative-token-roll-label
+    ($ :.initiative-token-roll
+      ($ :.initiative-token-roll-label
         {:on-click
          (fn [event]
            (.stopPropagation event)
@@ -72,7 +72,7 @@
 (defui ^:private form-hp
   [{:keys [value on-change]}]
   (let [input (use-ref) [editing set-editing form] (use-modal)]
-    ($ :div.initiative-token-health
+    ($ :.initiative-token-health
       {:data-active (or editing (number? value))}
       ($ :.initiative-token-form-health-control
         {:on-click
@@ -112,10 +112,10 @@
     ($ :li.initiative-token
       {:data-current (= (:db/key current) (:db/key entity))}
       (if data-url
-        ($ :div.initiative-token-image
+        ($ :.initiative-token-image
           {:style {:background-image (str "url(" data-url ")")}
            :on-click #(dispatch :element/select key true)})
-        ($ :div.initiative-token-pattern
+        ($ :.initiative-token-pattern
           {:on-click #(dispatch :element/select key true)}
           ($ icon {:name "dnd" :size 36})))
       ($ form-dice
@@ -124,11 +124,11 @@
          (fn [value]
            (dispatch :initiative/change-roll key value))})
       (if suffix
-        ($ :div.initiative-token-suffix (char (+ suffix 64))))
-      ($ :div.initiative-token-info
+        ($ :.initiative-token-suffix (char (+ suffix 64))))
+      ($ :.initiative-token-info
         (if (not (blank? label))
-          ($ :div.initiative-token-label label))
-        ($ :div.initiative-token-flags
+          ($ :.initiative-token-label label))
+        ($ :.initiative-token-flags
           (if (seq flags)
             (join ", " (mapv (comp capitalize name) flags)))))
       (if (or (= type :host) (contains? flags :player))
@@ -147,13 +147,13 @@
     ($ :section.initiative
       (cond (and (not (seq tokens)) (nil? rounds))
             ($ :section
-              ($ :div.prompt
+              ($ :.prompt
                 "Begin initiative by selecting"
                 ($ :br) "one or more tokens and clicking"
                 ($ :br) "the hourglass icon."))
 
             (and (not (seq tokens)) (>= rounds 1))
-            ($ :div.prompt
+            ($ :.prompt
               "Initiative is still running"
               ($ :br) "but there are no tokens participating.")
 

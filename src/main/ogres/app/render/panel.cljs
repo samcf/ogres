@@ -41,17 +41,17 @@
       ($ :ul.forms
         (for [form forms :let [key (:key form) expanded (contains? (:panel/expanded result) key)]]
           ($ :li {:key key :class "form" :data-form (name key) :data-expanded expanded}
-            ($ :div.form-header
+            ($ :.form-header
               {:on-click #(dispatch :local/toggle-panel key)}
               ($ :<>
                 ($ icon {:name (:icon form) :size 20})
-                ($ :div.form-label (:label form))
-                ($ :div.form-chevron
+                ($ :.form-label (:label form))
+                ($ :.form-chevron
                   ($ icon {:name (if expanded "chevron-double-up" "chevron-double-down") :size 18}))))
             (if expanded
-              ($ :div.form-container
-                ($ :div.form-content
+              ($ :.form-container
+                ($ :.form-content
                   (if-let [component (-> components key :form)]
-                    ($ :div.form-body ($ component)))
+                    ($ :.form-body ($ component)))
                   (if-let [component (-> components key :footer)]
-                    ($ :div.form-footer ($ component))))))))))))
+                    ($ :.form-footer ($ component))))))))))))

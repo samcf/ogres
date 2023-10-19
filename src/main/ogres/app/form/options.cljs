@@ -82,7 +82,7 @@
            :on-change #(dispatch :scene/change-grid-size (.. %1 -target -value))}))
       ($ :fieldset
         ($ :label "Visibility")
-        ($ :div.options-group
+        ($ :.options-group
           (for [[option label icon-name] options-lighting
                 :let [key (str "lighting-" (name option))]]
             ($ :fieldset {:key key}
@@ -96,7 +96,7 @@
                 ($ icon {:name icon-name :size 18}))))))
       ($ :fieldset
         ($ :label "Time of Day")
-        ($ :div.options-group
+        ($ :.options-group
           (for [[option label icon-name] options-weather
                 :let [key (str "time-of-day-" (name option))]]
             ($ :fieldset {:key key}

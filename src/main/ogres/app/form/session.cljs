@@ -74,28 +74,28 @@
             ($ :label {:for "share-my-cursor"} "Share my cursor")))
         ($ :section
           ($ :header "Host")
-          ($ :div.session-players
+          ($ :.session-players
             (if host
-              ($ :div.session-player
-                ($ :div.session-player-color {:style {:background-color (:local/color host)}})
-                ($ :div.session-player-label "Host"
+              ($ :.session-player
+                ($ :.session-player-color {:style {:background-color (:local/color host)}})
+                ($ :.session-player-label "Host"
                   (if (= (:db/key host) key)
                     ($ :span " (You)"))))
-              ($ :div.prompt "Not connected."))))
+              ($ :.prompt "Not connected."))))
         ($ :section
           ($ :header (str "Players" " [" (count conns) "]"))
-          ($ :div.session-players
+          ($ :.session-players
             (if (seq conns)
               (let [xf (filter (comp-fn = :local/type :conn))]
                 (for [conn (->> (conj conns local) (sequence xf) (sort-by :db/key))]
-                  ($ :div.session-player {:key (:db/key conn)}
-                    ($ :div.session-player-color {:style {:background-color (:local/color conn)}})
-                    ($ :div.session-player-label "Friend"
+                  ($ :.session-player {:key (:db/key conn)}
+                    ($ :.session-player-color {:style {:background-color (:local/color conn)}})
+                    ($ :.session-player-label "Friend"
                       (if (= (:db/key conn) key)
                         ($ :span " (You)"))))))
-              ($ :div.prompt "No one else is here.")))))
+              ($ :.prompt "No one else is here.")))))
       ($ :section.session
-        ($ :div.prompt
+        ($ :.prompt
           "Invite your friends to this virtual tabletop"
           ($ :br) "by clicking the 'Create Room' button"
           ($ :br) "and sharing the room code or URL with them.")))))

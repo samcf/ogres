@@ -15,24 +15,24 @@
 
 (defui layout []
   (let [{:keys [local/type local/status local/tooltips?]} (use-query query)]
-    ($ :div.root {:data-user-type (name type) :data-tooltips tooltips?}
+    ($ :.root {:data-user-type (name type) :data-tooltips tooltips?}
       (case [type status]
         [:host :ready]
-        ($ :div.layout {:style {:visibility "hidden"}}
-          ($ :div.layout-scenes  ($ scenes))
-          ($ :div.layout-join    ($ join))
-          ($ :div.layout-scene   ($ render-scene))
-          ($ :div.layout-toolbar ($ toolbar))
-          ($ :div.layout-panel   ($ container)))
+        ($ :.layout {:style {:visibility "hidden"}}
+          ($ :.layout-scenes  ($ scenes))
+          ($ :.layout-join    ($ join))
+          ($ :.layout-scene   ($ render-scene))
+          ($ :.layout-toolbar ($ toolbar))
+          ($ :.layout-panel   ($ container)))
         [:conn :ready]
-        ($ :div.layout {:style {:visibility "hidden"}}
-          ($ :div.layout-join    ($ join))
-          ($ :div.layout-scene   ($ render-scene))
-          ($ :div.layout-toolbar ($ toolbar))
-          ($ :div.layout-panel   ($ container)))
+        ($ :.layout {:style {:visibility "hidden"}}
+          ($ :.layout-join    ($ join))
+          ($ :.layout-scene   ($ render-scene))
+          ($ :.layout-toolbar ($ toolbar))
+          ($ :.layout-panel   ($ container)))
         [:conn :disconnected]
-        ($ :div.layout-error
-          ($ :div.layout-error-content
+        ($ :.layout-error
+          ($ :.layout-error-content
             ($ :div {:style {:margin-top 4 :color "hsl(6, 73%, 60%)"}}
               ($ icon {:name "exclamation-triangle-fill"}))
             ($ :div
@@ -53,5 +53,5 @@
                   ($ :li ($ :a {:href "https://github.com/samcf/ogres/wiki"} "Wiki"))
                   ($ :li ($ :a {:href "https://github.com/samcf/ogres/discussions"} "Support")))))))
         [:view :ready]
-        ($ :div.layout {:style {:visibility "hidden"}}
-          ($ :div.layout-scene ($ render-scene))) nil))))
+        ($ :.layout {:style {:visibility "hidden"}}
+          ($ :.layout-scene ($ render-scene))) nil))))

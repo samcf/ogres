@@ -59,7 +59,7 @@
         {{state :session/state} :root/local
          {code  :session/room
           conns :session/conns} :root/session} result]
-    ($ :div.join
+    ($ :.join
       (case state
         :initial      ($ :button.button {:on-click #(set-modal true)} status-icon "Join with code")
         :connecting   ($ :button.button {:disabled true} status-icon "Connecting...")

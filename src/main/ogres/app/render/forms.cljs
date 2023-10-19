@@ -33,11 +33,11 @@
                             (if (= selected form)
                               (set-selected nil)
                               (set-selected form)))}]
-    ($ :div.context-menu {:on-mouse-down stop-propagation}
-      ($ :div.context-menu-toolbar
+    ($ :.context-menu {:on-mouse-down stop-propagation}
+      ($ :.context-menu-toolbar
         (render-toolbar props))
       (if selected
-        ($ :div.context-menu-form
+        ($ :.context-menu-form
           {:class (str "context-menu-form-" (name selected))}
           (children props))))))
 
@@ -184,7 +184,7 @@
       {:type "range" :min 0 :max 1 :step 0.10
        :value (first (values :shape/opacity))
        :on-change #(on-change :element/update :shape/opacity (.. %1 -target -value))})
-    ($ :div.context-menu-form-colors
+    ($ :.context-menu-form-colors
       (for [color ["#ffeb3b" "#ff9800" "#f44336" "#673ab7" "#2196f3" "#009688" "#8bc34a" "#fff" "#9e9e9e" "#000"]]
         ($ :div
           {:key color :style {:background-color color}
