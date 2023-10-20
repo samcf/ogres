@@ -19,7 +19,6 @@
    {:root/local
     [{:local/camera
       [[:camera/label :default ""]
-       [:camera/draw-mode :default :select]
        {:camera/scene
         [:db/key
          [:scene/grid-size]
@@ -27,8 +26,7 @@
          [:scene/lighting :default :revealed]
          [:scene/show-grid :default true]
          [:scene/timeofday :default :none]
-         {:scene/image
-          [:image/checksum]}]}]}]}])
+         :scene/image]}]}]}])
 
 (defui ^:private thumbnail
   [{:keys [checksum children]}]
