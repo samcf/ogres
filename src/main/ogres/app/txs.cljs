@@ -356,6 +356,14 @@
    [:db/add -1 :scene/grid-size size]])
 
 (defmethod
+  ^{:doc "Retracts the grid size for the current scene, allowing queries to
+          revert to their defaults."}
+  transact :scene/retract-grid-size
+  [{:keys [scene]}]
+  [[:db/add -1 :db/key scene]
+   [:db/retract [:db/key scene] :scene/grid-size]])
+
+(defmethod
   ^{:doc "Updates whether or not the grid is drawn onto the current scene."}
   transact :scene/toggle-show-grid
   [{:keys [scene]} value]

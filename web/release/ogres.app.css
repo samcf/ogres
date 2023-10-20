@@ -7,6 +7,7 @@
     --color-black-900: #000000;
     --color-black-700: #333333;
     --color-black-500: #666666;
+    --color-black-400: #AAAAAA;
     --color-black-300: #CCCCCC;
     --color-black-100: #F2F2F2;
 
@@ -186,70 +187,61 @@ legend {
 }
 
 /* Scene Options */
-.options {
-    display: flex;
-    flex-direction: column;
+.scene-options {
+    display: grid;
     font-size: 12px;
-    gap: 12px;
+    text-transform: uppercase;
+    gap: 2px;
+    grid-template-columns: 1fr 1fr 1.5fr;
+    grid-template-areas:
+      "title         title         tile-size"
+      "visi-revealed tofd-none     show-grid"
+      "visi-dimmed   tofd-dusk     dark-grid"
+      "visi-hidden   tofd-midnight grid-align";
 }
 
-.options-group {
-    display: flex;
-    gap: 4px;
+.scene-options fieldset.text input {
+    background-color: var(--color-paper-100);
+    border: 1px solid var(--color-paper-900);
+    font-family: var(--font-stack-transitional);
+    line-height: 1.6;
+    border-radius: 2px;
 }
 
-.options label {
+.scene-options fieldset.text input:focus {
+    border-color: var(--color-prime-500);
+}
+
+.scene-options fieldset.text input::placeholder {
+    font-size: 12px;
     text-transform: uppercase;
 }
 
-.options input:is([type="checkbox"], [type="radio"]) {
-    display: none;
-}
-
-.options input:is([type="checkbox"], [type="radio"]) + label {
+.scene-options fieldset.option {
     align-items: center;
-    aspect-ratio: 1 / 1;
-    background-color: transparent;
-    border-radius: 2px;
-    border: 1px solid black;
     display: flex;
-    justify-content: center;
-    position: relative;
-    width: 32px;
+    gap: 4px;
+    padding: 2px 4px;
 }
 
-.options input:is([type="checkbox"], [type="radio"]):not(:disabled) + label {
+.scene-options fieldset.option input {
+    margin: 0;
+    accent-color: hsl(140deg 92.61% 33.42%);
+}
+
+.scene-options fieldset.option input:not(:disabled),
+.scene-options fieldset.option input:not(:disabled) + label {
     cursor: pointer;
 }
 
-.options input:is([type="checkbox"], [type="radio"]):not(:disabled):checked + label {
-    background-color: var(--color-prime-500);
-    border-color: var(--color-prime-500);
-    color: var(--color-prime-900);
+.scene-options fieldset.option input:disabled + label {
+    color: var(--color-black-400);
 }
 
-.options input:is([type="checkbox"], [type="radio"]):not(:disabled, :checked) + label {
-    border-color: var(--color-black-300);
-    color: var(--color-black-500);
-}
-
-.options input:is([type="checkbox"], [type="radio"]):not(:disabled, :checked):active + label {
-    border-color: var(--color-prime-700);
-}
-
-.options input:is([type="checkbox"], [type="radio"]):disabled + label {
-    border-color: var(--color-black-300);
-    color: var(--color-black-500);
-}
-
-.options input:is([type="checkbox"], [type="radio"]):disabled:checked + label {
-    background-color: var(--color-black-300);
-    color: var(--color-black-500);
-    border-color: var(--color-black-300);
-}
-
-.options input:is([type="checkbox"], [type="radio"]):disabled + [data-tooltip]:after {
-    display: none;
+.scene-options fieldset.box {
+    background-color: var(--color-paper-100);
+    border: 1px solid var(--color-paper-900);
+    border-radius: 3px;
 }
 
 /* Layout */

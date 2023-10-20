@@ -3,7 +3,6 @@
             [ogres.app.form.session :as session]
             [ogres.app.form.scenes  :as scenes]
             [ogres.app.form.tokens  :as tokens]
-            [ogres.app.form.options :as options]
             [ogres.app.form.help    :as help]
             [ogres.app.form.initiative :as initiative]
             [ogres.app.render :refer [icon]]
@@ -13,7 +12,6 @@
   {:host [{:key :session    :label "Friends"    :icon "people-fill"}
           {:key :scenes     :label "Scenes"     :icon "images"}
           {:key :tokens     :label "Tokens"     :icon "person-circle"}
-          {:key :scene      :label "Options"    :icon "wrench-adjustable-circle"}
           {:key :initiative :label "Initiative" :icon "hourglass-split"}
           {:key :help       :label "Help"       :icon "question-diamond"}]
    :conn [{:key :session    :label "Friends"    :icon "people-fill"}
@@ -22,8 +20,7 @@
           {:key :help       :label "Help"       :icon "question-diamond"}]})
 
 (def ^:private components
-  {:scene      {:form options/form}
-   :help       {:form help/form}
+  {:help       {:form help/form}
    :initiative {:form initiative/form :footer initiative/footer}
    :scenes     {:form scenes/form :footer scenes/footer}
    :session    {:form session/form :footer session/footer}
