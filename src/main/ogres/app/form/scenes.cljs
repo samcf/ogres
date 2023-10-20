@@ -62,20 +62,19 @@
                  (let [value (.. event -target -value)]
                    (dispatch :camera/change-label value)))}))
           ($ :fieldset.text {:style {:grid-area "tile-size"}}
-            ($ :label
-              ($ :input
-                {:type "number"
-                 :title "Tile size (px)"
-                 :value (or (:scene/grid-size scene) "")
-                 :disabled (nil? (:scene/image scene))
-                 :placeholder "Tile size (px)"
-                 :on-change
-                 (fn [event]
-                   (let [value (.. event -target -value)
-                         value (js/Number value)]
-                     (if (= value 0)
-                       (dispatch :scene/retract-grid-size)
-                       (dispatch :scene/change-grid-size value))))})))
+            ($ :input
+              {:type "number"
+               :title "Tile size (px)"
+               :value (or (:scene/grid-size scene) "")
+               :disabled (nil? (:scene/image scene))
+               :placeholder "Tile size (px)"
+               :on-change
+               (fn [event]
+                 (let [value (.. event -target -value)
+                       value (js/Number value)]
+                   (if (= value 0)
+                     (dispatch :scene/retract-grid-size)
+                     (dispatch :scene/change-grid-size value))))}))
           ($ :fieldset.option {:style {:grid-area "show-grid"}}
             ($ :input
               {:id "show-grid"
