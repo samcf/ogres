@@ -12,9 +12,6 @@
 
 (def ^:private per-page 6)
 
-(def ^:private header-query
-  [{:root/scene-images [:image/checksum]}])
-
 (defn ^:private remove-prompt [label]
   (str "Are you sure you want to remove "
        (if (blank? label)
@@ -39,7 +36,7 @@
          [:scene/lighting :default :revealed]
          [:scene/show-grid :default true]
          [:scene/timeofday :default :none]
-         :scene/image]}]}]}])
+         {:scene/image [:image/checksum]}]}]}]}])
 
 (defui ^:private thumbnail
   [{:keys [checksum children]}]
@@ -48,6 +45,8 @@
 
 (defui form []
   (let [dispatch (use-dispatch)
+        upload   (use-image-uploader {:type :scene})
+        input    (use-ref)
         result   (use-query query [:db/ident :root])
         data     (vec (reverse (:root/scene-images result)))
         pages    (int (js/Math.ceil (/ (count data) per-page)))
@@ -55,48 +54,7 @@
           camera :local/camera} :root/local} result
         [page set-page] (use-state 1)]
     ($ :<>
-      (if (seq data)
-        (let [src (* (dec (min page pages)) per-page)
-              dst (min (+ src per-page) (count data))
-              seq (->> (repeat per-page :placeholder)
-                       (into (subvec data src dst))
-                       (take per-page)
-                       (map-indexed vector))]
-          ($ :section
-            ($ :header "Gallery")
-            ($ :.scene-gallery
-              (for [[idx data] seq]
-                (if-let [checksum (:image/checksum data)]
-                  ($ thumbnail {:key idx :checksum checksum}
-                    (fn [{:keys [data-url]}]
-                      ($ :figure.scene-gallery-item
-                        {:style {:background-image (str "url(" data-url ")")}
-                         :data-type "image"
-                         :on-click
-                         (fn [event]
-                           (.stopPropagation event)
-                           (dispatch :scene/change-image checksum))}
-                        ($ :button
-                          {:type "button" :title "Remove"
-                           :on-click
-                           (fn [event]
-                             (.stopPropagation event)
-                             (dispatch :scene-images/remove checksum))}
-                          ($ icon {:name "trash3-fill" :size 16})))))
-                  ($ :figure.scene-gallery-item {:key idx :data-type "placeholder"})))
-              ($ pagination
-                {:pages pages
-                 :value (min page pages)
-                 :on-change set-page}))))
-        ($ :section
-          ($ :header "Gallery")
-          ($ :.prompt
-            "Upload one or more images from your"
-            ($ :br) "computer to use as a map. Its best"
-            ($ :br) "to use files below 2MB for an optimal"
-            ($ :br) "multiplayer experience.")))
       ($ :section
-        ($ :header "Options")
         ($ :div.scene-options
           ($ :fieldset.text {:style {:grid-area "title"}}
             ($ :input
@@ -170,6 +128,58 @@
                  :on-change on-change})
               ($ :label {:for (name value)} label)))))
       ($ :section
+        ($ :fieldset.scene-gallery
+          (let [src (* (max (dec (min page pages)) 0) per-page)
+                dst (min (+ src per-page) (count data))
+                seq (->> (repeat per-page :placeholder)
+                         (into (subvec data src dst))
+                         (take per-page)
+                         (map-indexed vector))]
+            (for [[idx data] seq
+                  :let [selected (= (:image/checksum data)
+                                    (:image/checksum (:scene/image scene)))]]
+              (if-let [checksum (:image/checksum data)]
+                ($ thumbnail {:key idx :checksum checksum}
+                  (fn [{:keys [data-url]}]
+                    ($ :figure.scene-gallery-thumbnail
+                      {:style {:background-image (str "url(" data-url ")")}
+                       :data-type "image"
+                       :data-selected selected
+                       :on-click
+                       (fn [event]
+                         (.stopPropagation event)
+                         (dispatch :scene/change-image checksum))}
+                      ($ :button.button.button-danger
+                        {:type "button"
+                         :on-click
+                         (fn [event]
+                           (.stopPropagation event)
+                           (dispatch :scene-images/remove checksum))}
+                        ($ icon {:name "trash3-fill" :size 18})))))
+                ($ :figure.scene-gallery-thumbnail
+                  {:key idx :data-type "placeholder"})))))
+        ($ :fieldset.scene-gallery-form
+          ($ :button.button.button-neutral
+            {:on-click #(.click (deref input))}
+            ($ :input
+              {:ref input
+               :type "file"
+               :hidden true
+               :accept "image/*"
+               :multiple true
+               :on-change
+               (fn [event]
+                 (doseq [file (.. event -target -files)]
+                   (upload file))
+                 (set! (.. event -target -value) ""))})
+            ($ icon {:name "camera-fill" :size 16}) "Upload images")
+          (if (> pages 1)
+            ($ pagination
+              {:pages pages
+               :value (min page pages)
+               :on-change set-page})
+            ($ :nav))))
+      ($ :section
         ($ :header "Scenes")
         ($ :ul.scene-list
           (for [entity (:local/cameras (:root/local result))
@@ -183,9 +193,9 @@
                     ($ :.scene-list-item-image
                       {:style {:background-image (str "url(" data-url ")")}
                        :on-click on-select
-                       :data-image true})))
+                       :data-image "image"})))
                 ($ :.scene-list-item-image
-                  {:on-click on-select :data-image false}))
+                  {:on-click on-select :data-image "empty"}))
               (if-let [label (:camera/label entity)]
                 ($ :.scene-list-item-label label)
                 ($ :.scene-list-item-label "New scene"))
@@ -194,30 +204,11 @@
                  (fn []
                    (if (js/confirm (remove-prompt (:camera/label entity)))
                      (on-remove)))}
-                ($ icon {:name "trash3-fill" :size 16})))))))))
-
-(defui footer []
-  (let [dispatch (use-dispatch)
-        result   (use-query header-query [:db/ident :root])
-        scenes   (sequence (map :image/checksum) (:root/scene-images result))
-        upload   (use-image-uploader {:type :scene})
-        input    (use-ref)]
-    ($ :<>
-      ($ :button.button.button-neutral
-        {:type     "button"
-         :title    "Upload map image"
-         :on-click #(.click (deref input))}
-        ($ :input
-          {:type "file" :hidden true :accept "image/*" :multiple true :ref input
-           :on-change
-           (fn [event]
-             (doseq [file (.. event -target -files)]
-               (upload file))
-             (set! (.. event -target -value) ""))})
-        ($ icon {:name "camera-fill" :size 16}) "Select Files")
-      ($ :button.button.button-danger
-        {:type     "button"
-         :title    "Remove all"
-         :disabled (empty? scenes)
-         :on-click #(dispatch :scene-images/remove-all scenes)}
-        ($ icon {:name "trash3-fill" :size 16})))))
+                ($ icon {:name "trash3-fill" :size 16}))))
+          ($ :li.scene-list-item
+            {:data-placeholder true}
+            ($ :.scene-list-item-image {:data-image "placeholder"})
+            ($ :.scene-list-item-label)
+            ($ :button.scene-list-item-remove.button.button-neutral
+              {:on-click #(dispatch :scenes/create)}
+              ($ icon {:name "plus" :size 24}))))))))

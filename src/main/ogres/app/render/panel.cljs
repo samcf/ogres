@@ -10,7 +10,7 @@
 
 (def ^:private panel-forms
   {:host [{:key :session    :label "Friends"    :icon "people-fill"}
-          {:key :scenes     :label "Scenes"     :icon "images"}
+          {:key :scenes     :label "Scene"      :icon "images"}
           {:key :tokens     :label "Tokens"     :icon "person-circle"}
           {:key :initiative :label "Initiative" :icon "hourglass-split"}
           {:key :help       :label "Help"       :icon "question-diamond"}]
@@ -22,7 +22,7 @@
 (def ^:private components
   {:help       {:form help/form}
    :initiative {:form initiative/form :footer initiative/footer}
-   :scenes     {:form scenes/form :footer scenes/footer}
+   :scenes     {:form scenes/form}
    :session    {:form session/form :footer session/footer}
    :tokens     {:form tokens/form :footer tokens/footer}})
 

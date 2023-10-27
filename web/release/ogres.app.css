@@ -1296,71 +1296,68 @@ legend {
 
 .scene-gallery {
     display: grid;
-    gap: 4px;
+    gap: 2px;
     grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(2, 1fr) min-content;
+    grid-template-rows: repeat(2, 1fr);
 }
 
-.scene-gallery nav {
-    grid-column: 1 / 4;
-    grid-row: 3 / 4;
-    justify-self: center;
-}
-
-.scene-gallery .prompt {
-    grid-column: 1 / 4;
-}
-
-.scene-gallery-item {
-    aspect-ratio: 1 / 1;
+.scene-gallery-thumbnail {
+    align-items: flex-start;
+    aspect-ratio: 1;
     border-radius: 2px;
-    border-style: solid;
-    border-width: 1px;
-    border-color: black;
-}
-
-.scene-gallery-item[data-type="image"] {
-    align-items: start;
-    background-position: 50%;
-    background-size: cover;
-    cursor: pointer;
+    border: 1px solid var(--color-blues-900);
     display: flex;
-    justify-content: end;
+    justify-content: space-between;
+    gap: 4px;
+    padding: 4px;
 }
 
-.scene-gallery-item[data-type="placeholder"] {
-    background-color: var(--color-black-100);
+.scene-gallery-thumbnail[data-type=image] {
+    background-color: var(--color-blues-700);
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: 50%;
+    cursor: pointer;
+}
+
+.scene-gallery-thumbnail[data-type=placeholder] {
+    border-color: var(--color-blues-300);
     border-style: dashed;
 }
 
-.scene-gallery-item > button {
-    align-items: center;
-    background: white;
+.scene-gallery-thumbnail > button {
     border: none;
-    color: var(--color-blues-900);
-    cursor: pointer;
-    display: flex;
-    height: 28px;
-    justify-content: center;
-    justify-self: end;
-    margin: 4px;
-    outline: none;
+    min-height: 0px;
+    padding: 4px;
     visibility: hidden;
-    width: 28px;
-    border-radius: 2px;
 }
 
-.scene-gallery-item > button:hover {
-    background-color: var(--color-blues-900);
-    color: var(--color-black-100);
-}
-
-.scene-gallery-item[data-type="image"]:hover {
-    filter: brightness(1.2);
-}
-
-.scene-gallery-item[data-type="image"]:hover > button {
+.scene-gallery-thumbnail:hover > button {
     visibility: visible;
+}
+
+.scene-gallery-form {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.scene-gallery-form button {
+    flex: 0.75;
+}
+
+.scene-gallery-form nav {
+    flex: 1;
+}
+
+.scene-gallery-form .pagination {
+    margin: 0;
+    justify-content: center;
+}
+
+.scene-gallery-form .pagination li {
+    height: 32px;
+    box-shadow: none;
 }
 
 .form[data-form="scenes"] .form-footer {
@@ -1408,24 +1405,24 @@ legend {
     background-color: var(--color-blues-500);
     border-radius: 2px;
     border: 1px solid var(--color-blues-900);
-    cursor: pointer;
     position: relative;
 }
 
-.scene-list-item-image[data-tooltip]:hover:after {
-    right: -4px;
-    top: 0;
-    transform: translateX(100%) translateY(-1px);
-}
-
-.scene-list-item-image[data-image=true] {
+.scene-list-item-image[data-image=image] {
     background-position: 50%;
     background-repeat: no-repeat;
     background-size: cover;
+    cursor: pointer;
 }
 
-.scene-list-item-image[data-image=false] {
+.scene-list-item-image[data-image=empty] {
     background-image: var(--pattern-diamonds);
+    cursor: pointer;
+}
+
+.scene-list-item-image[data-image=placeholder] {
+    background: none;
+    border-style: dashed;
 }
 
 .scene-list-item-label {
