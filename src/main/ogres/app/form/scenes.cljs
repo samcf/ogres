@@ -50,7 +50,7 @@
         upload   (use-image-uploader {:type :scene})
         input    (use-ref)
         result   (use-query query [:db/ident :root])
-        data     (vec (reverse (:root/scene-images result)))
+        data     (vec (:root/scene-images result))
         pages    (int (js/Math.ceil (/ (count data) per-page)))
         {{{scene :camera/scene} :local/camera
           camera :local/camera} :root/local} result
