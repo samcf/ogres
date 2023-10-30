@@ -129,6 +129,7 @@
                :on-change on-change})
             ($ :label {:for (name value)} label))))
       ($ :section.scene-images
+        ($ :.scene-images-label "Background images")
         ($ :fieldset.scene-gallery
           (let [src (* (max (dec (min page pages)) 0) per-page)
                 dst (min (+ src per-page) (count data))
@@ -204,9 +205,8 @@
                      {:on-click #(set-preview nil)}
                      "Close")
                    ($ :button.button.button-primary
-                     {:style {:min-width 120 :justify-content "center"}
-                      :on-click (fn [] (set-preview nil) (dispatch :scene/change-image preview))}
-                     "Apply"))))
+                     {:on-click (fn [] (set-preview nil) (dispatch :scene/change-image preview))}
+                     "Apply background"))))
              node))))
       ($ :section.scene-scenes
         ($ :header "Scenes")

@@ -1297,7 +1297,18 @@ legend {
 .scene-images {
     border-radius: 3px;
     border: 1px dotted var(--color-blues-100);
+    margin-top: 16px;
     padding: 8px;
+    position: relative;
+}
+
+.scene-images-label {
+    background-color: var(--color-paper-500);
+    font-size: 12px;
+    padding: 0 4px;
+    position: absolute;
+    text-transform: uppercase;
+    top: -10px;
 }
 
 .scene-gallery {
