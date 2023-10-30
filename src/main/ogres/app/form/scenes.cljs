@@ -199,7 +199,7 @@
                  ($ :.scene-gallery-modal-footer
                    ($ :button.button.button-danger
                      {:style {:margin-right "auto"}
-                      :on-click (fn [] (set-preview nil) (dispatch :scenes/remove preview))}
+                      :on-click (fn [] (set-preview nil) (dispatch :scene-images/remove preview))}
                      ($ icon {:name "trash3-fill" :size 16}))
                    ($ :button.button.button-neutral
                      {:on-click #(set-preview nil)}
