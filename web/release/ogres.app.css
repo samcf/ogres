@@ -383,6 +383,7 @@ legend {
 
 .scenes ul {
     display: flex;
+    flex-wrap: wrap;
     gap: 1px;
     height: 100%;
     margin: 0;
