@@ -21,12 +21,19 @@
 
 (def ^:private query
   [{:root/scene-images [:image/checksum]}
+   {:root/session
+    [{:session/conns
+      [{:local/camera
+        [{:camera/scene [:db/key]}]}]}]}
    {:root/local
     [{:local/cameras
       [:db/key
        :camera/label
        {:camera/scene
-        [{:scene/image [:image/checksum]}]}]}
+        [{:scene/image [:image/checksum]}
+         :db/key
+         :scene/tokens
+         :scene/initiative]}]}
      {:local/camera
       [:db/key
        [:camera/label :default ""]
@@ -137,7 +144,10 @@
         ($ :section.scene-images
           ($ :.scene-images-label "Background images" " " "[" (count img) "]")
           ($ :fieldset.scene-gallery
-            (for [[idx data] pag :let [selected (= (:image/checksum data) (:image/checksum (:scene/image scene)))]]
+            (for [[idx data] pag
+                  :let [selected
+                        (= (:image/checksum data)
+                           (:image/checksum (:scene/image scene)))]]
               (if-let [checksum (:image/checksum data)]
                 ($ thumbnail {:key idx :checksum checksum}
                   (fn [{:keys [data-url]}]
@@ -183,7 +193,7 @@
             (if (> pgs 1)
               ($ pagination
                 {:pages pgs
-                 :value (min pag pgs)
+                 :value (min page pgs)
                  :on-change set-page})))
           (if (not (nil? preview))
             (if-let [node (js/document.querySelector "#root")]
@@ -206,13 +216,19 @@
                        {:on-click (fn [] (set-preview nil) (dispatch :scene/change-image preview))}
                        "Change background"))))
                node)))))
-      (let [cameras (get-in data [:root/local :local/cameras])]
+      (let [{{cameras :local/cameras} :root/local
+             {players :session/conns} :root/session} data
+            viewing (frequencies (map (comp :db/key :camera/scene :local/camera) players))]
         ($ :section.scene-scenes
           ($ :header "Scenes" " " "[" (count cameras) "]")
           ($ :ul.scene-list
             (for [entity cameras
-                  :let [on-select #(dispatch :scenes/change (:db/key entity))
-                        on-remove #(dispatch :scenes/remove (:db/key entity))]]
+                  :let [on-select  #(dispatch :scenes/change (:db/key entity))
+                        on-remove  #(dispatch :scenes/remove (:db/key entity))
+                        scene      (:camera/scene entity)
+                        sum-tokens (count (:scene/tokens scene))
+                        sum-initiv (count (:scene/initiative scene))
+                        sum-playrs (viewing (:db/key scene))]]
               ($ :li.scene-list-item
                 {:key (:db/key entity) :data-selected (= (:db/key entity) (:db/key camera))}
                 (if-let [checksum (:image/checksum (:scene/image (:camera/scene entity)))]
@@ -224,9 +240,20 @@
                          :data-image "image"})))
                   ($ :.scene-list-item-image
                     {:on-click on-select :data-image "empty"}))
-                (if-let [label (:camera/label entity)]
-                  ($ :.scene-list-item-label label)
-                  ($ :.scene-list-item-label "New scene"))
+                ($ :.scene-list-item-content
+                  (if-let [label (:camera/label entity)]
+                    ($ :.scene-list-item-label label)
+                    ($ :.scene-list-item-label "New scene"))
+                  ($ :fieldset.scene-list-item-badges {:style {:grid-area "badges"}}
+                    (if (> sum-tokens 0)
+                      ($ :.scene-list-item-badge {:data-tooltip "Tokens"}
+                        ($ icon {:name "person-circle" :size 14}) sum-tokens))
+                    (if (> sum-initiv 0)
+                      ($ :.scene-list-item-badge {:data-tooltip "Initiative"}
+                        ($ icon {:name "hourglass-split" :size 14}) sum-initiv))
+                    (if (> sum-playrs 0)
+                      ($ :.scene-list-item-badge {:data-tooltip "Players"}
+                        ($ icon {:name "people-fill" :size 14}) sum-playrs))))
                 ($ :button.scene-list-item-remove.button.button-neutral
                   {:on-click
                    (fn []

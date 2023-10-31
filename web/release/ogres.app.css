@@ -34,7 +34,7 @@
     --color-paper-300: hsl(60, 30%, 96%);
     --color-paper-500: hsl(60, 21%, 94%);
     --color-paper-700: hsl(60, 21%, 92%);
-    --color-paper-900: hsl(60, 21%, 90%);
+    --color-paper-900: hsl(60, 21%, 86%);
 }
 
 html, body, #root, .root {
@@ -1476,7 +1476,7 @@ legend {
 .scene-list-item-image[data-image=image] {
     background-position: 50%;
     background-repeat: no-repeat;
-    background-size: cover;
+    background-size: contain;
     cursor: pointer;
 }
 
@@ -1490,9 +1490,39 @@ legend {
     border-style: dashed;
 }
 
+.scene-list-item-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
 .scene-list-item-label {
     line-height: 1;
     font-size: 14px;
+}
+
+.scene-list-item-badges {
+    display: flex;
+    font-size: 13px;
+    gap: 4px;
+    line-height: 1;
+}
+
+.scene-list-item-badge {
+    align-items: center;
+    background-color: var(--color-paper-900);
+    border-radius: 3px;
+    color: var(--color-blues-900);
+    display: flex;
+    gap: 4px;
+    justify-content: space-between;
+    padding: 2px 4px;
+    position: relative;
+}
+
+.scene-list-item-badge[data-tooltip]::after {
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 .scene-list-item-remove {
