@@ -1,5 +1,5 @@
 (ns ogres.app.form.scenes
-  (:require [clojure.string :refer [blank?]]
+  (:require [clojure.string :refer [replace]]
             [ogres.app.hooks :refer [use-dispatch use-image use-image-uploader use-query]]
             [ogres.app.render :refer [icon pagination]]
             [uix.core :as uix :refer [defui $ use-ref use-state]]
@@ -13,14 +13,25 @@
 
 (def ^:private per-page 6)
 
-(defn ^:private remove-prompt [label]
-  (str "Are you sure you want to remove "
-       (if (blank? label)
-         (str "this scene")
-         (str "'" label "'")) "?"))
+(def ^:private filename-re #"\d+x\d+|[^\w ]|.[^.]+$")
+
+(defn ^:private render-filesize [bytes]
+  (let [i (js/Math.floor (/ (js/Math.log bytes) (js/Math.log 1024)))
+        s ["B" "KB" "MB" "GB" "TB" "PB" "EB" "ZB" "YB"]]
+    (str (* (.toFixed (/ bytes (js/Math.pow 1024, i)) 2) 1) (s i))))
+
+(defn ^:private render-scene-name [camera]
+  (if-let [label (:camera/label camera)]
+    label
+    (if-let [filename (-> camera :camera/scene :scene/image :image/name)]
+      (replace filename filename-re "")
+      "Untitled scene")))
+
+(defn ^:private render-remove-prompt [camera]
+  (str "Are you sure you want to remove '" (render-scene-name camera) "'?"))
 
 (def ^:private query
-  [{:root/scene-images [:image/checksum]}
+  [{:root/scene-images [:image/checksum :image/name :image/size]}
    {:root/session
     [{:session/conns
       [{:local/camera
@@ -30,13 +41,13 @@
       [:db/key
        :camera/label
        {:camera/scene
-        [{:scene/image [:image/checksum]}
-         :db/key
+        [:db/key
          :scene/tokens
-         :scene/initiative]}]}
+         :scene/initiative
+         {:scene/image [:image/checksum :image/name]}]}]}
      {:local/camera
       [:db/key
-       [:camera/label :default ""]
+       :camera/label
        {:camera/scene
         [:db/key
          [:scene/grid-size]
@@ -44,7 +55,7 @@
          [:scene/lighting :default :revealed]
          [:scene/show-grid :default true]
          [:scene/timeofday :default :none]
-         {:scene/image [:image/checksum]}]}]}]}])
+         {:scene/image [:image/checksum :image/name]}]}]}]}])
 
 (defui ^:private thumbnail
   [{:keys [checksum children]}]
@@ -68,12 +79,14 @@
              :title "Scene name"
              :maxLength 36
              :spellCheck false
-             :placeholder "Name"
-             :value (:camera/label camera)
+             :placeholder (render-scene-name camera)
+             :value (or (:camera/label camera) "")
              :on-change
              (fn [event]
                (let [value (.. event -target -value)]
-                 (dispatch :camera/change-label value)))}))
+                 (if (not= value "")
+                   (dispatch :camera/change-label value)
+                   (dispatch :camera/remove-label))))}))
         ($ :fieldset.text {:style {:grid-area "tile-size"}}
           ($ :input
             {:type "number"
@@ -196,14 +209,20 @@
                  :value (min page pgs)
                  :on-change set-page})))
           (if (not (nil? preview))
-            (if-let [node (js/document.querySelector "#root")]
+            (let [node (js/document.querySelector "#root")
+                  data (first (filter (comp #{preview} :image/checksum) (:root/scene-images data)))]
               (create-portal
                ($ :.scene-gallery-modal
                  ($ :.scene-gallery-modal-container
                    ($ thumbnail {:checksum preview}
                      (fn [{:keys [data-url]}]
                        ($ :figure.scene-gallery-modal-preview
-                         {:style {:background-image (str "url(" data-url ")")}})))
+                         {:style {:background-image (str "url(" data-url ")")}}
+                         ($ :dl
+                           ($ :dt "Filename:")
+                           ($ :dd (:image/name data))
+                           ($ :dt "Size:")
+                           ($ :dd (render-filesize (:image/size data)))))))
                    ($ :.scene-gallery-modal-footer
                      ($ :button.button.button-danger
                        {:style {:margin-right "auto"}
@@ -226,12 +245,13 @@
                   :let [on-select  #(dispatch :scenes/change (:db/key entity))
                         on-remove  #(dispatch :scenes/remove (:db/key entity))
                         scene      (:camera/scene entity)
+                        image      (:scene/image scene)
                         sum-tokens (count (:scene/tokens scene))
                         sum-initiv (count (:scene/initiative scene))
                         sum-playrs (viewing (:db/key scene))]]
               ($ :li.scene-list-item
                 {:key (:db/key entity) :data-selected (= (:db/key entity) (:db/key camera))}
-                (if-let [checksum (:image/checksum (:scene/image (:camera/scene entity)))]
+                (if-let [checksum (:image/checksum image)]
                   ($ thumbnail {:checksum checksum}
                     (fn [{:keys [data-url]}]
                       ($ :.scene-list-item-image
@@ -241,9 +261,7 @@
                   ($ :.scene-list-item-image
                     {:on-click on-select :data-image "empty"}))
                 ($ :.scene-list-item-content
-                  (if-let [label (:camera/label entity)]
-                    ($ :.scene-list-item-label label)
-                    ($ :.scene-list-item-label "New scene"))
+                  ($ :.scene-list-item-label (render-scene-name entity))
                   ($ :fieldset.scene-list-item-badges {:style {:grid-area "badges"}}
                     (if (> sum-tokens 0)
                       ($ :.scene-list-item-badge {:data-tooltip "Tokens"}
@@ -257,7 +275,7 @@
                 ($ :button.scene-list-item-remove.button.button-neutral
                   {:on-click
                    (fn []
-                     (if (js/confirm (remove-prompt (:camera/label entity)))
+                     (if (js/confirm (render-remove-prompt (:camera/label entity)))
                        (on-remove)))}
                   ($ icon {:name "trash3-fill" :size 16}))))
             ($ :li.scene-list-item

@@ -4,6 +4,7 @@
             [clojure.core.async :refer [chan sliding-buffer]]
             [datascript.core :as ds]
             [datascript.transit :as dst]
+            [goog.object :as go]
             [ogres.app.const :refer [SOCKET-URL]]
             [ogres.app.hooks :refer [use-event-listener use-subscribe use-dispatch use-publish use-interval use-store]]
             [ogres.app.provider.image :refer [create-checksum create-image-element]]
@@ -132,7 +133,7 @@
 
     :image/request
     (-> (.get (.table store "images") (:checksum data))
-        (.then (fn [r] (.-data r)))
+        (.then (fn [record] (go/get record "data-url")))
         (.then (fn [data-url]
                  (on-send {:type :image :dst (:src message) :data data-url}))))
 
@@ -165,7 +166,7 @@
   [{:keys [conn dispatch publish store]} message]
   (let [data-url (:data message)
         checksum (create-checksum data-url)
-        record   #js {:checksum checksum :data data-url :created-at (js/Date.now)}
+        record   #js {:checksum checksum :data-url data-url :created-at (js/Date.now)}
         entity   (ds/entity (ds/db conn) [:db/ident :local])]
     (if (= (:local/type entity) :host)
       ;; The host has received an image from another connection. This is
@@ -175,9 +176,8 @@
       (-> (.put (.table store "images") record)
           (.then #(create-image-element data-url))
           (.then (fn [image]
-                   (let [width  (.-width image)
-                         height (.-height image)]
-                     (dispatch :tokens/create checksum width height :public)
+                   (let [data {:checksum checksum :width (.-width image) :height (.-height image)}]
+                     (dispatch :tokens/create data :public)
                      (publish {:topic :image/cache :args [checksum data-url]})))))
       ;; This connection has received image data from the host - put it in
       ;; local storage and publish the relevant event to trigger an update
@@ -279,15 +279,15 @@
     ;; session as a token.
     (use-subscribe :image/create
       (use-callback
-       (fn [{[type {:keys [data-url checksum width height]}] :args}]
+       (fn [{[type data] :args}]
          (let [{{kind :local/type} :root/local
                 {host :session/host} :root/session}
                (ds/entity (ds/db conn) [:db/ident :root])]
            (case [kind type]
-             [:host :token] (dispatch :tokens/create checksum width height :private)
-             [:host :scene] (dispatch :scene-images/create checksum width height :private)
+             [:host :token] (dispatch :tokens/create data :private)
+             [:host :scene] (dispatch :scene-images/create data)
              ([:conn :token] [:conn :scene])
-             (on-send {:type :image :dst (:db/key host) :data data-url})))) [conn dispatch on-send]))
+             (on-send {:type :image :dst (:db/key host) :data (:data-url data)})))) [conn dispatch on-send]))
 
     ;; Subscribe to requests for image data from other non-host connections
     ;; and reply with the appropriate image data in the form of a data URL.

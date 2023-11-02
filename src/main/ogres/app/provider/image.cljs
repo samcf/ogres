@@ -1,6 +1,7 @@
 (ns ogres.app.provider.image
   (:import goog.crypt.Md5)
-  (:require [ogres.app.provider.events :refer [use-publish use-subscribe]]
+  (:require [goog.object :as go]
+            [ogres.app.provider.events :refer [use-publish use-subscribe]]
             [ogres.app.provider.storage :refer [use-store]]
             [uix.core :refer [use-callback use-state use-effect]]))
 
@@ -105,18 +106,22 @@
            (.then (fn [image]
                     (let [canvas   (process-image {:type type :image image})
                           data-url (.toDataURL canvas "image/jpeg" 0.70)
-                          data     {:data-url data-url
+                          data     {:name     (.-name file)
+                                    :size     (count data-url)
+                                    :data-url data-url
                                     :checksum (create-checksum data-url)
                                     :width    (.-width canvas)
                                     :height   (.-height canvas)}]
                       (js/Promise.resolve data))))
-           (.then (fn [{:keys [checksum data-url] :as data}]
-                    (let [record #js {:checksum checksum :data data-url :created-at (js/Date.now)}]
+           (.then (fn [data]
+                    (let [keys [:name :size :data-url :checksum]
+                          record (select-keys data keys)
+                          record (assoc record :created-at (js/Date.now))
+                          record (clj->js record)]
                       (-> (.table store "images")
                           (.put record)
                           (.then (fn [] (js/Promise.resolve data)))))))
-           (.then (fn [data]
-                    (publish {:topic :image/create :args [type data]})))))
+           (.then (fn [data] (publish {:topic :image/create :args [type data]})))))
      [publish store type])))
 
 (defn use-image [checksum]
@@ -151,7 +156,7 @@
        (if (and (string? checksum) (not (or loading cached)))
          (-> (.table store "images")
              (.get checksum)
-             (.then (fn [rec] (create-object-url (.-data rec))))
+             (.then (fn [rec] (create-object-url (go/get rec "data-url"))))
              (.then (fn [url] (swap! cache assoc checksum [false url])))
              (.catch (fn [] (publish {:topic :image/request :args [checksum]})))))) ^:lint/disable [checksum])
 
