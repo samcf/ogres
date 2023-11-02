@@ -3,7 +3,7 @@
             [clojure.set :refer [union]]
             [clojure.string :refer [trim]]
             [ogres.app.geom :refer [bounding-box normalize within?]]
-            [ogres.app.util :refer [comp-fn]]))
+            [ogres.app.util :refer [comp-fn with-ns]]))
 
 (def ^:private suffix-max-xf
   (map (fn [[label tokens]] [label (apply max (map :initiative/suffix tokens))])))
@@ -324,13 +324,8 @@
   ^{:doc "Creates a new scene image with the given checksum, width, and height.
           Relates this entity to the root scene collection."}
   transact :scene-images/create
-  [_ name size checksum width height]
-  [[:db/add [:db/ident :root] :root/scene-images -1]
-   [:db/add -1 :image/name name]
-   [:db/add -1 :image/size size]
-   [:db/add -1 :image/checksum checksum]
-   [:db/add -1 :image/width width]
-   [:db/add -1 :image/height height]])
+  [_ data]
+  [{:db/ident :root :root/scene-images (with-ns data "image")}])
 
 (defmethod
   ^{:doc "Removes the scene image by the given identifying checksum."}
@@ -681,14 +676,9 @@
               [:db/retract [:db/key key] :initiative/suffix]]))))
 
 (defmethod transact :tokens/create
-  [_ name size checksum width height scope]
-  [[:db/add [:db/ident :root] :root/token-images -1]
-   [:db/add -1 :image/scope scope]
-   [:db/add -1 :image/name name]
-   [:db/add -1 :image/size size]
-   [:db/add -1 :image/checksum checksum]
-   [:db/add -1 :image/width width]
-   [:db/add -1 :image/height height]])
+  [_ data scope]
+  (let [data (assoc data :image/scope scope)]
+    [{:db/ident :root :root/token-images (with-ns data "image")}]))
 
 (defmethod
   ^{:doc "Change the scope of the token image by the given checksum to the

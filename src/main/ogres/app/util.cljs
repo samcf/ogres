@@ -31,3 +31,14 @@
   [f key-fn & xs]
   (fn [x]
     (apply f (key-fn x) xs)))
+
+(defn with-ns
+  "Updates the keys of the given map, qualifying them with the given string
+   `s` if they are not qualified already."
+  [m s]
+  (update-keys
+   m
+   (fn [k]
+     (if (and (keyword? k) (not (qualified-keyword? k)))
+       (keyword (str s) (name k))
+       k))))
