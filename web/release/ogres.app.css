@@ -405,6 +405,7 @@ legend {
     margin: 0;
     max-width: 200px;
     min-width: 0px;
+    text-transform: capitalize;
 }
 
 .scenes-scene:hover .scenes-scene-remove {
@@ -1348,6 +1349,29 @@ legend {
     background-position: 50%;
     background-repeat: no-repeat;
     background-size: contain;
+    display: flex;
+    align-items: flex-end;
+}
+
+.scene-gallery-modal-preview dl {
+    display: grid;
+    grid-template-columns: max-content auto;
+    column-gap: 4px;
+    background-color: var(--color-blues-900);
+    border-radius: 3px;
+    border: 1px solid var(--color-blues-500);
+    color: var(--color-black-100);
+    font-size: 12px;
+    margin: 12px;
+    padding: 4px 8px;
+}
+
+.scene-gallery-modal-preview dt {
+    grid-column-start: 1;
+}
+
+.scene-gallery-modal-preview dd {
+    grid-column-start: 2;
 }
 
 .scene-gallery-modal-footer {
@@ -1498,8 +1522,9 @@ legend {
 }
 
 .scene-list-item-label {
-    line-height: 1;
     font-size: 14px;
+    line-height: 1;
+    text-transform: capitalize;
 }
 
 .scene-list-item-badges {

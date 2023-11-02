@@ -134,6 +134,12 @@
   [[:db/add [:db/key camera] :camera/label label]])
 
 (defmethod
+  ^{:doc "Removes the public label for the current camera."}
+  transact :camera/remove-label
+  [{:keys [camera]}]
+  [[:db/retract [:db/key camera] :camera/label]])
+
+(defmethod
   ^{:doc "Translates the current camera to the point given by `x` and `y`."}
   transact :camera/translate
   [{:keys [camera]} x y]
@@ -318,11 +324,13 @@
   ^{:doc "Creates a new scene image with the given checksum, width, and height.
           Relates this entity to the root scene collection."}
   transact :scene-images/create
-  [_ checksum width height]
+  [_ name size checksum width height]
   [[:db/add [:db/ident :root] :root/scene-images -1]
+   [:db/add -1 :image/name name]
+   [:db/add -1 :image/size size]
+   [:db/add -1 :image/checksum checksum]
    [:db/add -1 :image/width width]
-   [:db/add -1 :image/height height]
-   [:db/add -1 :image/checksum checksum]])
+   [:db/add -1 :image/height height]])
 
 (defmethod
   ^{:doc "Removes the scene image by the given identifying checksum."}
@@ -673,12 +681,14 @@
               [:db/retract [:db/key key] :initiative/suffix]]))))
 
 (defmethod transact :tokens/create
-  [_ checksum width height scope]
+  [_ name size checksum width height scope]
   [[:db/add [:db/ident :root] :root/token-images -1]
    [:db/add -1 :image/scope scope]
+   [:db/add -1 :image/name name]
+   [:db/add -1 :image/size size]
+   [:db/add -1 :image/checksum checksum]
    [:db/add -1 :image/width width]
-   [:db/add -1 :image/height height]
-   [:db/add -1 :image/checksum checksum]])
+   [:db/add -1 :image/height height]])
 
 (defmethod
   ^{:doc "Change the scope of the token image by the given checksum to the

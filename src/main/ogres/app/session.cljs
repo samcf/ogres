@@ -279,13 +279,13 @@
     ;; session as a token.
     (use-subscribe :image/create
       (use-callback
-       (fn [{[type {:keys [data-url checksum width height]}] :args}]
+       (fn [{[type {:keys [data-url name size checksum width height]}] :args}]
          (let [{{kind :local/type} :root/local
                 {host :session/host} :root/session}
                (ds/entity (ds/db conn) [:db/ident :root])]
            (case [kind type]
-             [:host :token] (dispatch :tokens/create checksum width height :private)
-             [:host :scene] (dispatch :scene-images/create checksum width height :private)
+             [:host :token] (dispatch :tokens/create name size checksum width height :private)
+             [:host :scene] (dispatch :scene-images/create name size checksum width height :private)
              ([:conn :token] [:conn :scene])
              (on-send {:type :image :dst (:db/key host) :data data-url})))) [conn dispatch on-send]))
 

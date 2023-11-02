@@ -106,17 +106,22 @@
                     (let [canvas   (process-image {:type type :image image})
                           data-url (.toDataURL canvas "image/jpeg" 0.70)
                           data     {:data-url data-url
+                                    :name     (.-name file)
+                                    :size     (count data-url)
                                     :checksum (create-checksum data-url)
                                     :width    (.-width canvas)
                                     :height   (.-height canvas)}]
                       (js/Promise.resolve data))))
-           (.then (fn [{:keys [checksum data-url] :as data}]
-                    (let [record #js {:checksum checksum :data data-url :created-at (js/Date.now)}]
+           (.then (fn [data]
+                    (let [record #js {:data       (:data-url data)
+                                      :name       (:name data)
+                                      :size       (:size data)
+                                      :checksum   (:checksum data)
+                                      :created-at (js/Date.now)}]
                       (-> (.table store "images")
                           (.put record)
                           (.then (fn [] (js/Promise.resolve data)))))))
-           (.then (fn [data]
-                    (publish {:topic :image/create :args [type data]})))))
+           (.then (fn [data] (publish {:topic :image/create :args [type data]})))))
      [publish store type])))
 
 (defn use-image [checksum]
