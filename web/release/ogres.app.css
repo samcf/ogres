@@ -1633,7 +1633,6 @@ legend {
 }
 
 .token-gallery-item[data-type="placeholder"] {
-    background-color: var(--color-black-100);
     border-style: dashed;
 }
 
