@@ -13,6 +13,8 @@
 
 (def ^:private per-page 6)
 
+(def ^:private filesize-limit 8e6)
+
 (def ^:private filename-re #"\d+x\d+|[^\w ]|.[^.]+$")
 
 (defn ^:private render-filesize [bytes]
@@ -174,6 +176,7 @@
                          (dispatch :scene/change-image checksum))}
                       ($ :button.button.button-neutral
                         {:type "button"
+                         :data-name "info"
                          :on-click
                          (fn [event]
                            (.stopPropagation event)
@@ -181,11 +184,22 @@
                         ($ icon {:name "zoom-in" :size 18}))
                       ($ :button.button.button-danger
                         {:type "button"
+                         :data-name "remove"
                          :on-click
                          (fn [event]
                            (.stopPropagation event)
                            (dispatch :scene-images/remove checksum))}
-                        ($ icon {:name "trash3-fill" :size 18})))))
+                        ($ icon {:name "trash3-fill" :size 18}))
+                      (if (> (:image/size data) filesize-limit)
+                        ($ :button.button.button-warning
+                          {:type "button"
+                           :data-name "warn"
+                           :data-tooltip "Exceeds filesize limit"
+                           :on-click
+                           (fn [event]
+                             (.stopPropagation event)
+                             (set-preview checksum))}
+                          ($ icon {:name "exclamation-triangle-fill" :size 18}))))))
                 ($ :figure.scene-gallery-thumbnail
                   {:key idx :data-type "placeholder"}))))
           ($ :fieldset.scene-gallery-form
@@ -219,10 +233,18 @@
                        ($ :figure.scene-gallery-modal-preview
                          {:style {:background-image (str "url(" data-url ")")}}
                          ($ :dl
-                           ($ :dt "Filename:")
+                           ($ :dt "Filename")
                            ($ :dd (:image/name data))
-                           ($ :dt "Size:")
-                           ($ :dd (render-filesize (:image/size data)))))))
+                           ($ :dt "Size")
+                           ($ :dd (render-filesize (:image/size data)))
+                           (if (> (:image/size data) filesize-limit)
+                             ($ :<>
+                               ($ :dt ($ icon {:name "exclamation-triangle-fill" :size 12}) "Warning")
+                               ($ :dd
+                                 "This image exceeds the maximum image filesize (8MB)"
+                                 " that can be used for multiplayer games."
+                                 " Decreasing its dimensions, converting it to a JPG,"
+                                 " and lowering its image quality may help.")))))))
                    ($ :.scene-gallery-modal-footer
                      ($ :button.button.button-danger
                        {:style {:margin-right "auto"}

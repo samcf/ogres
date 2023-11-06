@@ -162,6 +162,15 @@ fieldset.checkbox + fieldset {
     border-color: var(--color-black-500);
 }
 
+.button-warning:not(:disabled) {
+    background-color: var(--color-blues-900);
+    color: var(--color-black-100);
+}
+
+.button-warning:not(:disabled) .icon {
+    color: yellow;
+}
+
 .button-danger:not(:disabled) {
     background-color: var(--color-danger-500);
     color: var(--color-black-100);
@@ -1355,20 +1364,27 @@ legend {
 }
 
 .scene-gallery-modal-preview dl {
-    display: grid;
-    grid-template-columns: max-content auto;
-    column-gap: 4px;
     background-color: var(--color-blues-900);
     border-radius: 3px;
     border: 1px solid var(--color-blues-500);
     color: var(--color-black-100);
+    column-gap: 8px;
+    display: grid;
     font-size: 12px;
+    grid-template-columns: max-content auto;
     margin: 12px;
+    max-width: 480px;
     padding: 4px 8px;
 }
 
 .scene-gallery-modal-preview dt {
+    display: flex;
+    gap: 4px;
     grid-column-start: 1;
+}
+
+.scene-gallery-modal-preview dt .icon {
+    margin-top: 3px;
 }
 
 .scene-gallery-modal-preview dd {
@@ -1385,14 +1401,11 @@ legend {
 }
 
 .scene-gallery-thumbnail {
-    align-items: flex-start;
     aspect-ratio: 1;
     border-radius: 2px;
     border: 1px solid var(--color-blues-900);
-    display: flex;
-    justify-content: space-between;
-    gap: 4px;
     padding: 4px;
+    position: relative;
 }
 
 .scene-gallery-thumbnail[data-selected=true] {
@@ -1415,15 +1428,39 @@ legend {
     border-style: dashed;
 }
 
-.scene-gallery-thumbnail > button {
+.scene-gallery-thumbnail > .button {
     border: none;
+    margin: 4px;
     min-height: 0px;
     padding: 4px;
+    position: absolute;
+}
+
+.scene-gallery-thumbnail .button:not([data-name=warn]) {
     visibility: hidden;
 }
 
-.scene-gallery-thumbnail:hover > button {
+.scene-gallery-thumbnail:hover > .button {
     visibility: visible;
+}
+
+.scene-gallery-thumbnail .button[data-name=info] {
+    top: 0;
+    left: 0;
+}
+.scene-gallery-thumbnail .button[data-name=remove] {
+    top: 0;
+    right: 0;
+}
+
+.scene-gallery-thumbnail .button[data-name=warn] {
+    bottom: 0;
+    left: 0;
+}
+
+.scene-gallery-thumbnail [data-tooltip]::after {
+    top: 0;
+    transform: translateY(-50%);
 }
 
 .scene-gallery-form {
