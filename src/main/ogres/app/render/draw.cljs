@@ -249,8 +249,8 @@
               idxs 7
               wide (* (inc idxs) draw)
               path (for [indx (range (- idxs) (inc idxs))
-                         path [[(- wide)     "," (* indx draw) "H" wide]
-                               [(* indx draw) "," (- wide)     "V" wide]]]
+                         path [[(- wide)      "," (* indx draw) "H" wide]
+                               [(* indx draw) "," (- wide)      "V" wide]]]
                      (apply str "M" path))]
           ($ :g {:transform (str "translate(" (- x ox) "," (- y oy) ")")}
             ($ :path {:d (join path)})
