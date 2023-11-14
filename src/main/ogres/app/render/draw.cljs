@@ -301,12 +301,12 @@
 
 (defui draw [{:keys [mode] :as props}]
   (case mode
-    :circle  ($ draw-circle props)
-    :cone    ($ draw-cone props)
-    :grid    ($ draw-grid props)
-    :line    ($ draw-line props)
-    :mask    ($ draw-mask props)
-    :poly    ($ draw-poly props)
-    :rect    ($ draw-rect props)
-    :ruler   ($ draw-ruler props)
-    :select  ($ draw-select props)))
+    :circle ($ draw-circle props)
+    :cone   ($ draw-cone props)
+    :grid   ($ draw-grid props)
+    :line   ($ draw-line props)
+    :mask   ($ draw-mask props)
+    :poly   ($ draw-poly props)
+    :rect   ($ draw-rect props)
+    :ruler  ($ draw-ruler props)
+    :select ($ draw-select props)))
