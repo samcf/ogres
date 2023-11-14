@@ -56,7 +56,8 @@
     [[:camera/scale :default 1]
      [:camera/point :default [0 0]]
      {:camera/scene
-      [[:scene/grid-size :default grid-size]]}]}])
+      [[:scene/grid-size :default grid-size]
+       :scene/grid-origin]}]}])
 
 (defui ^:private polygon
   [{:keys [on-create]}]
@@ -228,7 +229,10 @@
   (let [{[ox oy] :bounds/self
          {[tx ty] :camera/point
           scale   :camera/scale
-          {tile-size :scene/grid-size} :camera/scene} :local/camera} (use-query query)
+          {tile-size :scene/grid-size
+           grid-origin :scene/grid-origin}
+          :camera/scene}
+         :local/camera}     (use-query query)
         dispatch            (use-dispatch)
         [origin set-origin] (use-state nil)
         [size set-size]     (use-state tile-size)]
@@ -271,7 +275,12 @@
                     ($ icon {:name "arrow-down-short" :size 20}))
                   ($ :button
                     {:type "button" :data-name "left" :on-click #(set-origin [(dec x) y])}
-                    ($ icon {:name "arrow-left-short" :size 20})))
+                    ($ icon {:name "arrow-left-short" :size 20}))
+                  (if (not (nil? grid-origin))
+                    ($ :button
+                      {:type "button" :data-name "clear" :data-tooltip "Reset"
+                       :on-click #(dispatch :scene/reset-grid-origin)}
+                      ($ icon {:name "x-circle-fill" :size 16}))))
                 ($ :fieldset.grid-align-size
                   ($ :button
                     {:type "button" :data-name "dec" :on-click #(set-size dec)}

@@ -369,6 +369,13 @@
    [:db/add -1 :camera/draw-mode :select]])
 
 (defmethod
+  ^{:doc "Resets the grid origin to (0, 0)."}
+  transact :scene/reset-grid-origin
+  [{:keys [camera scene]}]
+  [[:db/add [:db/key camera] :camera/draw-mode :select]
+   [:db/retract [:db/key scene] :scene/grid-origin]])
+
+(defmethod
   ^{:doc "Retracts the grid size for the current scene, allowing queries to
           revert to their defaults."}
   transact :scene/retract-grid-size

@@ -2031,6 +2031,12 @@ legend {
     transform: translate(0, -50%);
 }
 
+.grid-align-origin button[data-name=clear] {
+    left: 18%;
+    top: 18%;
+    transform: translate(-50%, -50%);
+}
+
 .grid-align-size {
     align-items: stretch;
     background-color: var(--color-blues-900);
