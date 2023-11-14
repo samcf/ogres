@@ -26,6 +26,7 @@
     :mode/mask   ($ :span "Create a new mask by drawing a polygon; hold " ($ :code "Shift") " to reveal a masked area.")
     :mode/mask-toggle "Toggle a mask on or off."
     :mode/mask-remove "Remove a mask."
+    :mode/grid   "Select a point on the scene to use as the grid origin."
     :mask/hide   "Remove all masks then mask the entire scene."
     :mask/show   "Remove all masks then reveal the entire scene."
     :scene/focus "Focus the current view, moving everyone to this scene and position."
@@ -188,6 +189,8 @@
            :on-click #(dispatch :mask/clear)
            :on-mouse-enter (tooltip-fn :mask/show)}
           ($ icon {:name "eye-fill"}))
+        ($ :button (mode-attrs :grid)
+          ($ icon {:name "compass"}))
         ($ :button
           {:type "button"
            :disabled (not (and (= type :host) (not (nil? (:session/_host result)))))

@@ -3,8 +3,12 @@
             [ogres.app.const :refer [grid-size]]
             [ogres.app.hooks :refer [use-dispatch use-portal use-query]]
             [ogres.app.geom :refer [chebyshev euclidean triangle]]
+            [ogres.app.render :refer [icon]]
             [react-draggable]
             [uix.core :refer [defui $ use-state]]))
+
+(def ^:private round
+  (map (fn [[x y]] [(js/Math.round x) (js/Math.round y)])))
 
 (defn ^:private px->ft [px size]
   (js/Math.round (* (/ px size) 5)))
@@ -50,7 +54,9 @@
   [[:bounds/self :default [0 0 0 0]]
    {:local/camera
     [[:camera/scale :default 1]
-     [:camera/point :default [0 0]]]}])
+     [:camera/point :default [0 0]]
+     {:camera/scene
+      [[:scene/grid-size :default grid-size]]}]}])
 
 (defui ^:private polygon
   [{:keys [on-create]}]
@@ -218,13 +224,80 @@
        (fn [event points]
          (dispatch :mask/create (not (.-shiftKey event)) points))})))
 
+(defui ^:private draw-grid []
+  (let [{[ox oy] :bounds/self
+         {[tx ty] :camera/point
+          scale   :camera/scale
+          {tile-size :scene/grid-size} :camera/scene} :local/camera} (use-query query)
+        dispatch            (use-dispatch)
+        [origin set-origin] (use-state nil)
+        [size set-size]     (use-state tile-size)]
+    ($ :g.grid-align
+      ($ :rect
+        {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"
+         :on-click
+         (fn [event]
+           (let [x (.-clientX event) y (.-clientY event)]
+             (set-origin [x y])))})
+      (if (not (nil? origin))
+        (let [[x y] origin
+              draw (* size (/ grid-size tile-size) scale)
+              idxs 7
+              wide (* (inc idxs) draw)
+              path (for [indx (range (- idxs) (inc idxs))
+                         path [[(- wide)     "," (* indx draw) "H" wide]
+                               [(* indx draw) "," (- wide)     "V" wide]]]
+                     (apply str "M" path))]
+          ($ :g {:transform (str "translate(" (- x ox) "," (- y oy) ")")}
+            ($ :path {:d (join path)})
+            ($ :circle {:cx 0 :cy 0 :r 14})
+            ($ :foreignObject.grid-align-form
+              {:x -128 :y -128 :width 256 :height 256}
+              ($ :form
+                {:on-submit
+                 (fn [event]
+                   (.preventDefault event)
+                   (let [origin (convert origin (+' (- ox) (- oy)) (*' (/ scale)) (+' tx ty) (*' (/ tile-size size)) round cat)]
+                     (dispatch :scene/apply-grid-options origin size)))}
+                ($ :fieldset.grid-align-origin
+                  ($ :button
+                    {:type "button" :data-name "up" :on-click #(set-origin [x (dec y)])}
+                    ($ icon {:name "arrow-up-short" :size 20}))
+                  ($ :button
+                    {:type "button" :data-name "right" :on-click #(set-origin [(inc x) y])}
+                    ($ icon {:name "arrow-right-short" :size 20}))
+                  ($ :button
+                    {:type "button" :data-name "down" :on-click #(set-origin [x (inc y)])}
+                    ($ icon {:name "arrow-down-short" :size 20}))
+                  ($ :button
+                    {:type "button" :data-name "left" :on-click #(set-origin [(dec x) y])}
+                    ($ icon {:name "arrow-left-short" :size 20})))
+                ($ :fieldset.grid-align-size
+                  ($ :button
+                    {:type "button" :data-name "dec" :on-click #(set-size dec)}
+                    ($ icon {:name "dash" :size 20}))
+                  ($ :button
+                    {:type "button" :data-name "inc" :on-click #(set-size inc)}
+                    ($ icon {:name "plus" :size 20}))
+                  ($ :input
+                    {:type "number"
+                     :value size
+                     :on-change
+                     (fn [event]
+                       (let [n (js/Number (.. event -target -value))]
+                         (if (number? n)
+                           (set-size n))))})
+                  ($ :button {:type "submit" :data-name "submit"}
+                    ($ icon {:name "check"}) "Submit"))))))))))
+
 (defui draw [{:keys [mode] :as props}]
   (case mode
-    :circle ($ draw-circle props)
-    :cone   ($ draw-cone props)
-    :line   ($ draw-line props)
-    :mask   ($ draw-mask props)
-    :poly   ($ draw-poly props)
-    :rect   ($ draw-rect props)
-    :ruler  ($ draw-ruler props)
-    :select ($ draw-select props)))
+    :circle  ($ draw-circle props)
+    :cone    ($ draw-cone props)
+    :grid    ($ draw-grid props)
+    :line    ($ draw-line props)
+    :mask    ($ draw-mask props)
+    :poly    ($ draw-poly props)
+    :rect    ($ draw-rect props)
+    :ruler   ($ draw-ruler props)
+    :select  ($ draw-select props)))

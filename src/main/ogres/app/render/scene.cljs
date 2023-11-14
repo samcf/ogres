@@ -181,7 +181,8 @@
      [:camera/scale :default 1]
      [:camera/draw-mode :default :select]
      {:camera/scene
-      [[:scene/show-grid :default true]]}]}])
+      [[:scene/show-grid :default true]
+       [:scene/grid-origin :default [0 0]]]}]}])
 
 (defui ^:private render-grid []
   (let [data (use-query query-grid)
@@ -190,14 +191,15 @@
           mode    :camera/draw-mode
           scale   :camera/scale
           scene   :camera/scene} :local/camera} data]
-    (if (or (:scene/show-grid scene) (= mode :grid))
+    (if (and (:scene/show-grid scene) (not= mode :grid))
       (let [wd (/ w scale)
             ht (/ h scale)
             ax (+ (* wd -3) cx)
             ay (+ (* ht -3) cy)
             bx (+ (* wd  3) cx)
-            by (+ (* ht  3) cy)]
-        ($ :g {:class "scene-grid"}
+            by (+ (* ht  3) cy)
+            [ox oy] (:scene/grid-origin scene)]
+        ($ :g.scene-grid {:transform (str "translate(" (mod ox grid-size) "," (mod oy grid-size) ")")}
           ($ :defs
             ($ :pattern {:id "grid" :width grid-size :height grid-size :patternUnits "userSpaceOnUse"}
               ($ :path {:d (join " " ["M" 0 0 "H" grid-size "V" grid-size])})))
