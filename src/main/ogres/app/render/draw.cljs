@@ -226,16 +226,15 @@
          (dispatch :mask/create (not (.-shiftKey event)) points))})))
 
 (defui ^:private draw-grid []
-  (let [{[ox oy] :bounds/self
+  (let [dispatch (use-dispatch)
+        {[ox oy] :bounds/self
          {[tx ty] :camera/point
           scale   :camera/scale
-          {tile-size :scene/grid-size
-           grid-origin :scene/grid-origin}
-          :camera/scene}
-         :local/camera}     (use-query query)
-        dispatch            (use-dispatch)
-        [origin set-origin] (use-state nil)
-        [size set-size]     (use-state tile-size)]
+          {prev-size :scene/grid-size
+           prev-origin :scene/grid-origin}
+          :camera/scene} :local/camera} (use-query query)
+        [next-origin set-origin] (use-state nil)
+        [next-size     set-size] (use-state prev-size)]
     ($ :g.grid-align
       ($ :rect
         {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"
@@ -243,14 +242,14 @@
          (fn [event]
            (let [x (.-clientX event) y (.-clientY event)]
              (set-origin [x y])))})
-      (if (not (nil? origin))
-        (let [[x y] origin
-              draw (* size (/ grid-size tile-size) scale)
+      (if (not (nil? next-origin))
+        (let [[x y] next-origin
               idxs 7
+              draw (* next-size (/ grid-size prev-size) scale)
               wide (* (inc idxs) draw)
               path (for [indx (range (- idxs) (inc idxs))
-                         path [[(- wide)      "," (* indx draw) "H" wide]
-                               [(* indx draw) "," (- wide)      "V" wide]]]
+                         path [[(- wide) "," (* indx draw) "H" wide]
+                               [(* indx draw) "," (- wide) "V" wide]]]
                      (apply str "M" path))]
           ($ :g {:transform (str "translate(" (- x ox) "," (- y oy) ")")}
             ($ :path {:d (join path)})
@@ -261,8 +260,13 @@
                 {:on-submit
                  (fn [event]
                    (.preventDefault event)
-                   (let [origin (convert origin (+' (- ox) (- oy)) (*' (/ scale)) (+' tx ty) (*' (/ tile-size size)) round cat)]
-                     (dispatch :scene/apply-grid-options origin size)))}
+                   (let [xf (comp (+' (- ox) (- oy))
+                                  (*' (/ scale))
+                                  (+' tx ty)
+                                  (*' (/ prev-size next-size))
+                                  round
+                                  cat)]
+                     (dispatch :scene/apply-grid-options (convert next-origin xf) next-size)))}
                 ($ :fieldset.grid-align-origin
                   ($ :button
                     {:type "button" :data-name "up" :on-click #(set-origin [x (dec y)])}
@@ -276,7 +280,7 @@
                   ($ :button
                     {:type "button" :data-name "left" :on-click #(set-origin [(dec x) y])}
                     ($ icon {:name "arrow-left-short" :size 20}))
-                  (if (not (nil? grid-origin))
+                  (if (not (nil? prev-origin))
                     ($ :button
                       {:type "button" :data-name "clear" :data-tooltip "Reset"
                        :on-click #(dispatch :scene/reset-grid-origin)}
@@ -290,7 +294,7 @@
                     ($ icon {:name "plus" :size 20}))
                   ($ :input
                     {:type "number"
-                     :value size
+                     :value next-size
                      :on-change
                      (fn [event]
                        (let [n (js/Number (.. event -target -value))]
