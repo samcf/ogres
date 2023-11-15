@@ -318,12 +318,6 @@
   (let [url (use-image checksum)]
     ($ :image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"})))
 
-(defui ^:private render-token-plates []
-  ($ :defs
-    ($ :linearGradient {:id "token-base-player" :x1 0 :y1 0 :x2 1 :y2 1}
-      ($ :stop {:style {:stop-color "#fcd34d"} :offset "0%"})
-      ($ :stop {:style {:stop-color "#b45309"} :offset "100%"}))))
-
 (def ^:private query-token-faces
   [{:local/camera
     [{:camera/scene
@@ -331,16 +325,19 @@
         [{:token/image
           [:image/checksum]}]}]}]}])
 
-(defui ^:private render-token-faces []
+(defui ^:private render-token-defs []
   (let [result    (use-query query-token-faces)
         tokens    (-> result :local/camera :camera/scene :scene/tokens)
         checksums (into #{} (comp (map :token/image) (map :image/checksum)) tokens)
         attrs     {:width "100%" :height "100%" :patternContentUnits "objectBoundingBox"}]
     ($ :defs {:style {:color "white"}}
-      ($ :pattern (merge attrs {:id "token-face-default" :viewBox "-2 -2 16 16"})
+      ($ :linearGradient#token-base-player {:x1 0 :y1 0 :x2 1 :y2 1}
+        ($ :stop {:style {:stop-color "#fcd34d"} :offset "0%"})
+        ($ :stop {:style {:stop-color "#b45309"} :offset "100%"}))
+      ($ :pattern#token-face-default (merge attrs {:viewBox "-2 -2 16 16"})
         ($ :rect {:x -2 :y -2 :width 16 :height 16 :fill "var(--color-blues-700)"})
         ($ icon {:name "dnd" :size 12}))
-      ($ :pattern (merge attrs {:id "token-face-deceased" :viewBox "-2 -2 16 16"})
+      ($ :pattern#token-face-deceased (merge attrs {:viewBox "-2 -2 16 16"})
         ($ :rect {:x -2 :y -2 :width 16 :height 16 :fill "var(--color-blues-700)"})
         ($ icon {:name "skull" :size 12}))
       (for [checksum checksums]
@@ -604,8 +601,7 @@
           (if (and (= mode :select) (= modifier :shift))
             ($ draw {:mode :select}))
           ($ :g.scene-board {:transform (str "scale(" scale ") translate(" (- cx) ", " (- cy) ")")}
-            ($ render-token-plates)
-            ($ render-token-faces)
+            ($ render-token-defs)
             ($ render-scene-image)
             ($ render-grid)
             ($ render-shapes)
