@@ -17,6 +17,7 @@
    {:name :copy/paste       :keys [\⌘ \v]         :desc "Copy: Paste the copied tokens onto the scene"}
    {:name :zoom/zoom        :keys ["Mouse wheel"] :desc "Zoom: Zoom in or out"}
    {:name :mode/ruler       :keys [\r]            :desc "Mode: Ruler tool"}
+   {:name :mode/grid        :keys [\g]            :desc "Mode: Grid alignment tool"}
    {:name :mode/circle      :keys [\1]            :desc "Mode: Draw a circle"}
    {:name :mode/rect        :keys [\2]            :desc "Mode: Draw a rectangle"}
    {:name :mode/cone        :keys [\3]            :desc "Mode: Draw a cone"}
@@ -40,7 +41,7 @@
    ["keydown" "Escape"]
    (fn [[_ dispatch] event]
      (if (not (.-metaKey event))
-       (dispatch :selection/clear)))
+       (dispatch :shortcut/escape)))
 
    ["keydown" "Delete"]
    (fn [[_ dispatch] event]
@@ -86,6 +87,11 @@
    (fn [[_ dispatch] event]
      (if (not (.-metaKey event))
        (dispatch :camera/change-mode :line)))
+
+   ["keydown" \g]
+   (fn [[_ dispatch] event]
+     (if (not (.-metaKey event))
+       (dispatch :camera/change-mode :grid)))
 
    ["keydown" \f]
    (fn [[_ dispatch] event]

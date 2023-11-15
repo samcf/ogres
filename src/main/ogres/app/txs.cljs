@@ -359,6 +359,23 @@
    [:db/add -1 :scene/grid-size size]])
 
 (defmethod
+  ^{:doc "Applies both a grid origin and tile size to the current scene."}
+  transact :scene/apply-grid-options
+  [{:keys [camera scene]} origin size]
+  [[:db/add -1 :db/key camera]
+   [:db/add -2 :db/key scene]
+   [:db/add -2 :scene/grid-origin origin]
+   [:db/add -2 :scene/grid-size size]
+   [:db/add -1 :camera/draw-mode :select]])
+
+(defmethod
+  ^{:doc "Resets the grid origin to (0, 0)."}
+  transact :scene/reset-grid-origin
+  [{:keys [camera scene]}]
+  [[:db/add [:db/key camera] :camera/draw-mode :select]
+   [:db/retract [:db/key scene] :scene/grid-origin]])
+
+(defmethod
   ^{:doc "Retracts the grid size for the current scene, allowing queries to
           revert to their defaults."}
   transact :scene/retract-grid-size
@@ -850,3 +867,13 @@
            [{:db/id -1 :db/key camera :camera/selected temp}
             {:db/id -2 :db/key scene :scene/tokens data}])
          (into [] cat))))
+
+;; -- Shortcuts --
+(defmethod
+  ^{:doc "Handles the 'Escape' keyboard shortcut, clearing any token
+          selections and changing the mode to `select`."}
+  transact :shortcut/escape
+  [{:keys [camera]}]
+  [[:db/add [:db/key camera] :db/key camera]
+   [:db/add [:db/key camera] :camera/draw-mode :select]
+   [:db/retract [:db/key camera] :camera/selected]])
