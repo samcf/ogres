@@ -711,19 +711,30 @@
 (defmethod transact :tokens/remove-all []
   [[:db/retract [:db/ident :root] :root/token-images]])
 
-(defmethod transact :mask/fill
+;; --- Masks ---
+(defmethod
+  ^{:doc "Sets the current scene to be entirely masked by default. This is
+          useful when the scene image is composed of many rooms and mostly
+          dead space between them, such as a dungeon, and it is more efficient
+          to 'carve out' the scene instead of filling it in."}
+  transact :mask/fill
   [{:keys [scene]}]
   [[:db/add -1 :db/key scene]
-   [:db/add -1 :mask/filled? true]
-   [:db/retract [:db/key scene] :scene/masks]])
+   [:db/add -1 :mask/filled? true]])
 
-(defmethod transact :mask/clear
+(defmethod
+  ^{:doc "Sets the current scene to not be entirely masked by default. This
+          is the default behavior."}
+  transact :mask/clear
   [{:keys [scene]}]
   [[:db/add -1 :db/key scene]
-   [:db/add -1 :mask/filled? false]
-   [:db/retract [:db/key scene] :scene/masks]])
+   [:db/add -1 :mask/filled? false]])
 
-(defmethod transact :mask/create
+(defmethod
+  ^{:doc "Creates a new mask object for the current scene, accepting its
+          current state (hide or reveal) and its polygon points as a flat
+          vector of x, y pairs."}
+  transact :mask/create
   [{:keys [scene]} state vecs]
   [[:db/add -1 :db/key scene]
    [:db/add -1 :scene/masks -2]
@@ -731,12 +742,17 @@
    [:db/add -2 :mask/enabled? state]
    [:db/add -2 :mask/vecs vecs]])
 
-(defmethod transact :mask/toggle
+(defmethod
+  ^{:doc "Toggles the state of the given mask to be either hiding or revealing
+          its contents."}
+  transact :mask/toggle
   [_ mask state]
   [[:db/add -1 :db/key mask]
    [:db/add -1 :mask/enabled? state]])
 
-(defmethod transact :mask/remove
+(defmethod
+  ^{:doc "Removes the given mask object."}
+  transact :mask/remove
   [_ mask]
   [[:db/retractEntity [:db/key mask]]])
 
