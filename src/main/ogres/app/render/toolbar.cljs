@@ -189,7 +189,7 @@
            :on-click #(dispatch :mask/clear)
            :on-mouse-enter (tooltip-fn :mask/show)}
           ($ icon {:name "eye-fill"}))
-        ($ :button (mode-attrs :grid)
+        ($ :button (mode-attrs :grid :disabled conn?)
           ($ icon {:name "compass"}))
         ($ :button
           {:type "button"
