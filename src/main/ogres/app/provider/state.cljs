@@ -99,17 +99,18 @@
 
 (defn use-dispatch []
   (let [conn    (use-context context)
-        query   [:db/key {:local/camera [:db/key {:camera/scene [:db/key]}]}]
         publish (use-publish)
-        result  (use-query query)
-        {local :db/key
-         {camera :db/key
-          {scene :db/key} :camera/scene} :local/camera} result]
+        handler (use-callback
+                 (fn [result]
+                   (loop [result result]
+                     (if (fn? result)
+                       (let [data @conn
+                             user (ds/entity data [:db/ident :local])]
+                         (recur (result data user))) result))) ^:lint/disable [])]
     (use-callback
      (fn [topic & args]
        (publish {:topic topic :args args})
-       (let [context (hash-map :data @conn :event topic :local local :camera camera :scene scene)
-             tx-data (apply transact context args)]
+       (let [tx-data (handler (apply transact topic args))]
          (if (seq tx-data)
            (let [report (ds/transact! conn tx-data)]
-             (publish {:topic :tx/commit :args (list report)}))))) ^:lint/disable [publish local camera scene])))
+             (publish {:topic :tx/commit :args (list report)}))))) ^:lint/disable [handler publish])))
