@@ -209,6 +209,12 @@ legend {
       "canvas side";
 }
 
+[data-user-type=conn] .layout {
+    grid-template-areas:
+      "canvas join"
+      "canvas side";
+}
+
 .layout-scenes {
     grid-area: scenes;
 }
