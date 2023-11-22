@@ -2,7 +2,7 @@
   (:require [datascript.core :as ds :refer [squuid]]
             [ogres.app.const :refer [VERSION]]
             [ogres.app.provider.events :refer [use-publish]]
-            [ogres.app.txs :refer [transact]]
+            [ogres.app.txs :refer [event-tx-fn]]
             [uix.core :refer [defui $ create-context use-context use-callback use-state use-effect]]))
 
 (def schema
@@ -74,6 +74,9 @@
         {:keys [local/type local/paused?]} (ds/pull data select [:db/ident :local])]
     (or (= type :host) (not paused?))))
 
+(defn ^:private tx-fn [data event args]
+  (apply event-tx-fn data event args))
+
 (defn use-query
   ([pattern]
    (use-query pattern [:db/ident :local]))
@@ -98,19 +101,12 @@
      prev-state)))
 
 (defn use-dispatch []
-  (let [conn    (use-context context)
-        publish (use-publish)
-        handler (use-callback
-                 (fn [result]
-                   (loop [result result]
-                     (if (fn? result)
-                       (let [data @conn
-                             user (ds/entity data [:db/ident :local])]
-                         (recur (result data user))) result))) ^:lint/disable [])]
+  (let [publish (use-publish)
+        conn    (use-context context)]
     (use-callback
      (fn [topic & args]
        (publish {:topic topic :args args})
-       (let [tx-data (handler (apply transact topic args))]
-         (if (seq tx-data)
-           (let [report (ds/transact! conn tx-data)]
-             (publish {:topic :tx/commit :args (list report)}))))) ^:lint/disable [handler publish])))
+       (let [tx-data [[:db.fn/call tx-fn topic args]]
+             report  (ds/transact! conn tx-data)]
+         (if (seq (:tx-data report))
+           (publish {:topic :tx/commit :args (list report)})))) ^:lint/disable [publish])))
