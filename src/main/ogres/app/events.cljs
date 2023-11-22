@@ -1,4 +1,4 @@
-(ns ogres.app.txs
+(ns ogres.app.events
   (:require [datascript.core :as ds :refer [squuid]]
             [clojure.set :refer [union]]
             [clojure.string :refer [trim]]
@@ -320,8 +320,8 @@
           Relates this entity to the root scene collection."}
   event-tx-fn :scene-images/create
   [_ _ image-data]
-  [{:db/ident :root
-    :root/scene-images (with-ns image-data "image")}])
+  (let [keys [:name :size :checksum :width :height]]
+    [{:db/ident :root :root/scene-images (with-ns (select-keys image-data keys) "image")}]))
 
 (defmethod
   ^{:doc "Removes the scene image by the given identifying checksum."}
@@ -677,8 +677,9 @@
               [:db/retract [:db/key key] :initiative/suffix]]))))
 
 (defmethod event-tx-fn :tokens/create
-  [_ _ data scope]
-  (let [data (assoc data :image/scope scope)]
+  [_ _ image-data scope]
+  (let [keys [:name :size :checksum :width :height]
+        data (-> image-data (select-keys keys) (assoc :scope scope))]
     [{:db/ident :root :root/token-images (with-ns data "image")}]))
 
 (defmethod

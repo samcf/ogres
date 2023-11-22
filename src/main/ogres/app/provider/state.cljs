@@ -2,7 +2,7 @@
   (:require [datascript.core :as ds :refer [squuid]]
             [ogres.app.const :refer [VERSION]]
             [ogres.app.provider.events :refer [use-publish]]
-            [ogres.app.txs :refer [event-tx-fn]]
+            [ogres.app.events :refer [event-tx-fn]]
             [uix.core :refer [defui $ create-context use-context use-callback use-state use-effect]]))
 
 (def schema
