@@ -1,5 +1,5 @@
 (ns ogres.app.events
-  (:require [datascript.core :as ds :refer [squuid]]
+  (:require [datascript.core :as ds]
             [clojure.set :refer [union]]
             [clojure.string :refer [trim]]
             [ogres.app.geom :refer [bounding-box normalize within?]]
