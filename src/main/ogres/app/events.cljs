@@ -708,7 +708,7 @@
   []
   [{:db/ident :root :root/session
     {:db/ident :session :session/host
-     {:db/ident :local :session/state :connecting}}}])
+     {:db/ident :local :session/state :connecting :panel/expanded #{:session}}}}])
 
 (defmethod event-tx-fn :session/join
   []
