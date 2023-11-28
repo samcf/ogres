@@ -651,7 +651,7 @@ legend {
     animation: token-pulse 1s alternate infinite;
 }
 
-.scene-token:is([data-flags*="hidden"], [data-flags*="invisible"]) circle {
+.scene-token:is([data-flags*="hidden"]) circle {
     fill-opacity: 0.50;
 }
 

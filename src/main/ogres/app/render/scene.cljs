@@ -45,11 +45,6 @@
 (defn ^:private stop-propagation [event]
   (.stopPropagation event))
 
-(defn ^:private visible?
-  [flags]
-  (or (contains? flags :player)
-      (not (contains? flags :hidden))))
-
 (defn ^:private label
   [{:keys [token/label initiative/suffix]}]
   (cond-> ""
@@ -115,7 +110,7 @@
           ($ :mask {:id "light-mask"}
             ($ :rect {:x 0 :y 0 :width width :height height :fill "white" :fill-opacity "100%"})
             (for [{id :db/id flags :token/flags [x y] :token/point radius :token/light} tokens
-                  :when (and (> radius 0) (or (= type :host) (visible? flags)))
+                  :when (and (> radius 0) (or (= type :host) (not (flags :hidden))))
                   :let  [radius (-> grid-size (* radius) (/ 5) (+ grid-size))]]
               ($ :circle {:key id :cx x :cy y :r radius :fill "url(#mask-gradient)"}))))
         ($ :rect.scene-mask-background
@@ -419,7 +414,7 @@
         flags-fn (fn [token] (->> (token-flags token) (map name) (join " ")))
         [selected tokens]
         (->> (:scene/tokens scene)
-             (filter (fn [token] (or (= type :host) (visible? (:token/flags token)))))
+             (filter (fn [token] (or (= type :host) (not ((:token/flags token) :hidden)))))
              (sort token-comparator)
              (separate (fn [token] ((into #{} (map :db/id) (:camera/_selected token)) (:db/id camera)))))]
     ($ :<>
