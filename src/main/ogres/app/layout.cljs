@@ -1,7 +1,7 @@
 (ns ogres.app.layout
   (:require [ogres.app.hooks :refer [use-query]]
             [ogres.app.render :refer [icon]]
-            [ogres.app.render.join :refer [join]]
+            [ogres.app.render.status :refer [button]]
             [ogres.app.render.panel :refer [container]]
             [ogres.app.render.scene :refer [render-scene]]
             [ogres.app.render.scenes :refer [scenes]]
@@ -20,13 +20,13 @@
         [:host :ready]
         ($ :.layout {:style {:visibility "hidden"}}
           ($ :.layout-scenes  ($ scenes))
-          ($ :.layout-join    ($ join))
+          ($ :.layout-join    ($ button))
           ($ :.layout-scene   ($ render-scene))
           ($ :.layout-toolbar ($ toolbar))
           ($ :.layout-panel   ($ container)))
         [:conn :ready]
         ($ :.layout {:style {:visibility "hidden"}}
-          ($ :.layout-join    ($ join))
+          ($ :.layout-join    ($ button))
           ($ :.layout-scene   ($ render-scene))
           ($ :.layout-toolbar ($ toolbar))
           ($ :.layout-panel   ($ container)))

@@ -1,18 +1,18 @@
-(ns ogres.app.render.join
+(ns ogres.app.render.status
   (:require [ogres.app.render :refer [icon]]
             [ogres.app.hooks :refer [use-query use-dispatch]]
             [uix.core :refer [defui $]]))
 
-(def ^:private join-query
+(def ^:private status-query
   [{:root/local   [[:session/state :default :initial]]
     :root/session [:session/conns :session/room]}])
 
 (def ^:private status-icon
   ($ icon {:name "globe-americas" :size 16}))
 
-(defui join []
+(defui button []
   (let [dispatch (use-dispatch)
-        result   (use-query join-query [:db/ident :root])
+        result   (use-query status-query [:db/ident :root])
         {{state :session/state} :root/local
          {code  :session/room
           conns :session/conns} :root/session} result]
