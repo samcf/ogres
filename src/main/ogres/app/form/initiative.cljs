@@ -8,11 +8,11 @@
   [:local/type
    {:local/camera
     [{:camera/scene
-      [:db/key
+      [:db/id
        :initiative/rounds
-       {:initiative/turn [:db/key]}
+       :initiative/turn
        {:scene/initiative
-        [:db/key
+        [:db/id
          :token/label
          :token/flags
          :initiative/roll
@@ -26,12 +26,11 @@
     [{:camera/scene
       [[:initiative/turns :default 0]
        [:initiative/rounds :default 0]
-       {:scene/initiative
-        [:db/key]}]}]}])
+       :scene/initiative]}]}])
 
 (defn ^:private initiative-order
   [a b]
-  (let [f (juxt :initiative/roll :db/key)]
+  (let [f (juxt :initiative/roll :db/id)]
     (compare (f b) (f a))))
 
 (defn ^:private format-time
@@ -103,26 +102,26 @@
   (let [dispatch (use-dispatch)
         {type      :local/type
          {{current :initiative/turn} :camera/scene} :local/camera} context
-        {key       :db/key
+        {id        :db/id
          label     :token/label
          flags     :token/flags
          suffix    :initiative/suffix
          {checksum :image/checksum} :token/image} entity
         data-url (use-image checksum)]
     ($ :li.initiative-token
-      {:data-current (= (:db/key current) (:db/key entity))}
+      {:data-current (= (:db/id current) (:db/id entity))}
       (if data-url
         ($ :.initiative-token-image
           {:style {:background-image (str "url(" data-url ")")}
-           :on-click #(dispatch :element/select key true)})
+           :on-click #(dispatch :element/select id true)})
         ($ :.initiative-token-pattern
-          {:on-click #(dispatch :element/select key true)}
+          {:on-click #(dispatch :element/select id true)}
           ($ icon {:name "dnd" :size 36})))
       ($ form-dice
         {:value (:initiative/roll entity)
          :on-change
          (fn [value]
-           (dispatch :initiative/change-roll key value))})
+           (dispatch :initiative/change-roll id value))})
       (if suffix
         ($ :.initiative-token-suffix (char (+ suffix 64))))
       ($ :.initiative-token-info
@@ -136,7 +135,7 @@
           {:value (:initiative/health entity)
            :on-change
            (fn [f v]
-             (dispatch :initiative/change-health key f v))})))))
+             (dispatch :initiative/change-health id f v))})))))
 
 (defui form []
   (let [result (use-query query-form)
@@ -162,9 +161,9 @@
               (for [entity (sort initiative-order tokens)
                     :when  (or (= type :host) (visible? (:token/flags entity)))]
                 ($ token
-                  {:key     (:db/key entity)
-                   :context result
-                   :entity  entity})))))))
+                  {:key (:db/id entity)
+                   :entity entity
+                   :context result})))))))
 
 (defui footer []
   (let [dispatch (use-dispatch)

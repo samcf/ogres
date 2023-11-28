@@ -1,5 +1,5 @@
 (ns ogres.app.provider.state
-  (:require [datascript.core :as ds :refer [squuid]]
+  (:require [datascript.core :as ds]
             [ogres.app.const :refer [VERSION]]
             [ogres.app.provider.events :refer [use-publish]]
             [ogres.app.events :refer [event-tx-fn]]
@@ -7,7 +7,6 @@
 
 (def schema
   {:db/ident          {:db/unique :db.unique/identity}
-   :db/key            {:db/unique :db.unique/identity}
    :root/local        {:db/valueType :db.type/ref :db/isComponent true}
    :root/scene-images {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :root/scenes       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
@@ -16,6 +15,7 @@
    :session/conns     {:db/valueType :db.type/ref :db.cardinality :db.cardinality/many :db/isComponent true}
    :session/host      {:db/valueType :db.type/ref}
    :image/checksum    {:db/unique :db.unique/identity}
+   :local/uuid        {:db/unique :db.unique/identity}
    :local/camera      {:db/valueType :db.type/ref}
    :local/cameras     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :camera/scene      {:db/valueType :db.type/ref}
@@ -43,16 +43,14 @@
     [:db/add -1 :root/scenes -2]
     [:db/add -1 :root/local -3]
     [:db/add -1 :root/session -5]
-    [:db/add -2 :db/key (squuid)]
+    [:db/add -2 :db/empty true]
     [:db/add -3 :db/ident :local]
-    [:db/add -3 :db/key (squuid)]
     [:db/add -3 :local/status :none]
     [:db/add -3 :local/color "#03a9f4"]
     [:db/add -3 :local/camera -4]
     [:db/add -3 :local/cameras -4]
     [:db/add -3 :local/type (local-type)]
     [:db/add -3 :panel/expanded #{:tokens}]
-    [:db/add -4 :db/key (squuid)]
     [:db/add -4 :camera/scene -2]
     [:db/add -5 :db/ident :session]]))
 

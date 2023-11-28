@@ -13,15 +13,16 @@
 
 (def ^:private query-form
   [{:root/local
-    [:db/key
+    [:db/id
+     :local/uuid
      :local/type
      :local/color
      [:session/state :default :initial]
      [:local/share-cursor :default true]]}
    {:root/session
     [:session/room
-     {:session/conns [:db/key :local/color :local/type]}
-     {:session/host [:db/key :local/color]}
+     {:session/conns [:db/id :local/uuid :local/color :local/type]}
+     {:session/host [:db/id :local/uuid :local/color]}
      [:session/share-cursors :default true]]}])
 
 (defn ^:private session-url [room-key]
@@ -40,7 +41,7 @@
          {share :local/share-cursor
           state :session/state
           type  :local/type
-          key   :db/key} :root/local
+          id    :db/id} :root/local
          local :root/local} result]
     (if (#{:connecting :connected :disconnected} state)
       ($ :section.session
@@ -79,7 +80,7 @@
               ($ :.session-player
                 ($ :.session-player-color {:style {:background-color (:local/color host)}})
                 ($ :.session-player-label "Host"
-                  (if (= (:db/key host) key)
+                  (if (= (:db/id host) id)
                     ($ :span " (You)"))))
               ($ :.prompt "Not connected."))))
         ($ :section
@@ -87,11 +88,11 @@
           ($ :.session-players
             (if (seq conns)
               (let [xf (filter (comp-fn = :local/type :conn))]
-                (for [conn (->> (conj conns local) (sequence xf) (sort-by :db/key))]
-                  ($ :.session-player {:key (:db/key conn)}
+                (for [conn (->> (conj conns local) (sequence xf) (sort-by :db/id))]
+                  ($ :.session-player {:key (:db/id conn)}
                     ($ :.session-player-color {:style {:background-color (:local/color conn)}})
                     ($ :.session-player-label "Friend"
-                      (if (= (:db/key conn) key)
+                      (if (= (:db/id conn) id)
                         ($ :span " (You)"))))))
               ($ :.prompt "No one else is here.")))))
       ($ :section.session

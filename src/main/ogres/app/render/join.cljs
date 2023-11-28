@@ -7,7 +7,7 @@
 
 (def ^:private join-query
   [{:root/local   [[:session/state :default :initial]]
-    :root/session [{:session/conns [:db/key]} :session/room]}])
+    :root/session [:session/conns :session/room]}])
 
 (def ^:private status-icon
   ($ icon {:name "globe-americas" :size 16}))

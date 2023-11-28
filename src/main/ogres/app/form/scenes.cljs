@@ -37,21 +37,21 @@
    {:root/session
     [{:session/conns
       [{:local/camera
-        [{:camera/scene [:db/key]}]}]}]}
+        [:camera/scene]}]}]}
    {:root/local
     [{:local/cameras
-      [:db/key
+      [:db/id
        :camera/label
        {:camera/scene
-        [:db/key
+        [:db/id
          :scene/tokens
          :scene/initiative
          {:scene/image [:image/checksum :image/name]}]}]}
      {:local/camera
-      [:db/key
+      [:db/id
        :camera/label
        {:camera/scene
-        [:db/key
+        [:db/id
          [:scene/grid-size]
          [:scene/dark-mode :default false]
          [:scene/lighting :default :revealed]
@@ -259,20 +259,20 @@
                node)))))
       (let [{{cameras :local/cameras} :root/local
              {players :session/conns} :root/session} data
-            viewing (frequencies (map (comp :db/key :camera/scene :local/camera) players))]
+            viewing (frequencies (map (comp :db/id :camera/scene :local/camera) players))]
         ($ :section.scene-scenes
           ($ :header "Scenes" " " "[" (count cameras) "]")
           ($ :ul.scene-list
             (for [entity cameras
-                  :let [on-select  #(dispatch :scenes/change (:db/key entity))
-                        on-remove  #(dispatch :scenes/remove (:db/key entity))
+                  :let [on-select  #(dispatch :scenes/change (:db/id entity))
+                        on-remove  #(dispatch :scenes/remove (:db/id entity))
                         scene      (:camera/scene entity)
                         image      (:scene/image scene)
                         sum-tokens (count (:scene/tokens scene))
                         sum-initiv (count (:scene/initiative scene))
-                        sum-playrs (viewing (:db/key scene))]]
+                        sum-playrs (viewing (:db/id scene))]]
               ($ :li.scene-list-item
-                {:key (:db/key entity) :data-selected (= (:db/key entity) (:db/key camera))}
+                {:key (:db/id entity) :data-selected (= (:db/id entity) (:db/id camera))}
                 (if-let [checksum (:image/checksum image)]
                   ($ thumbnail {:checksum checksum}
                     (fn [{:keys [data-url]}]

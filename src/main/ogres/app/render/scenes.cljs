@@ -17,9 +17,9 @@
   (str "Are you sure you want to remove '" (render-scene-name camera) "'?"))
 
 (def ^:private query
-  [{:local/camera [:db/key]}
+  [:local/camera
    {:local/cameras
-    [:db/key
+    [:db/id
      :camera/label
      {:camera/scene
       [{:scene/image [:image/name]}]}]}])
@@ -29,11 +29,11 @@
         result   (use-query query)]
     ($ :nav.scenes
       ($ :ul
-        (for [camera (:local/cameras result) :let [key (:db/key camera)]]
+        (for [camera (:local/cameras result) :let [id (:db/id camera)]]
           ($ :li.scenes-scene
-            {:key key
-             :data-selected (= (:db/key (:local/camera result)) key)
-             :on-click #(dispatch :scenes/change key)}
+            {:key id
+             :data-selected (= (:db/id (:local/camera result)) id)
+             :on-click #(dispatch :scenes/change id)}
             ($ :.scenes-scene-label (render-scene-name camera))
             ($ :button.scenes-scene-remove
               {:type "button" :title "Remove scene"
@@ -41,7 +41,7 @@
                (fn [event]
                  (.stopPropagation event)
                  (if (js/confirm (render-remove-prompt camera))
-                   (dispatch :scenes/remove key)))}
+                   (dispatch :scenes/remove id)))}
               ($ icon {:name "x-circle-fill" :size 16}))))
         ($ :li.scenes-create
           ($ :button

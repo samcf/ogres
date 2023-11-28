@@ -111,7 +111,7 @@
 (defui ^:private token-form-conds
   [props]
   (let [fqs (frequencies (reduce into [] ((:values props) :token/flags [])))
-        ids ((:values props) :db/key)]
+        ids ((:values props) :db/id)]
     (for [[flag icon-name] conditions]
       ($ checkbox
         {:key       flag
@@ -131,7 +131,7 @@
 
 (defui token-context-menu [{:keys [tokens type]}]
   (let [dispatch (use-dispatch)
-        keys     (map :db/key tokens)]
+        idxs (map :db/id tokens)]
     ($ context-menu
       {:render-toolbar
        (fn [{:keys [selected on-change]}]
@@ -153,18 +153,18 @@
                 :disabled (= type :conn)
                 :data-selected on
                 :data-tooltip (if on "Reveal" "Hide")
-                :on-click #(dispatch :token/change-flag keys :hidden (not on))}
+                :on-click #(dispatch :token/change-flag idxs :hidden (not on))}
                ($ icon {:name (if on "eye-slash-fill" "eye-fill") :size 22})))
            (let [on (every? (comp vector? :scene/_initiative) tokens)]
              ($ :button
                {:type "button"
                 :data-selected on
                 :data-tooltip "Initiative"
-                :on-click #(dispatch :initiative/toggle keys (not on))}
+                :on-click #(dispatch :initiative/toggle idxs (not on))}
                ($ icon {:name "hourglass-split" :size 22})))
            ($ :button
              {:type "button" :data-tooltip "Remove"
-              :on-click #(dispatch :token/remove keys)}
+              :on-click #(dispatch :token/remove idxs)}
              ($ icon {:name "trash3-fill" :size 22}))))}
       (fn [{:keys [selected on-change]}]
         (if-let [component (token-form selected)]
@@ -172,7 +172,7 @@
             {:name      selected
              :upload?   (= type :host)
              :on-close  #(on-change nil)
-             :on-change #(apply dispatch %1 keys %&)
+             :on-change #(apply dispatch %1 idxs %&)
              :values    (fn vs
                           ([f] (vs f #{}))
                           ([f init] (into init (map f) tokens)))}))))))
@@ -223,13 +223,13 @@
              ($ icon {:name "paint-bucket"}))
            ($ :button
              {:type "button" :data-tooltip "Remove" :style {:margin-left "auto"}
-              :on-click #(dispatch :element/remove [(:db/key shape)])}
+              :on-click #(dispatch :element/remove [(:db/id shape)])}
              ($ icon {:name "trash3-fill"}))))}
       (fn [{:keys [selected]}]
         (if-let [component (shape-form selected)]
           ($ component
             {:name      selected
-             :on-change #(apply dispatch %1 [(:db/key shape)] %&)
+             :on-change #(apply dispatch %1 [(:db/id shape)] %&)
              :values    (fn vs
                           ([f] (vs f #{}))
                           ([f init] (into init (map f) [shape])))}))))))

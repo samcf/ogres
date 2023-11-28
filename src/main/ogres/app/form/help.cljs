@@ -18,8 +18,7 @@
 
 (defui form []
   (let [dispatch (use-dispatch)
-        result   (use-query query)
-        {:local/keys [tooltips?]} result]
+        result   (use-query query)]
     ($ :section.help
       ($ :section
         ($ :header "Interface preferences")
@@ -27,7 +26,7 @@
           ($ :input
             {:id        "show-tooltips"
              :type      "checkbox"
-             :checked   tooltips?
+             :checked   (:local/tooltips? result)
              :on-change (fn [event]
                           (let [checked (.. event -target -checked)]
                             (dispatch :local/toggle-tooltips checked)))})

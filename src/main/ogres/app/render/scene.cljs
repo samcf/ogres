@@ -84,7 +84,7 @@
       [[:scene/grid-size :default 70]
        [:scene/lighting :default :revealed]
        {:scene/tokens
-        [:db/key
+        [:db/id
          [:token/flags :default #{}]
          [:token/light :default 15]
          [:token/point :default [0 0]]]}
@@ -114,10 +114,10 @@
             ($ :stop {:offset "100%" :stop-color "black" :stop-opacity "0%"}))
           ($ :mask {:id "light-mask"}
             ($ :rect {:x 0 :y 0 :width width :height height :fill "white" :fill-opacity "100%"})
-            (for [{key :db/key flags :token/flags [x y] :token/point radius :token/light} tokens
+            (for [{id :db/id flags :token/flags [x y] :token/point radius :token/light} tokens
                   :when (and (> radius 0) (or (= type :host) (visible? flags)))
                   :let  [radius (-> grid-size (* radius) (/ 5) (+ grid-size))]]
-              ($ :circle {:key key :cx x :cy y :r radius :fill "url(#mask-gradient)"}))))
+              ($ :circle {:key id :cx x :cy y :r radius :fill "url(#mask-gradient)"}))))
         ($ :rect.scene-mask-background
           {:x 0 :y 0 :width width :height height :mask "url(#light-mask)"})
         (if (= visibility :hidden)
@@ -133,7 +133,7 @@
       [[:scene/grid-size :default 70]
        [:mask/filled? :default false]
        {:scene/image [:image/width :image/height]}
-       {:scene/masks [:db/key :mask/vecs :mask/enabled?]}]}]}])
+       {:scene/masks [:db/id :mask/vecs :mask/enabled?]}]}]}])
 
 (defui ^:private render-mask-fog []
   (let [dispatch (use-dispatch)
@@ -157,22 +157,22 @@
         ($ :mask {:id "scene-mask"}
           (if filled?
             ($ :rect {:x 0 :y 0 :width width :height height :fill "white"}))
-          (for [{key :db/key enabled? :mask/enabled? xs :mask/vecs} masks]
-            ($ :polygon {:key key :points (join " " xs) :fill (if enabled? "white" "black")}))))
+          (for [{:keys [db/id  mask/vecs mask/enabled?]} masks]
+            ($ :polygon {:key id :points (join " " vecs) :fill (if enabled? "white" "black")}))))
       ($ :rect.scene-mask-background {:x 0 :y 0 :width width :height height :mask "url(#scene-mask)"})
       ($ :rect.scene-mask-pattern {:x 0 :y 0 :width width :height height :fill "url(#mask-pattern)" :mask "url(#scene-mask)"})
       (if (and (= type :host) (contains? modes mode))
-        (for [{key :db/key xs :mask/vecs enabled? :mask/enabled?} masks]
+        (for [{:keys [db/id mask/vecs mask/enabled?]} masks]
           ($ :polygon.scene-mask-polygon
-            {:key key
+            {:key id
              :data-enabled enabled?
-             :points (join " " xs)
+             :points (join " " vecs)
              :on-mouse-down stop-propagation
              :on-click
              (fn []
                (case mode
-                 :mask-toggle (dispatch :mask/toggle key (not enabled?))
-                 :mask-remove (dispatch :mask/remove key)))}))))))
+                 :mask-toggle (dispatch :mask/toggle id (not enabled?))
+                 :mask-remove (dispatch :mask/remove id)))}))))))
 
 (def ^:private query-grid
   [[:bounds/self :default [0 0 0 0]]
@@ -264,17 +264,17 @@
 (def ^:private query-shapes
   [:local/type
    {:local/camera
-    [:db/key
+    [:db/id
      [:camera/scale :default 1]
      {:camera/scene
       [{:scene/shapes
-        [:db/key
+        [:db/id
          :shape/kind
          :shape/vecs
          [:shape/color :default "#f44336"]
          [:shape/opacity :default 0.25]
          [:shape/pattern :default :solid]
-         {:camera/_selected [:db/key]}]}]}]}])
+         :camera/_selected]}]}]}])
 
 (defui ^:private render-shapes []
   (let [dispatch (use-dispatch)
@@ -286,12 +286,11 @@
          :local/camera} result
         participant? (or (= type :host) (= type :conn))]
     (for [entity (:scene/shapes scene)
-          :let   [key (:db/key entity)
-                  {:shape/keys [kind color vecs]} entity
-                  selecting (into #{} (map :db/key) (:camera/_selected entity))
-                  selected? (contains? selecting (:db/key camera))
+          :let   [{:keys [db/id shape/kind shape/color shape/vecs]} entity
+                  selecting (into #{} (map :db/id) (:camera/_selected entity))
+                  selected? (contains? selecting (:db/id camera))
                   [ax ay] vecs]]
-      ($ use-portal {:key key :name (if (and participant? selected?) :selected)}
+      ($ use-portal {:key id :name (if (and participant? selected?) :selected)}
         (fn []
           ($ react-draggable
             {:scale    scale
@@ -301,8 +300,8 @@
              (fn [_ data]
                (let [ox (.-x data) oy (.-y data)]
                  (if (> (euclidean ax ay ox oy) 0)
-                   (dispatch :shape/translate key ox oy)
-                   (dispatch :element/select key true))))}
+                   (dispatch :shape/translate id ox oy)
+                   (dispatch :element/select id true))))}
             (let [id (random-uuid)]
               ($ :g.scene-shape {:data-selected selected? :class (str "scene-shape-" (name kind))}
                 ($ :defs
@@ -347,8 +346,8 @@
 (defn ^:private token-flags [data]
   (let [{[{turn :initiative/turn}] :scene/_initiative} data]
     (cond-> (:token/flags data)
-      (:scene/_initiative data)         (conj :initiative)
-      (= (:db/key data) (:db/key turn)) (conj :turn))))
+      (:scene/_initiative data)       (conj :initiative)
+      (= (:db/id data) (:db/id turn)) (conj :turn))))
 
 (defn ^:private token-conditions [data]
   (let [xform (comp (map key) (filter (complement #{:initiative})))
@@ -395,12 +394,12 @@
 (def ^:private query-tokens
   [:local/type
    {:local/camera
-    [:db/key
+    [:db/id
      :camera/selected
      [:camera/scale :default 1]
      {:camera/scene
       [{:scene/tokens
-        [:db/key
+        [:db/id
          [:initiative/suffix :default nil]
          [:token/point :default [0 0]]
          [:token/flags :default #{}]
@@ -409,12 +408,12 @@
          [:token/light :default 15]
          [:aura/radius :default 0]
          {:token/image [:image/checksum]}
-         {:scene/_initiative [:db/key {:initiative/turn [:db/key]}]}
-         {:camera/_selected [:db/key]}]}]}]}])
+         {:scene/_initiative [:db/id :initiative/turn]}
+         :camera/_selected]}]}]}])
 
 (defui ^:private render-tokens []
   (let [dispatch (use-dispatch)
-        result (use-query query-tokens)
+        result   (use-query query-tokens)
         {type :local/type camera :local/camera} result
         {scale :camera/scale scene :camera/scene} camera
         flags-fn (fn [token] (->> (token-flags token) (map name) (join " ")))
@@ -422,11 +421,11 @@
         (->> (:scene/tokens scene)
              (filter (fn [token] (or (= type :host) (visible? (:token/flags token)))))
              (sort token-comparator)
-             (separate (fn [token] ((into #{} (map :db/key) (:camera/_selected token)) (:db/key camera)))))]
+             (separate (fn [token] ((into #{} (map :db/id) (:camera/_selected token)) (:db/id camera)))))]
     ($ :<>
-      (for [data tokens :let [{key :db/key [ax ay] :token/point} data]]
+      (for [{id :db/id [ax ay] :token/point :as data} tokens]
         ($ react-draggable
-          {:key      key
+          {:key      id
            :position #js {:x ax :y ay}
            :scale    scale
            :on-start stop-propagation
@@ -435,12 +434,12 @@
              (.stopPropagation event)
              (let [bx (.-x data) by (.-y data)]
                (if (= (euclidean ax ay bx by) 0)
-                 (dispatch :element/select key (not (.-shiftKey event)))
-                 (dispatch :token/translate key bx by))))}
+                 (dispatch :element/select id (not (.-shiftKey event)))
+                 (dispatch :token/translate id bx by))))}
           ($ :g.scene-token {:data-flags (flags-fn data)}
             ($ render-token {:data data}))))
       (if (seq selected)
-        (let [keys (into (sorted-set) (map :db/key) selected)
+        (let [idxs (into (sorted-set) (map :db/id) selected)
               [ax _ bx by] (apply bounding-box (map :token/point selected))]
           ($ use-portal {:name (if (or (= type :host) (= type :conn)) :selected)}
             (fn []
@@ -452,14 +451,14 @@
                  (fn [event data]
                    (let [ox (.-x data) oy (.-y data)]
                      (if (and (= ox 0) (= oy 0))
-                       (let [key (.. event -target (closest ".scene-token[data-key]") -dataset -key)]
-                         (dispatch :element/select (uuid key) (not (.-shiftKey event))))
-                       (dispatch :token/translate-all (seq keys) ox oy))))}
-                ($ :g.scene-selected {:key keys}
-                  (for [data selected :let [{key :db/key [x y] :token/point} data]]
+                       (let [id (.. event -target (closest "[data-id]") -dataset -id)]
+                         (dispatch :element/select id (not (.-shiftKey event))))
+                       (dispatch :token/translate-all (seq idxs) ox oy))))}
+                ($ :g.scene-selected {:key idxs}
+                  (for [data selected :let [{id :db/id [x y] :token/point} data]]
                     ($ :g.scene-token
-                      {:key key
-                       :data-key   key
+                      {:key        id
+                       :data-id    id
                        :data-flags (flags-fn data)
                        :transform  (str "translate(" x "," y ")")}
                       ($ render-token {:data data})))
@@ -499,23 +498,23 @@
 (def ^:private query-cursors
   [{:root/local
     [{:local/camera
-      [{:camera/scene [:db/key]}]}]}
+      [:camera/scene]}]}
    {:root/session
     [[:session/share-cursors :default true]
      {:session/conns
-      [:db/key
+      [:local/uuid
        [:local/share-cursor :default true]
        [:local/color :default "royalBlue"]
        {:local/camera
-        [{:camera/scene [:db/key]}]}]}]}])
+        [:camera/scene]}]}]}])
 
 (defui ^:private render-cursors []
   (let [[coords set-coords] (use-state {})
         result (use-query query-cursors [:db/ident :root])
-        {{{{scene :db/key} :camera/scene} :local/camera} :root/local
+        {{{{scene :db/id} :camera/scene} :local/camera} :root/local
          {conns :session/conns
           share :session/share-cursors} :root/session} result
-        conns (key-by :db/key conns)]
+        conns (key-by :local/uuid conns)]
     (use-subscribe :cursor/moved
       (use-callback
        (fn [{[uuid x y] :args}]
@@ -529,8 +528,8 @@
               :let  [local (conns uuid)
                      {color :local/color
                       share :local/share-cursor
-                      {{key :db/key} :camera/scene} :local/camera} local]
-              :when (and local share (= scene key))]
+                      {{id :db/id} :camera/scene} :local/camera} local]
+              :when (and local share (= scene id))]
           ($ render-cursor {:key uuid :coord point :color color}))))))
 
 (def ^:private query-scene
@@ -541,7 +540,7 @@
    [:bounds/host :default [0 0 0 0]]
    [:bounds/view :default [0 0 0 0]]
    {:local/camera
-    [:db/key
+    [:db/id
      [:camera/point :default [0 0]]
      [:camera/scale :default 1]
      [:camera/draw-mode :default :select]
@@ -558,7 +557,7 @@
          [_ _ hw hh] :bounds/host
          [_ _ vw vh] :bounds/view
          [sx sy _ _] :bounds/self
-         {key     :db/key
+         {id      :db/id
           scale   :camera/scale
           mode    :camera/draw-mode
           [cx cy] :camera/point
@@ -588,7 +587,7 @@
                  (publish {:topic :cursor/move :args [x y]})))))
          [publish sx sy cx cy scale])]
     ($ :svg.scene
-      {:key key
+      {:key id
        :data-user-type (name type)
        :data-theme (if dark-mode "dark" "light")}
       ($ react-draggable
