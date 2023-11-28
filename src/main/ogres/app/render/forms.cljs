@@ -147,14 +147,14 @@
                 :data-tooltip tooltip
                 :on-click #(on-change form)}
                ($ icon {:name icon-name :size 22})))
-           (let [on (every? (comp boolean :hidden :token/flags) tokens)]
-             ($ :button
-               {:type "button"
-                :disabled (= type :conn)
-                :data-selected on
-                :data-tooltip (if on "Reveal" "Hide")
-                :on-click #(dispatch :token/change-flag idxs :hidden (not on))}
-               ($ icon {:name (if on "eye-slash-fill" "eye-fill") :size 22})))
+           (if (= type :host)
+             (let [on (every? (comp boolean :hidden :token/flags) tokens)]
+               ($ :button
+                 {:type "button"
+                  :data-selected on
+                  :data-tooltip (if on "Reveal" "Hide")
+                  :on-click #(dispatch :token/change-flag idxs :hidden (not on))}
+                 ($ icon {:name (if on "eye-slash-fill" "eye-fill") :size 22}))))
            (let [on (every? (comp vector? :scene/_initiative) tokens)]
              ($ :button
                {:type "button"
