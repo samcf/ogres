@@ -527,6 +527,22 @@
               :when (and local share (= scene id))]
           ($ render-cursor {:key uuid :coord point :color color}))))))
 
+(def ^:private render-scene-contents
+  (uix/memo
+   (uix/fn []
+     ($ :<>
+       ($ render-token-defs)
+       ($ render-scene-image)
+       ($ render-grid)
+       ($ render-shapes)
+       ($ render-tokens)
+       ($ render-mask-vis)
+       ($ render-mask-fog)
+       ($ render-cursors)
+       ($ create-portal {:name :selected}
+         (fn [{:keys [ref]}]
+           ($ :g {:ref ref :style {:outline "none"}})))))))
+
 (def ^:private query-scene
   [:local/type
    :local/modifier
@@ -595,23 +611,12 @@
           (if (and (= mode :select) (= modifier :shift))
             ($ draw {:mode :select}))
           ($ :g.scene-board {:transform (str "scale(" scale ") translate(" (- cx) ", " (- cy) ")")}
-            ($ render-token-defs)
-            ($ render-scene-image)
-            ($ render-grid)
-            ($ render-shapes)
-            ($ render-tokens)
-            ($ render-mask-vis)
-            ($ render-mask-fog)
-            ($ render-cursors)
-            ($ create-portal {:name :selected}
-              (fn [{:keys [ref]}]
-                ($ :g {:ref ref :style {:outline "none"}}))))))
+            ($ render-scene-contents))))
       ($ create-portal {:name :multiselect}
         (fn [{:keys [ref]}]
-          ($ :g {:ref   ref
-                 :class "scene-drawable scene-drawable-select"
-                 :style {:outline "none"}})))
+          ($ :g.scene-drawable.scene-drawable-select
+            {:ref ref :style {:outline "none"}})))
       (if (contains? draw-modes mode)
-        ($ :g {:class (str "scene-drawable scene-drawable-" (name mode))}
+        ($ :g.scene-drawable {:class (str "scene-drawable-" (name mode))}
           ($ draw {:key mode :mode mode :node nil})))
       (if privileged? ($ render-bounds)))))
