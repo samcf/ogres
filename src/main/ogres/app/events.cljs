@@ -704,37 +704,62 @@
   [_ _ id]
   [[:db/retractEntity id]])
 
-(defmethod event-tx-fn :session/request
+;; -- Session --
+(defmethod
+  ^{:doc "Attempts to start a new online session through the server. This
+          transaction only updates the connection status of the local user
+          and expands the session panel form."}
+  event-tx-fn :session/request
   []
   [{:db/ident :root :root/session
     {:db/ident :session :session/host
      {:db/ident :local :session/state :connecting :panel/expanded #{:session}}}}])
 
-(defmethod event-tx-fn :session/join
+(defmethod
+  ^{:doc "Attempts to join an existing online session through the server. This
+          transaction only updates the connection status of the local user."}
+  event-tx-fn :session/join
   []
   [{:db/ident :local :session/state :connecting}])
 
-(defmethod event-tx-fn :session/close
+(defmethod
+  ^{:doc "Destroys the existing online session, pruning it and all player
+          user state."}
+  event-tx-fn :session/close
   []
   [{:db/ident :local :session/state :disconnected}
    [:db/retract [:db/ident :session] :session/host]
    [:db/retract [:db/ident :session] :session/conns]])
 
-(defmethod event-tx-fn :session/disconnected
+(defmethod
+  ^{:doc "Updates the connection status for the local user to `disconnected`.
+          This is typically done in response to an unexpected closure of the
+          server connection."}
+  event-tx-fn :session/disconnected
   []
   [{:db/ident :local :session/state :disconnected}
    [:db/retract [:db/ident :session] :session/host]
    [:db/retract [:db/ident :session] :session/conns]])
 
-(defmethod event-tx-fn :session/toggle-share-cursors
+(defmethod
+  ^{:doc "Toggles whether or not live cursors are displayed for everyone
+          in the online session."}
+  event-tx-fn :session/toggle-share-cursors
   [_ _ enabled]
   [{:db/ident :session :session/share-cursors enabled}])
 
-(defmethod event-tx-fn :session/toggle-share-my-cursor
+(defmethod
+  ^{:doc "Toggles whether or not the cursor of the local user is displayed
+          to other players in the session."}
+  event-tx-fn :session/toggle-share-my-cursor
   [_ _ enabled]
   [{:db/ident :local :local/share-cursor enabled}])
 
-(defmethod event-tx-fn :session/focus
+(defmethod
+  ^{:doc "Updates the current scene, camera position, and zoom level of all
+          players in the online session to match the host. This is useful to
+          bring a new scene or encounter to attention."}
+  event-tx-fn :session/focus
   [data]
   (let [select-w [:camera/scene [:camera/point :default [0 0]] [:camera/scale :default 1]]
         select-l [:db/id [:bounds/self :default [0 0 0 0]] {:local/cameras [:camera/scene] :local/camera select-w}]
