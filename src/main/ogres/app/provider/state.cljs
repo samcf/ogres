@@ -85,17 +85,15 @@
          [prev-state set-state] (use-state get-result)]
      (use-effect
       (fn []
-        (let [canceled? (atom false)]
-          (ds/listen!
-           conn listen-key
-           (fn [{:keys [db-after]}]
-             (if (and (listening? db-after) (not @canceled?))
-               (let [next-state (get-result)]
-                 (if (not= prev-state next-state)
-                   (set-state next-state))))))
-          (fn []
-            (reset! canceled? true)
-            (ds/unlisten! conn listen-key)))) ^:lint/disable [prev-state])
+        (ds/listen!
+         conn listen-key
+         (fn [{:keys [db-after]}]
+           (if (listening? db-after)
+             (let [next-state (get-result)]
+               (if (not= prev-state next-state)
+                 (set-state next-state))))))
+        (fn []
+          (ds/unlisten! conn listen-key))) ^:lint/disable [prev-state])
      prev-state)))
 
 (defn use-dispatch []
