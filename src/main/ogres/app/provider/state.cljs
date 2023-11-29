@@ -66,12 +66,6 @@
   [{:keys [children]}]
   ($ (.-Provider context) {:value context-value} children))
 
-(defn ^:private listening?
-  [data]
-  (let [select [:local/type :local/paused?]
-        {:keys [local/type local/paused?]} (ds/pull data select [:db/ident :local])]
-    (or (= type :host) (not paused?))))
-
 (defn ^:private tx-fn [data event args]
   (apply event-tx-fn data event args))
 
@@ -87,11 +81,10 @@
       (fn []
         (ds/listen!
          conn listen-key
-         (fn [{:keys [db-after]}]
-           (if (listening? db-after)
-             (let [next-state (get-result)]
-               (if (not= prev-state next-state)
-                 (set-state next-state))))))
+         (fn []
+           (let [next-state (get-result)]
+             (if (not= prev-state next-state)
+               (set-state next-state)))))
         (fn []
           (ds/unlisten! conn listen-key))) ^:lint/disable [prev-state])
      prev-state)))

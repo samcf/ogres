@@ -11,9 +11,9 @@
 (defui ^:private tooltip
   [{:keys [tooltip]}]
   (case tooltip
-    :copy/cut    "Copy the selected tokens and remove them from the scene."
+    :copy/cut    "Copy and remove the selected tokens."
     :copy/copy   "Copy the selected tokens."
-    :copy/paste  "Place copied tokens onto the scene."
+    :copy/paste  "Paste copied tokens onto the scene."
     :zoom/reset  "Reset to 100% zoom."
     :zoom/zoom   ($ :span "Zoom in or out.")
     :mode/select ($ :span "Hold " ($ :code "Shift") " and drag to select multiple tokens.")
@@ -23,18 +23,14 @@
     :mode/cone   "Draw a cone whose length is equal to its width."
     :mode/line   "Draw a line from one point to another."
     :mode/poly   "Draw a polygon by clicking each point and closing it at the first point."
-    :mode/mask   ($ :span "Create a new mask by drawing a polygon; hold " ($ :code "Shift") " to reveal a masked area.")
+    :mode/mask   "Create a new mask by drawing a polygon."
     :mode/mask-toggle "Toggle a mask on or off."
     :mode/mask-remove "Remove a mask."
     :mode/grid   "Select a point on the scene to use as the grid origin."
     :mask/hide   "Mask the entire scene, preserving existing masks."
     :mask/show   "Reveal the entire scene, preserving existing masks."
     :scene/focus "Focus the current view, moving everyone to this scene and position."
-    :share/play  "Resume updates to the player window."
-    :share/pause "Pause updates to the player window."
-    :share/open  ($ :span "Open the player window. "
-                   ($ :a {:href   "https://github.com/samcf/ogres.app/wiki#player-window"
-                          :target "_blank"} "Learn more") ".")))
+    :share/open  "Open the player window."))
 
 (def ^:private query
   [:session/_host
@@ -42,7 +38,6 @@
    [:local/type :default :conn]
    [:local/tooltips? :default true]
    [:local/sharing? :default false]
-   [:local/paused? :default false]
    {:local/camera
     [{:camera/selected [:scene/_tokens]}
      [:camera/draw-mode :default :select]
@@ -51,19 +46,15 @@
 (defui toolbar []
   (let [dispatch  (use-dispatch)
         result    (use-query query)
-        container (use-ref)
+        node      (use-ref)
         [tooltip-key set-tooltip-key] (use-state nil)
 
         {type      :local/type
          tooltips? :local/tooltips?
          sharing?  :local/sharing?
-         paused?   :local/paused?
-         clipboard :local/clipboard
          {scale    :camera/scale
           mode     :camera/draw-mode
           selected :camera/selected} :local/camera} result
-
-        conn? (= type :conn)
 
         mode-attrs
         (fn [value & attrs]
@@ -90,10 +81,10 @@
     (use-event-listener element "mouseover"
       (use-callback
        (fn [event]
-         (if (not (.contains @container (.-target event)))
+         (if (not (.contains @node (.-target event)))
            (set-tooltip-key nil))) []))
 
-    ($ :.toolbar {:ref container}
+    ($ :.toolbar {:ref node}
       (if tooltip-key
         ($ :.toolbar-tooltip
           (if-let [shortcut (shortcut-keys tooltip-key)]
@@ -117,7 +108,7 @@
           ($ icon {:name "files"}))
         ($ :button
           {:type "button"
-           :disabled (nil? clipboard)
+           :disabled (nil? (:local/clipboard result))
            :on-click #(dispatch :clipboard/paste)
            :on-mouse-enter (tooltip-fn :copy/paste)}
           ($ icon {:name "clipboard2-plus"}))
@@ -133,25 +124,14 @@
           ($ icon {:name "star"}))
         ($ :button (mode-attrs :line)
           ($ icon {:name "slash-lg"}))
+        ($ :button (mode-attrs :grid :disabled (= type :conn))
+          ($ icon {:name "compass"}))
         ($ :button
           {:type "button"
-           :disabled conn?
-           :data-active sharing?
-           :on-click #(dispatch :share/initiate)
-           :on-mouse-enter (tooltip-fn :share/open)}
-          ($ icon {:name "pip" :size 22}))
-        ($ :button
-          {:type "button"
-           :disabled (or conn? (not sharing?) (not paused?))
-           :on-click #(dispatch :share/switch)
-           :on-mouse-enter (tooltip-fn :share/play)}
-          ($ icon {:name "play-fill" :size 22}))
-        ($ :button
-          {:type "button"
-           :disabled (or conn? (not sharing?) paused?)
-           :on-click #(dispatch :share/switch)
-           :on-mouse-enter (tooltip-fn :share/pause)}
-          ($ icon {:name "pause-fill" :size 22}))
+           :disabled (not (and (= type :host) (not (nil? (:session/_host result)))))
+           :on-click #(dispatch :session/focus)
+           :on-mouse-enter (tooltip-fn :scene/focus)}
+          ($ icon {:name "camera2" :size 22}))
         ($ :button
           {:type "button"
            :disabled (= scale 0.15)
@@ -171,29 +151,28 @@
            :on-click #(dispatch :camera/zoom-in)
            :on-mouse-enter (tooltip-fn :zoom/zoom)}
           ($ icon {:name "zoom-in"}))
-        ($ :button (mode-attrs :mask :disabled conn?)
+        ($ :button (mode-attrs :mask :disabled (= type :conn))
           ($ icon {:name "star-half"}))
-        ($ :button (mode-attrs :mask-toggle :disabled conn?)
+        ($ :button (mode-attrs :mask-toggle :disabled (= type :conn))
           ($ icon {:name "magic"}))
-        ($ :button (mode-attrs :mask-remove :disabled conn?)
+        ($ :button (mode-attrs :mask-remove :disabled (= type :conn))
           ($ icon {:name "eraser-fill"}))
         ($ :button
           {:type "button"
-           :disabled conn?
+           :disabled (= type :conn)
            :on-click #(dispatch :mask/fill)
            :on-mouse-enter (tooltip-fn :mask/hide)}
           ($ icon {:name "eye-slash-fill"}))
         ($ :button
           {:type "button"
-           :disabled conn?
+           :disabled (= type :conn)
            :on-click #(dispatch :mask/clear)
            :on-mouse-enter (tooltip-fn :mask/show)}
           ($ icon {:name "eye-fill"}))
-        ($ :button (mode-attrs :grid :disabled conn?)
-          ($ icon {:name "compass"}))
         ($ :button
           {:type "button"
-           :disabled (not (and (= type :host) (not (nil? (:session/_host result)))))
-           :on-click #(dispatch :session/focus)
-           :on-mouse-enter (tooltip-fn :scene/focus)}
-          ($ icon {:name "camera2" :size 22}))))))
+           :disabled (= type :conn)
+           :data-selected sharing?
+           :on-click #(dispatch :share/initiate)
+           :on-mouse-enter (tooltip-fn :share/open)}
+          ($ icon {:name "pip" :size 22}))))))

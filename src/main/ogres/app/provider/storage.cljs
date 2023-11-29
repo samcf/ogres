@@ -15,7 +15,6 @@
     :local/status
     :local/privileged?
     :local/sharing?
-    :local/paused?
     :local/modifier
     :session/state})
 

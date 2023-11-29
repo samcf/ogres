@@ -496,13 +496,7 @@
   (let [local (ds/entity data [:db/ident :local])]
     [{:db/ident          :local
       :local/sharing?    open?
-      :local/paused?     false
       :local/privileged? (and (= (:local/type local) :host) open?)}]))
-
-(defmethod event-tx-fn :share/switch
-  [data]
-  (let [local (ds/entity data [:db/ident :local])]
-    [{:db/ident :local :local/paused? (not (:local/paused? local))}]))
 
 (defmethod event-tx-fn :bounds/change
   [data _ w-type bounds]
