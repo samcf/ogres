@@ -209,6 +209,12 @@ legend {
       "canvas side";
 }
 
+[data-user-type=conn] .layout {
+    grid-template-areas:
+      "canvas join"
+      "canvas side";
+}
+
 .layout-scenes {
     grid-area: scenes;
 }
@@ -520,7 +526,7 @@ legend {
     box-shadow: 4px 4px 0 0 rgba(0, 0, 0, .15);
     display: grid;
     gap: 2px;
-    grid-template-columns: repeat(13, 1fr);
+    grid-template-columns: repeat(12, 1fr);
     grid-template-rows: repeat(2, 1fr);
     padding: 2px;
 }
@@ -645,7 +651,7 @@ legend {
     animation: token-pulse 1s alternate infinite;
 }
 
-.scene-token:is([data-flags*="hidden"], [data-flags*="invisible"]) circle {
+.scene-token:is([data-flags*="hidden"]) circle {
     fill-opacity: 0.50;
 }
 
@@ -1962,6 +1968,104 @@ legend {
     box-sizing: border-box;
     border: 1px solid var(--color-blues-700);
     padding: 2px 4px;
+}
+
+.grid-align path,
+.grid-align circle {
+    stroke-dasharray: 1px;
+    pointer-events: none;
+}
+
+.grid-align-form {
+    position: relative;
+    pointer-events: none;
+}
+
+.grid-align-form button {
+    align-items: center;
+    background-color: var(--color-blues-900);
+    border-radius: 3px;
+    border: 1px solid var(--color-blues-500);
+    border: none;
+    color: var(--color-paper-500);
+    cursor: pointer;
+    display: flex;
+    font-size: 12px;
+    gap: 4px;
+    justify-content: center;
+    pointer-events: all;
+    text-transform: uppercase;
+}
+
+.grid-align-origin {
+    aspect-ratio: 1;
+    box-sizing: border-box;
+    left: 50%;
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 128px;
+}
+
+.grid-align-origin button {
+    box-shadow: 2px 2px 0 0 rgba(0, 0, 0, .35);
+    position: absolute;
+    aspect-ratio: 1;
+}
+
+.grid-align-origin button[data-name=up] {
+    left: 50%;
+    top: 0;
+    transform: translate(-50%, 0);
+}
+
+.grid-align-origin button[data-name=right] {
+    right: 0;
+    top: 50%;
+    transform: translate(0, -50%);
+}
+
+.grid-align-origin button[data-name=down] {
+    bottom: 0;
+    left: 50%;
+    transform: translate(-50%, 0);
+}
+
+.grid-align-origin button[data-name=left] {
+    left: 0;
+    top: 50%;
+    transform: translate(0, -50%);
+}
+
+.grid-align-origin button[data-name=clear] {
+    left: 18%;
+    top: 18%;
+    transform: translate(-50%, -50%);
+}
+
+.grid-align-size {
+    align-items: stretch;
+    background-color: var(--color-blues-900);
+    border-radius: 2px;
+    bottom: 0;
+    box-shadow: 2px 2px 0 0 rgba(0, 0, 0, .35);
+    cursor: default;
+    display: flex;
+    gap: 4px;
+    margin: 4px;
+    padding: 4px;
+    pointer-events: all;
+    position: absolute;
+    right: 0;
+}
+
+.grid-align-size button {
+    background-color: var(--color-blues-500);
+}
+
+.grid-align-size input {
+    border-radius: 2px;
+    pointer-events: all;
 }
 
 /* Global */
