@@ -4,8 +4,12 @@
             [ogres.app.hooks :refer [use-dispatch use-portal use-query]]
             [ogres.app.geom :refer [chebyshev euclidean triangle]]
             [ogres.app.render :refer [icon]]
-            [react-draggable]
-            [uix.core :refer [defui $ use-state]]))
+            [uix.core :as uix :refer [defui $ use-state]]
+            ["@dnd-kit/core"
+             :refer  [DndContext useDraggable useDndMonitor]
+             :rename {DndContext    dnd-context
+                      useDndMonitor use-dnd-monitor
+                      useDraggable  use-draggable}]))
 
 (def ^:private round
   (map (fn [[x y]] [(js/Math.round x) (js/Math.round y)])))
@@ -25,30 +29,36 @@
 (defui ^:private text [{:keys [attrs children]}]
   ($ :text.scene-text attrs children))
 
-(defui ^:private drawable [{:keys [on-release children]}]
-  (let [[state set-state] (use-state [])]
+(defui ^:private drawable
+  [{:keys [on-release children]}]
+  (let [[points set-points] (use-state [])
+        drag (use-draggable #js {"id" "drawable"})]
+    (use-dnd-monitor
+     #js {"onDragMove"
+          (fn [data]
+            (let [dx (.. data -delta -x)
+                  dy (.. data -delta -y)]
+              (set-points
+               (fn [[ax ay]]
+                 (let [ax (if (nil? ax) (.. data -activatorEvent -clientX) ax)
+                       ay (if (nil? ay) (.. data -activatorEvent -clientY) ay)]
+                   [ax ay (+ ax dx) (+ ay dy)])))))
+          "onDragEnd"
+          (fn []
+            (set-points [])
+            (on-release points))})
     ($ :<>
-      ($ react-draggable
-        {:position #js {:x 0 :y 0}
-         :on-start
-         (fn [event]
-           (.stopPropagation event)
-           (let [src [(.-clientX event) (.-clientY event)]]
-             (set-state (into src src))))
-         :on-drag
-         (fn [_ data]
-           (set-state
-            (fn [[ax ay]]
-              (into [ax ay] [(+ ax (.-x data)) (+ ay (.-y data))]))))
-         :on-stop
-         (fn []
-           (set-state [])
-           (on-release state))}
-        ($ :rect
-          {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"
-           :style {:will-change "transform"}}))
-      (if (seq state)
-        (children {:points state})))))
+      ($ :rect
+        {:x 0
+         :y 0
+         :width "100%"
+         :height "100%"
+         :fill "transparent"
+         :style {:will-change "transform"}
+         :ref (.-setNodeRef drag)
+         :on-pointer-down (.. drag -listeners -onPointerDown)})
+      (if (seq points)
+        (children points)))))
 
 (def ^:private query
   [[:bounds/self :default [0 0 0 0]]
@@ -74,10 +84,10 @@
       ($ :rect
         {:x 0 :y 0 :fill "transparent"
          :width "100%" :height "100%"
-         :on-mouse-down
+         :on-pointer-down
          (fn [event]
            (.stopPropagation event))
-         :on-mouse-move
+         :on-pointer-move
          (fn [event]
            (let [dst [(.-clientX event) (.-clientY event)]]
              (set-mouse (convert dst (+' (- ox) (- oy)) cat))))
@@ -110,7 +120,7 @@
        (fn [points]
          (let [points (convert points (+' (- ox) (- oy)) (*' (/ scale)) (+' tx ty) cat)]
            (dispatch :selection/from-rect points)))}
-      (fn [{:keys [points]}]
+      (fn [points]
         (let [[ax ay bx by] (convert points (+' (- ox) (- oy)) cat)]
           ($ use-portal {:name :multiselect}
             (fn []
@@ -122,7 +132,7 @@
          {scale  :camera/scale} :local/camera} result]
     ($ drawable
       {:on-release identity}
-      (fn [{:keys [points]}]
+      (fn [points]
         (let [[ax ay bx by] (convert points (+' (- ox) (- oy)) cat)]
           ($ :g
             ($ :line {:x1 ax :y1 ay :x2 bx :y2 by})
@@ -142,7 +152,7 @@
        (fn [points]
          (let [points (convert points (+' (- ox) (- oy)) (*' (/ scale)) (+' tx ty) cat)]
            (dispatch :shape/create :circle points)))}
-      (fn [{:keys [points]}]
+      (fn [points]
         (let [[ax ay bx by] (convert points (+' (- ox) (- oy)) cat)
               radius (chebyshev ax ay bx by)]
           ($ :g
@@ -162,7 +172,7 @@
        (fn [points]
          (let [points (convert points (+' (- ox) (- oy)) (*' (/ scale)) (+' tx ty) cat)]
            (dispatch :shape/create :rect points)))}
-      (fn [{:keys [points]}]
+      (fn [points]
         (let [[ax ay bx by] (convert points (+' (- ox) (- oy)) cat)]
           ($ :g
             ($ :path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])})
@@ -182,7 +192,7 @@
        (fn [points]
          (let [points (convert points (+' (- ox) (- oy)) (*' (/ scale)) (+' tx ty) cat)]
            (dispatch :shape/create :line points)))}
-      (fn [{:keys [points]}]
+      (fn [points]
         (let [[ax ay bx by] (convert points (+' (- ox) (- oy)) cat)]
           ($ :g
             ($ :line {:x1 ax :y1 ay :x2 bx :y2 by})
@@ -202,7 +212,7 @@
        (fn [points]
          (let [points (convert points (+' (- ox) (- oy)) (*' (/ scale)) (+' tx ty) cat)]
            (dispatch :shape/create :cone points)))}
-      (fn [{:keys [points]}]
+      (fn [points]
         (let [[ax ay bx by] (convert points (+' (- ox) (- oy)) cat)]
           ($ :g
             ($ :polygon {:points (join " " (triangle ax ay bx by))})
@@ -304,13 +314,14 @@
                     ($ icon {:name "check"}) "Submit"))))))))))
 
 (defui draw [{:keys [mode] :as props}]
-  (case mode
-    :circle ($ draw-circle props)
-    :cone   ($ draw-cone props)
-    :grid   ($ draw-grid props)
-    :line   ($ draw-line props)
-    :mask   ($ draw-mask props)
-    :poly   ($ draw-poly props)
-    :rect   ($ draw-rect props)
-    :ruler  ($ draw-ruler props)
-    :select ($ draw-select props)))
+  ($ dnd-context
+    (case mode
+      :circle ($ draw-circle props)
+      :cone   ($ draw-cone props)
+      :grid   ($ draw-grid props)
+      :line   ($ draw-line props)
+      :mask   ($ draw-mask props)
+      :poly   ($ draw-poly props)
+      :rect   ($ draw-rect props)
+      :ruler  ($ draw-ruler props)
+      :select ($ draw-select props))))

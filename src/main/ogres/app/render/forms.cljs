@@ -33,7 +33,7 @@
                             (if (= selected form)
                               (set-selected nil)
                               (set-selected form)))}]
-    ($ :.context-menu {:on-mouse-down stop-propagation}
+    ($ :.context-menu {:on-pointer-down stop-propagation}
       ($ :.context-menu-toolbar
         (render-toolbar props))
       (if selected
@@ -202,7 +202,7 @@
   {:color shape-form-color
    :pattern shape-form-pattern})
 
-(defui shape-context-menu [{:keys [shape]}]
+(defui shape-context-menu [{:keys [data]}]
   (let [dispatch (use-dispatch)]
     ($ context-menu
       {:render-toolbar
@@ -223,13 +223,13 @@
              ($ icon {:name "paint-bucket"}))
            ($ :button
              {:type "button" :data-tooltip "Remove" :style {:margin-left "auto"}
-              :on-click #(dispatch :element/remove [(:db/id shape)])}
+              :on-click #(dispatch :element/remove [(:db/id data)])}
              ($ icon {:name "trash3-fill"}))))}
       (fn [{:keys [selected]}]
         (if-let [component (shape-form selected)]
           ($ component
             {:name      selected
-             :on-change #(apply dispatch %1 [(:db/id shape)] %&)
+             :on-change #(apply dispatch %1 [(:db/id data)] %&)
              :values    (fn vs
                           ([f] (vs f #{}))
-                          ([f init] (into init (map f) [shape])))}))))))
+                          ([f init] (into init (map f) [data])))}))))))

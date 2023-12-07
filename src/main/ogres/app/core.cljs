@@ -11,9 +11,7 @@
             [ogres.app.shortcut         :as shortcut]
             [react-helmet :refer [Helmet]]
             [uix.core :refer [defui $]]
-            [uix.dom :refer [create-root render-root]]
-            ["@dnd-kit/core" :refer [DndContext]
-             :rename {DndContext dnd-context}]))
+            [uix.dom :refer [create-root render-root]]))
 
 (defui ^:private app []
   ($ :<>
@@ -30,8 +28,7 @@
               ($ shortcut/handlers)
               ($ session/handlers)
               ($ error-boundary
-                ($ dnd-context
-                  ($ layout))))))))))
+                ($ layout)))))))))
 
 (defn ^:export main []
   (let [elem (.querySelector js/document "#root")

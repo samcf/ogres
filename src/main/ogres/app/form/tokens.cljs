@@ -6,8 +6,9 @@
             [uix.core :as uix :refer [defui $ use-callback use-ref use-state]]
             [uix.dom :refer [create-portal]]
             ["@dnd-kit/core"
-             :refer  [DragOverlay useDndMonitor useDraggable useDroppable]
-             :rename {DragOverlay   drag-overlay
+             :refer  [DndContext DragOverlay useDndMonitor useDraggable useDroppable]
+             :rename {DndContext    dnd-context
+                      DragOverlay   drag-overlay
                       useDndMonitor use-dnd-monitor
                       useDraggable  use-draggable
                       useDroppable  use-droppable}]))
@@ -159,7 +160,7 @@
                            sy (+ (/ my scale) cy)]
                        (if (and (<= bx mx (+ bx bw)) (<= by my (+ by bh)))
                          (dispatch :token/create sx sy checksum)))) [dispatch result])]
-    ($ :<>
+    ($ dnd-context
       (if (= type :host)
         ($ :<>
           ($ :header "Public [" (count data-pub) "]")

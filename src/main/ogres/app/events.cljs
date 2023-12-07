@@ -434,8 +434,9 @@
       (contains? idxs curr) (conj data))))
 
 (defmethod event-tx-fn :token/translate
-  [_ _ token x y]
-  [{:db/id token :token/point [(round x) (round y)]}])
+  [data _ id dx dy]
+  (let [{[tx ty] :token/point} (ds/entity data id)]
+    [{:db/id id :token/point [(round (+ tx dx)) (round (+ ty dy))]}]))
 
 (defmethod event-tx-fn :token/change-flag
   [data _ idxs flag add?]
@@ -481,12 +482,12 @@
     [:db/retractEntity id]))
 
 (defmethod event-tx-fn :shape/translate
-  [data _ id x y]
+  [data _ id dx dy]
   (let [result (ds/pull data [:shape/vecs] id)
         {[ax ay] :shape/vecs
          vecs    :shape/vecs} result
-        x (round x)
-        y (round y)]
+        x (round (+ ax dx))
+        y (round (+ ay dy))]
     [{:db/id id :shape/vecs (into [x y] (trans-xf (- x ax) (- y ay)) vecs)}]))
 
 (defmethod event-tx-fn :share/initiate [] [])
