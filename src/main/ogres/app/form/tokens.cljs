@@ -21,10 +21,7 @@
   [{:root/token-images [:image/checksum :image/scope]}
    {:root/local
     [[:local/type :default :conn]
-     [:bounds/self :default [0 0 0 0]]
-     {:local/camera
-      [[:camera/scale :default 1]
-       [:camera/point :default [0 0]]]}]}])
+     [:bounds/self :default [0 0 0 0]]]}])
 
 (defui ^:private image
   [{:keys [checksum children]}]
@@ -144,9 +141,7 @@
                      (dispatch :tokens/change-scope checksum scope)) [dispatch])
         on-create (use-callback
                    (fn [checksum element delta]
-                     (let [{{[bx by bw bh] :bounds/self
-                             {[cx cy] :camera/point
-                              scale :camera/scale} :local/camera} :root/local} result
+                     (let [{{[bx by bw bh] :bounds/self} :root/local} result
                            rect (.getBoundingClientRect element)
                            tw (.-width rect)
                            th (.-height rect)
@@ -155,11 +150,9 @@
                            dx (.-x delta)
                            dy (.-y delta)
                            mx (- (+ tx dx (/ tw 2)) bx)
-                           my (- (+ ty dy (/ th 2)) by)
-                           sx (+ (/ mx scale) cx)
-                           sy (+ (/ my scale) cy)]
+                           my (- (+ ty dy (/ th 2)) by)]
                        (if (and (<= bx mx (+ bx bw)) (<= by my (+ by bh)))
-                         (dispatch :token/create sx sy checksum)))) [dispatch result])]
+                         (dispatch :token/create mx my checksum)))) [dispatch result])]
     ($ dnd-context
       (if (= type :host)
         ($ :<>

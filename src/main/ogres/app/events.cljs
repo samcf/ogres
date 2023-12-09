@@ -412,13 +412,27 @@
   (for [id idxs]
     [:db/retractEntity id]))
 
-(defmethod event-tx-fn :token/create
-  [_ _ x y checksum]
-  [{:db/id -1
-    :token/point [(round x) (round y)]
-    :token/image {:image/checksum checksum}}
-   [:db.fn/call assoc-camera :camera/selected -1 :draw-mode :select]
-   [:db.fn/call assoc-scene :scene/tokens -1]])
+(defmethod
+  ^{:doc "Creates a new token on the current scene at the screen coordinates
+          given by `sx` and `sy`. These coordinates are converted to the
+          scene coordinate space."}
+  event-tx-fn :token/create
+  [data _ sx sy checksum]
+  (let [local (ds/entity data [:db/ident :local])
+        {{[cx cy] :camera/point
+          scale   :camera/scale} :local/camera} local
+        tx (+ (/ sx scale) cx)
+        ty (+ (/ sy scale) cy)]
+    [{:db/id -1
+      :token/point [(round tx) (round ty)]
+      :token/image {:image/checksum checksum}
+      :local/camera
+      {:db/id (:db/id (:local/camera local))
+       :camera/selected -1
+       :camera/draw-mode :select
+       :camera/scene
+       {:db/id (:db/id (:camera/scene (:local/camera local)))
+        :scene/tokens -1}}}]))
 
 (defmethod event-tx-fn :token/remove
   [data _ idxs]
