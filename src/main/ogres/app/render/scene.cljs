@@ -479,7 +479,7 @@
                          ev (.. data -activatorEvent)
                          id (.. ev -target (closest "[data-id]") -dataset -id)]
                      (if (and (= dx 0) (= dy 0))
-                       (dispatch :element/select id (not (.-shiftKey ev)))
+                       (dispatch :element/select (js/Number id) (not (.-shiftKey ev)))
                        (dispatch :token/translate-all (seq idxs) dx dy))))}
             ($ use-portal {:name (if (or (= type :host) (= type :conn)) :selected)}
               (fn []
