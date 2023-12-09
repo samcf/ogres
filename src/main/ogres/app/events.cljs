@@ -421,8 +421,8 @@
   (let [local (ds/entity data [:db/ident :local])
         {{[cx cy] :camera/point
           scale   :camera/scale} :local/camera} local
-        tx (+ (/ sx scale) cx)
-        ty (+ (/ sy scale) cy)]
+        tx (+ (/ sx (or scale 1)) (or cx 0))
+        ty (+ (/ sy (or scale 1)) (or cy 0))]
     [{:db/id -1
       :token/point [(round tx) (round ty)]
       :token/image {:image/checksum checksum}
