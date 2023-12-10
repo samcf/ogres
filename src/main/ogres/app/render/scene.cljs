@@ -309,7 +309,8 @@
 (defui ^:private render-shapes []
   (let [dispatch (use-dispatch)
         result   (use-query query-shapes)
-        scale-fn (dnd-modifier-scale (:camera/scale (:local/camera result)))
+        scale    (:camera/scale (:local/camera result))
+        scale-fn (dnd-modifier-scale scale)
         shapes   (:scene/shapes (:camera/scene (:local/camera result)))
         user?    (not= (:local/type result) :view)]
     ($ dnd-context
@@ -335,7 +336,10 @@
                     ($ :defs ($ pattern {:id id :name (:shape/pattern data) :color (:shape/color data)}))
                     ($ render-shape {:data data :attrs {:fill (str "url(#" id ")")}})
                     (if (and user? selected?)
-                      ($ :foreignObject.context-menu-object {:x -200 :y 0 :width 400 :height 400}
+                      ($ :foreignObject.context-menu-object
+                        {:x -200 :y 0
+                         :width 400 :height 400
+                         :transform (str "scale(" (/ scale) ")")}
                         ($ shape-context-menu
                           {:data data})))))))))))))
 
