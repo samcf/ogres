@@ -119,10 +119,11 @@
                    (take limit))]
     ($ :<>
       ($ gallery {:data data})
-      ($ pagination
-        {:pages (max pages 1)
-         :value (max (min pages page) 1)
-         :on-change set-page}))))
+      (if (> pages 1)
+        ($ pagination
+          {:pages (max pages 1)
+           :value (max (min pages page) 1)
+           :on-change set-page})))))
 
 (defui form []
   (let [dispatch  (use-dispatch)
