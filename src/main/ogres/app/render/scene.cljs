@@ -79,9 +79,10 @@
         trnsfrm (.-transform options)
         dx      (if trnsfrm (.-x trnsfrm) 0)
         dy      (if trnsfrm (.-y trnsfrm) 0)]
-    ($ :g
+    ($ :g.scene-drag
       {:ref (.-setNodeRef options)
        :transform (str "translate(" dx ", " dy ")")
+       :data-dragging (.-isDragging options)
        :on-pointer-down (.. options -listeners -onPointerDown)}
       children)))
 
@@ -327,19 +328,17 @@
                     selected? (contains? selecting (:db/id (:local/camera result)))]]
           ($ use-portal {:key id :name (if (and user? selected?) :selected)}
             (fn []
-              ($ render-drag {:id id}
-                (let [id (random-uuid)]
-                  ($ :g.scene-shape
-                    {:class         (str "scene-shape-" (name (:shape/kind data)))
-                     :transform     (str "translate(" x ", " y ")")
-                     :data-selected selected?}
-                    ($ :defs
-                      ($ pattern {:id id :name (:shape/pattern data) :color (:shape/color data)}))
-                    ($ render-shape {:data data :attrs {:fill (str "url(#" id ")")}})
-                    (if (and user? selected?)
-                      ($ :foreignObject.context-menu-object {:x -200 :y 0 :width 400 :height 400}
-                        ($ shape-context-menu
-                          {:data data})))))))))))))
+              ($ :g {:transform (str "translate(" x ", " y ")")}
+                ($ render-drag {:id id}
+                  (let [id (random-uuid)]
+                    ($ :g.scene-shape
+                      {:class (str "scene-shape-" (name (:shape/kind data))) :data-selected selected?}
+                      ($ :defs ($ pattern {:id id :name (:shape/pattern data) :color (:shape/color data)}))
+                      ($ render-shape {:data data :attrs {:fill (str "url(#" id ")")}})
+                      (if (and user? selected?)
+                        ($ :foreignObject.context-menu-object {:x -200 :y 0 :width 400 :height 400}
+                          ($ shape-context-menu
+                            {:data data}))))))))))))))
 
 (defui ^:private render-token-face
   [{:keys [checksum]}]
@@ -397,7 +396,7 @@
            pttrn (cond (flags :unconscious) (str "token-face-deceased")
                        (string? hashs)      (str "token-face-" hashs)
                        :else                (str "token-face-default"))]
-       ($ :g
+       ($ :g.scene-token
          {:transform  (str "scale(" scale ")") :data-flags (token-flags-attr data)}
          (let [radius (* grid-size (/ (:aura/radius data) 5))]
            (if (> radius 0)
@@ -464,8 +463,8 @@
                     (dispatch :token/translate id dx dy)))) [dispatch])}
         ($ :g.scene-tokens
           (for [{id :db/id [x y] :token/point :as data} unselected]
-            ($ render-drag {:key id :id id}
-              ($ :g.scene-token {:transform (str "translate(" x ", " y ")")}
+            ($ :g {:key id :transform (str "translate(" x ", " y ")")}
+              ($ render-drag {:id id}
                 ($ render-token {:data data}))))))
       (if (seq selected)
         (let [idxs         (into (sorted-set) (map :db/id) selected)
@@ -483,10 +482,10 @@
                        (dispatch :token/translate-all (seq idxs) dx dy))))}
             ($ use-portal {:name (if (or (= type :host) (= type :conn)) :selected)}
               (fn []
-                ($ render-drag {:id "selected"}
+                ($ render-drag {:id "selected-tokens"}
                   ($ :g.scene-selected
                     (for [{id :db/id [x y] :token/point :as data} selected]
-                      ($ :g.scene-token {:key id :transform (str "translate(" x "," y ")") :data-selected true :data-id id}
+                      ($ :g {:key id :transform (str "translate(" x "," y ")") :data-selected true :data-id id}
                         ($ render-token {:data data})))
                     (if (or (= type :host) (= type :conn))
                       ($ :foreignObject.context-menu-object

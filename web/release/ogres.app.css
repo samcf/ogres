@@ -116,6 +116,11 @@ fieldset.checkbox + fieldset {
     100% { stroke-dashoffset: 100; }
 }
 
+@keyframes aura-pulse {
+    0% { fill-opacity: 0.25; }
+    100% { fill-opacity: 0.10; }
+}
+
 @keyframes token-pulse {
     0%   { fill: var(--color-blues-900); }
     100% { fill: var(--color-danger-500); }
@@ -643,16 +648,16 @@ legend {
 }
 
 /* Scene Tokens */
-.scene-token [data-flags*="player"] .scene-token-shape {
+.scene-token[data-flags*="player"] .scene-token-shape {
     stroke: url("#token-base-player");
     stroke-width: 4px;
 }
 
-.scene-token [data-flags*="hidden"] .scene-token-shape {
-    fill-opacity: 0.50;
+.scene-token[data-flags*="hidden"] {
+    opacity: 0.50;
 }
 
-.scene-token [data-flags*="turn"] [data-flag="initiative"] circle {
+.scene-token[data-flags*="turn"] [data-flag="initiative"] circle {
     animation: token-pulse 1s alternate infinite;
 }
 
@@ -701,13 +706,9 @@ legend {
     stroke: var(--scene-stroke);
 }
 
-.scene-selected .scene-token-ring {
+.scene-selected .scene-token-ring,
+.scene-drag[data-dragging=true] .scene-token-ring {
     stroke-width: 1px;
-}
-
-@keyframes aura-pulse {
-    0% { fill-opacity: 0.25; }
-    100% { fill-opacity: 0.10; }
 }
 
 .scene-token-aura {
