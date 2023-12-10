@@ -123,8 +123,7 @@
       (fn [points]
         (let [[ax ay bx by] (convert points (+' (- ox) (- oy)) cat)]
           ($ use-portal {:name :multiselect}
-            (fn []
-              ($ :path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}))))))))
+            ($ :path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])})))))))
 
 (defui ^:private draw-ruler []
   (let [result (use-query query)

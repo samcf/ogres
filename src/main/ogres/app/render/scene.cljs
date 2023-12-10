@@ -327,18 +327,17 @@
               :let [selecting (into #{} (map :db/id) (:camera/_selected data))
                     selected? (contains? selecting (:db/id (:local/camera result)))]]
           ($ use-portal {:key id :name (if (and user? selected?) :selected)}
-            (fn []
-              ($ :g {:transform (str "translate(" x ", " y ")")}
-                ($ render-drag {:id id}
-                  (let [id (random-uuid)]
-                    ($ :g.scene-shape
-                      {:class (str "scene-shape-" (name (:shape/kind data))) :data-selected selected?}
-                      ($ :defs ($ pattern {:id id :name (:shape/pattern data) :color (:shape/color data)}))
-                      ($ render-shape {:data data :attrs {:fill (str "url(#" id ")")}})
-                      (if (and user? selected?)
-                        ($ :foreignObject.context-menu-object {:x -200 :y 0 :width 400 :height 400}
-                          ($ shape-context-menu
-                            {:data data}))))))))))))))
+            ($ :g {:transform (str "translate(" x ", " y ")")}
+              ($ render-drag {:id id}
+                (let [id (random-uuid)]
+                  ($ :g.scene-shape
+                    {:class (str "scene-shape-" (name (:shape/kind data))) :data-selected selected?}
+                    ($ :defs ($ pattern {:id id :name (:shape/pattern data) :color (:shape/color data)}))
+                    ($ render-shape {:data data :attrs {:fill (str "url(#" id ")")}})
+                    (if (and user? selected?)
+                      ($ :foreignObject.context-menu-object {:x -200 :y 0 :width 400 :height 400}
+                        ($ shape-context-menu
+                          {:data data})))))))))))))
 
 (defui ^:private render-token-face
   [{:keys [checksum]}]
@@ -481,19 +480,18 @@
                        (dispatch :element/select (js/Number id) (not (.-shiftKey ev)))
                        (dispatch :token/translate-all (seq idxs) dx dy))))}
             ($ use-portal {:name (if (or (= type :host) (= type :conn)) :selected)}
-              (fn []
-                ($ render-drag {:id "selected-tokens"}
-                  ($ :g.scene-selected
-                    (for [{id :db/id [x y] :token/point :as data} selected]
-                      ($ :g {:key id :transform (str "translate(" x "," y ")") :data-selected true :data-id id}
-                        ($ render-token {:data data})))
-                    (if (or (= type :host) (= type :conn))
-                      ($ :foreignObject.context-menu-object
-                        {:x (- (+ (* ax scale) (/ (* (- bx ax) scale) 2)) (/ 400 2))
-                         :y (- (+ (* by scale) (* scale 56)) 24)
-                         :width 400 :height 400
-                         :transform (str "scale(" (/ scale) ")")}
-                        ($ token-context-menu {:tokens selected :type type})))))))))))))
+              ($ render-drag {:id "selected-tokens"}
+                ($ :g.scene-selected
+                  (for [{id :db/id [x y] :token/point :as data} selected]
+                    ($ :g {:key id :transform (str "translate(" x "," y ")") :data-selected true :data-id id}
+                      ($ render-token {:data data})))
+                  (if (or (= type :host) (= type :conn))
+                    ($ :foreignObject.context-menu-object
+                      {:x (- (+ (* ax scale) (/ (* (- bx ax) scale) 2)) (/ 400 2))
+                       :y (- (+ (* by scale) (* scale 56)) 24)
+                       :width 400 :height 400
+                       :transform (str "scale(" (/ scale) ")")}
+                      ($ token-context-menu {:tokens selected :type type}))))))))))))
 
 (defui ^:private render-bounds []
   (let [result (use-query [:bounds/host :bounds/view])

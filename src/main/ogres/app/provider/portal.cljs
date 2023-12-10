@@ -36,5 +36,5 @@
   (let [[portals _] (use-context context)
         node        (get portals name)]
     (if (not (nil? node))
-      (create-portal (children) node)
-      (children))))
+      (create-portal children node)
+      children)))
