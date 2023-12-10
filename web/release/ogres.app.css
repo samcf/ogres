@@ -770,9 +770,13 @@ legend {
 }
 
 .scene-drawable-select path {
-    fill-opacity: 0.30;
+    fill-opacity: 0.10;
     fill: var(--scene-stroke);
-    stroke: none;
+    stroke-dasharray: 0;
+    stroke-dashoffset: 0;
+    stroke-opacity: 0.25;
+    stroke-width: 1px;
+    stroke: var(--scene-stroke);
 }
 
 .scene-bounds rect {
