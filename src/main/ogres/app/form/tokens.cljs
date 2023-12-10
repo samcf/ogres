@@ -20,8 +20,10 @@
 (def ^:private query-form
   [{:root/token-images [:image/checksum :image/scope]}
    {:root/local
-    [[:local/type :default :conn]
-     [:bounds/self :default [0 0 0 0]]]}])
+    [[:local/type :default :conn]]}])
+
+(def ^:private query-bounds
+  [[:bounds/self :default [0 0 0 0]]])
 
 (defui ^:private image
   [{:keys [checksum children]}]
@@ -39,30 +41,11 @@
         options  (use-draggable #js {"id" checksum})]
     (children {:data-url data-url :options options})))
 
-(defui ^:private drag-handler
-  [props]
-  (let [{:keys [on-create on-remove on-scope]
-         :or   {on-create identity
-                on-remove identity
-                on-scope identity}} props
-        [active set-active] (use-state nil)]
+(defui ^:private overlay []
+  (let [[active set-active] (use-state nil)]
     (use-dnd-monitor
-     #js {"onDragStart"
-          (fn [event]
-            (set-active (.. event -active -id)))
-          "onDragEnd"
-          (fn [event]
-            (let [drag (getValueByKeys event #js ["active" "id"])
-                  drop (getValueByKeys event #js ["over" "id"])]
-              (if (and (not (nil? drop)) (not= drag "default"))
-                (case drop
-                  "scope-pub" (on-scope drag :public)
-                  "scope-prv" (on-scope drag :private)
-                  "trash" (on-remove drag))
-                (let [target (.. event -activatorEvent -target)
-                      delta  (.-delta event)]
-                  (on-create drag target delta)))
-              (set-active nil)))})
+     #js {"onDragStart" (fn [event] (set-active (.. event -active -id)))
+          "onDragEnd"   (fn [_]     (set-active nil))})
     (create-portal
      ($ drag-overlay {:drop-animation nil}
        (if (= active "default")
@@ -125,36 +108,16 @@
            :value (max (min pages page) 1)
            :on-change set-page})))))
 
-(defui form []
-  (let [dispatch  (use-dispatch)
-        result    (use-query query-form [:db/ident :root])
+(defui tokens []
+  (let [result (use-query query-form [:db/ident :root])
         {data :root/token-images
          {type :local/type} :root/local} result
         [pub prv] (separate (comp-fn = :image/scope :public) data)
         data-pub  (into [:default] (reverse pub))
         data-prv  (vec (reverse prv))
         drop-pub  (use-droppable #js {"id" "scope-pub"})
-        drop-prv  (use-droppable #js {"id" "scope-prv"})
-        on-remove (use-callback
-                   (fn [checksum] (dispatch :tokens/remove checksum)) [dispatch])
-        on-scope  (use-callback
-                   (fn [checksum scope]
-                     (dispatch :tokens/change-scope checksum scope)) [dispatch])
-        on-create (use-callback
-                   (fn [checksum element delta]
-                     (let [{{[bx by bw bh] :bounds/self} :root/local} result
-                           rect (.getBoundingClientRect element)
-                           tw (.-width rect)
-                           th (.-height rect)
-                           tx (.-x rect)
-                           ty (.-y rect)
-                           dx (.-x delta)
-                           dy (.-y delta)
-                           mx (- (+ tx dx (/ tw 2)) bx)
-                           my (- (+ ty dy (/ th 2)) by)]
-                       (if (and (<= bx mx (+ bx bw)) (<= by my (+ by bh)))
-                         (dispatch :token/create mx my checksum)))) [dispatch result])]
-    ($ dnd-context
+        drop-prv  (use-droppable #js {"id" "scope-prv"})]
+    ($ :<>
       (if (= type :host)
         ($ :<>
           ($ :header "Public [" (count data-pub) "]")
@@ -167,11 +130,44 @@
             ($ paginated {:data data-prv :limit 20})))
         ($ :section.token-gallery
           {:ref (.-setNodeRef drop-pub) :data-type "conn" :data-scope "public"}
-          ($ paginated {:data data-pub :limit 30})))
-      ($ drag-handler
-        {:on-create on-create
-         :on-remove on-remove
-         :on-scope on-scope}))))
+          ($ paginated {:data data-pub :limit 30}))))))
+
+(defui form []
+  (let [dispatch (use-dispatch)
+        results  (use-query query-bounds [:db/ident :local])
+        {[bx by bw bh] :bounds/self} results
+        on-create
+        (use-callback
+         (fn [checksum element delta]
+           (let [rect (.getBoundingClientRect element)
+                 tw (.-width rect)
+                 th (.-height rect)
+                 tx (.-x rect)
+                 ty (.-y rect)
+                 dx (.-x delta)
+                 dy (.-y delta)
+                 mx (- (+ tx dx (/ tw 2)) bx)
+                 my (- (+ ty dy (/ th 2)) by)]
+             (if (and (<= bx mx (+ bx bw)) (<= by my (+ by bh)))
+               (dispatch :token/create mx my checksum))))
+         [dispatch bx by bw bh])]
+    ($ dnd-context
+      #js {"onDragEnd"
+           (use-callback
+            (fn [event]
+              (let [drag (getValueByKeys event #js ["active" "id"])
+                    drop (getValueByKeys event #js ["over" "id"])]
+                (if (and (not (nil? drop)) (not= drag "default"))
+                  (case drop
+                    "scope-pub" (dispatch :tokens/change-scope drag :public)
+                    "scope-prv" (dispatch :tokens/change-scope drag :private)
+                    "trash" (dispatch :tokens/remove drag))
+                  (let [target (.. event -activatorEvent -target)
+                        delta  (.-delta event)]
+                    (on-create drag target delta)))))
+            [dispatch on-create])}
+      ($ tokens)
+      ($ overlay))))
 
 (defui footer []
   (let [dispatch (use-dispatch)
