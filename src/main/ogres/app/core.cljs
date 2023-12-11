@@ -10,7 +10,7 @@
             [ogres.app.session          :as session]
             [ogres.app.shortcut         :as shortcut]
             [ogres.app.provider.image   :as image]
-            [uix.core :refer [defui $ use-effect]]
+            [uix.core :refer [defui $ strict-mode use-effect]]
             [uix.dom :refer [create-root render-root]]))
 
 (defui ^:private stylesheet [props]
@@ -23,7 +23,7 @@
          (.. js/document -head (appendChild element)))) [name])) nil)
 
 (defui ^:private app []
-  ($ :<>
+  ($ strict-mode
     ($ stylesheet {:name "reset.css"})
     ($ stylesheet {:name "ogres.app.css"})
     ($ events/provider
