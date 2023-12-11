@@ -93,19 +93,25 @@
        [:scene/timeofday :default :none]
        {:scene/image [:image/checksum]}]}]}])
 
+(defui ^:private scene-image [props]
+  (let [url (use-image (:checksum props))]
+    ((:children props) url)))
+
 (defui ^:private render-scene-image []
   (let [result (use-query query-scene-image)
         {{{size        :scene/grid-size
            time-of-day :scene/timeofday
            {checksum   :image/checksum} :scene/image}
           :camera/scene}
-         :local/camera} result
-        url (use-image checksum)]
+         :local/camera} result]
     ($ :g.scene-image {:transform (str "scale(" (/ grid-size size) ")")}
       ($ :defs {:key time-of-day}
         ($ :filter {:id "atmosphere"}
           ($ :feColorMatrix {:type "matrix" :values (join " " (color-matrix time-of-day))})))
-      ($ :image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere)"}}))))
+      (if checksum
+        ($ scene-image {:checksum checksum}
+          (fn [url]
+            ($ :image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere)"}})))))))
 
 (def ^:private query-mask-vis
   [:local/type

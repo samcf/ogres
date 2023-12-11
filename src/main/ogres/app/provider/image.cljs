@@ -3,9 +3,10 @@
   (:require [goog.object :as go]
             [ogres.app.provider.events :refer [use-publish use-subscribe]]
             [ogres.app.provider.storage :refer [use-store]]
-            [uix.core :refer [use-callback use-state use-effect]]))
+            [uix.core :refer [defui $ create-context use-callback use-state use-context use-effect]]))
 
-(def ^:private cache (atom {}))
+(def ^:private image
+  (create-context {{} (constantly nil)}))
 
 (defn ^:private create-data-url [file]
   (-> (js/Promise.
@@ -96,6 +97,33 @@
      (fn [s b]
        (str s (.slice (str "0" (.toString b 16)) -2))) "" (.digest hash))))
 
+(defui provider [props]
+  (let [publish       (use-publish)
+        store         (use-store)
+        loading       (atom {})
+        [urls update] (use-state {})
+        on-request    (use-callback
+                       (fn [checksum]
+                         (let [url (get urls checksum)]
+                           (if (not url)
+                             (when (not (get @loading checksum))
+                               (swap! loading assoc checksum true)
+                               (-> (.table store "images")
+                                   (.get checksum)
+                                   (.then (fn [rec] (create-object-url (go/get rec "data-url"))))
+                                   (.then (fn [url] (update (fn [urls] (assoc urls checksum url)))))
+                                   (.catch (fn [] (publish {:topic :image/request :args [checksum]})))))
+                             url))) ^:lint/disable [])]
+    (use-subscribe :image/cache
+      (use-callback
+       (fn [{[checksum data-url] :args}]
+         (-> (create-object-url data-url)
+             (.then
+              (fn [data-url] (update (fn [map] (assoc map checksum data-url)))))))
+       []))
+    ($ (.-Provider image) {:value [urls on-request]}
+      (:children props))))
+
 (defn use-image-uploader [{:keys [type]}]
   (let [publish (use-publish)
         store   (use-store)]
@@ -125,39 +153,7 @@
      [publish store type])))
 
 (defn use-image [checksum]
-  (let [publish          (use-publish)
-        store            (use-store)
-        [_ set-sentinel] (use-state 0)
-        [watch-key]      (use-state (random-uuid))
-        [loading cached] (get @cache checksum [false nil])]
-
-    (if (not (or loading cached))
-      (swap! cache assoc checksum [true nil]))
-
+  (let [[urls on-request] (use-context image)]
     (use-effect
-     (fn []
-       (if (string? checksum)
-         (add-watch
-          cache watch-key
-          (fn [_ _ _ value]
-            (if (not cached)
-              (let [[_ cached] (get value checksum [false nil])]
-                (if cached (set-sentinel inc)))))))
-       (fn [] (remove-watch cache watch-key))) [watch-key checksum cached])
-
-    (use-subscribe :image/cache
-      (use-callback
-       (fn [{[checksum data-url] :args}]
-         (-> (create-object-url data-url)
-             (.then #(swap! cache assoc checksum [false %1])))) []))
-
-    (use-effect
-     (fn []
-       (if (and (string? checksum) (not (or loading cached)))
-         (-> (.table store "images")
-             (.get checksum)
-             (.then (fn [rec] (create-object-url (go/get rec "data-url"))))
-             (.then (fn [url] (swap! cache assoc checksum [false url])))
-             (.catch (fn [] (publish {:topic :image/request :args [checksum]})))))) ^:lint/disable [checksum])
-
-    cached))
+     (fn [] (on-request checksum)) [on-request checksum])
+    (get urls checksum)))

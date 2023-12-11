@@ -9,6 +9,7 @@
             [ogres.app.render           :refer [error-boundary]]
             [ogres.app.session          :as session]
             [ogres.app.shortcut         :as shortcut]
+            [ogres.app.provider.image   :as image]
             [uix.core :refer [defui $ use-effect]]
             [uix.dom :refer [create-root render-root]]))
 
@@ -28,14 +29,15 @@
     ($ events/provider
       ($ state/provider
         ($ storage/provider
-          ($ portal/provider
-            ($ :<>
-              ($ storage/handlers)
-              ($ window/provider)
-              ($ shortcut/handlers)
-              ($ session/handlers)
-              ($ error-boundary
-                ($ layout)))))))))
+          ($ image/provider
+            ($ portal/provider
+              ($ :<>
+                ($ storage/handlers)
+                ($ window/provider)
+                ($ shortcut/handlers)
+                ($ session/handlers)
+                ($ error-boundary
+                  ($ layout))))))))))
 
 (defn ^:export main []
   (let [elem (.querySelector js/document "#root")
