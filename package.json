@@ -11,8 +11,7 @@
     "dexie": "^3.0.3",
     "perfect-cursors": "^1.0.5",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-helmet": "^6.1.0"
+    "react-dom": "^18.2.0"
   },
   "scripts": {
     "build": "npx shadow-cljs release app",

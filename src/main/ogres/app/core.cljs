@@ -9,15 +9,22 @@
             [ogres.app.render           :refer [error-boundary]]
             [ogres.app.session          :as session]
             [ogres.app.shortcut         :as shortcut]
-            [react-helmet :refer [Helmet]]
-            [uix.core :refer [defui $]]
+            [uix.core :refer [defui $ use-effect]]
             [uix.dom :refer [create-root render-root]]))
+
+(defui ^:private stylesheet [props]
+  (let [{:keys [name]} props]
+    (use-effect
+     (fn []
+       (let [element (js/document.createElement "link")]
+         (set! (.-href element) (str PATH "/" name))
+         (set! (.-rel element) "stylesheet")
+         (.. js/document -head (appendChild element)))) [name])) nil)
 
 (defui ^:private app []
   ($ :<>
-    ($ Helmet
-      ($ :link {:rel "stylesheet" :href (str PATH "/reset.css")})
-      ($ :link {:rel "stylesheet" :href (str PATH "/ogres.app.css")}))
+    ($ stylesheet {:name "reset.css"})
+    ($ stylesheet {:name "ogres.app.css"})
     ($ events/provider
       ($ state/provider
         ($ storage/provider
