@@ -10,11 +10,12 @@
             [ogres.app.render.forms :refer [token-context-menu shape-context-menu]]
             [ogres.app.render.pattern :refer [pattern]]
             [ogres.app.util :refer [key-by separate]]
-            [uix.core :as uix :refer [defui $ use-callback use-layout-effect use-state]]
+            [uix.core :as uix :refer [defui $ use-callback use-layout-effect use-memo use-state]]
             ["@dnd-kit/core"
-             :refer  [DndContext useDraggable]
-             :rename {DndContext   dnd-context
-                      useDraggable use-draggable}]))
+             :refer  [DndContext useDndMonitor useDraggable]
+             :rename {DndContext    dnd-context
+                      useDndMonitor use-dnd-monitor
+                      useDraggable  use-draggable}]))
 
 (def ^:private draw-modes
   #{:grid :ruler :circle :rect :cone :line :poly :mask})
@@ -74,17 +75,17 @@
        #js {"x" (/ dx scale)
             "y" (/ dy scale)}))))
 
-(defui ^:private render-drag [{:keys [id children]}]
-  (let [options (use-draggable #js {"id" id})
-        trnsfrm (.-transform options)
-        dx      (if trnsfrm (.-x trnsfrm) 0)
-        dy      (if trnsfrm (.-y trnsfrm) 0)]
+(defui ^:private render-drag [props]
+  (let [params (use-draggable (clj->js (select-keys props [:id :data])))
+        transf (.-transform params)
+        deltax (if transf (.-x transf) 0)
+        deltay (if transf (.-y transf) 0)]
     ($ :g.scene-drag
-      {:ref (.-setNodeRef options)
-       :transform (str "translate(" dx ", " dy ")")
-       :data-dragging (.-isDragging options)
-       :on-pointer-down (.. options -listeners -onPointerDown)}
-      children)))
+      {:ref             (.-setNodeRef params)
+       :data-dragging   (.-isDragging params)
+       :transform       (str "translate(" deltax ", " deltay ")")
+       :on-pointer-down (.. params -listeners -onPointerDown)}
+      (:children props))))
 
 (def ^:private query-scene-image
   [{:local/camera
@@ -316,38 +317,37 @@
   (let [dispatch (use-dispatch)
         result   (use-query query-shapes)
         scale    (:camera/scale (:local/camera result))
-        scale-fn (dnd-modifier-scale scale)
         shapes   (:scene/shapes (:camera/scene (:local/camera result)))
         user?    (not= (:local/type result) :view)]
-    ($ dnd-context
-      #js {"modifiers" #js [scale-fn dnd-modifier-int]
-           "onDragEnd"
-           (fn [data]
-             (let [id (.. data -active -id)
-                   dx (.. data -delta -x)
-                   dy (.. data -delta -y)]
-               (if (and (= dx 0) (= dy 0))
-                 (dispatch :element/select id true)
-                 (dispatch :shape/translate id dx dy))))}
-      ($ :g.scene-shapes
-        (for [{id :db/id [x y] :shape/vecs :as data} shapes
-              :let [selecting (into #{} (map :db/id) (:camera/_selected data))
-                    selected? (contains? selecting (:db/id (:local/camera result)))]]
-          ($ use-portal {:key id :name (if (and user? selected?) :selected)}
-            ($ :g {:transform (str "translate(" x ", " y ")")}
-              ($ render-drag {:id id}
-                (let [id (random-uuid)]
-                  ($ :g.scene-shape
-                    {:class (str "scene-shape-" (name (:shape/kind data))) :data-selected selected?}
-                    ($ :defs ($ pattern {:id id :name (:shape/pattern data) :color (:shape/color data)}))
-                    ($ render-shape {:data data :attrs {:fill (str "url(#" id ")")}})
-                    (if (and user? selected?)
-                      ($ :foreignObject.context-menu-object
-                        {:x -200 :y 0
-                         :width 400 :height 400
-                         :transform (str "scale(" (/ scale) ")")}
-                        ($ shape-context-menu
-                          {:data data})))))))))))))
+    (use-dnd-monitor
+     #js {"onDragEnd"
+          (fn [data]
+            (if (= (.. data -active -data -current -class) "shape")
+              (let [id (.. data -active -data -current -id)
+                    dx (.. data -delta -x)
+                    dy (.. data -delta -y)]
+                (if (and (= dx 0) (= dy 0))
+                  (dispatch :element/select id true)
+                  (dispatch :shape/translate id dx dy)))))})
+    ($ :g.scene-shapes
+      (for [{id :db/id [x y] :shape/vecs :as data} shapes
+            :let [selecting (into #{} (map :db/id) (:camera/_selected data))
+                  selected? (contains? selecting (:db/id (:local/camera result)))]]
+        ($ use-portal {:key id :name (if (and user? selected?) :selected)}
+          ($ :g {:transform (str "translate(" x ", " y ")")}
+            ($ render-drag {:id (str "shapes-" id) :data {:class "shape" :id id}}
+              (let [id (random-uuid)]
+                ($ :g.scene-shape
+                  {:class (str "scene-shape-" (name (:shape/kind data))) :data-selected selected?}
+                  ($ :defs ($ pattern {:id id :name (:shape/pattern data) :color (:shape/color data)}))
+                  ($ render-shape {:data data :attrs {:fill (str "url(#" id ")")}})
+                  (if (and user? selected?)
+                    ($ :foreignObject.context-menu-object
+                      {:x -200 :y 0
+                       :width 400 :height 400
+                       :transform (str "scale(" (/ scale) ")")}
+                      ($ shape-context-menu
+                        {:data data}))))))))))))
 
 (defui ^:private render-token-face
   [{:keys [checksum]}]
@@ -452,56 +452,53 @@
         type     (:local/type result)
         scene    (:camera/scene (:local/camera result))
         scale    (:camera/scale (:local/camera result))
-        scale-fn (dnd-modifier-scale scale)
         [selected unselected]
         (->> (:scene/tokens scene)
              (filter (fn [token] (or (= type :host) (not ((:token/flags token) :hidden)))))
              (sort token-comparator)
-             (separate (fn [token] ((into #{} (map :db/id) (:camera/_selected token)) (:db/id (:local/camera result))))))]
+             (separate (fn [token]
+                         ((into #{} (map :db/id) (:camera/_selected token))
+                          (:db/id (:local/camera result))))))]
+    (use-dnd-monitor
+     #js {"onDragEnd"
+          (uix/use-callback
+           (fn [data]
+             (let [dx (.. data -delta -x)
+                   dy (.. data -delta -y)]
+               (case (.. data -active -data -current -class)
+                 "tokens"
+                 (let [event (.. data -activatorEvent)
+                       token (.. event -target (closest "[data-id]") -dataset -id)]
+                   (if (and (= dx 0) (= dy 0))
+                     (dispatch :element/select (js/Number token) (not (.-shiftKey event)))
+                     (dispatch :token/translate-all (seq (.. data -active -data -current -id)) dx dy)))
+                 "token"
+                 (let [id (.. data -active -data -current -id)]
+                   (if (and (= dx 0) (= dy 0))
+                     (dispatch :element/select id (not (.. data -activatorEvent -shiftKey)))
+                     (dispatch :token/translate id dx dy))) nil))) [dispatch])})
     ($ :<>
-      ($ dnd-context
-        #js {"modifiers" #js [scale-fn dnd-modifier-int]
-             "onDragEnd"
-             (uix/use-callback
-              (fn [data]
-                (let [id (.. data -active -id)
-                      dx (.. data -delta -x)
-                      dy (.. data -delta -y)]
-                  (if (and (= dx 0) (= dy 0))
-                    (dispatch :element/select id (not (.. data -activatorEvent -shiftKey)))
-                    (dispatch :token/translate id dx dy)))) [dispatch])}
-        ($ :g.scene-tokens
-          (for [{id :db/id [x y] :token/point :as data} unselected]
-            ($ :g {:key id :transform (str "translate(" x ", " y ")")}
-              ($ render-drag {:id id}
-                ($ render-token {:data data}))))))
+      ($ :g.scene-tokens
+        (for [{id :db/id [x y] :token/point :as data} unselected]
+          ($ :g {:key id :transform (str "translate(" x ", " y ")")}
+            ($ render-drag {:id (str "tokens-" id) :data {:class "token" :id id}}
+              ($ render-token {:data data})))))
       (if (seq selected)
-        (let [idxs         (into (sorted-set) (map :db/id) selected)
+        (let [idxs (into (sorted-set) (map :db/id) selected)
               [ax _ bx by] (apply bounding-box (map :token/point selected))]
-          ($ dnd-context
-            #js {"modifiers" #js [scale-fn dnd-modifier-int]
-                 "onDragEnd"
-                 (fn [data]
-                   (let [dx (.. data -delta -x)
-                         dy (.. data -delta -y)
-                         ev (.. data -activatorEvent)
-                         id (.. ev -target (closest "[data-id]") -dataset -id)]
-                     (if (and (= dx 0) (= dy 0))
-                       (dispatch :element/select (js/Number id) (not (.-shiftKey ev)))
-                       (dispatch :token/translate-all (seq idxs) dx dy))))}
-            ($ use-portal {:name (if (or (= type :host) (= type :conn)) :selected)}
-              ($ render-drag {:id "selected-tokens"}
-                ($ :g.scene-selected
-                  (for [{id :db/id [x y] :token/point :as data} selected]
-                    ($ :g {:key id :transform (str "translate(" x "," y ")") :data-selected true :data-id id}
-                      ($ render-token {:data data})))
-                  (if (or (= type :host) (= type :conn))
-                    ($ :foreignObject.context-menu-object
-                      {:x (- (+ (* ax scale) (/ (* (- bx ax) scale) 2)) (/ 400 2))
-                       :y (- (+ (* by scale) (* scale 56)) 24)
-                       :width 400 :height 400
-                       :transform (str "scale(" (/ scale) ")")}
-                      ($ token-context-menu {:tokens selected :type type}))))))))))))
+          ($ use-portal {:key idxs :name (if (or (= type :host) (= type :conn)) :selected)}
+            ($ render-drag {:id "tokens-selected" :data {:class "tokens" :id idxs}}
+              ($ :g.scene-selected
+                (for [{id :db/id [x y] :token/point :as data} selected]
+                  ($ :g {:key id :transform (str "translate(" x "," y ")") :data-selected true :data-id id}
+                    ($ render-token {:data data})))
+                (if (or (= type :host) (= type :conn))
+                  ($ :foreignObject.context-menu-object
+                    {:x (- (+ (* ax scale) (/ (* (- bx ax) scale) 2)) (/ 400 2))
+                     :y (- (+ (* by scale) (* scale 56)) 24)
+                     :width 400 :height 400
+                     :transform (str "scale(" (/ scale) ")")}
+                    ($ token-context-menu {:tokens selected :type type})))))))))))
 
 (defui ^:private render-bounds []
   (let [result (use-query [:bounds/host :bounds/view])
@@ -568,39 +565,42 @@
   (uix/memo
    (uix/fn [{:keys [on-cursor-move children]
              :or   {on-cursor-move identity}}]
-     (let [drag-opts (use-draggable #js {"id" "camera"})
-           dragging? (.-isDragging drag-opts)
-           dx        (getValueByKeys drag-opts #js ["transform" "x"])
-           dy        (getValueByKeys drag-opts #js ["transform" "y"])]
+     (let [params (use-draggable #js {"id" "scene-camera" "data" #js {"class" "camera"}})
+           deltax (getValueByKeys params #js ["transform" "x"])
+           deltay (getValueByKeys params #js ["transform" "y"])
+           drag?  (.-isDragging params)]
        ($ :g
-         {:ref             (.-setNodeRef drag-opts)
-          :style           {:will-change "transform"}
-          :transform       (str "translate(" (or dx 0) ", " (or dy 0) ")")
-          :on-pointer-down (.. drag-opts -listeners -onPointerDown)
-          :on-pointer-move (uix/use-callback
-                            (fn [event]
-                              (if (not dragging?)
-                                (on-cursor-move (.-clientX event) (.-clientY event))))
-                            [on-cursor-move dragging?])}
+         {:ref (.-setNodeRef params)
+          :style {:will-change "transform"}
+          :transform (str "translate(" (or deltax 0) ", " (or deltay 0) ")")
+          :on-pointer-down (.. params -listeners -onPointerDown)
+          :on-pointer-move
+          (uix/use-callback
+           (fn [event]
+             (if (not drag?)
+               (on-cursor-move (.-clientX event) (.-clientY event))))
+           [on-cursor-move drag?])}
          ($ :rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"})
          children)))))
 
 (def ^:private scene-camera
   (uix/memo
-   (uix/fn [{:keys [on-translate on-cursor-move children]
-             :or   {on-translate   identity
-                    on-cursor-move identity}}]
-     ($ dnd-context
-       #js {"modifiers" #js [dnd-modifier-int]
-            "onDragEnd"
-            (uix/use-callback
-             (fn [data]
-               (on-translate
-                (.. data -delta -x)
-                (.. data -delta -y))) [on-translate])}
-       ($ scene-camera-draggable
-         {:on-cursor-move on-cursor-move}
-         children)))))
+   (uix/fn [{:keys [scale on-translate on-cursor-move children]
+             :or   {on-translate identity on-cursor-move identity}}]
+     (let [scale-fn (use-memo (fn [] (dnd-modifier-scale scale)) [scale])]
+       ($ dnd-context
+         #js {"modifiers" #js [dnd-modifier-int]
+              "onDragEnd"
+              (uix/use-callback
+               (fn [data]
+                 (on-translate
+                  (.. data -delta -x)
+                  (.. data -delta -y))) [on-translate])}
+         ($ scene-camera-draggable
+           {:on-cursor-move on-cursor-move}
+           ($ dnd-context
+             #js {"modifiers" #js [scale-fn dnd-modifier-int]}
+             children)))))))
 
 (def ^:private scene-elements
   (uix/memo
@@ -652,7 +652,8 @@
         cy (if (= type :view) (->> (- hh vh) (max 0) (* (/ -1 2 scale)) (- cy)) cy)]
     ($ :svg.scene {:key id :data-user-type (name type) :data-theme (if dark-mode "dark" "light")}
       ($ scene-camera
-        {:on-translate
+        {:scale scale
+         :on-translate
          (use-callback
           (fn [dx dy]
             (if (and (= dx 0) (= dy 0))
