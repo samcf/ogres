@@ -18,6 +18,7 @@
    :local/uuid        {:db/unique :db.unique/identity}
    :local/camera      {:db/valueType :db.type/ref}
    :local/cameras     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :local/dragging    {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :camera/scene      {:db/valueType :db.type/ref}
    :camera/selected   {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :scene/image       {:db/valueType :db.type/ref}

@@ -706,11 +706,6 @@ legend {
     stroke: var(--scene-stroke);
 }
 
-.scene-selected .scene-token-ring,
-.scene-drag[data-dragging=true] .scene-token-ring {
-    stroke-width: 1px;
-}
-
 .scene-token-aura {
     animation: aura-pulse 1.50s alternate infinite;
     fill: var(--scene-stroke);
@@ -722,6 +717,22 @@ legend {
 
 .scene-shape-rect > path {
     shape-rendering: crispEdges;
+}
+
+.scene-tokens-selected .scene-token-ring {
+    stroke-width: 1px;
+}
+
+.scene-token-position {
+    transition: transform 80ms linear;
+}
+
+.scene-token-position[data-dragging=true] .scene-token-ring {
+    stroke-width: 1.5px;
+}
+
+.scene-token-position[data-dragged-by=local] {
+    transition: none;
 }
 
 /* Scene Shapes */

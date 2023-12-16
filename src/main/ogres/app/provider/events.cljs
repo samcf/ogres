@@ -50,16 +50,19 @@
   ([topic f]
    (use-subscribe topic {:chan (chan 1)} f))
   ([topic opts f]
-   (let [{ch :chan} opts
-         [pub _]    (use-context context)]
+   (let [disabled (:disabled opts)
+         rate     (:rate-limit opts)
+         [pub _]  (use-context context)
+         dst      (or (:chan opts) (chan 1))]
      (use-effect
       (fn []
-        (sub pub topic ch)
-        (go-loop []
-          (when-some [event (<! ch)]
-            (if (> (:rate-limit opts) 0)
-              (<! (timeout (:rate-limit opts))))
-            (f event)
-            (recur)))
+        (when (not disabled)
+          (sub pub topic dst)
+          (go-loop []
+            (when-some [event (<! dst)]
+              (if (> rate 0)
+                (<! (timeout rate)))
+              (f event)
+              (recur))))
         (fn []
-          (unsub pub topic ch))) ^:lint/disable [f]))))
+          (unsub pub topic dst))) ^:lint/disable [f rate disabled]))))

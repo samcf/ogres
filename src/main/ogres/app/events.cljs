@@ -401,7 +401,8 @@
   (let [local  (ds/entity data [:db/ident :local])
         entity (ds/entity data id)
         camera (:db/id (:local/camera local))]
-    [(if replace?
+    [[:db/retract [:db/ident :local] :local/dragging]
+     (if replace?
        [:db/retract camera :camera/selected])
      (if (and (not replace?) (:camera/_selected entity))
        [:db/retract camera :camera/selected id]
@@ -450,7 +451,8 @@
 (defmethod event-tx-fn :token/translate
   [data _ id dx dy]
   (let [{[tx ty] :token/point} (ds/entity data id)]
-    [{:db/id id :token/point [(round (+ tx dx)) (round (+ ty dy))]}]))
+    [{:db/id id :token/point [(round (+ tx dx)) (round (+ ty dy))]}
+     [:db/retract [:db/ident :local] :local/dragging]]))
 
 (defmethod event-tx-fn :token/change-flag
   [data _ idxs flag add?]
@@ -461,8 +463,9 @@
 (defmethod event-tx-fn :token/translate-all
   [data _ idxs x y]
   (let [tokens (ds/pull-many data [:db/id :token/point] idxs)]
-    (for [{id :db/id [tx ty] :token/point} tokens]
-      {:db/id id :token/point [(round (+ x tx)) (round (+ y ty))]})))
+    (into [[:db/retract [:db/ident :local] :local/dragging]]
+          (for [{id :db/id [tx ty] :token/point} tokens]
+            {:db/id id :token/point [(round (+ x tx)) (round (+ y ty))]}))))
 
 (defmethod event-tx-fn :token/change-label
   [_ _ idxs value]
@@ -876,3 +879,17 @@
         id   (:db/id (:local/camera local))]
     [{:db/id id :camera/draw-mode :select}
      [:db/retract id :camera/selected]]))
+
+;; -- Dragging --
+(defmethod
+  ^{:doc "The user has started a drag event on an object with the given class
+          and id."}
+  event-tx-fn :drag/start
+  [_ _ ids]
+  [{:db/ident :local :local/dragging ids}])
+
+(defmethod
+  ^{:doc "The user has ended the drag event."}
+  event-tx-fn :drag/end
+  []
+  [[:db/retract [:db/ident :local] :local/dragging]])
