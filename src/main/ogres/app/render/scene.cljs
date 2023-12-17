@@ -1,5 +1,5 @@
 (ns ogres.app.render.scene
-  (:require [clojure.set :refer [difference]]
+  (:require [clojure.set :refer [difference intersection]]
             [clojure.string :refer [join]]
             [goog.object :refer [getValueByKeys]]
             [ogres.app.const :refer [grid-size]]
@@ -559,16 +559,17 @@
                        :data-dragged-by (get dragged-by id "none")}
                       ($ render-token {:data data})))))))))
       (if (seq selected)
-        (let [idxs (into (sorted-set) (map :db/id) selected)]
+        (let [idxs (into (sorted-set) (map :db/id) selected)
+              cont (boolean (seq (intersection idxs (set (keys drag)))))]
           ($ use-portal {:key idxs :name (if (or (= type :host) (= type :conn)) :selected)}
-            ($ render-drag {:id "tokens" :class "tokens" :idxs (seq idxs) :disabled false}
+            ($ render-drag {:id "tokens" :class "tokens" :idxs (seq idxs) :disabled cont}
               (fn [^js/object options]
                 (let [dx (getValueByKeys options "transform" "x")
                       dy (getValueByKeys options "transform" "y")]
                   ($ :g.scene-tokens-selected
                     {:ref (.-setNodeRef options)
                      :transform (str "translate(" (or dx 0) ", " (or dy 0) ")")
-                     :on-pointer-down (.. options -listeners -onPointerDown)}
+                     :on-pointer-down (getValueByKeys options "listeners" "onPointerDown")}
                     (for [{id :db/id [tx ty] :token/point :as data} selected :let [owner (drag id)]]
                       ($ render-live {:key id :owner owner :ox tx :oy ty}
                         (fn [rx ry]
