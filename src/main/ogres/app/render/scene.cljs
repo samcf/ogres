@@ -545,7 +545,7 @@
         (for [{id :db/id [tx ty] :token/point :as data} tokens :let [owner (drag id)]]
           ($ render-live {:key id :owner owner :ox tx :oy ty}
             (fn [rx ry]
-              ($ render-drag {:id id :idxs (list id) :class "token" :disabled (not (nil? owner))}
+              ($ render-drag {:id id :idxs (list id) :class "token" :disabled (some? owner)}
                 (fn [^js/object options]
                   (let [dx (getValueByKeys options "transform" "x")
                         dy (getValueByKeys options "transform" "y")
@@ -555,7 +555,7 @@
                       {:ref (.-setNodeRef options)
                        :transform (str "translate(" ax ", " ay ")")
                        :on-pointer-down (getValueByKeys options "listeners" "onPointerDown")
-                       :data-dragging (or (not (nil? owner)) (.-isDragging options))
+                       :data-dragging (or (some? owner) (.-isDragging options))
                        :data-dragged-by (get dragged-by id "none")}
                       ($ render-token {:data data})))))))))
       (if (seq selected)
@@ -576,7 +576,7 @@
                           ($ :g.scene-token-position
                             {:data-id id
                              :transform (str "translate(" (+ tx rx) ", " (+ ty ry) ")")
-                             :data-dragging (or (not (nil? owner)) (.-isDragging options))
+                             :data-dragging (or (some? owner) (.-isDragging options))
                              :data-dragged-by (get dragged-by id "none")}
                             ($ render-token {:data data})))))
                     (if (or (= type :host) (= type :conn))
