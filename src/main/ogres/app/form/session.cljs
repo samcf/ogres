@@ -78,7 +78,7 @@
           ($ :.session-players
             (if host
               ($ :.session-player
-                ($ :.session-player-color {:style {:background-color (:local/color host)}})
+                ($ :.session-player-color {:data-color (:local/color host)})
                 ($ :.session-player-label "Host"
                   (if (= (:db/id host) id)
                     ($ :span " (You)"))))
@@ -90,7 +90,7 @@
               (let [xf (filter (comp-fn = :local/type :conn))]
                 (for [conn (->> (conj conns local) (sequence xf) (sort-by :db/id))]
                   ($ :.session-player {:key (:db/id conn)}
-                    ($ :.session-player-color {:style {:background-color (:local/color conn)}})
+                    ($ :.session-player-color {:data-color (:local/color conn)})
                     ($ :.session-player-label "Friend"
                       (if (= (:db/id conn) id)
                         ($ :span " (You)"))))))

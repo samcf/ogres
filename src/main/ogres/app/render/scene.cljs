@@ -78,7 +78,7 @@
 (def ^:private invert-drag-data-xf
   (comp (filter (comp seq :local/dragging))
         (mapcat (fn [local]
-                  (map (juxt :db/id (constantly (:local/uuid local)))
+                  (map (juxt :db/id (constantly local))
                        (:local/dragging local))))))
 
 (defn ^:private dragged-by-fn [name keys]
@@ -484,7 +484,7 @@
            :camera/_selected]}]}]}]
     :root/session
     [{:session/conns
-      [:local/uuid :local/dragging]}]}])
+      [:local/uuid :local/color :local/dragging]}]}])
 
 (defui ^:private render-tokens []
   (let [[dragged-by set-dragged-by] (use-state {})
@@ -543,7 +543,7 @@
     ($ :<>
       ($ :g.scene-tokens
         (for [{id :db/id [tx ty] :token/point :as data} tokens :let [owner (drag id)]]
-          ($ render-live {:key id :owner owner :ox tx :oy ty}
+          ($ render-live {:key id :owner (:local/uuid owner) :ox tx :oy ty}
             (fn [rx ry]
               ($ render-drag {:id id :idxs (list id) :class "token" :disabled (some? owner)}
                 (fn [^js/object options]
@@ -555,6 +555,7 @@
                       {:ref (.-setNodeRef options)
                        :transform (str "translate(" ax ", " ay ")")
                        :on-pointer-down (getValueByKeys options "listeners" "onPointerDown")
+                       :data-color (:local/color owner)
                        :data-dragging (or (some? owner) (.-isDragging options))
                        :data-dragged-by (get dragged-by id "none")}
                       ($ render-token {:data data})))))))))
@@ -571,11 +572,12 @@
                      :transform (str "translate(" (or dx 0) ", " (or dy 0) ")")
                      :on-pointer-down (getValueByKeys options "listeners" "onPointerDown")}
                     (for [{id :db/id [tx ty] :token/point :as data} selected :let [owner (drag id)]]
-                      ($ render-live {:key id :owner owner :ox tx :oy ty}
+                      ($ render-live {:key id :owner (:local/uuid owner) :ox tx :oy ty}
                         (fn [rx ry]
                           ($ :g.scene-token-position
                             {:data-id id
                              :transform (str "translate(" (+ tx rx) ", " (+ ty ry) ")")
+                             :data-color (:local/color owner)
                              :data-dragging (or (some? owner) (.-isDragging options))
                              :data-dragged-by (get dragged-by id "none")}
                             ($ render-token {:data data})))))

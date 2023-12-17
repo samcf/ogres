@@ -47,7 +47,7 @@
     [:db/add -2 :db/empty true]
     [:db/add -3 :db/ident :local]
     [:db/add -3 :local/status :none]
-    [:db/add -3 :local/color "#03a9f4"]
+    [:db/add -3 :local/color "red"]
     [:db/add -3 :local/camera -4]
     [:db/add -3 :local/cameras -4]
     [:db/add -3 :local/type (local-type)]

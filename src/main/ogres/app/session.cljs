@@ -1,6 +1,5 @@
 (ns ogres.app.session
-  (:require [clojure.set :refer [difference]]
-            [cognitect.transit :as transit]
+  (:require [cognitect.transit :as transit]
             [clojure.core.async :refer [chan sliding-buffer]]
             [datascript.core :as ds]
             [datascript.transit :as dst]
@@ -16,17 +15,15 @@
 (def ^:private interval-heartbeat 20000)
 (def ^:private interval-reconnect 5000)
 
-(def ^:private session-color-options
-  #{"#f44336" "#2196f3" "#8bc34a" "#673ab7" "#ff9800" "#009688" "#3f51b5" "#9c27b0" "#ff5722"})
+(def ^:private color-options
+  ["blue" "yellow" "green" "purple" "orange"])
 
 (defn ^:private next-color [data colors]
-  (let [unused (->> (ds/entity data [:db/ident :session])
-                    (:session/conns)
-                    (into #{} (map :local/color))
-                    (difference colors))]
-    (if (seq unused)
-      (first (shuffle unused))
-      (first (shuffle colors)))))
+  (let [session (ds/entity data [:db/ident :session])
+        conns   (:session/conns session)
+        taken   (into #{} (map :local/color) conns)]
+    (or (first (filter (complement taken) colors))
+        (first (shuffle colors)))))
 
 (def ^:private merge-query
   [{:root/session
@@ -113,7 +110,7 @@
             [[:db/add -1 :local/uuid (:uuid data)]
              [:db/add -1 :local/type :conn]
              [:db/add -1 :local/status :ready]
-             [:db/add -1 :local/color (next-color @conn session-color-options)]
+             [:db/add -1 :local/color (next-color @conn color-options)]
              [:db/add -1 :session/state :connected]
              [:db/add -1 :local/camera -2]
              [:db/add -1 :local/cameras -2]

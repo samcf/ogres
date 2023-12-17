@@ -35,6 +35,14 @@
     --color-paper-500: hsl(60, 21%, 94%);
     --color-paper-700: hsl(60, 21%, 92%);
     --color-paper-900: hsl(60, 21%, 86%);
+
+    --color-session: var(--color-black-100);
+    --color-session-red: #de324c;
+    --color-session-orange: #f4895f;
+    --color-session-yellow: #f8e16f;
+    --color-session-green: #95cf92;
+    --color-session-blue: #369acc;
+    --color-session-purple: #9656a2;
 }
 
 html, body, #root, .root {
@@ -277,6 +285,14 @@ legend {
     max-width: 512px;
     padding: 32px;
 }
+
+/* Session Colors */
+[data-color=red]    { --color-session: var(--color-session-red);    }
+[data-color=orange] { --color-session: var(--color-session-orange); }
+[data-color=yellow] { --color-session: var(--color-session-yellow); }
+[data-color=green]  { --color-session: var(--color-session-green);  }
+[data-color=blue]   { --color-session: var(--color-session-blue);   }
+[data-color=purple] { --color-session: var(--color-session-purple); }
 
 /* Join */
 .join > button {
@@ -728,7 +744,8 @@ legend {
 }
 
 .scene-token-position[data-dragging=true] .scene-token-ring {
-    stroke-width: 1.5px;
+    stroke: var(--color-session);
+    stroke-width: 2px;
 }
 
 .scene-token-position[data-dragged-by=local] {
@@ -1948,7 +1965,9 @@ legend {
 
 .session-player-color {
     aspect-ratio: 1 / 1;
-    border: 1px solid black;
+    background-color: var(--color-session);
+    border-radius: 20%;
+    box-shadow: 1px 1px 0 0 rgba(0, 0, 0, .15);
     box-sizing: border-box;
     width: 28px;
 }
