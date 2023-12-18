@@ -305,7 +305,7 @@
     ;; Subscribe to changes to the user's cursor position on the scene and
     ;; broadcast these changes to the other connections in the session.
     (use-subscribe :cursor/move
-      {:chan cursor :rate-limit 80}
+      {:chan cursor :rate-limit 60}
       (use-callback
        (fn [{[x y] :args}]
          (let [data {:name :cursor/moved :coord [x y]}]

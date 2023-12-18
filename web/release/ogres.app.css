@@ -741,7 +741,7 @@ legend {
 }
 
 .scene-token-position {
-    transition: transform 80ms linear;
+    transition: transform 40ms linear;
 }
 
 .scene-token-position[data-dragging=true] .scene-token-ring {
