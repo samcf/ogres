@@ -657,7 +657,7 @@ legend {
     pointer-events: none;
     stroke-width: 1px;
     stroke: black;
-    transition: transform 80ms linear;
+    transition: transform 40ms linear;
 }
 
 .scene-cursor svg use {
