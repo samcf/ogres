@@ -1,20 +1,21 @@
 (ns ogres.app.render.scene
-  (:require [clojure.set :refer [difference]]
+  (:require [clojure.set :refer [difference intersection]]
             [clojure.string :refer [join]]
             [goog.object :refer [getValueByKeys]]
             [ogres.app.const :refer [grid-size]]
             [ogres.app.geom :refer [bounding-box chebyshev triangle]]
-            [ogres.app.hooks :refer [create-portal use-subscribe use-cursor use-dispatch use-image use-portal use-publish use-query]]
+            [ogres.app.hooks :refer [create-portal use-subscribe use-dispatch use-image use-portal use-publish use-query]]
             [ogres.app.render :refer [icon]]
             [ogres.app.render.draw :refer [draw]]
             [ogres.app.render.forms :refer [token-context-menu shape-context-menu]]
             [ogres.app.render.pattern :refer [pattern]]
             [ogres.app.util :refer [key-by separate]]
-            [uix.core :as uix :refer [defui $ use-callback use-layout-effect use-state]]
+            [uix.core :as uix :refer [defui $ use-callback use-effect use-memo use-state]]
             ["@dnd-kit/core"
-             :refer  [DndContext useDraggable]
-             :rename {DndContext   dnd-context
-                      useDraggable use-draggable}]))
+             :refer  [DndContext useDndMonitor useDraggable]
+             :rename {DndContext    dnd-context
+                      useDndMonitor use-dnd-monitor
+                      useDraggable  use-draggable}]))
 
 (def ^:private draw-modes
   #{:grid :ruler :circle :rect :cone :line :poly :mask})
@@ -74,17 +75,43 @@
        #js {"x" (/ dx scale)
             "y" (/ dy scale)}))))
 
-(defui ^:private render-drag [{:keys [id children]}]
-  (let [options (use-draggable #js {"id" id})
-        trnsfrm (.-transform options)
-        dx      (if trnsfrm (.-x trnsfrm) 0)
-        dy      (if trnsfrm (.-y trnsfrm) 0)]
-    ($ :g.scene-drag
-      {:ref (.-setNodeRef options)
-       :transform (str "translate(" dx ", " dy ")")
-       :data-dragging (.-isDragging options)
-       :on-pointer-down (.. options -listeners -onPointerDown)}
-      children)))
+(def ^:private invert-drag-data-xf
+  (comp (filter (comp seq :local/dragging))
+        (mapcat (fn [local]
+                  (map (juxt :db/id (constantly local))
+                       (:local/dragging local))))))
+
+(defn ^:private dragged-by-fn [name keys]
+  (fn [dict]
+    (into dict (map (juxt identity (constantly name))) keys)))
+
+(defn ^:private use-cursor-point [uuid ox oy]
+  (let [[point set-point] (use-state nil)]
+    (use-effect
+     (fn []
+       (if (nil? uuid)
+         (set-point nil))) [uuid])
+    (use-subscribe :cursor/moved {:disabled (nil? uuid)}
+      (use-callback
+       (fn [{[id cx cy] :args}]
+         (if (= id uuid)
+           (set-point
+            (fn [[_ _ dx dy]]
+              (let [rx (- cx ox) ry (- cy oy)]
+                (if (nil? dx)
+                  [(- rx rx) (- ry ry) rx ry]
+                  [(- cx ox dx) (- cy oy dy) dx dy])))))) [uuid ox oy])) point))
+
+(defui ^:private render-live
+  [{:keys [children owner ox oy]}]
+  (let [[dx dy] (use-cursor-point owner ox oy)]
+    (children dx dy)))
+
+(defui ^:private render-drag
+  [{:keys [children id class idxs disabled]
+    :or   {disabled false}}]
+  (let [options (use-draggable #js {"id" id "data" #js {"class" class "id" idxs} "disabled" disabled})]
+    (children options)))
 
 (def ^:private query-scene-image
   [{:local/camera
@@ -316,38 +343,46 @@
   (let [dispatch (use-dispatch)
         result   (use-query query-shapes)
         scale    (:camera/scale (:local/camera result))
-        scale-fn (dnd-modifier-scale scale)
         shapes   (:scene/shapes (:camera/scene (:local/camera result)))
         user?    (not= (:local/type result) :view)]
-    ($ dnd-context
-      #js {"modifiers" #js [scale-fn dnd-modifier-int]
-           "onDragEnd"
+    (use-dnd-monitor
+     #js {"onDragEnd"
+          (use-callback
            (fn [data]
-             (let [id (.. data -active -id)
-                   dx (.. data -delta -x)
-                   dy (.. data -delta -y)]
-               (if (and (= dx 0) (= dy 0))
-                 (dispatch :element/select id true)
-                 (dispatch :shape/translate id dx dy))))}
-      ($ :g.scene-shapes
-        (for [{id :db/id [x y] :shape/vecs :as data} shapes
-              :let [selecting (into #{} (map :db/id) (:camera/_selected data))
-                    selected? (contains? selecting (:db/id (:local/camera result)))]]
-          ($ use-portal {:key id :name (if (and user? selected?) :selected)}
-            ($ :g {:transform (str "translate(" x ", " y ")")}
-              ($ render-drag {:id id}
-                (let [id (random-uuid)]
-                  ($ :g.scene-shape
-                    {:class (str "scene-shape-" (name (:shape/kind data))) :data-selected selected?}
-                    ($ :defs ($ pattern {:id id :name (:shape/pattern data) :color (:shape/color data)}))
-                    ($ render-shape {:data data :attrs {:fill (str "url(#" id ")")}})
-                    (if (and user? selected?)
-                      ($ :foreignObject.context-menu-object
-                        {:x -200 :y 0
-                         :width 400 :height 400
-                         :transform (str "scale(" (/ scale) ")")}
-                        ($ shape-context-menu
-                          {:data data})))))))))))))
+             (if (= (getValueByKeys data "active" "data" "current" "class") "shape")
+               (let [id (first (getValueByKeys data "active" "data" "current" "id"))
+                     dx (.. data -delta -x)
+                     dy (.. data -delta -y)]
+                 (if (and (= dx 0) (= dy 0))
+                   (dispatch :element/select id)
+                   (dispatch :shape/translate id dx dy))))) [dispatch])})
+    ($ :g.scene-shapes
+      (for [{id :db/id [sx sy] :shape/vecs :as data} shapes
+            :let [selecting (into #{} (map :db/id) (:camera/_selected data))
+                  selected? (contains? selecting (:db/id (:local/camera result)))]]
+        ($ use-portal {:key id :name (if (and user? selected?) :selected)}
+          ($ render-drag {:id id :class "shape" :idxs (list id)}
+            (fn [options]
+              (let [id (random-uuid)
+                    dx (getValueByKeys options "transform" "x")
+                    dy (getValueByKeys options "transform" "y")
+                    tx (+ sx (or dx 0))
+                    ty (+ sy (or dy 0))]
+                ($ :g.scene-shape
+                  {:ref (.-setNodeRef options)
+                   :class (str "scene-shape-" (name (:shape/kind data)))
+                   :transform (str "translate(" tx ", " ty ")")
+                   :on-pointer-down (getValueByKeys options "listeners" "onPointerDown")
+                   :data-selected selected?}
+                  ($ :defs ($ pattern {:id id :name (:shape/pattern data) :color (:shape/color data)}))
+                  ($ render-shape {:data data :attrs {:fill (str "url(#" id ")")}})
+                  (if (and user? selected?)
+                    ($ :foreignObject.context-menu-object
+                      {:x -200 :y 0
+                       :width 400 :height 400
+                       :transform (str "scale(" (/ scale) ")")}
+                      ($ shape-context-menu
+                        {:data data}))))))))))))
 
 (defui ^:private render-token-face
   [{:keys [checksum]}]
@@ -427,81 +462,132 @@
                ($ :span (label data))))))))))
 
 (def ^:private query-tokens
-  [:local/type
-   {:local/camera
-    [:db/id
-     :camera/selected
-     [:camera/scale :default 1]
-     {:camera/scene
-      [{:scene/tokens
-        [:db/id
-         [:initiative/suffix :default nil]
-         [:token/point :default [0 0]]
-         [:token/flags :default #{}]
-         [:token/label :default ""]
-         [:token/size :default 5]
-         [:token/light :default 15]
-         [:aura/radius :default 0]
-         {:token/image [:image/checksum]}
-         {:scene/_initiative [:db/id :initiative/turn]}
-         :camera/_selected]}]}]}])
+  [{:root/local
+    [:local/type
+     {:local/camera
+      [:db/id
+       :camera/selected
+       [:camera/scale :default 1]
+       {:camera/scene
+        [{:scene/tokens
+          [:db/id
+           [:initiative/suffix :default nil]
+           [:token/point :default [0 0]]
+           [:token/flags :default #{}]
+           [:token/label :default ""]
+           [:token/size :default 5]
+           [:token/light :default 15]
+           [:aura/radius :default 0]
+           {:token/image [:image/checksum]}
+           {:scene/_initiative [:db/id :initiative/turn]}
+           :camera/_selected]}]}]}]
+    :root/session
+    [{:session/conns
+      [:local/uuid :local/color :local/dragging]}]}])
 
 (defui ^:private render-tokens []
-  (let [dispatch (use-dispatch)
-        result   (use-query query-tokens)
-        type     (:local/type result)
-        scene    (:camera/scene (:local/camera result))
-        scale    (:camera/scale (:local/camera result))
-        scale-fn (dnd-modifier-scale scale)
-        [selected unselected]
+  (let [[dragged-by set-dragged-by] (use-state {})
+        dispatch (use-dispatch)
+        result   (use-query query-tokens [:db/ident :root])
+        local    (:root/local result)
+        scene    (:camera/scene (:local/camera local))
+        scale    (:camera/scale (:local/camera local))
+        type     (:local/type local)
+        drag     (use-memo
+                  (fn []
+                    (->> (:session/conns (:root/session result))
+                         (into {} invert-drag-data-xf))) [result])
+        [selected tokens]
         (->> (:scene/tokens scene)
              (filter (fn [token] (or (= type :host) (not ((:token/flags token) :hidden)))))
              (sort token-comparator)
-             (separate (fn [token] ((into #{} (map :db/id) (:camera/_selected token)) (:db/id (:local/camera result))))))]
+             (separate (fn [token]
+                         ((into #{} (map :db/id) (:camera/_selected token))
+                          (:db/id (:local/camera local))))))]
+    (use-effect
+     (fn [] (set-dragged-by (dragged-by-fn "remote" (keys drag)))) [drag])
+    (use-dnd-monitor
+     #js {"onDragStart"
+          (use-callback
+           (fn [data]
+             (let [class (getValueByKeys data "active" "data" "current" "class")]
+               (if (or (= class "token") (= class "tokens"))
+                 (let [idxs (getValueByKeys data "active" "data" "current" "id")]
+                   (set-dragged-by (dragged-by-fn "local" idxs))
+                   (dispatch :drag/start idxs))))) [dispatch])
+          "onDragEnd"
+          (use-callback
+           (fn [data]
+             (let [event (.. data -activatorEvent)]
+               (case (getValueByKeys data "active" "data" "current" "class")
+                 "tokens"
+                 (let [id (.. event -target (closest "[data-id]") -dataset -id)
+                       dx (.. data -delta -x)
+                       dy (.. data -delta -y)]
+                   (if (and (= dx 0) (= dy 0))
+                     (dispatch :element/select (js/Number id) (.-shiftKey event))
+                     (dispatch :token/translate-all (seq (.. data -active -data -current -id)) dx dy)))
+                 "token"
+                 (let [id (first (.. data -active -data -current -id))
+                       dx (.. data -delta -x)
+                       dy (.. data -delta -y)]
+                   (if (and (= dx 0) (= dy 0))
+                     (dispatch :element/select id (.-shiftKey event))
+                     (dispatch :token/translate id dx dy))) nil))) [dispatch])
+          "onDragCancel"
+          (use-callback
+           (fn [data]
+             (case (getValueByKeys data "active" "data" "current" "class")
+               ("tokens" "token") (dispatch :drag/end) nil)) [dispatch])})
     ($ :<>
-      ($ dnd-context
-        #js {"modifiers" #js [scale-fn dnd-modifier-int]
-             "onDragEnd"
-             (uix/use-callback
-              (fn [data]
-                (let [id (.. data -active -id)
-                      dx (.. data -delta -x)
-                      dy (.. data -delta -y)]
-                  (if (and (= dx 0) (= dy 0))
-                    (dispatch :element/select id (not (.. data -activatorEvent -shiftKey)))
-                    (dispatch :token/translate id dx dy)))) [dispatch])}
-        ($ :g.scene-tokens
-          (for [{id :db/id [x y] :token/point :as data} unselected]
-            ($ :g {:key id :transform (str "translate(" x ", " y ")")}
-              ($ render-drag {:id id}
-                ($ render-token {:data data}))))))
+      ($ :g.scene-tokens
+        (for [{id :db/id [tx ty] :token/point :as data} tokens :let [owner (drag id)]]
+          ($ render-live {:key id :owner (:local/uuid owner) :ox tx :oy ty}
+            (fn [rx ry]
+              ($ render-drag {:id id :idxs (list id) :class "token" :disabled (some? owner)}
+                (fn [options]
+                  (let [dx (getValueByKeys options "transform" "x")
+                        dy (getValueByKeys options "transform" "y")
+                        ax (+ tx (or rx dx 0))
+                        ay (+ ty (or ry dy 0))]
+                    ($ :g.scene-token-position
+                      {:ref (.-setNodeRef options)
+                       :transform (str "translate(" ax ", " ay ")")
+                       :on-pointer-down (or (getValueByKeys options "listeners" "onPointerDown") stop-propagation)
+                       :data-color (:local/color owner)
+                       :data-dragging (or (some? owner) (.-isDragging options))
+                       :data-dragged-by (get dragged-by id "none")}
+                      ($ render-token {:data data})))))))))
       (if (seq selected)
-        (let [idxs         (into (sorted-set) (map :db/id) selected)
-              [ax _ bx by] (apply bounding-box (map :token/point selected))]
-          ($ dnd-context
-            #js {"modifiers" #js [scale-fn dnd-modifier-int]
-                 "onDragEnd"
-                 (fn [data]
-                   (let [dx (.. data -delta -x)
-                         dy (.. data -delta -y)
-                         ev (.. data -activatorEvent)
-                         id (.. ev -target (closest "[data-id]") -dataset -id)]
-                     (if (and (= dx 0) (= dy 0))
-                       (dispatch :element/select (js/Number id) (not (.-shiftKey ev)))
-                       (dispatch :token/translate-all (seq idxs) dx dy))))}
-            ($ use-portal {:name (if (or (= type :host) (= type :conn)) :selected)}
-              ($ render-drag {:id "selected-tokens"}
-                ($ :g.scene-selected
-                  (for [{id :db/id [x y] :token/point :as data} selected]
-                    ($ :g {:key id :transform (str "translate(" x "," y ")") :data-selected true :data-id id}
-                      ($ render-token {:data data})))
-                  (if (or (= type :host) (= type :conn))
-                    ($ :foreignObject.context-menu-object
-                      {:x (- (+ (* ax scale) (/ (* (- bx ax) scale) 2)) (/ 400 2))
-                       :y (- (+ (* by scale) (* scale 56)) 24)
-                       :width 400 :height 400
-                       :transform (str "scale(" (/ scale) ")")}
-                      ($ token-context-menu {:tokens selected :type type}))))))))))))
+        (let [idxs (into (sorted-set) (map :db/id) selected)
+              cont (boolean (seq (intersection idxs (set (keys drag)))))]
+          ($ use-portal {:key idxs :name (if (or (= type :host) (= type :conn)) :selected)}
+            ($ render-drag {:id "tokens" :class "tokens" :idxs (seq idxs) :disabled cont}
+              (fn [options]
+                (let [dx (getValueByKeys options "transform" "x")
+                      dy (getValueByKeys options "transform" "y")]
+                  ($ :g.scene-tokens-selected
+                    {:ref (.-setNodeRef options)
+                     :transform (str "translate(" (or dx 0) ", " (or dy 0) ")")
+                     :on-pointer-down (or (getValueByKeys options "listeners" "onPointerDown") stop-propagation)}
+                    (for [{id :db/id [tx ty] :token/point :as data} selected :let [owner (drag id)]]
+                      ($ render-live {:key id :owner (:local/uuid owner) :ox tx :oy ty}
+                        (fn [rx ry]
+                          ($ :g.scene-token-position
+                            {:data-id id
+                             :transform (str "translate(" (+ tx rx) ", " (+ ty ry) ")")
+                             :data-color (:local/color owner)
+                             :data-dragging (or (some? owner) (.-isDragging options))
+                             :data-dragged-by (get dragged-by id "none")}
+                            ($ render-token {:data data})))))
+                    (if (or (= type :host) (= type :conn))
+                      (let [[ax _ bx by] (apply bounding-box (map :token/point selected))]
+                        ($ :foreignObject.context-menu-object
+                          {:x (- (+ (* ax scale) (/ (* (- bx ax) scale) 2)) (/ 400 2))
+                           :y (- (+ (* by scale) (* scale 56)) 24)
+                           :width 400 :height 400
+                           :transform (str "scale(" (/ scale) ")")}
+                          ($ token-context-menu {:tokens selected :type type}))))))))))))))
 
 (defui ^:private render-bounds []
   (let [result (use-query [:bounds/host :bounds/view])
@@ -511,96 +597,80 @@
     ($ :g.scene-bounds {:transform (str "translate(" ox " , " oy ")")}
       ($ :rect {:x 0 :y 0 :width vw :height vh :rx 8}))))
 
-(defui ^:private render-cursor
-  [{[x y] :coord color :color}]
-  (let [[point set-point] (use-state nil)
-        on-animate-cursor (use-callback
-                           (fn [point]
-                             (let [x (aget point 0) y (aget point 1)]
-                               (set-point [x y]))) [])
-        on-point-move     (use-cursor on-animate-cursor [x y])]
-    (use-layout-effect
-     (fn []
-       (on-point-move [x y])) [on-point-move x y])
-    (if (not (nil? point))
-      (let [[ax ay] point]
-        ($ :g.scene-cursor {:transform (str "translate(" (- ax 4) ", " (- ay 4) ")") :color color}
-          ($ icon {:name "cursor-fill" :size 32}))))))
-
-(def ^:private query-cursors
-  [{:root/local
-    [{:local/camera
-      [:camera/scene]}]}
+(def ^:private cursors-query
+  [{:root/local [{:local/camera [:camera/scene]}]}
    {:root/session
     [[:session/share-cursors :default true]
+     {:session/host [:local/uuid]}
      {:session/conns
       [:local/uuid
        [:local/share-cursor :default true]
-       [:local/color :default "royalBlue"]
-       {:local/camera
-        [:camera/scene]}]}]}])
+       [:local/color :default "none"]
+       {:local/camera [:camera/scene]}]}]}])
 
 (defui ^:private render-cursors []
-  (let [[coords set-coords] (use-state {})
-        result (use-query query-cursors [:db/ident :root])
-        {{{{scene :db/id} :camera/scene} :local/camera} :root/local
-         {conns :session/conns
-          share :session/share-cursors} :root/session} result
-        conns (key-by :local/uuid conns)]
-    (use-subscribe :cursor/moved
+  (let [result (use-query cursors-query [:db/ident :root])
+        conns  (key-by :local/uuid (:session/conns (:root/session result)))
+        share  (:session/share-cursors (:root/session result))
+        host   (:session/host (:root/session result))
+        [points set-points] (use-state {})]
+    (use-subscribe :cursor/moved {:disabled (not share)}
       (use-callback
        (fn [{[uuid x y] :args}]
-         (if share
-           (set-coords
-            (fn [m]
-              (assoc m uuid [x y]))))) [share]))
+         (set-points (fn [points] (assoc points uuid [x y])))) []))
     (if share
       ($ :g.scene-cursors
-        (for [[uuid point] coords
-              :let  [local (conns uuid)
-                     {color :local/color
-                      share :local/share-cursor
-                      {{id :db/id} :camera/scene} :local/camera} local]
-              :when (and local share (= scene id))]
-          ($ render-cursor {:key uuid :coord point :color color}))))))
+        (for [[uuid [x y]] points
+              :let [conn (conns uuid)]
+              :when (and (some? conn)
+                         (:local/share-cursor conn)
+                         (= (:camera/scene (:local/camera conn))
+                            (:camera/scene (:local/camera (:root/local result)))))]
+          ($ use-portal {:key uuid :name (if (= (:local/uuid host) (:local/uuid conn)) :host-cursor)}
+            ($ :g.scene-cursor
+              {:transform (str "translate(" (- x 3) ", " (- y 3) ")") :data-color (:local/color conn)}
+              ($ icon {:name "cursor-fill" :size 28}))))))))
 
 (def ^:private scene-camera-draggable
   (uix/memo
    (uix/fn [{:keys [on-cursor-move children]
              :or   {on-cursor-move identity}}]
-     (let [drag-opts (use-draggable #js {"id" "camera"})
-           dragging? (.-isDragging drag-opts)
-           dx        (getValueByKeys drag-opts #js ["transform" "x"])
-           dy        (getValueByKeys drag-opts #js ["transform" "y"])]
+     (let [options (use-draggable #js {"id" "scene-camera" "data" #js {"class" "camera"}})
+           drag? (.-isDragging options)
+           dx (getValueByKeys options "transform" "x")
+           dy (getValueByKeys options "transform" "y")]
        ($ :g
-         {:ref             (.-setNodeRef drag-opts)
-          :style           {:will-change "transform"}
-          :transform       (str "translate(" (or dx 0) ", " (or dy 0) ")")
-          :on-pointer-down (.. drag-opts -listeners -onPointerDown)
-          :on-pointer-move (uix/use-callback
-                            (fn [event]
-                              (if (not dragging?)
-                                (on-cursor-move (.-clientX event) (.-clientY event))))
-                            [on-cursor-move dragging?])}
+         {:ref (.-setNodeRef options)
+          :style {:will-change "transform"}
+          :transform (str "translate(" (or dx 0) ", " (or dy 0) ")")
+          :on-pointer-down (.. options -listeners -onPointerDown)
+          :on-pointer-move
+          (use-callback
+           (fn [event]
+             (if (not drag?)
+               (on-cursor-move (.-clientX event) (.-clientY event))))
+           [on-cursor-move drag?])}
          ($ :rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"})
          children)))))
 
 (def ^:private scene-camera
   (uix/memo
-   (uix/fn [{:keys [on-translate on-cursor-move children]
-             :or   {on-translate   identity
-                    on-cursor-move identity}}]
-     ($ dnd-context
-       #js {"modifiers" #js [dnd-modifier-int]
-            "onDragEnd"
-            (uix/use-callback
-             (fn [data]
-               (on-translate
-                (.. data -delta -x)
-                (.. data -delta -y))) [on-translate])}
-       ($ scene-camera-draggable
-         {:on-cursor-move on-cursor-move}
-         children)))))
+   (uix/fn [{:keys [scale on-translate on-cursor-move children]
+             :or   {on-translate identity on-cursor-move identity}}]
+     (let [scale-fn (use-memo (fn [] (dnd-modifier-scale scale)) [scale])]
+       ($ dnd-context
+         #js {"modifiers" #js [dnd-modifier-int]
+              "onDragEnd"
+              (use-callback
+               (fn [data]
+                 (on-translate
+                  (.. data -delta -x)
+                  (.. data -delta -y))) [on-translate])}
+         ($ scene-camera-draggable
+           {:on-cursor-move on-cursor-move}
+           ($ dnd-context
+             #js {"modifiers" #js [scale-fn dnd-modifier-int]}
+             children)))))))
 
 (def ^:private scene-elements
   (uix/memo
@@ -611,6 +681,9 @@
        ($ render-grid)
        ($ render-shapes)
        ($ render-tokens)
+       ($ create-portal {:name :host-cursor}
+         (fn [{:keys [ref]}]
+           ($ :g {:ref ref :style {:outline "none"}})))
        ($ render-mask-vis)
        ($ render-mask-fog)
        ($ render-cursors)
@@ -652,7 +725,8 @@
         cy (if (= type :view) (->> (- hh vh) (max 0) (* (/ -1 2 scale)) (- cy)) cy)]
     ($ :svg.scene {:key id :data-user-type (name type) :data-theme (if dark-mode "dark" "light")}
       ($ scene-camera
-        {:on-translate
+        {:scale scale
+         :on-translate
          (use-callback
           (fn [dx dy]
             (if (and (= dx 0) (= dy 0))
@@ -664,8 +738,8 @@
          :on-cursor-move
          (use-callback
           (fn [dx dy]
-            (let [mx (+ (/ (- dx sx) scale) cx)
-                  my (+ (/ (- dy sy) scale) cy)]
+            (let [mx (int (+ (/ (- dx sx) scale) cx))
+                  my (int (+ (/ (- dy sy) scale) cy))]
               (publish {:topic :cursor/move :args [mx my]})))
           [publish sx sy cx cy scale])}
         (if (and (= mode :select) (= (:local/modifier result) :shift))

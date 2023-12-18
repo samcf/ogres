@@ -18,6 +18,7 @@
    :local/uuid        {:db/unique :db.unique/identity}
    :local/camera      {:db/valueType :db.type/ref}
    :local/cameras     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
+   :local/dragging    {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :camera/scene      {:db/valueType :db.type/ref}
    :camera/selected   {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :scene/image       {:db/valueType :db.type/ref}
@@ -46,7 +47,7 @@
     [:db/add -2 :db/empty true]
     [:db/add -3 :db/ident :local]
     [:db/add -3 :local/status :none]
-    [:db/add -3 :local/color "#03a9f4"]
+    [:db/add -3 :local/color "red"]
     [:db/add -3 :local/camera -4]
     [:db/add -3 :local/cameras -4]
     [:db/add -3 :local/type (local-type)]

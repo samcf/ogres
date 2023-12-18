@@ -2,7 +2,7 @@
   (:require [datascript.core :as ds]
             [clojure.set :refer [union]]
             [clojure.string :refer [trim]]
-            [ogres.app.geom :refer [bounding-box normalize within?]]
+            [ogres.app.geom :refer [bounding-box within?]]
             [ogres.app.util :refer [comp-fn with-ns]]))
 
 (def ^:private suffix-max-xf
@@ -397,15 +397,19 @@
     (assoc {:db/id id} attr value)))
 
 (defmethod event-tx-fn :element/select
-  [data _ id replace?]
-  (let [local  (ds/entity data [:db/ident :local])
-        entity (ds/entity data id)
-        camera (:db/id (:local/camera local))]
-    [(if replace?
-       [:db/retract camera :camera/selected])
-     (if (and (not replace?) (:camera/_selected entity))
-       [:db/retract camera :camera/selected id]
-       {:db/id camera :camera/selected {:db/id id}})]))
+  ([_ event id]
+   [[:db.fn/call event-tx-fn event id false]])
+  ([data _ id shift?]
+   (let [local    (ds/entity data [:db/ident :local])
+         entity   (ds/entity data id)
+         camera   (:db/id (:local/camera local))
+         selected (contains? (:camera/selected (:local/camera local)) entity)]
+     [[:db/retract [:db/ident :local] :local/dragging]
+      (if (not shift?)
+        [:db/retract camera :camera/selected])
+      (if (and shift? selected)
+        [:db/retract camera :camera/selected id]
+        {:db/id camera :camera/selected {:db/id id}})])))
 
 (defmethod event-tx-fn :element/remove
   [_ _ idxs]
@@ -450,7 +454,8 @@
 (defmethod event-tx-fn :token/translate
   [data _ id dx dy]
   (let [{[tx ty] :token/point} (ds/entity data id)]
-    [{:db/id id :token/point [(round (+ tx dx)) (round (+ ty dy))]}]))
+    [{:db/id id :token/point [(round (+ tx dx)) (round (+ ty dy))]}
+     [:db/retract [:db/ident :local] :local/dragging]]))
 
 (defmethod event-tx-fn :token/change-flag
   [data _ idxs flag add?]
@@ -461,8 +466,9 @@
 (defmethod event-tx-fn :token/translate-all
   [data _ idxs x y]
   (let [tokens (ds/pull-many data [:db/id :token/point] idxs)]
-    (for [{id :db/id [tx ty] :token/point} tokens]
-      {:db/id id :token/point [(round (+ x tx)) (round (+ y ty))]})))
+    (into [[:db/retract [:db/ident :local] :local/dragging]]
+          (for [{id :db/id [tx ty] :token/point} tokens]
+            {:db/id id :token/point [(round (+ x tx)) (round (+ y ty))]}))))
 
 (defmethod event-tx-fn :token/change-label
   [_ _ idxs value]
@@ -522,15 +528,19 @@
      [:db/add -1 (keyword :bounds w-type) bounds]]))
 
 (defmethod event-tx-fn :selection/from-rect
-  [data _ vecs]
-  (let [local  (ds/entity data [:db/ident :local])
-        bounds (normalize vecs)]
+  [data _ [ax ay bx by]]
+  (let [root  (ds/entity data [:db/ident :root])
+        local (:root/local root)
+        bound (bounding-box [ax ay] [bx by])
+        owned (into #{} (comp (mapcat :local/dragging) (map :db/id))
+                    (:session/conns (:root/session root)))]
     [{:db/id (:db/id (:local/camera local))
       :camera/draw-mode :select
       :camera/selected
       (for [token (:scene/tokens (:camera/scene (:local/camera local)))
             :let  [{id :db/id [x y] :token/point flags :token/flags} token]
-            :when (and (within? x y bounds)
+            :when (and (within? x y bound)
+                       (not (owned id))
                        (or (= (:local/type local) :host)
                            (not ((or flags #{}) :hidden))))]
         {:db/id id})}]))
@@ -876,3 +886,16 @@
         id   (:db/id (:local/camera local))]
     [{:db/id id :camera/draw-mode :select}
      [:db/retract id :camera/selected]]))
+
+;; -- Dragging --
+(defmethod
+  ^{:doc "User has started dragging one or more scene objects."}
+  event-tx-fn :drag/start
+  [_ _ ids]
+  [{:db/ident :local :local/dragging ids}])
+
+(defmethod
+  ^{:doc "User has ended all dragging."}
+  event-tx-fn :drag/end
+  []
+  [[:db/retract [:db/ident :local] :local/dragging]])
