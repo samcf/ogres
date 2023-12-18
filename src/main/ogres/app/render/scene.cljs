@@ -373,7 +373,6 @@
                    :class (str "scene-shape-" (name (:shape/kind data)))
                    :transform (str "translate(" tx ", " ty ")")
                    :on-pointer-down (getValueByKeys options "listeners" "onPointerDown")
-                   :data-dragging (.-isDragging options)
                    :data-selected selected?}
                   ($ :defs ($ pattern {:id id :name (:shape/pattern data) :color (:shape/color data)}))
                   ($ render-shape {:data data :attrs {:fill (str "url(#" id ")")}})
