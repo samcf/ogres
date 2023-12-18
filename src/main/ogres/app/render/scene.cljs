@@ -554,7 +554,7 @@
                     ($ :g.scene-token-position
                       {:ref (.-setNodeRef options)
                        :transform (str "translate(" ax ", " ay ")")
-                       :on-pointer-down (getValueByKeys options "listeners" "onPointerDown")
+                       :on-pointer-down (or (getValueByKeys options "listeners" "onPointerDown") stop-propagation)
                        :data-color (:local/color owner)
                        :data-dragging (or (some? owner) (.-isDragging options))
                        :data-dragged-by (get dragged-by id "none")}
@@ -570,7 +570,7 @@
                   ($ :g.scene-tokens-selected
                     {:ref (.-setNodeRef options)
                      :transform (str "translate(" (or dx 0) ", " (or dy 0) ")")
-                     :on-pointer-down (getValueByKeys options "listeners" "onPointerDown")}
+                     :on-pointer-down (or (getValueByKeys options "listeners" "onPointerDown") stop-propagation)}
                     (for [{id :db/id [tx ty] :token/point :as data} selected :let [owner (drag id)]]
                       ($ render-live {:key id :owner (:local/uuid owner) :ox tx :oy ty}
                         (fn [rx ry]
