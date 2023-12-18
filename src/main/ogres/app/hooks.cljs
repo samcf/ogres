@@ -4,8 +4,7 @@
             [ogres.app.provider.portal :as provider.portal]
             [ogres.app.provider.state :as provider.state]
             [ogres.app.provider.storage :as provider.storage]
-            [perfect-cursors :refer [PerfectCursor]]
-            [uix.core :refer [use-effect use-state use-layout-effect use-ref use-callback]]))
+            [uix.core :refer [use-effect use-state use-ref use-callback]]))
 
 (def ^{:doc "Returns a function which, when called with a topic and any number
              of additional arguments, will perform the following work:
@@ -108,18 +107,3 @@
            (if (not (.contains node (.-target event)))
              (set-state false)))) []))
     [state set-state ref]))
-
-(defn use-cursor
-  "Returns a function which should be called with updates to an element's
-   position from some external source, such as a WebSocket event. Accepts a
-   callback function which is called with an interpolated position; use this
-   new position to update the element's actual rendered position."
-  [callback [x y]]
-  (let [[cursor] (use-state (PerfectCursor. callback))]
-    (use-layout-effect
-     (fn []
-       (.addPoint cursor #js [x y])
-       (fn [] (.dispose cursor))) ^:lint/disable [cursor])
-    (use-callback
-     (fn [[x y]]
-       (.addPoint cursor #js [x y])) [cursor])))
