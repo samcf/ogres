@@ -349,8 +349,8 @@
      #js {"onDragEnd"
           (use-callback
            (fn [data]
-             (if (= (.. data -active -data -current -class) "shape")
-               (let [id (first (.. data -active -data -current -id))
+             (if (= (getValueByKeys data "active" "data" "current" "class") "shape")
+               (let [id (first (getValueByKeys data "active" "data" "current" "id"))
                      dx (.. data -delta -x)
                      dy (.. data -delta -y)]
                  (if (and (= dx 0) (= dy 0))
@@ -362,7 +362,7 @@
                   selected? (contains? selecting (:db/id (:local/camera result)))]]
         ($ use-portal {:key id :name (if (and user? selected?) :selected)}
           ($ render-drag {:id id :class "shape" :idxs (list id)}
-            (fn [^js/object options]
+            (fn [options]
               (let [id (random-uuid)
                     dx (getValueByKeys options "transform" "x")
                     dy (getValueByKeys options "transform" "y")
@@ -511,15 +511,15 @@
      #js {"onDragStart"
           (use-callback
            (fn [data]
-             (let [class (.. data -active -data -current -class)]
+             (let [class (getValueByKeys data "active" "data" "current" "class")]
                (if (or (= class "token") (= class "tokens"))
-                 (let [idxs (.. data -active -data -current -id)]
+                 (let [idxs (getValueByKeys data "active" "data" "current" "id")]
                    (set-dragged-by (dragged-by-fn "local" idxs))
                    (dispatch :drag/start idxs))))) [dispatch])
           "onDragEnd"
           (use-callback
            (fn [data]
-             (case (.. data -active -data -current -class)
+             (case (getValueByKeys data "active" "data" "current" "class")
                "tokens"
                (let [dx (.. data -delta -x)
                      dy (.. data -delta -y)
@@ -538,7 +538,7 @@
           "onDragCancel"
           (use-callback
            (fn [data]
-             (case (.. data -active -data -current -class)
+             (case (getValueByKeys data "active" "data" "current" "class")
                ("tokens" "token") (dispatch :drag/end) nil)) [dispatch])})
     ($ :<>
       ($ :g.scene-tokens
@@ -546,7 +546,7 @@
           ($ render-live {:key id :owner (:local/uuid owner) :ox tx :oy ty}
             (fn [rx ry]
               ($ render-drag {:id id :idxs (list id) :class "token" :disabled (some? owner)}
-                (fn [^js/object options]
+                (fn [options]
                   (let [dx (getValueByKeys options "transform" "x")
                         dy (getValueByKeys options "transform" "y")
                         ax (+ tx (or rx dx 0))
@@ -564,7 +564,7 @@
               cont (boolean (seq (intersection idxs (set (keys drag)))))]
           ($ use-portal {:key idxs :name (if (or (= type :host) (= type :conn)) :selected)}
             ($ render-drag {:id "tokens" :class "tokens" :idxs (seq idxs) :disabled cont}
-              (fn [^js/object options]
+              (fn [options]
                 (let [dx (getValueByKeys options "transform" "x")
                       dy (getValueByKeys options "transform" "y")]
                   ($ :g.scene-tokens-selected
