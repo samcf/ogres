@@ -113,9 +113,9 @@
       (if data-url
         ($ :.initiative-token-image
           {:style {:background-image (str "url(" data-url ")")}
-           :on-click #(dispatch :element/select id true)})
+           :on-click #(dispatch :element/select id)})
         ($ :.initiative-token-pattern
-          {:on-click #(dispatch :element/select id true)}
+          {:on-click #(dispatch :element/select id)}
           ($ icon {:name "dnd" :size 36})))
       ($ form-dice
         {:value (:initiative/roll entity)

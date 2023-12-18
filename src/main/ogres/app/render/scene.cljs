@@ -519,22 +519,22 @@
           "onDragEnd"
           (use-callback
            (fn [data]
-             (case (getValueByKeys data "active" "data" "current" "class")
-               "tokens"
-               (let [dx (.. data -delta -x)
-                     dy (.. data -delta -y)
-                     event (.. data -activatorEvent)
-                     token (.. event -target (closest "[data-id]") -dataset -id)]
-                 (if (and (= dx 0) (= dy 0))
-                   (dispatch :element/select (js/Number token) (not (.-shiftKey event)))
-                   (dispatch :token/translate-all (seq (.. data -active -data -current -id)) dx dy)))
-               "token"
-               (let [id (first (.. data -active -data -current -id))
-                     dx (.. data -delta -x)
-                     dy (.. data -delta -y)]
-                 (if (and (= dx 0) (= dy 0))
-                   (dispatch :element/select id (not (.. data -activatorEvent -shiftKey)))
-                   (dispatch :token/translate id dx dy))) nil)) [dispatch])
+             (let [event (.. data -activatorEvent)]
+               (case (getValueByKeys data "active" "data" "current" "class")
+                 "tokens"
+                 (let [id (.. event -target (closest "[data-id]") -dataset -id)
+                       dx (.. data -delta -x)
+                       dy (.. data -delta -y)]
+                   (if (and (= dx 0) (= dy 0))
+                     (dispatch :element/select (js/Number id) (.-shiftKey event))
+                     (dispatch :token/translate-all (seq (.. data -active -data -current -id)) dx dy)))
+                 "token"
+                 (let [id (first (.. data -active -data -current -id))
+                       dx (.. data -delta -x)
+                       dy (.. data -delta -y)]
+                   (if (and (= dx 0) (= dy 0))
+                     (dispatch :element/select id (.-shiftKey event))
+                     (dispatch :token/translate id dx dy))) nil))) [dispatch])
           "onDragCancel"
           (use-callback
            (fn [data]

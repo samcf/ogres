@@ -397,16 +397,19 @@
     (assoc {:db/id id} attr value)))
 
 (defmethod event-tx-fn :element/select
-  [data _ id replace?]
-  (let [local  (ds/entity data [:db/ident :local])
-        entity (ds/entity data id)
-        camera (:db/id (:local/camera local))]
-    [[:db/retract [:db/ident :local] :local/dragging]
-     (if replace?
-       [:db/retract camera :camera/selected])
-     (if (and (not replace?) (:camera/_selected entity))
-       [:db/retract camera :camera/selected id]
-       {:db/id camera :camera/selected {:db/id id}})]))
+  ([_ event id]
+   [[:db.fn/call event-tx-fn event id false]])
+  ([data _ id shift?]
+   (let [local    (ds/entity data [:db/ident :local])
+         entity   (ds/entity data id)
+         camera   (:db/id (:local/camera local))
+         selected (contains? (:camera/selected (:local/camera local)) entity)]
+     [[:db/retract [:db/ident :local] :local/dragging]
+      (if (not shift?)
+        [:db/retract camera :camera/selected])
+      (if (and shift? selected)
+        [:db/retract camera :camera/selected id]
+        {:db/id camera :camera/selected {:db/id id}})])))
 
 (defmethod event-tx-fn :element/remove
   [_ _ idxs]
