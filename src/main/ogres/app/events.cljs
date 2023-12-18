@@ -889,14 +889,13 @@
 
 ;; -- Dragging --
 (defmethod
-  ^{:doc "The user has started a drag event on an object with the given class
-          and id."}
+  ^{:doc "User has started dragging one or more scene objects."}
   event-tx-fn :drag/start
   [_ _ ids]
   [{:db/ident :local :local/dragging ids}])
 
 (defmethod
-  ^{:doc "The user has ended the drag event."}
+  ^{:doc "User has ended all dragging."}
   event-tx-fn :drag/end
   []
   [[:db/retract [:db/ident :local] :local/dragging]])
