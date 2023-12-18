@@ -1,8 +1,8 @@
 {:paths   ["src/main"]
  :deps    {com.cognitect/transit-clj             {:mvn/version "1.0.329"}
            com.cognitect/transit-cljs            {:mvn/version "0.8.269"}
-           com.pitch/uix.core                    {:mvn/version "1.0.1"}
-           com.pitch/uix.dom                     {:mvn/version "1.0.1"}
+           com.pitch/uix.core                    {:git/url "https://github.com/pitch-io/uix.git" :git/sha "361a5044a34a04d0159fde20f5c91363ebef6a8c" :deps/root "core"}
+           com.pitch/uix.dom                     {:git/url "https://github.com/pitch-io/uix.git" :git/sha "361a5044a34a04d0159fde20f5c91363ebef6a8c" :deps/root "dom"}
            datascript-transit/datascript-transit {:mvn/version "0.3.0" :exclusions  [com.cognitect/transit-clj com.cognitect/transit-cljs]}
            datascript/datascript                 {:mvn/version "1.5.3"}
            io.pedestal/pedestal.jetty            {:mvn/version "0.5.10"}
