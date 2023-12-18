@@ -636,15 +636,15 @@
   (uix/memo
    (uix/fn [{:keys [on-cursor-move children]
              :or   {on-cursor-move identity}}]
-     (let [params (use-draggable #js {"id" "scene-camera" "data" #js {"class" "camera"}})
-           deltax (getValueByKeys params #js ["transform" "x"])
-           deltay (getValueByKeys params #js ["transform" "y"])
-           drag?  (.-isDragging params)]
+     (let [options (use-draggable #js {"id" "scene-camera" "data" #js {"class" "camera"}})
+           drag? (.-isDragging options)
+           dx (getValueByKeys options "transform" "x")
+           dy (getValueByKeys options "transform" "y")]
        ($ :g
-         {:ref (.-setNodeRef params)
+         {:ref (.-setNodeRef options)
           :style {:will-change "transform"}
-          :transform (str "translate(" (or deltax 0) ", " (or deltay 0) ")")
-          :on-pointer-down (.. params -listeners -onPointerDown)
+          :transform (str "translate(" (or dx 0) ", " (or dy 0) ")")
+          :on-pointer-down (.. options -listeners -onPointerDown)
           :on-pointer-move
           (use-callback
            (fn [event]
