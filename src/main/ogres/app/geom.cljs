@@ -25,12 +25,6 @@
      (+ ax (* hyp (js/Math.cos (- rad 0.46))))
      (+ ay (* hyp (js/Math.sin (- rad 0.46))))]))
 
-(defn normalize
-  "Rearranges the two given vectors such that the first vector represents
-   the top-left corner and the second represents the bottom-right corner."
-  [[ax ay bx by]]
-  [(min ax bx) (min ay by) (max ax bx) (max ay by)])
-
 (defn within?
   "Returns true if the given vector [x y] is within the given bounds, false
    otherwise."

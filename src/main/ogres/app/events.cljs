@@ -2,7 +2,7 @@
   (:require [datascript.core :as ds]
             [clojure.set :refer [union]]
             [clojure.string :refer [trim]]
-            [ogres.app.geom :refer [bounding-box normalize within?]]
+            [ogres.app.geom :refer [bounding-box within?]]
             [ogres.app.util :refer [comp-fn with-ns]]))
 
 (def ^:private suffix-max-xf
@@ -525,10 +525,10 @@
      [:db/add -1 (keyword :bounds w-type) bounds]]))
 
 (defmethod event-tx-fn :selection/from-rect
-  [data _ vecs]
+  [data _ [ax ay bx by]]
   (let [root  (ds/entity data [:db/ident :root])
         local (:root/local root)
-        bound (normalize vecs)
+        bound (bounding-box [ax ay] [bx by])
         owned (into #{} (comp (mapcat :local/dragging) (map :db/id))
                     (:session/conns (:root/session root)))]
     [{:db/id (:db/id (:local/camera local))
