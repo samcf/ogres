@@ -526,14 +526,18 @@
 
 (defmethod event-tx-fn :selection/from-rect
   [data _ vecs]
-  (let [local  (ds/entity data [:db/ident :local])
-        bounds (normalize vecs)]
+  (let [root  (ds/entity data [:db/ident :root])
+        local (:root/local root)
+        bound (normalize vecs)
+        owned (into #{} (comp (mapcat :local/dragging) (map :db/id))
+                    (:session/conns (:root/session root)))]
     [{:db/id (:db/id (:local/camera local))
       :camera/draw-mode :select
       :camera/selected
       (for [token (:scene/tokens (:camera/scene (:local/camera local)))
             :let  [{id :db/id [x y] :token/point flags :token/flags} token]
-            :when (and (within? x y bounds)
+            :when (and (within? x y bound)
+                       (not (owned id))
                        (or (= (:local/type local) :host)
                            (not ((or flags #{}) :hidden))))]
         {:db/id id})}]))
