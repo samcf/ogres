@@ -354,7 +354,7 @@
                      dx (.. data -delta -x)
                      dy (.. data -delta -y)]
                  (if (and (= dx 0) (= dy 0))
-                   (dispatch :element/select id true)
+                   (dispatch :element/select id)
                    (dispatch :shape/translate id dx dy))))) [dispatch])})
     ($ :g.scene-shapes
       (for [{id :db/id [sx sy] :shape/vecs :as data} shapes
