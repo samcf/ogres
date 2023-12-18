@@ -9,7 +9,7 @@
             [ogres.app.render.draw :refer [draw]]
             [ogres.app.render.forms :refer [token-context-menu shape-context-menu]]
             [ogres.app.render.pattern :refer [pattern]]
-            [ogres.app.util :refer [separate]]
+            [ogres.app.util :refer [key-by separate]]
             [uix.core :as uix :refer [defui $ use-callback use-effect use-memo use-state]]
             ["@dnd-kit/core"
              :refer  [DndContext useDndMonitor useDraggable]
@@ -598,6 +598,40 @@
     ($ :g.scene-bounds {:transform (str "translate(" ox " , " oy ")")}
       ($ :rect {:x 0 :y 0 :width vw :height vh :rx 8}))))
 
+(def ^:private cursors-query
+  [{:root/local [{:local/camera [:camera/scene]}]}
+   {:root/session
+    [[:session/share-cursors :default true]
+     {:session/host [:local/uuid]}
+     {:session/conns
+      [:local/uuid
+       [:local/share-cursor :default true]
+       [:local/color :default "none"]
+       {:local/camera [:camera/scene]}]}]}])
+
+(defui ^:private render-cursors []
+  (let [result (use-query cursors-query [:db/ident :root])
+        conns  (key-by :local/uuid (:session/conns (:root/session result)))
+        share  (:session/share-cursors (:root/session result))
+        host   (:session/host (:root/session result))
+        [points set-points] (use-state {})]
+    (use-subscribe :cursor/moved {:disabled (not share)}
+      (use-callback
+       (fn [{[uuid x y] :args}]
+         (set-points (fn [points] (assoc points uuid [x y])))) []))
+    (if share
+      ($ :g.scene-cursors
+        (for [[uuid [x y]] points
+              :let [conn (conns uuid)]
+              :when (and (some? conn)
+                         (:local/share-cursor conn)
+                         (= (:camera/scene (:local/camera conn))
+                            (:camera/scene (:local/camera (:root/local result)))))]
+          ($ use-portal {:key uuid :name (if (= (:local/uuid host) (:local/uuid conn)) :host-cursor)}
+            ($ :g.scene-cursor
+              {:transform (str "translate(" (- x 3) ", " (- y 3) ")") :data-color (:local/color conn)}
+              ($ icon {:name "cursor-fill" :size 28}))))))))
+
 (def ^:private scene-camera-draggable
   (uix/memo
    (uix/fn [{:keys [on-cursor-move children]
@@ -648,8 +682,12 @@
        ($ render-grid)
        ($ render-shapes)
        ($ render-tokens)
+       ($ create-portal {:name :host-cursor}
+         (fn [{:keys [ref]}]
+           ($ :g {:ref ref :style {:outline "none"}})))
        ($ render-mask-vis)
        ($ render-mask-fog)
+       ($ render-cursors)
        ($ create-portal {:name :selected}
          (fn [{:keys [ref]}]
            ($ :g {:ref ref :style {:outline "none"}})))))))
