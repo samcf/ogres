@@ -35,6 +35,6 @@
   [{:keys [name children]}]
   (let [[portals _] (use-context context)
         node        (get portals name)]
-    (if (not (nil? node))
+    (if (some? node)
       (create-portal children node)
       children)))

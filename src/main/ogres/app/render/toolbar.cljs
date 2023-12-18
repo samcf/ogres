@@ -72,7 +72,7 @@
             (set-tooltip-key key)))
 
         element
-        (if (and (not (nil? tooltip-key)) tooltips?)
+        (if (and (some? tooltip-key) tooltips?)
           js/window nil)
 
         copyable
@@ -128,7 +128,7 @@
           ($ icon {:name "compass"}))
         ($ :button
           {:type "button"
-           :disabled (not (and (= type :host) (not (nil? (:session/_host result)))))
+           :disabled (not (and (= type :host) (some? (:session/_host result))))
            :on-click #(dispatch :session/focus)
            :on-mouse-enter (tooltip-fn :scene/focus)}
           ($ icon {:name "camera2" :size 22}))

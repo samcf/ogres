@@ -222,7 +222,7 @@
                 {:pages pgs
                  :value (min page pgs)
                  :on-change set-page})))
-          (if (not (nil? preview))
+          (if (some? preview)
             (let [node (js/document.querySelector "#root")
                   data (first (filter (comp #{preview} :image/checksum) (:root/scene-images data)))]
               (create-portal

@@ -251,7 +251,7 @@
          (fn [event]
            (let [x (.-clientX event) y (.-clientY event)]
              (set-origin [x y])))})
-      (if (not (nil? next-origin))
+      (if (some? next-origin)
         (let [[x y] next-origin
               idxs 7
               draw (* next-size (/ grid-size prev-size) scale)
@@ -289,7 +289,7 @@
                   ($ :button
                     {:type "button" :data-name "left" :on-click #(set-origin [(dec x) y])}
                     ($ icon {:name "arrow-left-short" :size 20}))
-                  (if (not (nil? prev-origin))
+                  (if (some? prev-origin)
                     ($ :button
                       {:type "button" :data-name "clear" :data-tooltip "Reset"
                        :on-click #(dispatch :scene/reset-grid-origin)}

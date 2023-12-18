@@ -190,7 +190,7 @@
         conn     (use-context provider.state/context)
         on-send  (use-callback
                   (fn [message]
-                    (if (not (nil? socket))
+                    (if (some? socket)
                       (if (= (.-readyState socket) 1)
                         (let [local    (ds/entity @conn [:db/ident :local])
                               defaults {:time (js/Date.now) :src (:local/uuid local)}]
@@ -248,7 +248,7 @@
          (let [search (.. js/window -location -search)
                params (js/URLSearchParams. search)
                room   (.get params "join")]
-           (if (not (nil? room))
+           (if (some? room)
              (let [conn (js/WebSocket. (str SOCKET-URL "?join=" room))]
                (set-socket conn))))) []))
 
@@ -264,7 +264,7 @@
     (use-subscribe :session/close
       (use-callback
        (fn []
-         (when (not (nil? socket))
+         (when (some? socket)
            (.close socket)
            (set-socket nil))) [socket]))
 

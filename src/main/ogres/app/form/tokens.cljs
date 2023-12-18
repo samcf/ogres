@@ -52,7 +52,7 @@
          ($ :figure.token-gallery-item
            {:data-type "default"}
            ($ icon {:name "dnd"}))
-         (if (not (nil? active))
+         (if (some? active)
            ($ image {:checksum active}
              (fn [{:keys [data-url]}]
                ($ :figure.token-gallery-item
@@ -157,7 +157,7 @@
             (fn [event]
               (let [drag (getValueByKeys event #js ["active" "id"])
                     drop (getValueByKeys event #js ["over" "id"])]
-                (if (and (not (nil? drop)) (not= drag "default"))
+                (if (and (some? drop) (not= drag "default"))
                   (case drop
                     "scope-pub" (dispatch :tokens/change-scope drag :public)
                     "scope-prv" (dispatch :tokens/change-scope drag :private)
