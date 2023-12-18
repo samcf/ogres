@@ -654,6 +654,7 @@ legend {
 /* Scene Cursors */
 .scene-cursor {
     color: var(--color-session);
+    pointer-events: none;
     stroke-width: 1px;
     stroke: black;
     transition: transform 80ms linear;
