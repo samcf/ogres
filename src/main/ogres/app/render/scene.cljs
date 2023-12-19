@@ -9,7 +9,7 @@
             [ogres.app.render.draw :refer [draw]]
             [ogres.app.render.forms :refer [token-context-menu shape-context-menu]]
             [ogres.app.render.pattern :refer [pattern]]
-            [ogres.app.util :refer [key-by separate]]
+            [ogres.app.util :refer [key-by]]
             [uix.core :as uix :refer [defui $ use-callback use-effect use-memo use-state]]
             ["@dnd-kit/core"
              :refer  [DndContext useDndMonitor useDraggable]
@@ -430,36 +430,33 @@
         exclu #{:player :hidden :unconscious}]
     (take 4 (filter (difference (token-flags data) exclu) order))))
 
-(def ^:private render-token
-  (uix/memo
-   (uix/fn [{:keys [data]}]
-     (let [radii (- (/ grid-size 2) 2)
-           flags (:token/flags data)
-           scale (/ (:token/size data) 5)
-           hashs (:image/checksum (:token/image data))
-           pttrn (cond (flags :unconscious) (str "token-face-deceased")
-                       (string? hashs)      (str "token-face-" hashs)
-                       :else                (str "token-face-default"))]
-       ($ :g.scene-token
-         {:transform  (str "scale(" scale ")") :data-flags (token-flags-attr data)}
-         (let [radius (* grid-size (/ (:aura/radius data) 5))]
-           (if (> radius 0)
-             ($ :circle.scene-token-aura {:cx 0 :cy 0 :r (+ radius (/ grid-size 2))})))
-         ($ :circle.scene-token-shape {:cx 0 :cy 0 :r radii :fill (str "url(#" pttrn ")")})
-         ($ :circle.scene-token-ring
-           {:cx 0 :cy 0 :r (+ radii 5) :pathLength 100})
-         (for [[deg flag] (mapv vector [-120 120 -65 65] (token-conditions data))
-               :let [rn (* (/ js/Math.PI 180) deg)
-                     cx (* (js/Math.sin rn) radii)
-                     cy (* (js/Math.cos rn) radii)]]
-           ($ :g.scene-token-flags {:key flag :data-flag flag :transform (str "translate(" cx ", " cy ")")}
-             ($ :circle {:cx 0 :cy 0 :r 12})
-             ($ :g {:transform (str "translate(" -8 ", " -8 ")")}
-               ($ icon {:name (condition->icon flag) :size 16}))))
-         (if (seq (label data))
-           ($ :foreignObject.context-menu-object {:x -200 :y (- radii 8) :width 400 :height 32}
-             ($ :.scene-token-label
-               ($ :span (label data))))))))))
+(defui ^:private render-token [{:keys [data]}]
+  (let [radii (- (/ grid-size 2) 2)
+        flags (:token/flags data)
+        scale (/ (:token/size data) 5)
+        hashs (:image/checksum (:token/image data))
+        pttrn (cond (flags :unconscious) (str "token-face-deceased")
+                    (string? hashs)      (str "token-face-" hashs)
+                    :else                (str "token-face-default"))]
+    ($ :g.scene-token
+      {:id (str "token-" (:db/id data)) :transform (str "scale(" scale ")") :data-flags (token-flags-attr data)}
+      (let [radius (* grid-size (/ (:aura/radius data) 5))]
+        (if (> radius 0)
+          ($ :circle.scene-token-aura {:cx 0 :cy 0 :r (+ radius (/ grid-size 2))})))
+      ($ :circle.scene-token-shape {:cx 0 :cy 0 :r radii :fill (str "url(#" pttrn ")")})
+      ($ :circle.scene-token-ring
+        {:cx 0 :cy 0 :r (+ radii 5) :pathLength 100})
+      (for [[deg flag] (mapv vector [-120 120 -65 65] (token-conditions data))
+            :let [rn (* (/ js/Math.PI 180) deg)
+                  cx (* (js/Math.sin rn) radii)
+                  cy (* (js/Math.cos rn) radii)]]
+        ($ :g.scene-token-flags {:key flag :data-flag flag :transform (str "translate(" cx ", " cy ")")}
+          ($ :circle {:cx 0 :cy 0 :r 12})
+          ($ :g {:transform (str "translate(" -8 ", " -8 ")")}
+            ($ icon {:name (condition->icon flag) :size 16}))))
+      (if-let [label (label data)]
+        ($ :text.scene-token-label {:y (/ grid-size 2)}
+          label)))))
 
 (def ^:private query-tokens
   [{:root/local
@@ -486,26 +483,21 @@
       [:local/uuid :local/color :local/dragging]}]}])
 
 (defui ^:private render-tokens []
-  (let [[dragged-by set-dragged-by] (use-state {})
-        dispatch (use-dispatch)
+  (let [dispatch (use-dispatch)
         result   (use-query query-tokens [:db/ident :root])
-        local    (:root/local result)
-        scene    (:camera/scene (:local/camera local))
-        scale    (:camera/scale (:local/camera local))
-        type     (:local/type local)
-        drag     (use-memo
-                  (fn []
-                    (->> (:session/conns (:root/session result))
-                         (into {} invert-drag-data-xf))) [result])
-        [selected tokens]
-        (->> (:scene/tokens scene)
-             (filter (fn [token] (or (= type :host) (not ((:token/flags token) :hidden)))))
-             (sort token-comparator)
-             (separate (fn [token]
-                         ((into #{} (map :db/id) (:camera/_selected token))
-                          (:db/id (:local/camera local))))))]
+        [dragged-by set-dragged-by] (use-state {})
+        {{type :local/type
+          {scale :camera/scale
+           selected :camera/selected
+           {tokens :scene/tokens} :camera/scene} :local/camera} :root/local
+         {conns :session/conns} :root/session} result
+        selected (into #{} (map :db/id) selected)
+        dragging (into {} invert-drag-data-xf conns)
+        sorted   (->> (filter (fn [token] (or (= type :host) (not ((:token/flags token) :hidden)))) tokens)
+                      (sort token-comparator))]
     (use-effect
-     (fn [] (set-dragged-by (dragged-by-fn "remote" (keys drag)))) [drag])
+     (fn [] (set-dragged-by (dragged-by-fn "remote" (keys dragging))))
+     ^:lint/disable [result])
     (use-dnd-monitor
      #js {"onDragStart"
           (use-callback
@@ -539,28 +531,32 @@
            (fn [data]
              (case (getValueByKeys data "active" "data" "current" "class")
                ("tokens" "token") (dispatch :drag/end) nil)) [dispatch])})
-    ($ :<>
-      ($ :g.scene-tokens
-        (for [{id :db/id [tx ty] :token/point :as data} tokens :let [owner (drag id)]]
-          ($ render-live {:key id :owner (:local/uuid owner) :ox tx :oy ty}
-            (fn [rx ry]
-              ($ render-drag {:id id :idxs (list id) :class "token" :disabled (some? owner)}
-                (fn [options]
-                  (let [dx (getValueByKeys options "transform" "x")
-                        dy (getValueByKeys options "transform" "y")
-                        ax (+ tx (or rx dx 0))
-                        ay (+ ty (or ry dy 0))]
-                    ($ :g.scene-token-position
-                      {:ref (.-setNodeRef options)
-                       :transform (str "translate(" ax ", " ay ")")
-                       :on-pointer-down (or (getValueByKeys options "listeners" "onPointerDown") stop-propagation)
-                       :data-color (:local/color owner)
-                       :data-dragging (or (some? owner) (.-isDragging options))
-                       :data-dragged-by (get dragged-by id "none")}
-                      ($ render-token {:data data})))))))))
-      (if (seq selected)
+    ($ :g.scene-tokens
+      ($ :defs.scene-tokens-defs
+        (for [{id :db/id :as data} sorted]
+          ($ render-token {:key id :data data})))
+      (for [{id :db/id [tx ty] :token/point} sorted
+            :when (not (selected id))
+            :let  [owner (dragging id)]]
+        ($ render-live {:key id :owner (:local/uuid owner) :ox tx :oy ty}
+          (fn [rx ry]
+            ($ render-drag {:id id :idxs (list id) :class "token" :disabled (some? owner)}
+              (fn [options]
+                (let [dx (getValueByKeys options "transform" "x")
+                      dy (getValueByKeys options "transform" "y")
+                      ax (+ tx (or rx dx 0))
+                      ay (+ ty (or ry dy 0))]
+                  ($ :g.scene-token-position
+                    {:ref (.-setNodeRef options)
+                     :transform (str "translate(" ax ", " ay ")")
+                     :on-pointer-down (or (getValueByKeys options "listeners" "onPointerDown") stop-propagation)
+                     :data-color (:local/color owner)
+                     :data-dragging (or (some? owner) (.-isDragging options))
+                     :data-dragged-by (get dragged-by id "none")}
+                    ($ :use {:href (str "#token-" id)}))))))))
+      (if-let [selected (seq (filter (comp selected :db/id) sorted))]
         (let [idxs (into (sorted-set) (map :db/id) selected)
-              cont (boolean (seq (intersection idxs (set (keys drag)))))]
+              cont (boolean (seq (intersection idxs (set (keys dragging)))))]
           ($ use-portal {:key idxs :name (if (or (= type :host) (= type :conn)) :selected)}
             ($ render-drag {:id "tokens" :class "tokens" :idxs (seq idxs) :disabled cont}
               (fn [options]
@@ -570,7 +566,7 @@
                     {:ref (.-setNodeRef options)
                      :transform (str "translate(" (or dx 0) ", " (or dy 0) ")")
                      :on-pointer-down (or (getValueByKeys options "listeners" "onPointerDown") stop-propagation)}
-                    (for [{id :db/id [tx ty] :token/point :as data} selected :let [owner (drag id)]]
+                    (for [{id :db/id [tx ty] :token/point} selected :let [owner (dragging id)]]
                       ($ render-live {:key id :owner (:local/uuid owner) :ox tx :oy ty}
                         (fn [rx ry]
                           ($ :g.scene-token-position
@@ -579,7 +575,7 @@
                              :data-color (:local/color owner)
                              :data-dragging (or (some? owner) (.-isDragging options))
                              :data-dragged-by (get dragged-by id "none")}
-                            ($ render-token {:data data})))))
+                            ($ :use {:href (str "#token-" id)})))))
                     (if (or (= type :host) (= type :conn))
                       (let [[ax _ bx by] (apply bounding-box (map :token/point selected))]
                         ($ :foreignObject.context-menu-object

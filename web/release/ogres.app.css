@@ -680,9 +680,14 @@ legend {
 }
 
 .scene-token-label {
-    align-items: center;
-    display: flex;
-    justify-content: center;
+    fill: var(--color-black-100);
+    font-size: 13px;
+    paint-order: stroke;
+    pointer-events: none;
+    stroke-width: 3px;
+    stroke: var(--color-blues-900);
+    text-anchor: middle;
+    text-rendering: optimizeLegibility;
 }
 
 .scene-token-label > span {
@@ -720,8 +725,8 @@ legend {
     pointer-events: none;
     stroke-dasharray: 3 1;
     stroke-dashoffset: 0;
-    stroke-width: 0px;
-    stroke: var(--scene-stroke);
+    stroke-width: var(--token-ring-stroke-width);
+    stroke: var(--token-ring-stroke);
 }
 
 .scene-token-aura {
@@ -737,17 +742,18 @@ legend {
     shape-rendering: crispEdges;
 }
 
-.scene-tokens-selected .scene-token-ring {
-    stroke-width: 1px;
+.scene-tokens-selected {
+    --token-ring-stroke: var(--color-session);
+    --token-ring-stroke-width: 1px;
 }
 
 .scene-token-position {
     transition: transform 40ms linear;
 }
 
-.scene-token-position[data-dragging=true] .scene-token-ring {
-    stroke: var(--color-session);
-    stroke-width: 2px;
+.scene-token-position[data-dragging=true] {
+    --token-ring-stroke: var(--color-session);
+    --token-ring-stroke-width: 2px;
 }
 
 .scene-token-position[data-dragged-by=local] {
