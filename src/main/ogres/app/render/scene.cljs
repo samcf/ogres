@@ -325,28 +325,49 @@
        :poly   ($ render-shape-poly props)))))
 
 (def ^:private query-shapes
-  [:local/type
-   {:local/camera
-    [:db/id
-     [:camera/scale :default 1]
-     {:camera/scene
-      [{:scene/shapes
-        [:db/id
-         :shape/kind
-         :shape/vecs
-         [:shape/color :default "#f44336"]
-         [:shape/opacity :default 0.25]
-         [:shape/pattern :default :solid]
-         :camera/_selected]}]}]}])
+  [{:root/local
+    [:local/type
+     {:local/camera
+      [:db/id
+       :camera/selected
+       [:camera/scale :default 1]
+       {:camera/scene
+        [{:scene/shapes
+          [:db/id
+           :shape/kind
+           :shape/vecs
+           [:shape/color :default "#f44336"]
+           [:shape/opacity :default 0.25]
+           [:shape/pattern :default :solid]]}]}]}]}
+   {:root/session
+    [{:session/conns
+      [:local/uuid :local/color :local/dragging]}]}])
 
 (defui ^:private render-shapes []
   (let [dispatch (use-dispatch)
-        result   (use-query query-shapes)
-        scale    (:camera/scale (:local/camera result))
-        shapes   (:scene/shapes (:camera/scene (:local/camera result)))
-        user?    (not= (:local/type result) :view)]
+        result   (use-query query-shapes [:db/ident :root])
+        [dragged-by set-dragged-by] (use-state {})
+        {{type :local/type
+          {scale :camera/scale
+           selected :camera/selected
+           {shapes :scene/shapes} :camera/scene} :local/camera} :root/local
+         {conns :session/conns} :root/session} result
+        selected (into #{} (map :db/id) selected)
+        dragging (into {} invert-drag-data-xf conns)
+        user? (not= type :view)]
+    (use-effect
+     (fn [] (set-dragged-by (dragged-by-fn "remote" (keys dragging))))
+     ^:lint/disable [result])
     (use-dnd-monitor
-     #js {"onDragEnd"
+     #js {"onDragStart"
+          (use-callback
+           (fn [data]
+             (if (= (getValueByKeys data "active" "data" "current" "class") "shape")
+               (let [id (getValueByKeys data "active" "data" "current" "id")]
+                 (set-dragged-by (dragged-by-fn "local" id))
+                 (dispatch :drag/start id))))
+           [dispatch])
+          "onDragEnd"
           (use-callback
            (fn [data]
              (if (= (getValueByKeys data "active" "data" "current" "class") "shape")
@@ -358,31 +379,36 @@
                    (dispatch :shape/translate id dx dy))))) [dispatch])})
     ($ :g.scene-shapes
       (for [{id :db/id [sx sy] :shape/vecs :as data} shapes
-            :let [selecting (into #{} (map :db/id) (:camera/_selected data))
-                  selected? (contains? selecting (:db/id (:local/camera result)))]]
+            :let [tempid    (random-uuid)
+                  selected? (contains? selected id)
+                  owner     (dragging id)]]
         ($ use-portal {:key id :name (if (and user? selected?) :selected)}
-          ($ render-drag {:id id :class "shape" :idxs (list id)}
-            (fn [options]
-              (let [id (random-uuid)
-                    dx (getValueByKeys options "transform" "x")
-                    dy (getValueByKeys options "transform" "y")
-                    tx (+ sx (or dx 0))
-                    ty (+ sy (or dy 0))]
-                ($ :g.scene-shape
-                  {:ref (.-setNodeRef options)
-                   :class (str "scene-shape-" (name (:shape/kind data)))
-                   :transform (str "translate(" tx ", " ty ")")
-                   :on-pointer-down (getValueByKeys options "listeners" "onPointerDown")
-                   :data-selected selected?}
-                  ($ :defs ($ pattern {:id id :name (:shape/pattern data) :color (:shape/color data)}))
-                  ($ render-shape {:data data :attrs {:fill (str "url(#" id ")")}})
-                  (if (and user? selected?)
-                    ($ :foreignObject.context-menu-object
-                      {:x -200 :y 0
-                       :width 400 :height 400
-                       :transform (str "scale(" (/ scale) ")")}
-                      ($ shape-context-menu
-                        {:data data}))))))))))))
+          ($ render-live {:owner (:local/uuid owner) :ox sx :oy sy}
+            (fn [rx ry]
+              ($ render-drag {:id id :class "shape" :idxs (list id) :disabled (some? owner)}
+                (fn [options]
+                  (let [dx (getValueByKeys options "transform" "x")
+                        dy (getValueByKeys options "transform" "y")
+                        tx (+ sx (or rx dx 0))
+                        ty (+ sy (or ry dy 0))]
+                    ($ :g.scene-shape
+                      {:ref (.-setNodeRef options)
+                       :class (str "scene-shape-" (name (:shape/kind data)))
+                       :transform (str "translate(" tx ", " ty ")")
+                       :on-pointer-down (or (getValueByKeys options "listeners" "onPointerDown") stop-propagation)
+                       :data-color (:local/color owner)
+                       :data-dragging (or (some? owner) (.-isDragging options))
+                       :data-dragged-by (get dragged-by id "none")
+                       :data-selected selected?}
+                      ($ :defs ($ pattern {:id tempid :name (:shape/pattern data) :color (:shape/color data)}))
+                      ($ render-shape {:data data :attrs {:fill (str "url(#" tempid ")")}})
+                      (if (and user? selected?)
+                        ($ :foreignObject.context-menu-object
+                          {:x -200 :y 0
+                           :width 400 :height 400
+                           :transform (str "scale(" (/ scale) ")")}
+                          ($ shape-context-menu
+                            {:data data}))))))))))))))
 
 (defui ^:private render-token-face
   [{:keys [checksum]}]
@@ -445,7 +471,7 @@
           ($ :circle.scene-token-aura {:cx 0 :cy 0 :r (+ radius (/ grid-size 2))})))
       ($ :circle.scene-token-shape {:cx 0 :cy 0 :r radii :fill (str "url(#" pttrn ")")})
       ($ :circle.scene-token-ring
-        {:cx 0 :cy 0 :r (+ radii 5) :pathLength 100})
+        {:cx 0 :cy 0 :r (+ radii 5)})
       (for [[deg flag] (mapv vector [-120 120 -65 65] (token-conditions data))
             :let [rn (* (/ js/Math.PI 180) deg)
                   cx (* (js/Math.sin rn) radii)

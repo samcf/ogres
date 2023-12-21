@@ -508,7 +508,8 @@
          vecs    :shape/vecs} result
         x (round (+ ax dx))
         y (round (+ ay dy))]
-    [{:db/id id :shape/vecs (into [x y] (trans-xf (- x ax) (- y ay)) vecs)}]))
+    [[:db/retract [:db/ident :local] :local/dragging]
+     {:db/id id :shape/vecs (into [x y] (trans-xf (- x ax) (- y ay)) vecs)}]))
 
 (defmethod event-tx-fn :share/initiate [] [])
 
