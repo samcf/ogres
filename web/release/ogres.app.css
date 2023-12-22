@@ -128,7 +128,7 @@ fieldset.checkbox + fieldset {
 
 @keyframes ring-rotate {
     0%   { stroke-dashoffset: 0; }
-    100% { stroke-dashoffset: 100; }
+    100% { stroke-dashoffset: 16px; }
 }
 
 @keyframes aura-pulse {
@@ -727,7 +727,7 @@ legend {
 }
 
 .scene-token-ring {
-    animation: ring-rotate 4s linear infinite;
+    animation: ring-rotate 640ms linear infinite;
     fill: none;
     pointer-events: none;
     stroke-dasharray: 6px 2px;
@@ -754,17 +754,39 @@ legend {
     --token-ring-stroke-width: 1px;
 }
 
-.scene-token-position {
+.scene-token-transition.enter {
+    opacity: 0;
+    transform: translate(0, -12px);
+}
+
+.scene-token-transition.enter-active {
+    opacity: 1;
+    transform: translate(0, 0);
+    transition: transform 240ms ease-in-out, opacity 240ms ease-in-out;
+}
+
+.scene-token-transition.exit {
+    opacity: 1;
+    transform: translate(0, 0);
+}
+
+.scene-token-transition.exit-active {
+    opacity: 0;
+    transform: translate(0, -12px);
+    transition: transform 240ms ease-in-out, opacity 240ms ease-in-out;
+}
+
+.scene-token-position:not([data-dragged-by=local]) {
     transition: var(--transition-drag);
+}
+
+.scene-token-position[data-hidden=true] {
+    display: none;
 }
 
 .scene-token-position[data-dragging=true] {
     --token-ring-stroke: var(--color-session);
     --token-ring-stroke-width: 2px;
-}
-
-.scene-token-position[data-dragged-by=local] {
-    transition: none;
 }
 
 /* Scene Shapes */
