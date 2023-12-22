@@ -43,6 +43,8 @@
     --color-session-green: #95cf92;
     --color-session-blue: #369acc;
     --color-session-purple: #9656a2;
+
+    --transition-drag: transform 80ms linear;
 }
 
 html, body, #root, .root {
@@ -119,9 +121,14 @@ fieldset.checkbox + fieldset {
 }
 
 /* Animations */
+@keyframes stroke-animation {
+    0% { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: 16px; }
+}
+
 @keyframes ring-rotate {
     0%   { stroke-dashoffset: 0; }
-    100% { stroke-dashoffset: 100; }
+    100% { stroke-dashoffset: 16px; }
 }
 
 @keyframes aura-pulse {
@@ -657,7 +664,7 @@ legend {
     pointer-events: none;
     stroke-width: 1px;
     stroke: black;
-    transition: transform 40ms linear;
+    transition: var(--transition-drag);
 }
 
 .scene-cursor svg use {
@@ -720,11 +727,11 @@ legend {
 }
 
 .scene-token-ring {
-    animation: ring-rotate 8s linear infinite;
+    animation: ring-rotate 640ms linear infinite;
     fill: none;
     pointer-events: none;
-    stroke-dasharray: 3 1;
-    stroke-dashoffset: 0;
+    stroke-dasharray: 6px 2px;
+    stroke-dashoffset: 0px;
     stroke-width: var(--token-ring-stroke-width);
     stroke: var(--token-ring-stroke);
 }
@@ -747,8 +754,34 @@ legend {
     --token-ring-stroke-width: 1px;
 }
 
-.scene-token-position {
-    transition: transform 40ms linear;
+.scene-token-transition.enter {
+    opacity: 0;
+    transform: translate(0, -12px);
+}
+
+.scene-token-transition.enter-active {
+    opacity: 1;
+    transform: translate(0, 0);
+    transition: transform 240ms ease-in-out, opacity 240ms ease-in-out;
+}
+
+.scene-token-transition.exit {
+    opacity: 1;
+    transform: translate(0, 0);
+}
+
+.scene-token-transition.exit-active {
+    opacity: 0;
+    transform: translate(0, -12px);
+    transition: transform 240ms ease-in-out, opacity 240ms ease-in-out;
+}
+
+.scene-token-position:not([data-dragged-by=local]) {
+    transition: var(--transition-drag);
+}
+
+.scene-token-position[data-hidden=true] {
+    display: none;
 }
 
 .scene-token-position[data-dragging=true] {
@@ -756,30 +789,19 @@ legend {
     --token-ring-stroke-width: 2px;
 }
 
-.scene-token-position[data-dragged-by=local] {
-    transition: none;
-}
-
 /* Scene Shapes */
 .scene-shape {
     cursor: pointer;
 }
 
-.scene-shape:hover > circle,
-.scene-shape:hover > path,
-.scene-shape:hover > line,
-.scene-shape:hover > polygon,
-.scene-shape[data-selected="true"] > circle,
-.scene-shape[data-selected="true"] > path,
-.scene-shape[data-selected="true"] > line,
-.scene-shape[data-selected="true"] > polygon {
-    stroke-dasharray: 4px;
-    animation: stroke-animation 1s linear infinite;
+.scene-shape:not([data-dragged-by=local]) {
+    transition: var(--transition-drag);
 }
 
-@keyframes stroke-animation {
-    0% { stroke-dashoffset: 0; }
-    100% { stroke-dashoffset: 16px; }
+.scene-shape:is(:hover, [data-selected=true], [data-dragging=true]) > *:is(circle, path, line, polygon) {
+    animation: stroke-animation 1s linear infinite;
+    stroke-dasharray: 6px 2px;
+    stroke-dashoffset: 0px;
 }
 
 .scene-drawable {
@@ -792,7 +814,7 @@ legend {
 .scene-drawable circle {
     fill: transparent;
     stroke: var(--scene-stroke);
-    stroke-dasharray: 8px;
+    stroke-dasharray: 6px 2px;
 }
 
 .scene-drawable-grid path,
