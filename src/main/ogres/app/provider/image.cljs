@@ -17,10 +17,14 @@
       (.then (fn [event] (js/Promise.resolve (.. event -target -result))))))
 
 (defn ^:private create-object-url [data-url]
-  (-> (.fetch js/window data-url)
-      (.then (fn [r] (.blob r)))
-      (.then (fn [b] (->> (js/File. #js [b] "image" #js {:type (.-type b)})
-                          (js/URL.createObjectURL))))))
+  (let [mime (-> (.split data-url ",") (aget 0) (.split ":") (aget 1) (.split ";") (aget 0))
+        rest (-> (.split data-url ",") (aget 1) (js/atob))]
+    (loop [i 0 data (js/Uint8Array. (count rest))]
+      (if (< i (count rest))
+        (do (aset data i (.charCodeAt rest i))
+            (recur (inc i) data))
+        (-> (js/Blob. #js [data] #js {"type" mime})
+            (js/URL.createObjectURL))))))
 
 (defmulti ^:private process-image :type)
 
