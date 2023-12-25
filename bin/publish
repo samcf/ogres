@@ -19,6 +19,7 @@ git clone --single-branch --branch gh-pages git@github.com:samcf/ogres.git "$tmp
 rm -rf "$tmp"/release/latest
 mkdir -p "$tmp"/release/latest
 cp -r "$tmp"/release/"$vrs"/. "$tmp"/release/latest
+echo "$vrs" >> "$tmp"/releases.txt
 
 cd "$tmp"
 git add --all
