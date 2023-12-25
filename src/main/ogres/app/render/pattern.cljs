@@ -52,11 +52,10 @@
        :stroke-linecap "square"})))
 
 (defui pattern [{:keys [name] :as props}]
-  (let [fns {:caps    pattern-caps
-             :circles pattern-circles
-             :crosses pattern-crosses
-             :lines   pattern-lines
-             :solid   pattern-solid
-             :waves   pattern-waves}]
-    (if-let [component (fns name)]
-      ($ component props))))
+  (case name
+    :caps    ($ pattern-caps props)
+    :circles ($ pattern-circles props)
+    :crosses ($ pattern-crosses props)
+    :lines   ($ pattern-lines props)
+    :solid   ($ pattern-solid props)
+    :waves   ($ pattern-waves props)))

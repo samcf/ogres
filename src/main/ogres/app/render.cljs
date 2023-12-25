@@ -1,7 +1,7 @@
 (ns ogres.app.render
   (:require [ogres.app.const :refer [PATH]]
             [ogres.app.provider.storage :refer [initialize]]
-            [uix.core :refer [defui $ create-error-boundary]]))
+            [uix.core :refer [defui $ create-error-boundary use-effect]]))
 
 (defn ^:private create-range
   [min max val]
@@ -53,3 +53,12 @@
       ($ :li
         {:on-click #(on-change (inc value)) :data-selectable (< value pages)}
         ($ icon {:name "chevron-right" :size 16})))))
+
+(defui stylesheet [props]
+  (let [{:keys [name]} props]
+    (use-effect
+     (fn []
+       (let [element (js/document.createElement "link")]
+         (set! (.-href element) (str PATH "/" name))
+         (set! (.-rel element) "stylesheet")
+         (.. js/document -head (appendChild element)))) [name])) nil)
