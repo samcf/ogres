@@ -1,6 +1,6 @@
 (ns ogres.app.form.help
   (:require [ogres.app.const :refer [VERSION]]
-            [ogres.app.hooks :refer [use-dispatch use-query]]
+            [ogres.app.hooks :refer [use-dispatch]]
             [ogres.app.shortcut :refer [shortcuts]]
             [ogres.app.provider.release :as release]
             [uix.core :refer [defui $ use-context]]))
@@ -17,13 +17,9 @@
    ["https://github.com/samcf/ogres/wiki" "Project wiki" "Wiki"]
    ["https://github.com/samcf/ogres/discussions" "Project discussion" "Support"]])
 
-(def ^:private query
-  [[:local/tooltips? :default true]])
-
 (defui form []
   (let [releases (use-context release/context)
-        dispatch (use-dispatch)
-        result   (use-query query)]
+        dispatch (use-dispatch)]
     ($ :section.help
       ($ :section
         ($ :header "Version" " [ " VERSION " ]")
@@ -51,17 +47,6 @@
                    (fn []
                      (if-let [_ (js/confirm confirm-delete)]
                        (dispatch :storage/reset)))} "Delete local data"))))))
-      ($ :section
-        ($ :header "Interface preferences")
-        ($ :fieldset.checkbox
-          ($ :input
-            {:id        "show-tooltips"
-             :type      "checkbox"
-             :checked   (:local/tooltips? result)
-             :on-change (fn [event]
-                          (let [checked (.. event -target -checked)]
-                            (dispatch :local/toggle-tooltips checked)))})
-          ($ :label {:for "show-tooltips"} "Show tooltips")))
       ($ :section
         ($ :header "Keyboard Shortcuts")
         ($ :table.shortcuts

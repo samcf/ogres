@@ -36,7 +36,6 @@
   [:session/_host
    :local/clipboard
    [:local/type :default :conn]
-   [:local/tooltips? :default true]
    [:local/sharing? :default false]
    {:local/camera
     [{:camera/selected [:scene/_tokens]}
@@ -50,7 +49,6 @@
         [tooltip-key set-tooltip-key] (use-state nil)
 
         {type      :local/type
-         tooltips? :local/tooltips?
          sharing?  :local/sharing?
          {scale    :camera/scale
           mode     :camera/draw-mode
@@ -71,14 +69,10 @@
           (fn []
             (set-tooltip-key key)))
 
-        element
-        (if (and (some? tooltip-key) tooltips?)
-          js/window nil)
-
         copyable
         (some (comp-fn contains? identity :scene/_tokens) selected)]
 
-    (use-event-listener element "mouseover"
+    (use-event-listener js/window "mouseover"
       (use-callback
        (fn [event]
          (if (not (.contains @node (.-target event)))

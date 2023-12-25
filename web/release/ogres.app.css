@@ -2166,7 +2166,3 @@ legend {
 [data-user-type="view"] .scene {
     pointer-events: none;
 }
-
-[data-tooltips="false"] .toolbar-tooltip {
-    display: none !important;
-}

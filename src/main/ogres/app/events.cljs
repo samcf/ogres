@@ -96,13 +96,6 @@
   [{:db/ident :local :local/status status}])
 
 (defmethod
-  ^{:doc "Changes whether or not toolbar tooltips are displayed when the
-          local user hovers over them."}
-  event-tx-fn :local/toggle-tooltips
-  [_ _ display?]
-  [{:db/ident :local :local/tooltips? display?}])
-
-(defmethod
   ^{:doc "Changes the currently expanded panel form to the value given by
           `panel`."}
   event-tx-fn :local/toggle-panel

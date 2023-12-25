@@ -10,12 +10,11 @@
 
 (def ^:private query
   [[:local/type :default :conn]
-   [:local/status :default :none]
-   [:local/tooltips? :default true]])
+   [:local/status :default :none]])
 
 (defui layout []
-  (let [{:keys [local/type local/status local/tooltips?]} (use-query query)]
-    ($ :.root {:data-user-type (name type) :data-tooltips tooltips?}
+  (let [{:keys [local/type local/status]} (use-query query)]
+    ($ :.root {:data-user-type (name type)}
       (case [type status]
         [:host :ready]
         ($ :.layout {:style {:visibility "hidden"}}
