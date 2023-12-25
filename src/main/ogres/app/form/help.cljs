@@ -2,10 +2,14 @@
   (:require [ogres.app.const :refer [VERSION]]
             [ogres.app.hooks :refer [use-dispatch use-query]]
             [ogres.app.shortcut :refer [shortcuts]]
-            [uix.core :refer [defui $]]))
+            [ogres.app.provider.release :as release]
+            [uix.core :refer [defui $ use-context]]))
+
+(def ^:private confirm-upgrade
+  "Upgrading will delete all your local data and restore this application to its original state.")
 
 (def ^:private confirm-delete
-  "Are you sure you want to reset your local data? This will revert this app to its original state.")
+  "Delete all your local data and restore this application to its original state?")
 
 (def ^:private resource-links
   [["https://ogres.app" "Application home" "Home"]
@@ -17,9 +21,36 @@
   [[:local/tooltips? :default true]])
 
 (defui form []
-  (let [dispatch (use-dispatch)
+  (let [releases (use-context release/context)
+        dispatch (use-dispatch)
         result   (use-query query)]
     ($ :section.help
+      ($ :section
+        ($ :header "Version" " [ " VERSION " ]")
+        ($ :div.form-notice
+          (if-let [latest (last releases)]
+            (if (not= VERSION latest)
+              ($ :<>
+                ($ :p ($ :strong "There are updates available!"))
+                ($ :p "Upgrading to the latest version will "
+                  ($ :strong "delete all your local data") ". "
+                  "Only upgrade if you are ready to start over from scratch.")
+                ($ :br)
+                ($ :button.button.button-primary
+                  {:on-click
+                   (fn []
+                     (if-let [_ (js/confirm confirm-upgrade)]
+                       (dispatch :storage/reset)))} "Upgrade to latest version [ " latest " ]"))
+              ($ :<>
+                ($ :p ($ :strong "You're on the latest version."))
+                ($ :p "Pressing this button will delete all your local data and
+                       restore the application to its original state.")
+                ($ :br)
+                ($ :button.button.button-neutral
+                  {:on-click
+                   (fn []
+                     (if-let [_ (js/confirm confirm-delete)]
+                       (dispatch :storage/reset)))} "Delete local data"))))))
       ($ :section
         ($ :header "Interface preferences")
         ($ :fieldset.checkbox
@@ -31,19 +62,6 @@
                           (let [checked (.. event -target -checked)]
                             (dispatch :local/toggle-tooltips checked)))})
           ($ :label {:for "show-tooltips"} "Show tooltips")))
-      ($ :section
-        ($ :header "Version" " [ " VERSION " ]")
-        ($ :p "To upgrade to the latest version of this app, click the button
-               below to delete your local data and reload the page."
-          ($ :span " ")
-          ($ :strong "This will remove all uploaded images and destroy all created scenes."))
-        ($ :br)
-        ($ :button.button.button-danger
-          {:on-click
-           (fn []
-             (if-let [_ (js/confirm confirm-delete)]
-               (dispatch :storage/reset)))}
-          "Reset local data"))
       ($ :section
         ($ :header "Keyboard Shortcuts")
         ($ :table.shortcuts

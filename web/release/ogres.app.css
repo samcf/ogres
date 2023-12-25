@@ -1245,6 +1245,13 @@ legend {
     margin-top: 6px;
 }
 
+.form-notice {
+    background-color: var(--color-paper-900);
+    border-radius: 3px;
+    padding: 12px;
+    font-size: 13px;
+}
+
 /* Initiative Form */
 .initiant-form {
     display: grid;
@@ -1980,6 +1987,14 @@ legend {
     font-size: 2rem;
     line-height: 1;
     user-select: text;
+}
+
+.session-url {
+    background-color: var(--color-paper-500);
+    border-color: var(--color-paper-900) !important;
+    border-radius: 2px;
+    font-family: monospace;
+    font-size: 12px;
 }
 
 .session-players {

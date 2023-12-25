@@ -3,6 +3,7 @@
             [ogres.app.layout           :refer [layout]]
             [ogres.app.provider.events  :as events]
             [ogres.app.provider.portal  :as portal]
+            [ogres.app.provider.release :as release]
             [ogres.app.provider.state   :as state]
             [ogres.app.provider.storage :as storage]
             [ogres.app.provider.window  :as window]
@@ -29,15 +30,16 @@
     ($ events/provider
       ($ state/provider
         ($ storage/provider
-          ($ image/provider
-            ($ portal/provider
-              ($ :<>
-                ($ storage/handlers)
-                ($ window/provider)
-                ($ shortcut/handlers)
-                ($ session/handlers)
-                ($ error-boundary
-                  ($ layout))))))))))
+          ($ release/provider
+            ($ image/provider
+              ($ portal/provider
+                ($ :<>
+                  ($ storage/handlers)
+                  ($ window/provider)
+                  ($ shortcut/handlers)
+                  ($ session/handlers)
+                  ($ error-boundary
+                    ($ layout)))))))))))
 
 (defn ^:export main []
   (let [elem (.querySelector js/document "#root")

@@ -1,9 +1,10 @@
 (ns ogres.app.form.session
   (:require [ogres.app.const :refer [VERSION]]
             [ogres.app.hooks :refer [use-dispatch use-query]]
+            [ogres.app.provider.release :as release]
             [ogres.app.render :refer [icon]]
             [ogres.app.util :refer [comp-fn]]
-            [uix.core :refer [defui $]]))
+            [uix.core :refer [defui $ use-context]]))
 
 (def ^:private query-footer
   [{:root/local
@@ -32,7 +33,8 @@
     (str origin path "?" (.toString params))))
 
 (defui form []
-  (let [dispatch (use-dispatch)
+  (let [releases (use-context release/context)
+        dispatch (use-dispatch)
         result   (use-query query-form [:db/ident :root])
         {{code    :session/room
           host    :session/host
@@ -45,6 +47,14 @@
          local :root/local} result]
     (if (#{:connecting :connected :disconnected} state)
       ($ :section.session
+        (if (and (= type :host) (some? code) (seq releases) (not= VERSION (last releases)))
+          ($ :section
+            ($ :div.form-notice {:style {:margin-bottom 4}}
+              ($ :p ($ :strong "Warning: ")
+                "You're not using the latest version of this application.
+                 Either upgrade to the latest version or make sure that
+                 players connect using the fully qualified URL below."))
+            ($ :input.session-url {:type "text" :value (session-url code) :readOnly true})))
         (if code
           ($ :section
             ($ :header "Room Code")
