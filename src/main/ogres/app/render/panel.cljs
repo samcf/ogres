@@ -28,7 +28,7 @@
 
 (def ^:private query
   [[:local/type :default :conn]
-   [:panel/expanded :default #{}]])
+   [:panel/expanded :default :session]])
 
 (defui container []
   (let [dispatch (use-dispatch)
@@ -36,7 +36,7 @@
         forms    (panel-forms (:local/type result))]
     ($ :nav.panel
       ($ :ul.forms
-        (for [form forms :let [key (:key form) expanded (contains? (:panel/expanded result) key)]]
+        (for [form forms :let [key (:key form) expanded (= (:panel/expanded result) key)]]
           ($ :li {:key key :class "form" :data-form (name key) :data-expanded expanded}
             ($ :.form-header
               {:on-click #(dispatch :local/toggle-panel key)}

@@ -100,7 +100,7 @@
           `panel`."}
   event-tx-fn :local/toggle-panel
   [_ _ panel]
-  [{:db/ident :local :panel/expanded #{panel}}])
+  [{:db/ident :local :panel/expanded panel}])
 
 (defmethod
   ^{:doc "Changes the current keyboard modifier for the local user. This
@@ -726,7 +726,7 @@
   []
   [{:db/ident :root :root/session
     {:db/ident :session :session/host
-     {:db/ident :local :session/state :connecting :panel/expanded #{:session}}}}])
+     {:db/ident :local :session/state :connecting :panel/expanded :session}}}])
 
 (defmethod
   ^{:doc "Attempts to join an existing online session through the server. This
