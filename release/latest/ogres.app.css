@@ -789,6 +789,15 @@ legend {
     --token-ring-stroke-width: 2px;
 }
 
+.scene-token-ghost > rect {
+    fill-opacity: 0.15;
+    fill: var(--scene-stroke);
+    stroke-opacity: 0.60;
+    stroke-width: 1px;
+    stroke: var(--scene-stroke);
+    transform: translate(-.50px, 0.50px);
+}
+
 /* Scene Shapes */
 .scene-shape {
     cursor: pointer;
@@ -1329,8 +1338,8 @@ legend {
     grid-template-areas:
       "title         title         tile-size"
       "visi-revealed tofd-none     show-grid"
-      "visi-dimmed   tofd-dusk     dark-grid"
-      "visi-hidden   tofd-midnight grid-align";
+      "visi-dimmed   tofd-dusk     grid-align"
+      "visi-hidden   tofd-midnight dark-grid";
 }
 
 .scene-options fieldset.text input {
@@ -2165,8 +2174,4 @@ legend {
 
 [data-user-type="view"] .scene {
     pointer-events: none;
-}
-
-[data-tooltips="false"] .toolbar-tooltip {
-    display: none !important;
 }
