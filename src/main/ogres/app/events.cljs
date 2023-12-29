@@ -2,8 +2,9 @@
   (:require [datascript.core :as ds]
             [clojure.set :refer [union]]
             [clojure.string :refer [trim]]
+            [ogres.app.const :refer [grid-size]]
             [ogres.app.geom :refer [bounding-box within?]]
-            [ogres.app.util :refer [comp-fn with-ns]]))
+            [ogres.app.util :refer [comp-fn round round-grid with-ns]]))
 
 (def ^:private suffix-max-xf
   (map (fn [[label tokens]] [label (apply max (map :initiative/suffix tokens))])))
@@ -59,10 +60,6 @@
                    (update index group inc)
                    (assoc result (:db/id token) (+ (offset group) (index group) 1)))))
         result))))
-
-(defn ^:private round
-  ([x]   (round x 1))
-  ([x n] (* (js/Math.round (/ x n)) n)))
 
 (defn ^:private to-precision [n p]
   (js/Number (.toFixed (js/Number.parseFloat n) p)))
@@ -373,6 +370,12 @@
   [[:db.fn/call assoc-scene :scene/dark-mode enabled]])
 
 (defmethod
+  ^{:doc "Updates whether or not align to grid is enabled on the current scene."}
+  event-tx-fn :scene/toggle-grid-align
+  [_ _ enabled]
+  [[:db.fn/call assoc-scene :scene/grid-align enabled]])
+
+(defmethod
   ^{:doc "Updates the lighting option used for the current scene."}
   event-tx-fn :scene/change-lighting
   [_ _ value]
@@ -417,11 +420,18 @@
   [data _ sx sy checksum]
   (let [local (ds/entity data [:db/ident :local])
         {{[cx cy] :camera/point
-          scale   :camera/scale} :local/camera} local
+          scale :camera/scale
+          {align? :scene/grid-align
+           [ox oy] :scene/grid-origin}
+          :camera/scene} :local/camera} local
         tx (+ (/ sx (or scale 1)) (or cx 0))
         ty (+ (/ sy (or scale 1)) (or cy 0))]
     [{:db/id -1
-      :token/point [(round tx) (round ty)]
+      :token/point
+      (if align?
+        [(round-grid tx (/ grid-size 2) (mod ox grid-size))
+         (round-grid ty (/ grid-size 2) (mod oy grid-size))]
+        [(round tx) (round ty)])
       :token/image {:image/checksum checksum}
       :local/camera
       {:db/id (:db/id (:local/camera local))
@@ -445,23 +455,29 @@
       (contains? idxs curr) (conj data))))
 
 (defmethod event-tx-fn :token/translate
-  [data _ id dx dy]
-  (let [{[tx ty] :token/point} (ds/entity data id)]
-    [{:db/id id :token/point [(round (+ tx dx)) (round (+ ty dy))]}
-     [:db/retract [:db/ident :local] :local/dragging]]))
+  [_ _ id dx dy]
+  [[:db.fn/call event-tx-fn :token/translate-all [id] dx dy]])
+
+(defmethod event-tx-fn :token/translate-all
+  [data _ idxs dx dy]
+  (let [tokens (ds/pull-many data [:db/id :token/point [:token/size :default 5]] idxs)
+        local  (ds/entity data [:db/ident :local])
+        {{{[ox oy] :scene/grid-origin align? :scene/grid-align}
+          :camera/scene} :local/camera} local]
+    (into [[:db/retract [:db/ident :local] :local/dragging]]
+          (for [{id :db/id size :token/size [tx ty] :token/point} tokens]
+            {:db/id id :token/point
+             (if align?
+               (let [rd (* (/ size 5) (/ grid-size 2))]
+                 [(round-grid (+ tx dx) rd (mod ox grid-size))
+                  (round-grid (+ ty dy) rd (mod oy grid-size))])
+               [(+ dx tx) (+ dy ty)])}))))
 
 (defmethod event-tx-fn :token/change-flag
   [data _ idxs flag add?]
   (let [tokens (ds/pull-many data [:db/id :token/flags] idxs)]
     (for [{:keys [db/id token/flags] :or {flags #{}}} tokens]
       {:db/id id :token/flags ((if add? conj disj) flags flag)})))
-
-(defmethod event-tx-fn :token/translate-all
-  [data _ idxs x y]
-  (let [tokens (ds/pull-many data [:db/id :token/point] idxs)]
-    (into [[:db/retract [:db/ident :local] :local/dragging]]
-          (for [{id :db/id [tx ty] :token/point} tokens]
-            {:db/id id :token/point [(round (+ x tx)) (round (+ y ty))]}))))
 
 (defmethod event-tx-fn :token/change-label
   [_ _ idxs value]
@@ -836,7 +852,10 @@
       [:db/id
        [:camera/scale :default 1]
        [:camera/point :default [0 0]]
-       :camera/scene]}]}
+       {:camera/scene
+        [:db/id
+         [:scene/grid-origin :default [0 0]]
+         [:scene/grid-align :default false]]}]}]}
    {:root/token-images [:image/checksum]}])
 
 (defmethod
@@ -852,7 +871,9 @@
           {camera :db/id
            scale :camera/scale
            [cx cy] :camera/point
-           {scene :db/id} :camera/scene} :local/camera} :root/local
+           {scene :db/id
+            align? :scene/grid-align
+            [gx gy] :scene/grid-origin} :camera/scene} :local/camera} :root/local
          images :root/token-images} result
         hashes (into #{} (map :image/checksum) images)
         [ax ay bx by] (apply bounding-box (map :token/point clipboard))
@@ -862,12 +883,21 @@
         oy (/ (- ay by) 2)]
     (for [[idx token] (sequence (indexed) clipboard)
           :let [[tx ty] (:token/point token)
-                hash    (:image/checksum (:token/image token))
-                data    (merge token {:db/id idx
-                                      :token/image [:image/checksum (or (hashes hash) "default")]
-                                      :token/point [(+ sx tx ox (- ax)) (+ sy ty oy (- ay))]})]]
+                cs (:image/checksum (:token/image token))
+                sz (:token/size token)
+                rd (* (/ (or sz 5) 5) (/ grid-size 2))
+                ax (+ sx tx ox (- ax))
+                ay (+ sy ty oy (- ay))
+                dt (merge token
+                          {:db/id idx
+                           :token/image [:image/checksum (or (hashes cs) "default")]
+                           :token/point
+                           (if align?
+                             [(round-grid ax rd (mod gx grid-size))
+                              (round-grid ay rd (mod gy grid-size))]
+                             [ax ay])})]]
       {:db/id camera
-       :camera/scene {:db/id scene :scene/tokens data}
+       :camera/scene {:db/id scene :scene/tokens dt}
        :camera/selected idx})))
 
 ;; -- Shortcuts --

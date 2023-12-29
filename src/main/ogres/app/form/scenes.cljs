@@ -53,9 +53,10 @@
        {:camera/scene
         [:db/id
          [:scene/grid-size]
+         [:scene/show-grid :default true]
+         [:scene/grid-align :default false]
          [:scene/dark-mode :default false]
          [:scene/lighting :default :revealed]
-         [:scene/show-grid :default true]
          [:scene/timeofday :default :none]
          {:scene/image [:image/checksum :image/name]}]}]}]}])
 
@@ -121,8 +122,8 @@
           ($ :input
             {:id "grid-align"
              :type "checkbox"
-             :checked false
-             :disabled true})
+             :checked (:scene/grid-align scene)
+             :on-change #(dispatch :scene/toggle-grid-align (.. % -target -checked))})
           ($ :label {:for "grid-align"} "Align to grid"))
         (for [[label value] options-vis
               :let [on-change #(dispatch :scene/change-lighting value)]]

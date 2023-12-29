@@ -1,5 +1,6 @@
 (ns ogres.app.util
-  (:require [goog.async.Debouncer]))
+  (:require [goog.async.Debouncer]
+            [ogres.app.const :refer [grid-size]]))
 
 (defn debounce
   "Returns a debounced version of the given function f. Calls to this function
@@ -42,3 +43,14 @@
      (if (and (keyword? k) (not (qualified-keyword? k)))
        (keyword (str s) (name k))
        k))))
+
+(defn round
+  "Round the scalar `x` to nearest `n` (default 1)."
+  ([x]   (round x 1))
+  ([x n] (* (js/Math.round (/ x n)) n)))
+
+(defn round-grid
+  "Returns the given scalar `x` rounded to the nearest `grid-size`, accounting
+   for the radius `r` of the object and scalar offset `o`."
+  [x r o]
+  (+ (round (- x r o) grid-size) r o))
