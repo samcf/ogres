@@ -593,8 +593,7 @@
                           (fn [rx ry]
                             (if (selected? id)
                               ($ :g.scene-token-transition {:ref node}
-                                (if (and align? (or (and (some? owner) (or (some? rx) (some? ry)))
-                                                    (and (.-isDragging options) (or (not= dx 0) (not= dy 0)))))
+                                (if (and align? (.-isDragging options) (or (not= dx 0) (not= dy 0)))
                                   (let [rd (* (/ size 5) (/ grid-size 2))
                                         ax (+ tx (or rx dx 0))
                                         ay (+ ty (or ry dy 0))
@@ -620,8 +619,7 @@
                                          ax (+ tx (or rx dx 0))
                                          ay (+ ty (or ry dy 0))]
                                      ($ :g.scene-token-transition {:ref node}
-                                       (if (and align? (or (and (some? owner) (or (some? rx) (some? ry)))
-                                                           (and (.-isDragging options) (or (not= dx 0) (not= dy 0)))))
+                                       (if (and align? (.-isDragging options) (or (not= dx 0) (not= dy 0)))
                                          (let [rd (* (/ size 5) (/ grid-size 2))
                                                bx (round-grid ax rd ox)
                                                by (round-grid ay rd oy)]
