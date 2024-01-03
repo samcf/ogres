@@ -29,27 +29,34 @@
 
 (def ^:private query
   [[:local/type :default :conn]
-   [:panel/selected :default :session]])
+   [:panel/selected :default :session]
+   [:panel/expanded :default true]])
 
 (defui container []
   (let [dispatch (use-dispatch)
         result   (use-query query)
         {type :local/type
-         selected :panel/selected} result
+         selected :panel/selected
+         expanded :panel/expanded} result
         forms    (panel-forms type)]
-    ($ :nav.panel
-      ($ :.panel-session
-        ($ status/button))
+    ($ :nav.panel {:data-expanded expanded}
+      (if expanded
+        ($ :.panel-session
+          ($ status/button)))
       ($ :ul.panel-tabs
         (for [form forms :let [name (:key form) selected (= selected name)]]
           ($ :li
-            {:key name :data-selected selected :on-click #(dispatch :local/select-panel name)}
-            ($ icon {:name (:icon form) :size 20}))))
-      (let [current (:key (first (filter (comp #{selected} :key) forms)))]
-        ($ :.form {:data-form (name current)}
-          ($ :.form-container
-            ($ :.form-content
-              (if-let [component (get-in components [current :form])]
-                ($ :.form-body ($ component)))
-              (if-let [component (get-in components [current :footer])]
-                ($ :.form-footer ($ component))))))))))
+            {:key name :data-selected (and expanded selected) :on-click #(dispatch :local/select-panel name)}
+            ($ icon {:name (:icon form) :size 20})))
+        ($ :li.panel-tabs-control
+          {:on-click #(dispatch :local/toggle-panel)}
+          ($ icon {:name (if expanded "chevron-double-right" "chevron-double-left")})))
+      (if expanded
+        (let [current (:key (first (filter (comp #{selected} :key) forms)))]
+          ($ :.form {:data-form (name current)}
+            ($ :.form-container
+              ($ :.form-content
+                (if-let [component (get-in components [current :form])]
+                  ($ :.form-body ($ component)))
+                (if-let [component (get-in components [current :footer])]
+                  ($ :.form-footer ($ component)))))))))))

@@ -1110,7 +1110,7 @@ legend {
     display: block;
 }
 
-/* Control Panel */
+/* Panel */
 .panel {
     border-radius: 3px 0 0 3px;
     box-shadow: 4px 4px 0 0 rgba(0, 0, 0, .15);
@@ -1120,6 +1120,25 @@ legend {
     width: 420px;
     grid-template-columns: min-content 1fr;
     grid-template-rows: 32px 1fr;
+}
+
+.root[data-user-type=conn] .panel[data-expanded=false] {
+    grid-template-rows: 0 1fr;
+}
+
+.panel[data-expanded=false] {
+    width: auto;
+    box-shadow: none;
+}
+
+.panel[data-expanded=false] .panel-tabs {
+    border-radius: 3px;
+    box-shadow: 4px 4px 0 0 rgba(0, 0, 0, .15);
+}
+
+.panel[data-expanded=false] .panel-tabs li {
+    border-radius: 2px;
+    border-width: 1px 1px 0 1px;
 }
 
 .panel-session {
@@ -1163,6 +1182,27 @@ legend {
     background-color: var(--color-blues-100);
 }
 
+.panel-tabs li.panel-tabs-control {
+    align-items: center;
+    background: none;
+    border: none;
+    color: var(--color-blues-100);
+    cursor: pointer;
+    display: flex;
+    flex: 1;
+    justify-content: center;
+}
+
+.panel-tabs li.panel-tabs-control:hover {
+    background-color: inherit;
+    color: var(--color-paper-500);
+}
+
+.panel-tabs-control:hover {
+    color: var(--color-paper-500);
+}
+
+/* Panel Form */
 .form {
     background-color: var(--color-paper-500);
     border-color: var(--color-blues-900);

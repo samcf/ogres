@@ -96,7 +96,14 @@
   ^{:doc "Change the selected panel to the keyword given by `panel`."}
   event-tx-fn :local/select-panel
   [_ _ panel]
-  [{:db/ident :local :panel/selected panel}])
+  [{:db/ident :local :panel/selected panel :panel/expanded true}])
+
+(defmethod
+  ^{:doc "Toggle the expanded state of the panel."}
+  event-tx-fn :local/toggle-panel
+  [data]
+  (let [local (ds/entity data [:db/ident :local])]
+    [{:db/ident :local :panel/expanded (not (get local :panel/expanded true))}]))
 
 (defmethod
   ^{:doc "Changes the current keyboard modifier for the local user. This
