@@ -102,7 +102,7 @@
           tx-data
           [[:db/add -1 :local/uuid (:uuid data)]
            [:db/add -1 :local/type :conn]
-           [:db/add -1 :panel/expanded :session]
+           [:db/add -1 :panel/selected :session]
            [:db/add [:db/ident :session] :session/conns -1]]
 
           tx-data-addtl

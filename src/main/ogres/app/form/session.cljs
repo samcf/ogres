@@ -105,11 +105,10 @@
                       (if (= (:db/id conn) id)
                         ($ :span " (You)"))))))
               ($ :.prompt "No one else is here.")))))
-      ($ :section.session
-        ($ :.prompt
-          "Invite your friends to this virtual tabletop"
-          ($ :br) "by clicking the 'Create Room' button"
-          ($ :br) "and sharing the room code or URL with them.")))))
+      ($ :.prompt
+        "Invite your friends to this virtual tabletop"
+        ($ :br) "by clicking the 'Create Room' button"
+        ($ :br) "and sharing the room code or URL with them."))))
 
 (defui footer []
   (let [dispatch (use-dispatch)

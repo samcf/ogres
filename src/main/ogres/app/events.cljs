@@ -93,11 +93,10 @@
   [{:db/ident :local :local/status status}])
 
 (defmethod
-  ^{:doc "Changes the currently expanded panel form to the value given by
-          `panel`."}
-  event-tx-fn :local/toggle-panel
+  ^{:doc "Change the selected panel to the keyword given by `panel`."}
+  event-tx-fn :local/select-panel
   [_ _ panel]
-  [{:db/ident :local :panel/expanded panel}])
+  [{:db/ident :local :panel/selected panel}])
 
 (defmethod
   ^{:doc "Changes the current keyboard modifier for the local user. This
@@ -742,7 +741,7 @@
   []
   [{:db/ident :root :root/session
     {:db/ident :session :session/host
-     {:db/ident :local :session/state :connecting :panel/expanded :session}}}])
+     {:db/ident :local :session/state :connecting :panel/selected :session}}}])
 
 (defmethod
   ^{:doc "Attempts to join an existing online session through the server. This

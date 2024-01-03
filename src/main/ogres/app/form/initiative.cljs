@@ -143,20 +143,19 @@
          {{tokens :scene/initiative
            rounds :initiative/rounds} :camera/scene}
          :local/camera} result]
-    ($ :section.initiative
-      (cond (and (not (seq tokens)) (nil? rounds))
-            ($ :section
-              ($ :.prompt
-                "Begin initiative by selecting"
-                ($ :br) "one or more tokens and clicking"
-                ($ :br) "the hourglass icon."))
+    (cond (and (not (seq tokens)) (nil? rounds))
+          ($ :.prompt
+            "Begin initiative by selecting"
+            ($ :br) "one or more tokens and clicking"
+            ($ :br) "the hourglass icon.")
 
-            (and (not (seq tokens)) (>= rounds 1))
-            ($ :.prompt
-              "Initiative is still running"
-              ($ :br) "but there are no tokens participating.")
+          (and (not (seq tokens)) (>= rounds 1))
+          ($ :.prompt
+            "Initiative is still running"
+            ($ :br) "but there are no tokens participating.")
 
-            (seq tokens)
+          (seq tokens)
+          ($ :section.initiative
             ($ :ol.initiative-list
               (for [entity (sort initiative-order tokens)
                     :when  (or (= type :host) (visible? (:token/flags entity)))]

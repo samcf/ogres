@@ -51,7 +51,7 @@
     [:db/add -3 :local/camera -4]
     [:db/add -3 :local/cameras -4]
     [:db/add -3 :local/type (local-type)]
-    [:db/add -3 :panel/expanded :tokens]
+    [:db/add -3 :panel/selected :tokens]
     [:db/add -4 :camera/scene -2]
     [:db/add -5 :db/ident :session]]))
 

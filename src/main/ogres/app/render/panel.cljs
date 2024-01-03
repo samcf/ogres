@@ -1,5 +1,6 @@
 (ns ogres.app.render.panel
   (:require [ogres.app.hooks :refer [use-dispatch use-query]]
+            [ogres.app.render.status :as status]
             [ogres.app.form.session :as session]
             [ogres.app.form.scenes  :as scenes]
             [ogres.app.form.tokens  :as tokens]
@@ -28,27 +29,27 @@
 
 (def ^:private query
   [[:local/type :default :conn]
-   [:panel/expanded :default :session]])
+   [:panel/selected :default :session]])
 
 (defui container []
   (let [dispatch (use-dispatch)
         result   (use-query query)
-        forms    (panel-forms (:local/type result))]
+        {type :local/type
+         selected :panel/selected} result
+        forms    (panel-forms type)]
     ($ :nav.panel
-      ($ :ul.forms
-        (for [form forms :let [key (:key form) expanded (= (:panel/expanded result) key)]]
-          ($ :li {:key key :class "form" :data-form (name key) :data-expanded expanded}
-            ($ :.form-header
-              {:on-click #(dispatch :local/toggle-panel key)}
-              ($ :<>
-                ($ icon {:name (:icon form) :size 20})
-                ($ :.form-label (:label form))
-                ($ :.form-chevron
-                  ($ icon {:name (if expanded "chevron-double-up" "chevron-double-down") :size 18}))))
-            (if expanded
-              ($ :.form-container
-                ($ :.form-content
-                  (if-let [component (-> components key :form)]
-                    ($ :.form-body ($ component)))
-                  (if-let [component (-> components key :footer)]
-                    ($ :.form-footer ($ component))))))))))))
+      ($ :.panel-session
+        ($ status/button))
+      ($ :ul.panel-tabs
+        (for [form forms :let [name (:key form) selected (= selected name)]]
+          ($ :li
+            {:key name :data-selected selected :on-click #(dispatch :local/select-panel name)}
+            ($ icon {:name (:icon form) :size 20}))))
+      (let [current (:key (first (filter (comp #{selected} :key) forms)))]
+        ($ :.form {:data-form (name current)}
+          ($ :.form-container
+            ($ :.form-content
+              (if-let [component (get-in components [current :form])]
+                ($ :.form-body ($ component)))
+              (if-let [component (get-in components [current :footer])]
+                ($ :.form-footer ($ component))))))))))

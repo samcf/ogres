@@ -75,6 +75,7 @@
           camera :local/camera} :root/local} data
         [page set-page] (use-state 1)]
     ($ :<>
+      ($ :header "Scene options")
       ($ :section.scene-options
         ($ :fieldset.text {:style {:grid-area "title"}}
           ($ :input
