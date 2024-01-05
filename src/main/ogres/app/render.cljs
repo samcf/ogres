@@ -1,7 +1,7 @@
 (ns ogres.app.render
   (:require [ogres.app.const :refer [PATH]]
             [ogres.app.provider.storage :refer [initialize]]
-            [uix.core :refer [defui $ create-error-boundary use-effect]]))
+            [uix.core :refer [defui $ create-error-boundary use-insertion-effect]]))
 
 (defn ^:private create-range
   [min max val]
@@ -56,7 +56,7 @@
 
 (defui stylesheet [props]
   (let [{:keys [name]} props]
-    (use-effect
+    (use-insertion-effect
      (fn []
        (let [element (js/document.createElement "link")]
          (set! (.-href element) (str PATH "/" name))
