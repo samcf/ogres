@@ -106,9 +106,9 @@
                         ($ :span " (You)"))))))
               ($ :.prompt "No one else is here.")))))
       ($ :.prompt
-        "Invite your friends to this virtual tabletop"
-        ($ :br) "by clicking the 'Create Room' button"
-        ($ :br) "and sharing the room code or URL with them."))))
+        "Invite your friends to this virtual tabletop by clicking
+         the 'Create Room' button and sharing the room code or URL
+         with them."))))
 
 (defui footer []
   (let [dispatch (use-dispatch)

@@ -144,15 +144,10 @@
            rounds :initiative/rounds} :camera/scene}
          :local/camera} result]
     (cond (and (not (seq tokens)) (nil? rounds))
-          ($ :.prompt
-            "Begin initiative by selecting"
-            ($ :br) "one or more tokens and clicking"
-            ($ :br) "the hourglass icon.")
+          ($ :.prompt "Begin initiative by selecting one or more tokens and clicking the hourglass icon.")
 
           (and (not (seq tokens)) (>= rounds 1))
-          ($ :.prompt
-            "Initiative is still running"
-            ($ :br) "but there are no tokens participating.")
+          ($ :.prompt "Initiative is still running but there are no tokens participating.")
 
           (seq tokens)
           ($ :section.initiative

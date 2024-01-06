@@ -777,7 +777,7 @@
          :local/camera} result
         cx (if (= type :view) (->> (- hw vw) (max 0) (* (/ -1 2 scale)) (- cx)) cx)
         cy (if (= type :view) (->> (- hh vh) (max 0) (* (/ -1 2 scale)) (- cy)) cy)]
-    ($ :svg.scene {:key id :data-user-type (name type) :data-theme (if dark-mode "dark" "light")}
+    ($ :svg.scene {:key id :data-user (name type) :data-theme (if dark-mode "dark" "light")}
       ($ scene-camera
         {:scale scale
          :on-translate

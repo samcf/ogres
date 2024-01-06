@@ -1,9 +1,9 @@
 (ns ogres.app.render.toolbar
-  (:require [ogres.app.hooks :refer [use-event-listener use-dispatch use-query]]
+  (:require [ogres.app.hooks :refer [use-dispatch use-query]]
             [ogres.app.render :refer [icon]]
             [ogres.app.shortcut :refer [shortcuts]]
             [ogres.app.util :refer [comp-fn]]
-            [uix.core :refer [defui $ use-callback use-ref use-state]]))
+            [uix.core :refer [defui $ use-callback use-state]]))
 
 (def ^:private shortcut-keys
   (into {} (map (juxt :name :keys)) shortcuts))
@@ -11,26 +11,26 @@
 (defui ^:private tooltip
   [{:keys [tooltip]}]
   (case tooltip
-    :copy/cut    "Copy and remove the selected tokens."
-    :copy/copy   "Copy the selected tokens."
-    :copy/paste  "Paste copied tokens onto the scene."
-    :zoom/reset  "Reset to 100% zoom."
-    :zoom/zoom   ($ :span "Zoom in or out.")
-    :mode/select ($ :span "Hold " ($ :code "Shift") " and drag to select multiple tokens.")
-    :mode/ruler  "Measure the distance between two points."
-    :mode/circle "Draw a circle starting from its center."
-    :mode/rect   "Draw a rectangle from one corner to the other."
-    :mode/cone   "Draw a cone whose length is equal to its width."
-    :mode/line   "Draw a line from one point to another."
-    :mode/poly   "Draw a polygon by clicking each point and closing it at the first point."
-    :mode/mask   "Create a new mask by drawing a polygon."
-    :mode/mask-toggle "Toggle a mask on or off."
+    :copy/cut         "Copy and remove the selected tokens."
+    :copy/copy        "Copy the selected tokens."
+    :copy/paste       "Paste copied tokens onto the scene."
+    :zoom/reset       "Reset to 100% zoom."
+    :zoom/zoom        ($ :span "Zoom in or out.")
+    :mode/select      ($ :span "Hold " ($ :code "Shift") " to select multiple tokens.")
+    :mode/ruler       "Measure distance."
+    :mode/circle      "Draw a circle."
+    :mode/rect        "Draw a rectangle."
+    :mode/cone        "Draw a cone."
+    :mode/line        "Draw a line."
+    :mode/poly        "Draw a polygon."
+    :mode/mask        "Create a new mask."
+    :mode/mask-toggle "Toggle a mask on and off."
     :mode/mask-remove "Remove a mask."
-    :mode/grid   "Select a point on the scene to use as the grid origin."
-    :mask/hide   "Mask the entire scene, preserving existing masks."
-    :mask/show   "Reveal the entire scene, preserving existing masks."
-    :scene/focus "Focus the current view, moving everyone to this scene and position."
-    :share/open  "Open the player window."))
+    :mode/grid        "Set the grid origin."
+    :mask/hide        "Mask the entire scene."
+    :mask/show        "Reveal the entire scene."
+    :scene/focus      "Focus the current view."
+    :share/open       "Open the player window."))
 
 (def ^:private query
   [:session/_host
@@ -43,68 +43,57 @@
      [:camera/scale :default 1]]}])
 
 (defui toolbar []
-  (let [dispatch  (use-dispatch)
-        result    (use-query query)
-        node      (use-ref)
-        [tooltip-key set-tooltip-key] (use-state nil)
-
+  (let [[tooltip-key set-tooltip-key] (use-state nil)
+        dispatch   (use-dispatch)
+        result     (use-query query)
         {type      :local/type
          sharing?  :local/sharing?
          {scale    :camera/scale
           mode     :camera/draw-mode
           selected :camera/selected} :local/camera} result
-
-        mode-attrs
-        (fn [value & attrs]
-          (apply hash-map
-                 :type           "button"
-                 :key            value
-                 :data-selected  (= value mode)
-                 :on-click       #(dispatch :camera/change-mode value)
-                 :on-mouse-enter #(set-tooltip-key (keyword "mode" (name value)))
-                 attrs))
-
-        tooltip-fn
-        (fn [key]
-          (fn []
-            (set-tooltip-key key)))
-
-        copyable
-        (some (comp-fn contains? identity :scene/_tokens) selected)]
-
-    (use-event-listener js/window "mouseover"
-      (use-callback
-       (fn [event]
-         (if (not (.contains @node (.-target event)))
-           (set-tooltip-key nil))) []))
-
-    ($ :.toolbar {:ref node}
+        tooltip-fn (use-callback (fn [key] (fn [] (set-tooltip-key key))) [])
+        mode-attrs (use-callback
+                    (fn [value & attrs]
+                      (apply hash-map
+                             :type             "button"
+                             :key              value
+                             :name             (name value)
+                             :data-selected    (= value mode)
+                             :on-click         (fn [] (dispatch :camera/change-mode value))
+                             :on-pointer-enter (tooltip-fn (keyword "mode" (name value)))
+                             attrs)) [dispatch tooltip-fn mode])
+        copyable   (some (comp-fn contains? identity :scene/_tokens) selected)]
+    ($ :.toolbar
+      {:on-pointer-leave (tooltip-fn nil) :data-user type}
       (if tooltip-key
         ($ :.toolbar-tooltip
           (if-let [shortcut (shortcut-keys tooltip-key)]
             ($ :.toolbar-shortcut
-              (map (fn [s] ($ :code {:key (str s)} s)) shortcut)))
+              ($ :code (apply str (interpose "+" shortcut)))))
           ($ tooltip {:tooltip tooltip-key})))
-      ($ :.toolbar-groups
+      ($ :.toolbar-actions
         ($ :button (mode-attrs :select)
           ($ icon {:name "cursor-fill"}))
         ($ :button
-          {:type "button"
+          {:name "cut"
+           :type "button"
            :disabled (nil? copyable)
            :on-click #(dispatch :clipboard/copy true)
-           :on-mouse-enter (tooltip-fn :copy/cut)}
+           :on-pointer-enter (tooltip-fn :copy/cut)}
           ($ icon {:name "scissors"}))
         ($ :button
-          {:type "button"
+          {:name "copy"
+           :type "button"
            :disabled (nil? copyable)
            :on-click #(dispatch :clipboard/copy false)
-           :on-mouse-enter (tooltip-fn :copy/copy)}
+           :on-pointer-enter (tooltip-fn :copy/copy)}
           ($ icon {:name "files"}))
         ($ :button
-          {:type "button"
+          {:name "paste"
+           :type "button"
            :disabled (nil? (:local/clipboard result))
            :on-click #(dispatch :clipboard/paste)
-           :on-mouse-enter (tooltip-fn :copy/paste)}
+           :on-pointer-enter (tooltip-fn :copy/paste)}
           ($ icon {:name "clipboard2-plus"}))
         ($ :button (mode-attrs :ruler)
           ($ icon {:name "rulers"}))
@@ -121,29 +110,32 @@
         ($ :button (mode-attrs :grid :disabled (= type :conn))
           ($ icon {:name "compass"}))
         ($ :button
-          {:type "button"
+          {:name "focus"
+           :type "button"
            :disabled (not (and (= type :host) (some? (:session/_host result))))
            :on-click #(dispatch :session/focus)
-           :on-mouse-enter (tooltip-fn :scene/focus)}
+           :on-pointer-enter (tooltip-fn :scene/focus)}
           ($ icon {:name "camera2" :size 22}))
         ($ :button
-          {:type "button"
+          {:name "zoom-out"
+           :type "button"
            :disabled (= scale 0.15)
            :on-click #(dispatch :camera/zoom-out)
-           :on-mouse-enter (tooltip-fn :zoom/zoom)}
+           :on-pointer-enter (tooltip-fn :zoom/zoom)}
           ($ icon {:name "zoom-out"}))
         ($ :button
-          {:type "button"
+          {:name "zoom-reset"
+           :type "button"
            :disabled (= scale 1)
-           :style {:grid-column "span 3"}
            :on-click #(dispatch :camera/zoom-reset)
-           :on-mouse-enter (tooltip-fn :zoom/reset)}
+           :on-pointer-enter (tooltip-fn :zoom/reset)}
           (-> scale (* 100) (js/Math.trunc) (str "%")))
         ($ :button
-          {:type "button"
+          {:name "zoom-in"
+           :type "button"
            :disabled (= scale 4)
            :on-click #(dispatch :camera/zoom-in)
-           :on-mouse-enter (tooltip-fn :zoom/zoom)}
+           :on-pointer-enter (tooltip-fn :zoom/zoom)}
           ($ icon {:name "zoom-in"}))
         ($ :button (mode-attrs :mask :disabled (= type :conn))
           ($ icon {:name "star-half"}))
@@ -152,21 +144,24 @@
         ($ :button (mode-attrs :mask-remove :disabled (= type :conn))
           ($ icon {:name "eraser-fill"}))
         ($ :button
-          {:type "button"
+          {:name "mask-hide"
+           :type "button"
            :disabled (= type :conn)
            :on-click #(dispatch :mask/fill)
-           :on-mouse-enter (tooltip-fn :mask/hide)}
+           :on-pointer-enter (tooltip-fn :mask/hide)}
           ($ icon {:name "eye-slash-fill"}))
         ($ :button
-          {:type "button"
+          {:name "mask-show"
+           :type "button"
            :disabled (= type :conn)
            :on-click #(dispatch :mask/clear)
-           :on-mouse-enter (tooltip-fn :mask/show)}
+           :on-pointer-enter (tooltip-fn :mask/show)}
           ($ icon {:name "eye-fill"}))
         ($ :button
-          {:type "button"
+          {:name "player-window"
+           :type "button"
            :disabled (= type :conn)
            :data-selected sharing?
            :on-click #(dispatch :share/initiate)
-           :on-mouse-enter (tooltip-fn :share/open)}
+           :on-pointer-enter (tooltip-fn :share/open)}
           ($ icon {:name "pip" :size 22}))))))
