@@ -450,7 +450,7 @@
         tkns (->> (:scene/initiative scene) (sort initiative-order) (map :db/id))
         tkfn (complement (partial contains? (disj idxs curr)))
         next (->> (filter tkfn tkns) (find-next (partial = curr)))
-        data {:db/id (:db/id scene) :initiative/turn {:db/id (or next (first tkns))}}]
+        data {:db/id (:db/id scene) :initiative/turn (if-let [id (or next (first tkns))] {:db/id id} {})}]
     (cond-> (for [id idxs] [:db/retractEntity id])
       (contains? idxs curr) (conj data))))
 
