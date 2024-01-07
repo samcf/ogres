@@ -851,13 +851,15 @@ legend {
 .context-menu {
     background-color: var(--color-blues-700);
     border-radius: 2px;
+    border: 1px solid var(--color-blues-900);
     box-shadow: 3px 3px 0 0 rgba(0, 0, 0, .35);
     box-sizing: border-box;
+    left: 0;
     margin: 24px auto;
     max-width: 234px;
     pointer-events: all;
-    position: relative;
-    border: 1px solid var(--color-blues-900);
+    position: fixed;
+    right: 0;
 }
 
 .context-menu-toolbar {
