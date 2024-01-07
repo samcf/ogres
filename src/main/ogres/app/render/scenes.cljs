@@ -29,22 +29,30 @@
         result   (use-query query)]
     ($ :nav.scenes
       ($ :ul
-        (for [camera (:local/cameras result) :let [id (:db/id camera)]]
-          ($ :li.scenes-scene
-            {:key id
-             :data-selected (= (:db/id (:local/camera result)) id)
-             :on-click #(dispatch :scenes/change id)}
-            ($ :.scenes-scene-label (render-scene-name camera))
-            ($ :button.scenes-scene-remove
-              {:type "button" :title "Remove scene"
+        (for [camera (:local/cameras result)
+              :let [id  (:db/id camera)
+                    key (str "scene" id)]]
+          ($ :li {:key id}
+            ($ :input
+              {:id key
+               :type "radio"
+               :name "scene"
+               :value id
+               :checked (= id (:db/id (:local/camera result)))
+               :on-change (fn [event] (dispatch :scenes/change (js/Number (.. event -target -value))))})
+            ($ :label {:for key}
+              (render-scene-name camera))
+            ($ :button
+              {:type "button"
+               :title "Remove scene"
                :on-click
-               (fn [event]
-                 (.stopPropagation event)
+               (fn []
                  (if (js/confirm (render-remove-prompt camera))
                    (dispatch :scenes/remove id)))}
-              ($ icon {:name "x-circle-fill" :size 16}))))
+              ($ icon {:name "x" :size 21}))))
         ($ :li.scenes-create
           ($ :button
             {:type "button"
              :title "Create new scene"
-             :on-click #(dispatch :scenes/create)} ($ icon {:name "plus" :size 18})))))))
+             :on-click #(dispatch :scenes/create)}
+            ($ icon {:name "plus" :size 19})))))))
