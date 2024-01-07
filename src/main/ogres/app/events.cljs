@@ -566,9 +566,10 @@
         type  (->> (:camera/selected (:local/camera local))
                    (group-by (fn [x] (cond (:scene/_tokens x) :token (:scene/_shapes x) :shape)))
                    (first))]
-    (case (key type)
+    (case (first type)
       :token [[:db.fn/call event-tx-fn :token/remove (map :db/id (val type))]]
-      :shape [[:db.fn/call event-tx-fn :shape/remove (map :db/id (val type))]])))
+      :shape [[:db.fn/call event-tx-fn :shape/remove (map :db/id (val type))]]
+      [])))
 
 (defmethod event-tx-fn :initiative/toggle
   [data _ idxs adding?]
