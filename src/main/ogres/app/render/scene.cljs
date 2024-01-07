@@ -22,11 +22,6 @@
 (def ^:private draw-modes
   #{:grid :ruler :circle :rect :cone :line :poly :mask})
 
-(def ^:private color-matrix
-  {:none     [1.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0]
-   :dusk     [0.3 0.3 0.0 0.0 0.0 0.0 0.3 0.3 0.0 0.0 0.0 0.0 0.8 0.0 0.0 0.0 0.0 0.0 1.0 0.0]
-   :midnight [0.0 0.0 0.0 0.0 0.0 0.0 0.1 0.0 0.0 0.0 0.1 0.1 0.1 0.0 0.0 0.0 0.0 0.0 1.0 0.0]})
-
 (def ^:private condition->icon
   {:blinded       "eye-slash-fill"
    :charmed       "arrow-through-heart-fill"
@@ -119,7 +114,6 @@
   [{:local/camera
     [{:camera/scene
       [[:scene/grid-size :default 70]
-       [:scene/timeofday :default :none]
        {:scene/image [:image/checksum]}]}]}])
 
 (defui ^:private scene-image [props]
@@ -128,19 +122,15 @@
 
 (defui ^:private render-scene-image []
   (let [result (use-query query-scene-image)
-        {{{size        :scene/grid-size
-           time-of-day :scene/timeofday
-           {checksum   :image/checksum} :scene/image}
+        {{{size :scene/grid-size
+           {checksum :image/checksum} :scene/image}
           :camera/scene}
          :local/camera} result]
     ($ :g.scene-image {:transform (str "scale(" (/ grid-size size) ")")}
-      ($ :defs {:key time-of-day}
-        ($ :filter {:id "atmosphere"}
-          ($ :feColorMatrix {:type "matrix" :values (join " " (color-matrix time-of-day))})))
       (if checksum
         ($ scene-image {:checksum checksum}
           (fn [url]
-            ($ :image {:x 0 :y 0 :href url :style {:filter "url(#atmosphere)"}})))))))
+            ($ :image {:x 0 :y 0 :href url})))))))
 
 (def ^:private query-mask-vis
   [:local/type

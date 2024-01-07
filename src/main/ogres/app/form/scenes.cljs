@@ -8,9 +8,6 @@
 (def ^:private options-vis
   [["Revealed" :revealed] ["Obscured" :dimmed] ["Hidden" :hidden]])
 
-(def ^:private options-day
-  [["Day" :none] ["Dusk" :dusk] ["Midnight" :midnight]])
-
 (def ^:private per-page 6)
 
 (def ^:private filesize-limit 8e6)
@@ -57,7 +54,6 @@
          [:scene/grid-align :default false]
          [:scene/dark-mode :default false]
          [:scene/lighting :default :revealed]
-         [:scene/timeofday :default :none]
          {:scene/image [:image/checksum :image/name]}]}]}]}])
 
 (defui ^:private thumbnail
@@ -135,18 +131,6 @@
                :name "visi"
                :value value
                :checked (= (:scene/lighting scene) value)
-               :disabled (nil? (:scene/image scene))
-               :on-change on-change})
-            ($ :label {:for (name value)} label)))
-        (for [[label value] options-day
-              :let [on-change #(dispatch :scene/change-time-of-day value)]]
-          ($ :fieldset.option {:key value :style {:grid-area (str "tofd-" (name value))}}
-            ($ :input
-              {:id (name value)
-               :type "radio"
-               :name "tofd"
-               :value value
-               :checked (= (:scene/timeofday scene) value)
                :disabled (nil? (:scene/image scene))
                :on-change on-change})
             ($ :label {:for (name value)} label))))

@@ -387,12 +387,6 @@
   [_ _ value]
   [[:db.fn/call assoc-scene :scene/lighting value]])
 
-(defmethod
-  ^{:doc "Updates the time of day option used for the current scene."}
-  event-tx-fn :scene/change-time-of-day
-  [_ _ value]
-  [[:db.fn/call assoc-scene :scene/timeofday value]])
-
 (defmethod event-tx-fn :element/update
   [_ _ idxs attr value]
   (for [id idxs]
