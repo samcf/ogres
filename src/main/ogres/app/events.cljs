@@ -891,7 +891,7 @@
                 ay (+ sy ty oy (- ay))
                 dt (merge token
                           {:db/id idx
-                           :token/image [:image/checksum (or (hashes cs) "default")]
+                           :token/image (if (some? cs) [:image/checksum (hashes cs)] {})
                            :token/point
                            (if align?
                              [(round-grid ax rd (mod gx grid-size))
