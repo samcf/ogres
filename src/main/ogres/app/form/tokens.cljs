@@ -149,7 +149,7 @@
                  mx (- (+ tx dx (/ tw 2)) bx)
                  my (- (+ ty dy (/ th 2)) by)]
              (if (and (<= bx mx (+ bx bw)) (<= by my (+ by bh)))
-               (dispatch :token/create mx my checksum))))
+               (dispatch :token/create mx my (if (not= checksum "default") checksum nil)))))
          [dispatch bx by bw bh])]
     ($ dnd-context
       #js {"onDragEnd"

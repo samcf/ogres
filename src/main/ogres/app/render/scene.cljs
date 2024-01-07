@@ -550,7 +550,7 @@
               ($ :rect {:x -2 :y -2 :width 16 :height 16 :fill "var(--color-blues-700)"})
               ($ icon {:name "skull" :size 12}))
             ($ TransitionGroup {:component nil}
-              (for [checksum (into #{} (map (comp :image/checksum :token/image)) sorted)
+              (for [checksum (into #{} (comp (map (comp :image/checksum :token/image)) (filter some?)) sorted)
                     :let [node (create-ref)]]
                 ($ Transition {:key checksum :nodeRef node :timeout 240}
                   ($ :pattern (merge attrs {:id (str "token-face-" checksum) :ref node})

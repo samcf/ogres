@@ -432,7 +432,7 @@
         [(round-grid tx (/ grid-size 2) (mod ox grid-size))
          (round-grid ty (/ grid-size 2) (mod oy grid-size))]
         [(round tx) (round ty)])
-      :token/image {:image/checksum checksum}
+      :token/image (if (some? checksum) {:image/checksum checksum} {})
       :local/camera
       {:db/id (:db/id (:local/camera local))
        :camera/selected -1
