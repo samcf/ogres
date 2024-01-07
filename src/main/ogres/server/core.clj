@@ -61,7 +61,7 @@
 
     (let [params (.. session (getUpgradeRequest) (getParameterMap))
           host   (some-> params (.get "host") (.get 0))
-          join   (some-> params (.get "join") (.get 0))
+          join   (some-> params (.get "join") (.get 0) (upper-case))
           time   (.getEpochSecond (Instant/now))
           meta   {:type :event :time time :src uuid}]
       (cond (string? host)
@@ -158,7 +158,7 @@
 (defn create-listener [req res handlers-fn]
   (let [params (.. req getParameterMap)
         host   (some-> params (.get "host") (.get 0))
-        join   (some-> params (.get "join") (.get 0))]
+        join   (some-> params (.get "join") (.get 0) (upper-case))]
     (cond (and host join)
           (.sendForbidden res "Query parameters cannot contain host and join parameters.")
 
