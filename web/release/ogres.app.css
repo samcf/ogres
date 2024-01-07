@@ -203,8 +203,8 @@ fieldset.checkbox + fieldset {
     flex-direction: column;
     font-style: italic;
     justify-content: center;
+    padding: 5%;
     text-align: center;
-    padding: 20% 5% 5% 5%;
 }
 
 section + section {
