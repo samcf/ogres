@@ -110,13 +110,14 @@
         data-url (use-image checksum)]
     ($ :li.initiative-token
       {:data-current (= (:db/id current) (:db/id entity))}
-      (if data-url
-        ($ :.initiative-token-image
-          {:style {:background-image (str "url(" data-url ")")}
-           :on-click #(dispatch :element/select id)})
-        ($ :.initiative-token-pattern
-          {:on-click #(dispatch :element/select id)}
-          ($ icon {:name "dnd" :size 36})))
+      ($ :.initiative-token-frame
+        {:on-click #(dispatch :element/select id)
+         :data-player (contains? flags :player)}
+        (if data-url
+          ($ :.initiative-token-image
+            {:style {:background-image (str "url(" data-url ")")}})
+          ($ :.initiative-token-pattern
+            ($ icon {:name "dnd" :size 36}))))
       ($ form-dice
         {:value (:initiative/roll entity)
          :on-change

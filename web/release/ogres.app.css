@@ -1272,30 +1272,6 @@ legend {
     font-size: 13px;
 }
 
-/* Initiative Form */
-.initiant-form {
-    display: grid;
-    grid-gap: 1px;
-    height: 60%;
-    padding: 1px;
-    position: absolute;
-    pointer-events: all;
-    z-index: 1;
-}
-
-.initiant-form input {
-    border: none;
-    outline: none;
-}
-
-.initiant-form button {
-    aspect-ratio: 1;
-    border: none;
-    cursor: pointer;
-    display: block;
-    width: 28.8px;
-}
-
 /* Pagination */
 .pagination {
     align-items: center;
@@ -1843,21 +1819,28 @@ legend {
     padding-top: 8px;
 }
 
-.initiative-token-image,
-.initiative-token-pattern {
-    aspect-ratio: 1;
-    background-color: var(--color-blues-700);
-    color: var(--color-black-100);
-    background-size: cover;
-    border-radius: 2px;
-    border: 1px solid var(--color-blues-900);
-    box-sizing: border-box;
+.initiative-token-frame {
+    border-radius: 3px;
     cursor: pointer;
     grid-area: a;
 }
 
+.initiative-token-frame[data-player=true] {
+    background: linear-gradient(125deg, rgba(252, 211, 77, 1) 0%, rgba(180, 83, 9, 1) 100%);
+    padding: 3px;
+}
+
+.initiative-token-image,
+.initiative-token-pattern {
+    aspect-ratio: 1;
+    background-size: cover;
+    border-radius: 2px;
+}
+
 .initiative-token-pattern {
     align-items: center;
+    background-color: var(--color-blues-700);
+    color: var(--color-black-100);
     display: flex;
     justify-content: center;
 }
