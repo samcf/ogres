@@ -131,16 +131,6 @@ fieldset.checkbox + fieldset {
     100% { stroke-dashoffset: 16px; }
 }
 
-@keyframes aura-pulse {
-    0% { fill-opacity: 0.25; }
-    100% { fill-opacity: 0.10; }
-}
-
-@keyframes token-pulse {
-    0%   { fill: var(--color-blues-900); }
-    100% { fill: var(--color-danger-500); }
-}
-
 /* Buttons */
 .button {
     align-items: center;
@@ -649,7 +639,7 @@ legend {
 }
 
 .scene-token[data-flags*="turn"] [data-flag="initiative"] circle {
-    animation: token-pulse 1s alternate infinite;
+    fill: var(--color-danger-500);
 }
 
 .scene-token-label {
