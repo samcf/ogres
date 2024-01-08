@@ -703,12 +703,12 @@ legend {
 }
 
 .scene-token-aura {
-    animation: aura-pulse 1.50s alternate infinite;
-    fill: var(--scene-stroke);
-    stroke: var(--scene-stroke);
-    stroke-width: 1px;
-    stroke-opacity: 0.45;
+    fill: none;
     pointer-events: none;
+    stroke-dasharray: 1px 3px;
+    stroke-opacity: 1;
+    stroke-width: 1px;
+    stroke: var(--scene-stroke);
 }
 
 .scene-shape-rect > path {
