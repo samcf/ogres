@@ -5,6 +5,15 @@
             [ogres.app.render.pattern :refer [pattern]]
             [uix.core :as uix :refer [defui $ use-effect use-ref use-state]]))
 
+(defn token-size [x]
+  (cond (<= x 3)  "Tiny"
+        (<  x 5)  "Small"
+        (<= x 5)  "Medium"
+        (<= x 10) "Large"
+        (<= x 15) "Huge"
+        (>  x 15) "Gargantuan"
+        :else     "Unknown"))
+
 (def ^:private conditions
   [[:player "people-fill"]
    [:blinded "eye-slash-fill"]
@@ -50,11 +59,16 @@
      (fn [] (set! (.-indeterminate @input) indtr)) [indtr])
     (children
      {:key key
-      :input ($ :input
-               {:id key :type "checkbox" :ref input :checked (if indtr false checked)
-                :on-change
-                (fn [event]
-                  (on-change (.. event -target -checked)))})})))
+      :input
+      ($ :input
+        {:id key
+         :ref input
+         :type "checkbox"
+         :hidden true
+         :checked (if indtr false checked)
+         :on-change
+         (fn [event]
+           (on-change (.. event -target -checked)))})})))
 
 (defui ^:private token-form-label
   [{:keys [values on-change on-close]
@@ -79,34 +93,34 @@
          :ref input-ref
          :value input-val
          :auto-focus true
-         :placeholder "Press 'Enter' to change..."
-         :on-change #(set-input-val (.. %1 -target -value))}))))
+         :placeholder "Change token label..."
+         :on-change #(set-input-val (.. %1 -target -value))})
+      ($ :button {:type "submit"}
+        ($ icon {:name "check" :size 22})))))
 
 (defui ^:private token-form-details
   [{:keys [on-change values]
     :or   {values (constantly (list)) on-change identity}}]
-  (for [[label tx attr min max default]
-        [["Size"  :token/change-size  :token/size  5 25  5]
-         ["Aura"  :token/change-aura  :aura/radius 0 50  0]
-         ["Light" :token/change-light :token/light 0 50 15]]]
-    (let [values (values attr)
-          candid (first (into (sorted-set-by >) values))]
-      ($ :fieldset {:key label}
-        ($ :div label)
-        ($ :input
-          {:type      "range"
-           :min       min
-           :max       max
-           :step      5
-           :value     (or candid default)
-           :on-change (fn [event]
-                        (let [value (.. event -target -value)]
-                          (on-change tx (js/Number value))))})
-        ($ :span
-          (cond
-            (=  (first values) 0) "None"
-            (>= (count values) 1) (str candid "ft.")
-            (=  (count values) 0) (str default "ft.")))))))
+  (let [value-fn (fn [attr] (first (into (sorted-set-by >) (values attr))))]
+    ($ :<>
+      (let [value (value-fn :token/size)]
+        ($ :<>
+          ($ :div "Size")
+          ($ :button {:on-click #(on-change :token/change-size (max (- value 5) 5))} "-")
+          ($ :div (str value  "ft. " (token-size value)))
+          ($ :button {:on-click #(on-change :token/change-size (min (+ value 5) 50))} "+")))
+      (let [value (value-fn :token/light)]
+        ($ :<>
+          ($ :div "Light")
+          ($ :button {:on-click #(on-change :token/change-light (max (- value 5) 0))} "-")
+          ($ :div (if (> value 0) (str value "ft. radius") "None"))
+          ($ :button {:on-click #(on-change :token/change-light (min (+ value 5) 120))} "+")))
+      (let [value (value-fn :aura/radius)]
+        ($ :<>
+          ($ :div "Aura")
+          ($ :button {:on-click #(on-change :token/change-aura (max (- value 5) 0))} "-")
+          ($ :div (if (> value 0) (str value "ft. radius") "None"))
+          ($ :button {:on-click #(on-change :token/change-aura (min (+ value 5) 120))} "+"))))))
 
 (defui ^:private token-form-conds
   [props]
