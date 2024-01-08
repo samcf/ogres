@@ -14,11 +14,11 @@
           {:key :scenes     :label "Scene"      :icon "images"}
           {:key :tokens     :label "Tokens"     :icon "person-circle"}
           {:key :initiative :label "Initiative" :icon "hourglass-split"}
-          {:key :help       :label "Help"       :icon "question-diamond"}]
+          {:key :help       :label "Help"       :icon "wrench-adjustable-circle"}]
    :conn [{:key :session    :label "Friends"    :icon "people-fill"}
           {:key :tokens     :label "Tokens"     :icon "person-circle"}
           {:key :initiative :label "Initiative" :icon "hourglass-split"}
-          {:key :help       :label "Help"       :icon "question-diamond"}]})
+          {:key :help       :label "Help"       :icon "wrench-adjustable-circle"}]})
 
 (def ^:private components
   {:help       {:form help/form}
