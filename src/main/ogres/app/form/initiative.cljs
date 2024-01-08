@@ -73,7 +73,9 @@
   (let [input (use-ref) [editing set-editing form] (use-modal)]
     ($ :.initiative-token-health
       {:data-active (or editing (number? value))}
-      ($ :.initiative-token-form-health-control
+      ($ :.initiative-token-health-frame
+        ($ icon {:name "heart-fill" :size 40}))
+      ($ :.initiative-token-health-label
         {:on-click
          (fn [event]
            (.stopPropagation event)

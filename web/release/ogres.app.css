@@ -1911,25 +1911,41 @@ legend {
     justify-content: flex-start;
 }
 
-.initiative-token-form-health-control {
-    align-items: center;
-    aspect-ratio: 1 / 1;
-    background-color: white;
-    border-radius: 2px;
-    border: 1px solid #ccc;
+.initiative-token-health {
     cursor: pointer;
-    display: flex;
+    position: relative;
+}
+
+.initiative-token-health-frame {
+    color: var(--color-black-300);
+    position: absolute;
+}
+
+.initiative-token-health-label {
     flex: 1;
-    font-size: 1.2rem;
+    color: var(--color-black-500);
+    font-size: 1.1rem;
+    position: relative;
+    top: -4px;
+    z-index: 1;
+}
+
+.initiative-token-health,
+.initiative-token-health-frame,
+.initiative-token-health-label {
+    align-items: center;
+    display: flex;
+    height: 100%;
     justify-content: center;
+    width: 100%;
 }
 
-.initiative-token-form-health-control:hover {
-    background-color: #eee;
+.initiative-token-health:hover .initiative-token-health-frame {
+    color: var(--color-black-400);
 }
 
-.initiative-token-form-health-control:active {
-    border-color: black;
+.initiative-token-health:hover .initiative-token-health-label {
+    color: var(--color-black-900);
 }
 
 .initiative-token-form {
