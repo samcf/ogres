@@ -38,6 +38,7 @@
                :type "radio"
                :name "scene"
                :value id
+               :hidden true
                :checked (= id (:db/id (:local/camera result)))
                :on-change (fn [event] (dispatch :scenes/change (js/Number (.. event -target -value))))})
             ($ :label {:for key}

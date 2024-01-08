@@ -406,12 +406,6 @@ legend {
     flex: 1;
 }
 
-.scenes ul li input[type="radio"] {
-    pointer-events: none;
-    position: absolute;
-    visibility: hidden;
-}
-
 .scenes ul li label {
     border-radius: 3px 0 0 0;
     font-size: 12px;
