@@ -433,25 +433,24 @@
     ($ :g.scene-token
       {:ref        node
        :id         (str "token-" (:db/id data))
-       :transform  (str "scale(" scale ")")
        :data-flags (token-flags-attr data)}
-      (let [radius (* grid-size (/ (:aura/radius data) 5))]
-        (if (> radius 0)
-          ($ :circle.scene-token-aura {:cx 0 :cy 0 :r (+ radius (/ grid-size 2))})))
-      ($ :circle.scene-token-shape {:cx 0 :cy 0 :r radii :fill (str "url(#" pttrn ")")})
-      ($ :circle.scene-token-ring
-        {:cx 0 :cy 0 :r (+ radii 5)})
-      (for [[deg flag] (mapv vector [-120 120 -65 65] (token-conditions data))
-            :let [rn (* (/ js/Math.PI 180) deg)
-                  cx (* (js/Math.sin rn) radii)
-                  cy (* (js/Math.cos rn) radii)]]
-        ($ :g.scene-token-flags {:key flag :data-flag flag :transform (str "translate(" cx ", " cy ")")}
-          ($ :circle {:cx 0 :cy 0 :r 12})
-          ($ :g {:transform (str "translate(" -8 ", " -8 ")")}
-            ($ icon {:name (condition->icon flag) :size 16}))))
-      (if-let [label (label data)]
-        ($ :text.scene-token-label {:y (/ grid-size 2)}
-          label)))))
+      (if (> (:aura/radius data) 0)
+        (let [radius (+ (* grid-size (/ (:aura/radius data) 5)) (* scale (/ grid-size 2)))]
+          ($ :circle.scene-token-aura {:cx 0 :cy 0 :style {:r radius}})))
+      ($ :g {:style {:transform (str "scale(" scale ")")}}
+        ($ :circle.scene-token-shape {:cx 0 :cy 0 :r radii :fill (str "url(#" pttrn ")")})
+        ($ :circle.scene-token-ring {:cx 0 :cy 0 :r (+ radii 5)})
+        (for [[deg flag] (mapv vector [-120 120 -65 65] (token-conditions data))
+              :let [rn (* (/ js/Math.PI 180) deg)
+                    cx (* (js/Math.sin rn) radii)
+                    cy (* (js/Math.cos rn) radii)]]
+          ($ :g.scene-token-flags {:key flag :data-flag flag :transform (str "translate(" cx ", " cy ")")}
+            ($ :circle {:cx 0 :cy 0 :r 12})
+            ($ :g {:transform (str "translate(" -8 ", " -8 ")")}
+              ($ icon {:name (condition->icon flag) :size 16}))))
+        (if-let [label (label data)]
+          ($ :text.scene-token-label {:y (/ grid-size 2)}
+            label))))))
 
 (def ^:private query-tokens
   [{:root/local

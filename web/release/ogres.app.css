@@ -566,6 +566,10 @@ section + section {
 }
 
 /* Scene Tokens */
+.scene-token > g {
+    transition: transform 60ms ease-out;
+}
+
 .scene-token[data-flags*="player"] .scene-token-shape {
     stroke: url("#token-base-player");
     stroke-width: 4px;
@@ -636,6 +640,7 @@ section + section {
     stroke-opacity: 1;
     stroke-width: 1px;
     stroke: var(--scene-stroke);
+    transition: r 60ms ease-out;
 }
 
 .scene-shape-rect > path {
