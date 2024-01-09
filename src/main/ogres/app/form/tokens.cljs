@@ -189,7 +189,7 @@
              (doseq [file (.. event -target -files)]
                (upload file))
              (set! (.. event -target -value) ""))})
-        ($ icon {:name "camera-fill" :size 16}) "Select Files")
+        ($ icon {:name "camera-fill" :size 16}) "Upload images")
       ($ :button.button.button-danger
         {:type     "button"
          :title    "Remove all"
