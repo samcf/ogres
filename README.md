@@ -4,22 +4,14 @@
 
 ## Features
 
-- Instantly start preparing your dungeons with no sign-ups or ads.
-- Start an online lobby for your friends.
-- Prepare and manage multiple scenes at once.
-- Built-in initiative tracker with helpful controls for quick combat.
-- Minimal rules knowledge makes it easy to use for other systems.
+- Instantly start preparing your game; no sign-ups or ads
+- Start an online collaborative session for your friends
+- Prepare and manage multiple scenes at once
+- Built-in initiative tracker for streamlined encounters
+- Responsive design for phones and tablets
+- Easy to use for other game systems
+- Polygonal fog tool
 - ... and much more planned!
-
-## Support
-
-Some important things to know before setting up your first table.
-
-- **Chrome** or **Firefox** are recommended; other browsers may have major issues at the moment. Other browsers like Opera or Microsoft Edge which are Chromium browsers may also work well, though I have not tested these myself.
-- This is an offline-first application and all your work is saved on your local computer. You won't be able to transfer your work from one computer to another.
-- Its easy to accidentally delete an entire scene with no way to recover it. I hope to add more safeguards soon.
-
-Find more information on the [project wiki](https://github.com/samcf/ogres.app/wiki), including tips and keyboard shortcuts.
 
 ## Install
 
