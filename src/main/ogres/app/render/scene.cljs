@@ -434,9 +434,9 @@
       {:ref        node
        :id         (str "token-" (:db/id data))
        :data-flags (token-flags-attr data)}
-      (if (> (:aura/radius data) 0)
-        (let [radius (+ (* grid-size (/ (:aura/radius data) 5)) (* scale (/ grid-size 2)))]
-          ($ :circle.scene-token-aura {:cx 0 :cy 0 :style {:r radius}})))
+      (let [radius (:aura/radius data)
+            radius (if (> radius 0) (+ (* grid-size (/ radius 5)) (* scale (/ grid-size 2))) 0)]
+        ($ :circle.scene-token-aura {:cx 0 :cy 0 :style {:r radius}}))
       ($ :g {:style {:transform (str "scale(" scale ")")}}
         ($ :circle.scene-token-shape {:cx 0 :cy 0 :r radii :fill (str "url(#" pttrn ")")})
         ($ :circle.scene-token-ring {:cx 0 :cy 0 :r (+ radii 5)})
