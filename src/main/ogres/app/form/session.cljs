@@ -63,7 +63,7 @@
                 ($ :code.session-code code)
                 ($ :aside.form-notice
                   "Players can join your room by going to "
-                  ($ :a {:href url} url)
+                  ($ :a {:href url :target "_blank"} url)
                   " and entering this code.")))))
         ($ :section
           ($ :header "Options")
