@@ -4,7 +4,7 @@
             [goog.object :refer [getValueByKeys]]
             [ogres.app.const :refer [grid-size]]
             [ogres.app.geom :refer [bounding-box chebyshev triangle]]
-            [ogres.app.hooks :refer [create-portal use-subscribe use-dispatch use-image use-portal use-publish use-query]]
+            [ogres.app.hooks :refer [create-portal use-subscribe use-dispatch use-image use-portal use-query]]
             [ogres.app.render :refer [icon]]
             [ogres.app.render.draw :refer [draw]]
             [ogres.app.render.forms :refer [token-context-menu shape-context-menu]]
@@ -677,30 +677,24 @@
 
 (def ^:private scene-camera-draggable
   (uix/memo
-   (uix/fn [{:keys [on-cursor-move children]
-             :or   {on-cursor-move identity}}]
+   (uix/fn [{:keys [children]}]
      (let [options (use-draggable #js {"id" "scene-camera" "data" #js {"class" "camera"}})
-           drag? (.-isDragging options)
            dx (getValueByKeys options "transform" "x")
            dy (getValueByKeys options "transform" "y")]
        ($ :g
-         {:ref (.-setNodeRef options)
+         {:id "scene-drag"
+          :ref (.-setNodeRef options)
           :style {:will-change "transform"}
           :transform (str "translate(" (or dx 0) ", " (or dy 0) ")")
-          :on-pointer-down (.. options -listeners -onPointerDown)
-          :on-pointer-move
-          (use-callback
-           (fn [event]
-             (if (not drag?)
-               (on-cursor-move (.-clientX event) (.-clientY event))))
-           [on-cursor-move drag?])}
+          :data-dragging (.-isDragging options)
+          :on-pointer-down (.. options -listeners -onPointerDown)}
          ($ :rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"})
          children)))))
 
 (def ^:private scene-camera
   (uix/memo
-   (uix/fn [{:keys [scale on-translate on-cursor-move children]
-             :or   {on-translate identity on-cursor-move identity}}]
+   (uix/fn [{:keys [scale on-translate children]
+             :or   {on-translate identity}}]
      (let [scale-fn (use-memo (fn [] (dnd-modifier-scale scale)) [scale])]
        ($ dnd-context
          #js {"modifiers" #js [dnd-modifier-int]
@@ -711,7 +705,6 @@
                   (.. data -delta -x)
                   (.. data -delta -y))) [on-translate])}
          ($ scene-camera-draggable
-           {:on-cursor-move on-cursor-move}
            ($ dnd-context
              #js {"modifiers" #js [scale-fn dnd-modifier-int]}
              children)))))))
@@ -738,7 +731,6 @@
   [:local/type
    :local/modifier
    [:local/privileged? :default false]
-   [:bounds/self :default [0 0 0 0]]
    [:bounds/host :default [0 0 0 0]]
    [:bounds/view :default [0 0 0 0]]
    {:local/camera
@@ -751,12 +743,10 @@
 
 (defui render-scene []
   (let [dispatch (use-dispatch)
-        publish  (use-publish)
         result   (use-query query-scene)
         {type        :local/type
          [_ _ hw hh] :bounds/host
          [_ _ vw vh] :bounds/view
-         [sx sy _ _] :bounds/self
          {id      :db/id
           scale   :camera/scale
           mode    :camera/draw-mode
@@ -777,14 +767,7 @@
               (let [tx (- (/ dx scale) cx)
                     ty (- (/ dy scale) cy)]
                 (dispatch :camera/translate (- tx) (- ty)))))
-          [dispatch cx cy scale])
-         :on-cursor-move
-         (use-callback
-          (fn [dx dy]
-            (let [mx (int (+ (/ (- dx sx) scale) cx))
-                  my (int (+ (/ (- dy sy) scale) cy))]
-              (publish {:topic :cursor/move :args [mx my]})))
-          [publish sx sy cx cy scale])}
+          [dispatch cx cy scale])}
         (if (and (= mode :select) (= (:local/modifier result) :shift))
           ($ draw {:mode :select}))
         ($ :g.scene-board {:transform (str "scale(" scale ") translate(" (- cx) ", " (- cy) ")")}

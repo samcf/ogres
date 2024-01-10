@@ -1,5 +1,6 @@
 (ns ogres.app.core
   (:require [ogres.app.layout           :refer [layout]]
+            [ogres.app.provider.cursor  :as cursor]
             [ogres.app.provider.events  :as events]
             [ogres.app.provider.image   :as image]
             [ogres.app.provider.portal  :as portal]
@@ -28,6 +29,7 @@
                   ($ window/provider)
                   ($ shortcut/handlers)
                   ($ session/handlers)
+                  ($ cursor/handlers)
                   ($ error-boundary
                     ($ layout)))))))))))
 
