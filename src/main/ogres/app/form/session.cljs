@@ -56,9 +56,15 @@
                  players connect using the fully qualified URL below."))
             ($ :input.session-url {:type "text" :value (session-url code) :readOnly true})))
         (if code
-          ($ :section
-            ($ :header "Room Code")
-            ($ :code.session-code code)))
+          (let [url (.. js/window -location -origin)]
+            ($ :section
+              ($ :header "Room Code")
+              ($ :.session-room
+                ($ :code.session-code code)
+                ($ :aside.form-notice
+                  "Players can join your room by going to "
+                  ($ :a {:href url} url)
+                  " and entering this code.")))))
         ($ :section
           ($ :header "Options")
           ($ :fieldset.checkbox
