@@ -45,9 +45,17 @@
           ($ status/button)))
       ($ :ul.panel-tabs
         (for [form forms :let [name (:key form) selected (= selected name)]]
-          ($ :li
-            {:key name :data-selected (and expanded selected) :on-click #(dispatch :local/select-panel name)}
-            ($ icon {:name (:icon form) :size 20})))
+          ($ :li {:key name}
+            ($ :input
+              {:id name
+               :type "radio"
+               :name "panel"
+               :value name
+               :hidden true
+               :checked (and expanded selected)
+               :on-change #(dispatch :local/select-panel name)})
+            ($ :label {:for name}
+              ($ icon {:name (:icon form) :size 20}))))
         ($ :li.panel-tabs-control
           {:on-click #(dispatch :local/toggle-panel)}
           ($ icon {:name (if expanded "chevron-double-right" "chevron-double-left")})))

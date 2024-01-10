@@ -1029,7 +1029,7 @@ section + section {
     box-shadow: 4px 4px 0 0 rgba(0, 0, 0, .15);
     display: grid;
     height: 100%;
-    grid-template-columns: min-content 1fr;
+    grid-template-columns: 40px 1fr;
     grid-template-rows: 32px 1fr;
 }
 
@@ -1043,7 +1043,7 @@ section + section {
     box-shadow: 4px 4px 0 0 rgba(0, 0, 0, .15);
 }
 
-.panel[data-expanded=false] .panel-tabs li {
+.panel[data-expanded=false] .panel-tabs li label {
     border-radius: 2px;
     border-width: 1px 1px 0 1px;
 }
@@ -1061,47 +1061,53 @@ section + section {
     grid-area: 2 / 1 / 3 / 2;
 }
 
-.panel-tabs li {
+.panel-tabs li,
+.panel-tabs li input[type="radio"] + label {
+    display: flex;
+    justify-content: center;
     align-items: center;
+}
+
+.panel-tabs li {
+    color: var(--color-paper-900);
+    flex: 1;
+}
+
+.panel-tabs li input[type="radio"] + label {
     background-color: var(--color-blues-500);
     border-color: var(--color-blues-900);
     border-radius: 2px 0 0 2px;
     border-style: solid;
     border-width: 1px 0 0 1px;
-    color: var(--color-paper-900);
-    display: flex;
-    flex: 1;
-    justify-content: center;
-    padding: 8px;
-    position: relative;
+    box-sizing: border-box;
+    height: 100%;
+    width: 100%;
 }
 
-.panel-tabs li[data-selected=true] {
+.panel-tabs li input[type="radio"]:checked + label {
     background-color: var(--color-paper-500);
     color: var(--color-blues-900);
 }
 
-.panel-tabs li:not([data-selected=true]) {
+.panel-tabs li input[type="radio"]:not(:checked) + label {
     cursor: pointer;
 }
 
-.panel-tabs li:not([data-selected=true]):hover {
+.panel-tabs li input[type="radio"]:not(:checked):hover + label {
     background-color: var(--color-blues-100);
 }
 
 .panel-tabs li.panel-tabs-control {
     align-items: center;
-    background: none;
-    border: none;
     color: var(--color-blues-100);
     cursor: pointer;
     display: flex;
-    flex: 10;
+    flex: 8;
     justify-content: center;
+    box-sizing: border-box;
 }
 
 .panel-tabs li.panel-tabs-control:hover {
-    background-color: inherit;
     color: var(--color-paper-500);
 }
 
@@ -1122,7 +1128,6 @@ section + section {
     flex-direction: column;
     flex: 1;
     grid-area: 2 / 2 / 3 / 3;
-    min-height: 100%;
 }
 
 .form-container {
@@ -2157,9 +2162,17 @@ section + section {
 
     .layout-panel {
         padding-top: 4px;
+        display: flex;
+        flex-direction: column;
     }
 
-    .layout-panel .panel[data-expanded=false] .panel-tabs > li {
+    .layout-panel .panel {
+        flex: 1;
+        display: flex;
+        flex-flow: column nowrap;
+    }
+
+    .layout-panel .panel[data-expanded=false] .panel-tabs li label {
         border-width: 1px 0 1px 1px;
     }
 
@@ -2168,15 +2181,18 @@ section + section {
     }
 
     .layout-panel .panel-tabs {
-        flex-direction: row;
-        grid-area: 1 / 1 / 1 / 3;
         border-radius: 3px 3px 0 0;
+        flex-direction: row;
+        min-height: 36px;
     }
 
     .layout-panel .panel-tabs li {
+        flex: 1;
+    }
+
+    .layout-panel .panel-tabs li input[type="radio"] + label {
         border-radius: 3px 3px 0 0;
         border-width: 1px 0 0 1px;
-        flex: 1;
         padding: 2px;
     }
 
