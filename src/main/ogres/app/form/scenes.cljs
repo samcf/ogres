@@ -6,7 +6,9 @@
             [uix.dom :refer [create-portal]]))
 
 (def ^:private options-vis
-  [["Revealed" :revealed] ["Obscured" :dimmed] ["Hidden" :hidden]])
+  [["Revealed" :revealed "sun-fill"]
+   ["Obscured" :dimmed "cloud-sun-fill"]
+   ["Hidden" :hidden "moon-fill"]])
 
 (def ^:private per-page 6)
 
@@ -73,7 +75,7 @@
     ($ :<>
       ($ :header "Scene options")
       ($ :section.scene-options
-        ($ :fieldset.text {:style {:grid-area "title"}}
+        ($ :fieldset.text
           ($ :input
             {:type "text"
              :title "Scene name"
@@ -87,12 +89,11 @@
                  (if (not= value "")
                    (dispatch :camera/change-label value)
                    (dispatch :camera/remove-label))))}))
-        ($ :fieldset.text {:style {:grid-area "tile-size"}}
+        ($ :fieldset.text
           ($ :input
             {:type "number"
              :title "Tile size (px)"
              :value (or (:scene/grid-size scene) "")
-             :disabled (nil? (:scene/image scene))
              :placeholder "Tile size (px)"
              :on-change
              (fn [event]
@@ -101,39 +102,46 @@
                  (if (= value 0)
                    (dispatch :scene/retract-grid-size)
                    (dispatch :scene/change-grid-size value))))}))
-        ($ :fieldset.option {:style {:grid-area "show-grid"}}
+        ($ :fieldset.scene-options-group
+          (for [[label value icon-name] options-vis
+                :let [on-change #(dispatch :scene/change-lighting value)]]
+            ($ :<> {:key value}
+              ($ :input
+                {:id (name value)
+                 :type "radio"
+                 :name "visi"
+                 :value value
+                 :checked (= (:scene/lighting scene) value)
+                 :on-change on-change})
+              ($ :label {:for (name value)}
+                ($ icon {:name icon-name :size 16})
+                label))))
+        ($ :fieldset.scene-options-group
+          {:style {:border-style "none" :padding 0}}
           ($ :input
             {:id "show-grid"
              :type "checkbox"
              :checked (:scene/show-grid scene)
              :on-change #(dispatch :scene/toggle-show-grid (.. % -target -checked))})
-          ($ :label {:for "show-grid"} "Show grid"))
-        ($ :fieldset.option {:style {:grid-area "dark-grid"}}
-          ($ :input
-            {:id "dark-grid"
-             :type "checkbox"
-             :checked (:scene/dark-mode scene)
-             :on-change #(dispatch :scene/toggle-dark-mode (.. % -target -checked))})
-          ($ :label {:for "dark-grid"} "Use dark grid"))
-        ($ :fieldset.option {:style {:grid-area "grid-align"}}
+          ($ :label {:for "show-grid"}
+            ($ icon {:name "check" :size 20})
+            "Show grid")
           ($ :input
             {:id "grid-align"
              :type "checkbox"
              :checked (:scene/grid-align scene)
              :on-change #(dispatch :scene/toggle-grid-align (.. % -target -checked))})
-          ($ :label {:for "grid-align"} "Align to grid"))
-        (for [[label value] options-vis
-              :let [on-change #(dispatch :scene/change-lighting value)]]
-          ($ :fieldset.option {:key value :style {:grid-area (str "visi-" (name value))}}
-            ($ :input
-              {:id (name value)
-               :type "radio"
-               :name "visi"
-               :value value
-               :checked (= (:scene/lighting scene) value)
-               :disabled (nil? (:scene/image scene))
-               :on-change on-change})
-            ($ :label {:for (name value)} label))))
+          ($ :label {:for "grid-align"}
+            ($ icon {:name "check" :size 20})
+            "Align to grid")
+          ($ :input
+            {:id "dark-grid"
+             :type "checkbox"
+             :checked (:scene/dark-mode scene)
+             :on-change #(dispatch :scene/toggle-dark-mode (.. % -target -checked))})
+          ($ :label {:for "dark-grid"}
+            ($ icon {:name "check" :size 20})
+            "Use dark grid")))
       (let [img (vec (:root/scene-images data))
             pgs (int (js/Math.ceil (/ (count img) per-page)))
             src (* (max (dec (min page pgs)) 0) per-page)

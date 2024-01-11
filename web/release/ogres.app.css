@@ -1217,15 +1217,8 @@ section + section {
 /* Scene Management */
 .scene-options {
     display: grid;
-    font-size: 12px;
-    text-transform: uppercase;
-    gap: 2px;
-    grid-template-columns: 1fr 1fr 1.5fr;
-    grid-template-areas:
-      "title         title         tile-size"
-      "visi-revealed tofd-none     show-grid"
-      "visi-dimmed   tofd-dusk     grid-align"
-      "visi-hidden   tofd-midnight dark-grid";
+    gap: 4px;
+    grid-template-columns: 3fr 2fr;
 }
 
 .scene-options fieldset.text input {
@@ -1237,7 +1230,7 @@ section + section {
 }
 
 .scene-options fieldset.text input:focus {
-    border-color: var(--color-prime-500);
+    outline: 5px auto -webkit-focus-ring-color;
 }
 
 .scene-options fieldset.text input::placeholder {
@@ -1245,31 +1238,84 @@ section + section {
     text-transform: uppercase;
 }
 
-.scene-options fieldset.option {
-    align-items: center;
+.scene-options .scene-options-group {
+    border-radius: 3px;
+    border: 1px dotted var(--color-blues-500);
     display: flex;
-    gap: 4px;
-    padding: 2px 4px;
+    flex-direction: column;
+    padding: 3px;
+    row-gap: 2px;
 }
 
-.scene-options fieldset.option input {
-    margin: 0;
-    accent-color: hsl(140deg 92.61% 33.42%);
+.scene-options fieldset {
+    align-items: stretch;
+    display: flex;
 }
 
-.scene-options fieldset.option input:not(:disabled),
-.scene-options fieldset.option input:not(:disabled) + label {
+.scene-options input:is([type="radio"], [type="checkbox"]) {
+    position: absolute;
+    z-index: -1;
+}
+
+.scene-options input:is([type="radio"], [type="checkbox"]) + label {
+    align-items: center;
+    border-radius: 3px;
+    column-gap: 6px;
+    display: flex;
+    flex: 1;
+    font-size: 12px;
+    padding: 3px 3px;
+    text-transform: uppercase;
+}
+
+.scene-options input:is([type="radio"], [type="checkbox"]) + label svg {
+    align-items: center;
+    background-color: var(--color-paper-500);
+    border-radius: 3px;
+    border: 1px solid var(--color-black-300);
+    display: flex;
+    justify-content: center;
+}
+
+.scene-options input:is([type="radio"], [type="checkbox"]):focus-visible + label {
+    outline: rgb(229, 151, 0) auto thin;
+    outline: -webkit-focus-ring-color auto thin;
+}
+
+.scene-options input:is([type="radio"], [type="checkbox"]):checked + label {
+    color: var(--color-blues-900);
+}
+
+.scene-options input:is([type="radio"], [type="checkbox"]):checked + label svg {
+    background-color: var(--color-prime-500);
+    border-color: var(--color-prime-500);
+    color: var(--color-paper-500);
+}
+
+.scene-options input[type="radio"] + label svg {
+    padding: 3px;
+}
+
+.scene-options input[type="radio"]:checked + label {
+    background-color: var(--color-paper-900);
+}
+
+.scene-options input[type="radio"]:not(:checked) + label {
+    color: var(--color-black-400);
     cursor: pointer;
 }
 
-.scene-options fieldset.option input:disabled + label {
+.scene-options input[type="radio"]:not(:checked):hover + label {
+    background-color: var(--color-paper-900);
+}
+
+.scene-options input[type="checkbox"]:not(:checked) + label {
     color: var(--color-black-400);
 }
 
-.scene-options fieldset.box {
-    background-color: var(--color-paper-100);
-    border: 1px solid var(--color-paper-900);
-    border-radius: 3px;
+.scene-options input[type="checkbox"]:hover + label {
+    background-color: var(--color-paper-900);
+    cursor: pointer;
 }
 
 .scene-images {
@@ -1291,7 +1337,7 @@ section + section {
 
 .scene-gallery {
     display: grid;
-    gap: 2px;
+    gap: 4px;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(2, 1fr);
 }
