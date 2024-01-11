@@ -2145,6 +2145,7 @@ section + section {
     grid-template-areas: "b";
     grid-template-columns: 1fr;
     grid-template-rows: 1fr;
+    grid-template-areas: "canvas";
 }
 
 [data-user=view] .scene {

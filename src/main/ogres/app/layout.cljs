@@ -58,5 +58,8 @@
                 ($ :li ($ :a {:href "https://github.com/samcf/ogres/wiki"} "Wiki"))
                 ($ :li ($ :a {:href "https://github.com/samcf/ogres/discussions"} "Support")))))))
       [:view :ready]
-      ($ :.layout {:style {:visibility "hidden"}}
+      ($ :.layout
+        {:style {:visibility "hidden"}
+         :data-user (name type)
+         :data-expanded expanded}
         ($ :.layout-scene ($ render-scene))) nil)))
