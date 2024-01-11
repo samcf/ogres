@@ -36,7 +36,6 @@
     --color-paper-700: hsl(60, 21%, 92%);
     --color-paper-900: hsl(60, 21%, 86%);
 
-    --color-session: var(--color-black-100);
     --color-session-red: #de324c;
     --color-session-orange: #f4895f;
     --color-session-yellow: #f8e16f;
@@ -648,7 +647,7 @@ section + section {
 }
 
 .scene-tokens-selected {
-    --token-ring-stroke: var(--color-session);
+    --token-ring-stroke: var(--color-session, var(--scene-stroke));
     --token-ring-stroke-width: 1px;
 }
 
@@ -683,7 +682,7 @@ section + section {
 }
 
 .scene-token-position[data-dragging=true] {
-    --token-ring-stroke: var(--color-session);
+    --token-ring-stroke: var(--color-session, var(--scene-stroke));
     --token-ring-stroke-width: 2px;
 }
 
