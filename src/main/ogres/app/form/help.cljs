@@ -11,12 +11,6 @@
 (def ^:private confirm-delete
   "Delete all your local data and restore this application to its original state?")
 
-(def ^:private resource-links
-  [["https://ogres.app" "Application home" "Home"]
-   ["https://github.com/samcf/ogres" "Project repository" "Code"]
-   ["https://github.com/samcf/ogres/wiki" "Project wiki" "Wiki"]
-   ["https://github.com/samcf/ogres/discussions" "Project discussion" "Support"]])
-
 (defui form []
   (let [releases (use-context release/context)
         dispatch (use-dispatch)
@@ -57,9 +51,4 @@
               ($ :tr {:key (:name shortcut)}
                 ($ :td
                   ($ :.shortcut (map (fn [s] ($ :code {:key (str s)} (str s))) (interpose \+ (:keys shortcut)))))
-                ($ :td (str (:desc shortcut))))))))
-      ($ :section
-        ($ :header "Resources")
-        ($ :ul {:style {:color "var(--color-danger-500)"}}
-          (for [[url title] resource-links]
-            ($ :li {:key url} ($ :a {:href url :title title :target "_blank"} url))))))))
+                ($ :td (str (:desc shortcut)))))))))))
