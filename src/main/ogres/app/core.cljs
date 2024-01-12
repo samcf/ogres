@@ -16,6 +16,7 @@
 
 (defui ^:private app []
   ($ strict-mode
+    ($ stylesheet {:name "fonts.css"})
     ($ stylesheet {:name "reset.css"})
     ($ stylesheet {:name "ogres.app.css"})
     ($ events/provider

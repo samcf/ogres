@@ -102,7 +102,7 @@
                  (if (= value 0)
                    (dispatch :scene/retract-grid-size)
                    (dispatch :scene/change-grid-size value))))}))
-        ($ :fieldset.scene-options-group
+        ($ :fieldset.scene-options-group.checkbox
           (for [[label value icon-name] options-vis
                 :let [on-change #(dispatch :scene/change-lighting value)]]
             ($ :<> {:key value}
@@ -116,7 +116,7 @@
               ($ :label {:for (name value)}
                 ($ icon {:name icon-name :size 16})
                 label))))
-        ($ :fieldset.scene-options-group
+        ($ :fieldset.scene-options-group.checkbox
           {:style {:border-style "none" :padding 0}}
           ($ :input
             {:id "show-grid"

@@ -1,8 +1,5 @@
 :root {
     --pattern-diamonds: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.12'%3E%3Cpath opacity='.5' d='M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9z'/%3E%3Cpath d='M6 5V0H5v5H0v1h5v94h1V6h94V5H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-    --font-stack-system: system-ui, sans-serif;
-    --font-stack-transitional: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, serif;
-    --font-stack-mono: 'Nimbus Mono PS', 'Courier New', 'Cutive Mono', monospace;
 
     --color-black-900: #000000;
     --color-black-700: #333333;
@@ -52,15 +49,21 @@ html, body, #root {
 
 body {
     background: var(--pattern-diamonds), var(--color-blues-500);
-    font-family: var(--font-stack-transitional);
     font-size: 16px;
     line-height: 1.5;
     overflow-y: hidden;
     user-select: none;
 }
 
+body,
+button,
+input:is([type="text"], [type="number"]),
+input:is([type="text"], [type="number"])::placeholder {
+    font-family: 'Lora', serif;
+}
+
 strong {
-    font-weight: bold;
+    font-weight: 600;
 }
 
 a:link,
@@ -70,11 +73,11 @@ a:visited {
 }
 
 header {
-    display: flex;
     align-items: center;
-    font-size: 12px;
-    text-transform: uppercase;
+    display: flex;
+    font-size: 11px;
     margin-bottom: 8px;
+    text-transform: uppercase;
 }
 
 header:before,
@@ -104,19 +107,65 @@ input:is([type="text"], [type="number"]):focus {
     outline: none;
 }
 
-fieldset.checkbox {
+/* Form */
+.checkbox {
+    position: relative;
+}
+
+.checkbox input {
+    position: absolute;
+    z-index: -1;
+}
+
+.checkbox input + label {
+    border-radius: 3px;
+    column-gap: 6px;
+    padding: 3px;
+}
+
+.checkbox input + label .icon {
+    background-color: var(--color-paper-500);
+    border-radius: 3px;
+    border: 1px solid var(--color-black-300);
+}
+
+.checkbox input + label,
+.checkbox input + label .icon {
     display: flex;
     align-items: center;
 }
 
-fieldset.checkbox label {
-    text-transform: capitalize;
-    line-height: 1;
-    font-size: 13px;
+.checkbox input:focus-visible + label {
+    outline: rgb(229, 151, 0) auto thin;
+    outline: -webkit-focus-ring-color auto thin;
 }
 
-fieldset.checkbox + fieldset {
-    margin-top: 4px;
+.checkbox input:checked + label .icon {
+    background-color: var(--color-prime-500);
+    border-color: var(--color-prime-500);
+    color: var(--color-paper-500);
+}
+
+.checkbox input:disabled + label {
+    background-color: var(--color-black-300);
+    color: var(--color-black-500);
+}
+
+.checkbox input:checked:disabled + label .icon {
+    background-color: var(--color-prime-300);
+    border-color: var(--color-prime-300);
+}
+
+.checkbox input:not(:disabled) + label {
+    cursor: pointer;
+}
+
+.checkbox input:not(:disabled):hover + label {
+    background-color: var(--color-paper-900);
+}
+
+.checkbox input:not(:checked, :disabled) + label {
+    color: var(--color-black-400);
 }
 
 /* Animations */
@@ -139,9 +188,8 @@ fieldset.checkbox + fieldset {
     box-shadow: 1px 1px 0 0 rgba(0, 0, 0, .10);
     color: var(--color-blues-900);
     display: flex;
-    font-family: var(--font-stack-transitional);
-    font-size: 12px;
-    gap: 4px;
+    font-size: 11px;
+    gap: 6px;
     min-height: 32px;
     padding: 6px 10px;
     text-transform: uppercase;
@@ -190,7 +238,6 @@ fieldset.checkbox + fieldset {
     align-items: center;
     display: flex;
     flex-direction: column;
-    font-style: italic;
     justify-content: center;
     padding: 5%;
     text-align: center;
@@ -337,7 +384,6 @@ section + section {
     font-size: 12px;
     overflow: hidden;
     padding: 0 8px;
-    text-rendering: geometricPrecision;
     text-transform: capitalize;
     white-space: nowrap;
     width: 100%;
@@ -851,7 +897,6 @@ section + section {
     background-color: transparent;
     border: none;
     color: var(--color-black-100);
-    font-family: var(--font-stack-transitional);
 }
 
 .context-menu-form-label input[type="text"]::placeholder {
@@ -975,7 +1020,6 @@ section + section {
     border: 1px solid var(--color-blues-700);
     color: white;
     content: attr(data-tooltip);
-    font-family: var(--font-stack-transitional);
     font-size: 11px;
     line-height: 1;
     padding: 2px 4px;
@@ -1165,7 +1209,6 @@ section + section {
 .form-notice {
     background-color: var(--color-paper-900);
     border-radius: 3px;
-    font-family: var(--font-stack-system);
     font-size: 13px;
     line-height: 1.3;
     padding: 10px;
@@ -1224,7 +1267,6 @@ section + section {
 .scene-options fieldset.text input {
     background-color: var(--color-paper-100);
     border: 1px solid var(--color-paper-900);
-    font-family: var(--font-stack-transitional);
     line-height: 1.6;
     border-radius: 2px;
 }
@@ -1250,25 +1292,25 @@ section + section {
 .scene-options fieldset {
     align-items: stretch;
     display: flex;
+    font-size: 13px;
 }
 
-.scene-options input:is([type="radio"], [type="checkbox"]) {
+.scene-options input:is([type="radio"]) {
     position: absolute;
     z-index: -1;
 }
 
-.scene-options input:is([type="radio"], [type="checkbox"]) + label {
+.scene-options input:is([type="radio"]) + label {
     align-items: center;
     border-radius: 3px;
     column-gap: 6px;
     display: flex;
     flex: 1;
-    font-size: 12px;
+    font-size: 13px;
     padding: 3px 3px;
-    text-transform: uppercase;
 }
 
-.scene-options input:is([type="radio"], [type="checkbox"]) + label svg {
+.scene-options input:is([type="radio"]) + label svg {
     align-items: center;
     background-color: var(--color-paper-500);
     border-radius: 3px;
@@ -1277,16 +1319,16 @@ section + section {
     justify-content: center;
 }
 
-.scene-options input:is([type="radio"], [type="checkbox"]):focus-visible + label {
+.scene-options input:is([type="radio"]):focus-visible + label {
     outline: rgb(229, 151, 0) auto thin;
     outline: -webkit-focus-ring-color auto thin;
 }
 
-.scene-options input:is([type="radio"], [type="checkbox"]):checked + label {
+.scene-options input:is([type="radio"]):checked + label {
     color: var(--color-blues-900);
 }
 
-.scene-options input:is([type="radio"], [type="checkbox"]):checked + label svg {
+.scene-options input:is([type="radio"]):checked + label svg {
     background-color: var(--color-prime-500);
     border-color: var(--color-prime-500);
     color: var(--color-paper-500);
@@ -1309,15 +1351,6 @@ section + section {
     background-color: var(--color-paper-900);
 }
 
-.scene-options input[type="checkbox"]:not(:checked) + label {
-    color: var(--color-black-400);
-}
-
-.scene-options input[type="checkbox"]:hover + label {
-    background-color: var(--color-paper-900);
-    cursor: pointer;
-}
-
 .scene-images {
     border-radius: 3px;
     border: 1px dotted var(--color-blues-100);
@@ -1328,7 +1361,7 @@ section + section {
 
 .scene-images-label {
     background-color: var(--color-paper-500);
-    font-size: 12px;
+    font-size: 11px;
     padding: 0 4px;
     position: absolute;
     text-transform: uppercase;
@@ -1531,9 +1564,8 @@ section + section {
 }
 
 .scene-list-item[data-selected=true] {
-    background-color: var(--color-prime-500);
+    background-color: var(--color-paper-900);
     border-bottom-width: 1px;
-    color: white;
 }
 
 .scene-list-item[data-selected=true] + .scene-list-item {
@@ -1577,21 +1609,23 @@ section + section {
 
 .scene-list-item-label {
     font-size: 14px;
+    font-weight: 600;
     line-height: 1;
     text-transform: capitalize;
 }
 
 .scene-list-item-badges {
     display: flex;
-    font-size: 13px;
+    font-size: 12px;
     gap: 4px;
     line-height: 1;
 }
 
 .scene-list-item-badge {
     align-items: center;
-    background-color: var(--color-paper-900);
+    background-color: var(--color-paper-500);
     border-radius: 3px;
+    border: 1px solid var(--color-black-400);
     color: var(--color-blues-900);
     display: flex;
     gap: 4px;
@@ -1752,7 +1786,7 @@ section + section {
 }
 
 .initiative-token[data-current="true"] {
-    background-color: #ddd;
+    background-color: var(--color-paper-900);
     border-width: 1px 0;
 }
 
@@ -1837,8 +1871,8 @@ section + section {
 }
 
 .initiative-token-label {
-    font-size: 16px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 600;
     line-height: 1;
 }
 
@@ -1924,10 +1958,9 @@ section + section {
     border-radius: 2px;
     border: none;
     display: flex;
-    font-family: var(--font-stack-transitional);
     font-size: 14px;
-    font-weight: bold;
-    font-family: var(--font-stack-mono);
+    font-weight: 600;
+    font-family: monospace;
     justify-content: center;
     line-height: 1;
 }
@@ -1948,8 +1981,14 @@ section + section {
 }
 
 /* Session Form */
-.session section + section {
-    margin-top: 8px;
+.session {
+    font-size: 13px;
+}
+
+.session-options {
+    display: flex;
+    flex-direction: column;
+    row-gap: 4px;
 }
 
 .session-room {
@@ -1968,12 +2007,13 @@ section + section {
     border: 1px dotted var(--color-blues-100);
     display: flex;
     font-size: 2rem;
+    letter-spacing: 1px;
     line-height: 1;
     padding: 0 12px;
     user-select: text;
 }
 
-.session-url {
+input.session-url {
     background-color: var(--color-paper-500);
     border-color: var(--color-paper-900) !important;
     border-radius: 2px;
@@ -1989,16 +2029,16 @@ section + section {
 
 .session-player {
     display: flex;
-    gap: 8px;
+    gap: 6px;
 }
 
 .session-player-color {
     aspect-ratio: 1 / 1;
     background-color: var(--color-session);
     border-radius: 20%;
-    box-shadow: 1px 1px 0 0 rgba(0, 0, 0, .15);
     box-sizing: border-box;
-    width: 28px;
+    margin-left: 2px;
+    width: 22px;
 }
 
 .form[data-form="session"] .form-footer {
@@ -2016,7 +2056,7 @@ section + section {
 
 .shortcuts .shortcut {
     display: flex;
-    font-family: var(--font-stack-mono);
+    font-family: monospace;
     gap: 2px;
 }
 

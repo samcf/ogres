@@ -67,7 +67,7 @@
                   " and entering this code.")))))
         ($ :section
           ($ :header "Options")
-          ($ :fieldset.checkbox
+          ($ :fieldset.session-options.checkbox
             ($ :input
               {:id "share-cursors"
                :type "checkbox"
@@ -77,8 +77,9 @@
                (fn [event]
                  (let [checked (.. event -target -checked)]
                    (dispatch :session/toggle-share-cursors checked)))})
-            ($ :label {:for "share-cursors"} "Share cursors"))
-          ($ :fieldset.checkbox
+            ($ :label {:for "share-cursors"}
+              ($ icon {:name "check" :size 20})
+              "Share cursors")
             ($ :input
               {:id "share-my-cursor"
                :type "checkbox"
@@ -88,7 +89,9 @@
                (fn [event]
                  (let [checked (.. event -target -checked)]
                    (dispatch :session/toggle-share-my-cursor checked)))})
-            ($ :label {:for "share-my-cursor"} "Share my cursor")))
+            ($ :label {:for "share-my-cursor"}
+              ($ icon {:name "check" :size 20})
+              "Share my cursor")))
         ($ :section
           ($ :header "Host")
           ($ :.session-players
@@ -97,7 +100,7 @@
                 ($ :.session-player-color {:data-color (:local/color host)})
                 ($ :.session-player-label "Host"
                   (if (= (:db/id host) id)
-                    ($ :span " (You)"))))
+                    ($ :span " ( You )"))))
               ($ :.prompt "Not connected."))))
         ($ :section
           ($ :header (str "Players"))
@@ -109,7 +112,7 @@
                     ($ :.session-player-color {:data-color (:local/color conn)})
                     ($ :.session-player-label "Friend"
                       (if (= (:db/id conn) id)
-                        ($ :span " (You)"))))))
+                        ($ :span " ( You )"))))))
               ($ :.prompt "No one else is here.")))))
       ($ :.prompt
         "Invite your friends to this virtual tabletop by clicking
