@@ -151,7 +151,7 @@
                      (take per-page)
                      (map-indexed vector))]
         ($ :section.scene-images
-          ($ :.scene-images-label "Background images" " " "[" (count img) "]")
+          ($ :.scene-images-label "Background images")
           ($ :fieldset.scene-gallery
             (for [[idx data] pag
                   :let [selected
@@ -255,7 +255,7 @@
              {players :session/conns} :root/session} data
             viewing (frequencies (map (comp :db/id :camera/scene :local/camera) players))]
         ($ :section.scene-scenes
-          ($ :header "Scenes" " " "[" (count cameras) "]")
+          ($ :header "Scenes")
           ($ :ul.scene-list
             (for [entity cameras
                   :let [on-select  #(dispatch :scenes/change (:db/id entity))

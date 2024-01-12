@@ -120,11 +120,11 @@
     ($ :<>
       (if (= type :host)
         ($ :<>
-          ($ :header "Public [" (count data-pub) "]")
+          ($ :header "Public")
           ($ :section.token-gallery
             {:ref (.-setNodeRef drop-pub) :data-type "host" :data-scope "public"}
             ($ paginated {:data data-pub :limit 10}))
-          ($ :header "Private [" (count data-prv) "]")
+          ($ :header "Private")
           ($ :section.token-gallery
             {:ref (.-setNodeRef drop-prv) :data-type "host" :data-scope "private"}
             ($ paginated {:data data-prv :limit 20})))

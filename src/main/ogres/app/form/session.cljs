@@ -100,7 +100,7 @@
                     ($ :span " (You)"))))
               ($ :.prompt "Not connected."))))
         ($ :section
-          ($ :header (str "Players" " [" (count conns) "]"))
+          ($ :header (str "Players"))
           ($ :.session-players
             (if (seq conns)
               (let [xf (filter (comp-fn = :local/type :conn))]
