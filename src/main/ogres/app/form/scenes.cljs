@@ -291,7 +291,7 @@
                 ($ :button.scene-list-item-remove.button.button-neutral
                   {:on-click
                    (fn []
-                     (if (js/confirm (render-remove-prompt (:camera/label entity)))
+                     (if (js/confirm (render-remove-prompt entity))
                        (on-remove)))}
                   ($ icon {:name "trash3-fill" :size 16}))))
             ($ :li.scene-list-item
