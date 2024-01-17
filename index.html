@@ -13,7 +13,6 @@
         <meta name="og:image" content="https://ogres.app/screenshot.png">
         <meta name="og:description" content="Free online virtual tabletop">
         <title>Ogres &ndash; Play: Free online virtual tabletop</title>
-        <script src="https://unpkg.com/dexie@3.2.2/dist/dexie.min.js"></script>
         <script>
             function initialize(path) {
                 let element = document.createElement("script");
@@ -46,16 +45,28 @@
                 // Search for a record in local storage and load the release
                 // specified by it. When no record is found, initialize the
                 // "latest" release instead.
-                let db = new Dexie("ogres.app");
-                db.version(1).stores({app: "release, updated", images: "checksum"});
-                db.table("app").orderBy("updated").first().then(function (record) {
-                    if (!record) {
-                        initialize("release/latest");
-                        return;
-                    }
+                let req = window.indexedDB.open("ogres.app", 10);
+                req.onsuccess = event => {
+                    let db  = event.target.result;
+                    let trx = db.transaction(["app"], "readonly");
+                    let str = trx.objectStore("app");
+                    let idx = str.index("updated");
+                    let crs = idx.openCursor();
+                    crs.onsuccess = event => {
+                        let res = event.target.result;
+                        if (res == null) {
+                            initialize("release/latest");
+                            return;
+                        }
 
-                    initialize("release/" + record.release);
-                });
+                        initialize("release/" + res.value.release);
+                        return;
+                    };
+                };
+
+                req.onerror = event => {
+                    console.error(event);
+                };
             }
 
             document.addEventListener("DOMContentLoaded", main);
