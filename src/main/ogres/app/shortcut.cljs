@@ -8,24 +8,25 @@
   (fn [n] (+ (* (/ (- n dx) (- dy dx)) (- ry rx)) rx)))
 
 (def shortcuts
-  [{:name :mode/select      :keys [\s]            :desc "Select: Pan, select, and move tokens"}
-   {:name :select/many      :keys [\s "Shift"]    :desc "Select: Hold to select multiple tokens"}
-   {:name :select/clear     :keys ["Escape"]      :desc "Select: Clear selection"}
-   {:name :select/remove    :keys ["Delete"]      :desc "Select: Remove selected tokens"}
-   {:name :copy/cut         :keys [\⌘ \x]         :desc "Copy: Copy and remove the selected tokens"}
-   {:name :copy/copy        :keys [\⌘ \c]         :desc "Copy: Copy the selected tokens"}
-   {:name :copy/paste       :keys [\⌘ \v]         :desc "Copy: Paste the copied tokens onto the scene"}
-   {:name :zoom/zoom        :keys ["Mouse wheel"] :desc "Zoom: Zoom in or out"}
-   {:name :mode/ruler       :keys [\r]            :desc "Mode: Ruler tool"}
-   {:name :mode/grid        :keys [\g]            :desc "Mode: Grid alignment tool"}
-   {:name :mode/circle      :keys [\1]            :desc "Mode: Draw a circle"}
-   {:name :mode/rect        :keys [\2]            :desc "Mode: Draw a rectangle"}
-   {:name :mode/cone        :keys [\3]            :desc "Mode: Draw a cone"}
-   {:name :mode/poly        :keys [\4]            :desc "Mode: Draw a polygon"}
-   {:name :mode/line        :keys [\5]            :desc "Mode: Draw a line"}
-   {:name :mode/mask        :keys [\f]            :desc "Mode: Draw a fog shape"}
-   {:name :mode/mask-toggle :keys [\t]            :desc "Mode: Reveal or obscure a fog shape"}
-   {:name :mode/mask-remove :keys [\x]            :desc "Mode: Remove a fog shape"}])
+  [{:name "scene-select"  :keys [\s]            :desc "Select: Pan, select, and move tokens"}
+   {:name "select-many"   :keys [\s "Shift"]    :desc "Select: Hold to select multiple tokens"}
+   {:name "select-clear"  :keys ["Escape"]      :desc "Select: Clear selection"}
+   {:name "select-remove" :keys ["Delete"]      :desc "Select: Remove selected tokens"}
+   {:name "copy-cut"      :keys [\⌘ \x]         :desc "Copy: Copy and remove the selected tokens"}
+   {:name "copy-copy"     :keys [\⌘ \c]         :desc "Copy: Copy the selected tokens"}
+   {:name "copy-paste"    :keys [\⌘ \v]         :desc "Copy: Paste the copied tokens onto the scene"}
+   {:name "zoom-in"       :keys ["Mouse wheel"] :desc "Zoom: Zoom in"}
+   {:name "zoom-out"      :keys ["Mouse wheel"] :desc "Zoom: Zoom out"}
+   {:name "scene-ruler"   :keys [\r]            :desc "Mode: Ruler tool"}
+   {:name "scene-grid"    :keys [\g]            :desc "Mode: Grid alignment tool"}
+   {:name "draw-circle"   :keys [\1]            :desc "Mode: Draw a circle"}
+   {:name "draw-rect"     :keys [\2]            :desc "Mode: Draw a rectangle"}
+   {:name "draw-cone"     :keys [\3]            :desc "Mode: Draw a cone"}
+   {:name "draw-poly"     :keys [\4]            :desc "Mode: Draw a polygon"}
+   {:name "draw-line"     :keys [\5]            :desc "Mode: Draw a line"}
+   {:name "mask-create"   :keys [\f]            :desc "Mode: Draw a fog shape"}
+   {:name "mask-toggle"   :keys [\t]            :desc "Mode: Reveal or obscure a fog shape"}
+   {:name "mask-remove"   :keys [\x]            :desc "Mode: Remove a fog shape"}])
 
 (def ^:private handler
   {["keydown" "Shift"]

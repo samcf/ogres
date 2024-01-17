@@ -475,69 +475,77 @@ section + section {
     padding: 2px;
 }
 
-.toolbar button {
+.toolbar-actions:focus {
+    outline: 3px solid orange;
+}
+
+.toolbar-actions .icon {
+    pointer-events: none;
+}
+
+.toolbar-actions button {
     align-items: center;
     background-color: var(--color-blues-700);
     border-color: transparent;
     border-radius: 2px;
     border-style: solid;
     border-width: 1px;
+    box-sizing: border-box;
+    color: var(--color-black-300);
     display: flex;
+    flex: 1;
     height: 38px;
     justify-content: center;
-    outline: none;
     min-width: 38px;
 }
 
-.toolbar button:disabled {
-    color: var(--color-black-500);
-}
-
-.toolbar button:not(:disabled) {
-    cursor: pointer;
-    color: var(--color-black-300);
-}
-
-.toolbar button.active,
-.toolbar button[data-selected="true"] {
+.toolbar-actions button[aria-pressed=true] {
     background-color: var(--color-blues-500);
     color: var(--color-danger-500);
 }
 
-.toolbar button:not(:disabled, [data-active="true"], [data-selected="true"]):hover,
-.toolbar button:not(:disabled, [data-active="true"], [data-selected="true"]):active {
+.toolbar-actions button[aria-disabled=true] {
+    color: var(--color-black-500);
+}
+
+.toolbar-actions button:not([aria-disabled=true]) {
+    cursor: pointer;
+}
+
+.toolbar-actions button:not([aria-disabled=true]):active {
+    border-color: var(--color-blues-100);
+}
+
+.toolbar-actions button:not([aria-disabled=true]):hover {
     background-color: var(--color-blues-500);
 }
 
-.toolbar button:not(:disabled):active {
-    border-color: var(--color-blues-300);
+.toolbar-actions button:not([aria-disabled=true]):focus-visible {
+    outline: rgb(229, 151, 0) auto thin;
+    outline: -webkit-focus-ring-color auto thin;
 }
 
-.toolbar button svg {
-    pointer-events: none;
-}
-
-.toolbar button[name=select]        { grid-area: sel; }
-.toolbar button[name=cut]           { grid-area: cut; }
-.toolbar button[name=copy]          { grid-area: cop; }
-.toolbar button[name=paste]         { grid-area: pst; }
-.toolbar button[name=ruler]         { grid-area: rul; }
-.toolbar button[name=circle]        { grid-area: crc; }
-.toolbar button[name=rect]          { grid-area: rct; }
-.toolbar button[name=cone]          { grid-area: con; }
-.toolbar button[name=poly]          { grid-area: ply; }
-.toolbar button[name=line]          { grid-area: lne; }
-.toolbar button[name=grid]          { grid-area: grd; }
-.toolbar button[name=focus]         { grid-area: fcs; }
-.toolbar button[name=zoom-out]      { grid-area: zot; }
-.toolbar button[name=zoom-reset]    { grid-area: zrt; }
-.toolbar button[name=zoom-in]       { grid-area: zin; }
-.toolbar button[name=mask]          { grid-area: msk; }
-.toolbar button[name=mask-toggle]   { grid-area: mtg; }
-.toolbar button[name=mask-remove]   { grid-area: mrm; }
-.toolbar button[name=mask-hide]     { grid-area: mhi; }
-.toolbar button[name=mask-show]     { grid-area: msh; }
-.toolbar button[name=player-window] { grid-area: plw; }
+.toolbar [name=copy-copy]    { grid-area: cop; }
+.toolbar [name=copy-cut]     { grid-area: cut; }
+.toolbar [name=copy-paste]   { grid-area: pst; }
+.toolbar [name=draw-circle]  { grid-area: crc; }
+.toolbar [name=draw-cone]    { grid-area: con; }
+.toolbar [name=draw-line]    { grid-area: lne; }
+.toolbar [name=draw-poly]    { grid-area: ply; }
+.toolbar [name=draw-rect]    { grid-area: rct; }
+.toolbar [name=mask-create]  { grid-area: msk; }
+.toolbar [name=mask-hide]    { grid-area: mhi; }
+.toolbar [name=mask-remove]  { grid-area: mrm; }
+.toolbar [name=mask-show]    { grid-area: msh; }
+.toolbar [name=mask-toggle]  { grid-area: mtg; }
+.toolbar [name=scene-focus]  { grid-area: fcs; }
+.toolbar [name=scene-grid]   { grid-area: grd; }
+.toolbar [name=scene-ruler]  { grid-area: rul; }
+.toolbar [name=scene-select] { grid-area: sel; }
+.toolbar [name=scene-window] { grid-area: plw; }
+.toolbar [name=zoom-in]      { grid-area: zin; }
+.toolbar [name=zoom-out]     { grid-area: zot; }
+.toolbar [name=zoom-reset]   { grid-area: zrt; }
 
 /* Token Templates */
 .layout-tokens {
@@ -2332,13 +2340,12 @@ input.session-url {
     }
 
     .toolbar-actions > button:not(
-        [name=select],
-        [name=ruler],
-        [name=circle],
-        [name=rect],
-        [name=cone],
-        [name=polygon],
-        [name=line]) {
+        [name=scene-select],
+        [name=scene-ruler],
+        [name=draw-circle],
+        [name=draw-rect],
+        [name=draw-cone],
+        [name=draw-line]) {
         display: none;
     }
 }
@@ -2361,11 +2368,19 @@ input.session-url {
     }
 
     .toolbar[data-user=conn] .toolbar-actions > button:not(
-        [name=select], [name=cut], [name=copy],
-        [name=paste], [name=ruler], [name=circle],
-        [name=rect], [name=line], [name=zoom-out],
-        [name=zoom-reset], [name=zoom-in], [name=cone],
-        [name=poly]) {
+        [name=scene-select],
+        [name=copy-cut],
+        [name=copy-copy],
+        [name=copy-paste],
+        [name=scene-ruler],
+        [name=draw-circle],
+        [name=draw-rect],
+        [name=draw-line],
+        [name=zoom-out],
+        [name=zoom-reset],
+        [name=zoom-in],
+        [name=draw-cone],
+        [name=draw-poly]) {
         display: none;
     }
 }
