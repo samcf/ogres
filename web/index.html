@@ -46,7 +46,14 @@
                 // specified by it. When no record is found, initialize the
                 // "latest" release instead.
                 let req = window.indexedDB.open("ogres.app", 10);
-                req.onsuccess = event => {
+                req.onupgradeneeded = event => {
+                    let db = event.target.result;
+                    db.createObjectStore("app", {keyPath: "release"})
+                      .createIndex("updated", "updated");
+                    db.createObjectStore("images", {keyPath: "checksum"});
+                };
+
+                req.onsuccess = (event) => {
                     let db  = event.target.result;
                     let trx = db.transaction(["app"], "readonly");
                     let str = trx.objectStore("app");
@@ -54,19 +61,14 @@
                     let crs = idx.openCursor();
                     crs.onsuccess = event => {
                         let res = event.target.result;
-                        if (res == null) {
-                            initialize("release/latest");
-                            return;
-                        }
-
-                        initialize("release/" + res.value.release);
-                        return;
+                        let rls = res
+                          ? "release/" + res.value.release
+                          : "release/latest";
+                        initialize(rls);
                     };
                 };
 
-                req.onerror = event => {
-                    console.error(event);
-                };
+                req.onerror = console.error;
             }
 
             document.addEventListener("DOMContentLoaded", main);
