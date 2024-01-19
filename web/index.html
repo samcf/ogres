@@ -46,7 +46,7 @@
                 // specified by it. When no record is found, initialize the
                 // "latest" release instead.
                 let req = window.indexedDB.open("ogres.app", 10);
-                req.onupgradeneeded = event => {
+                req.onupgradeneeded = (event) => {
                     let db = event.target.result;
                     db.createObjectStore("app", {keyPath: "release"})
                       .createIndex("updated", "updated");
