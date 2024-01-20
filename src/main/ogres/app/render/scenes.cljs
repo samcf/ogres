@@ -27,33 +27,36 @@
 (defui scenes []
   (let [dispatch (use-dispatch)
         result   (use-query query)]
-    ($ :nav.scenes
-      ($ :ul
-        (for [camera (:local/cameras result)
-              :let [id  (:db/id camera)
-                    key (str "scene" id)]]
-          ($ :li {:key id}
-            ($ :input
-              {:id key
-               :type "radio"
-               :name "scene"
-               :value id
-               :hidden true
-               :checked (= id (:db/id (:local/camera result)))
-               :on-change (fn [event] (dispatch :scenes/change (js/Number (.. event -target -value))))})
-            ($ :label {:for key}
-              (render-scene-name camera))
-            ($ :button
-              {:type "button"
-               :title "Remove scene"
-               :on-click
-               (fn []
-                 (if (js/confirm (render-remove-prompt camera))
-                   (dispatch :scenes/remove id)))}
-              ($ icon {:name "x" :size 21}))))
-        ($ :li.scenes-create
+    ($ :ul.scenes
+      {:role "tablist" :aria-label "Select an existing scene to view."}
+      (for [camera (:local/cameras result)
+            :let [id (:db/id camera)
+                  key (str "scene" id)
+                  label (render-scene-name camera)
+                  selected (= id (:db/id (:local/camera result)))]]
+        ($ :li {:key id}
+          ($ :input
+            {:id key
+             :role "tab"
+             :type "radio"
+             :name "scene"
+             :value id
+             :checked selected
+             :aria-selected selected
+             :on-change (fn [event] (dispatch :scenes/change (js/Number (.. event -target -value))))})
+          ($ :label {:for key} label)
           ($ :button
             {:type "button"
-             :title "Create new scene"
-             :on-click #(dispatch :scenes/create)}
-            ($ icon {:name "plus" :size 19})))))))
+             :title (str "Remove '" label "'.")
+             :tabIndex -1
+             :on-click
+             (fn []
+               (if (js/confirm (render-remove-prompt camera))
+                 (dispatch :scenes/remove id)))}
+            ($ icon {:name "x" :size 21}))))
+      ($ :li.scenes-create
+        ($ :button
+          {:type "button"
+           :title "Create a new scene."
+           :on-click #(dispatch :scenes/create)}
+          ($ icon {:name "plus" :size 19}))))))

@@ -268,6 +268,7 @@ section + section {
 
 .layout-scenes {
     grid-area: scenes;
+    z-index: 1;
 }
 
 .layout-scene,
@@ -352,80 +353,121 @@ section + section {
 }
 
 /* Scenes */
-.scenes {
-    color: var(--color-black-300);
-}
-
-.scenes ul {
+.scenes,
+.scenes li,
+.scenes button,
+.scenes input + label {
     display: flex;
-    flex-flow: row wrap;
-    gap: 2px;
-    margin: 0;
 }
 
 .scenes,
-.scenes ul {
+.scenes li {
+    align-items: stretch;
+}
+
+.scenes button,
+.scenes input + label {
+    align-items: center;
+}
+
+.scenes button {
+    justify-content: center;
+}
+
+.scenes {
+    flex-flow: row wrap;
+    gap: 2px;
     height: 100%;
 }
 
-.scenes ul li {
-    align-items: stretch;
-    display: flex;
+.scenes li {
     max-width: 240px;
-    min-width: 0px;
+    min-width: 0;
 }
 
-.scenes ul li:not(.scenes-create) {
+.scenes li:not(.scenes-create) {
     flex: 1;
 }
 
-.scenes ul li label {
-    border-radius: 3px 0 0 0;
-    font-size: 12px;
+.scenes input {
+    pointer-events: none;
+    position: absolute;
+    width: 0;
+    z-index: -1;
+}
+
+.scenes input + label,
+.scenes button {
+    color: var(--color-black-400);
+}
+
+.scenes input:checked + label,
+.scenes button:hover {
+    color: var(--color-black-100);
+}
+
+.scenes input:checked + label,
+.scenes input:checked + label + button {
+    background-color: var(--color-blues-900);
+}
+
+.scenes input:not(:checked) + label,
+.scenes input + label + button,
+.scenes-create button {
+    cursor: pointer;
+}
+
+.scenes input:not(:checked) + label:hover,
+.scenes input:not(:checked) + label:hover + button,
+.scenes-create:hover button {
+    background-color: var(--color-blues-800);
+}
+
+.scenes button {
+    background: var(--color-blues-700);
+    border: none;
+}
+
+.scenes input + label {
+    background-color: var(--color-blues-700);
+    border-top-left-radius: 3px;
+    font-size: 13px;
+    line-height: 1;
     overflow: hidden;
-    padding: 0 8px;
-    text-transform: capitalize;
+    padding: 0 10px;
     white-space: nowrap;
     width: 100%;
 }
 
-.scenes ul li button {
-    border-radius: 0 3px 0 0;
-    border: none;
-    cursor: pointer;
+.scenes input + label + button {
+    border-top-right-radius: 3px;
 }
 
-.scenes ul li label,
-.scenes ul li button {
-    align-items: center;
-    background-color: var(--color-blues-700);
-    color: var(--color-black-400);
-    display: flex;
-}
-
-.scenes ul li input[type="radio"]:checked + label,
-.scenes ul li button:hover,
-.scenes ul li.scenes-create button:hover {
-    color: var(--color-black-100);
-}
-
-.scenes ul li input[type="radio"]:not(:checked) + label {
-    cursor: pointer;
-}
-
-.scenes ul li input[type="radio"]:not(:checked) + label:hover,
-.scenes ul li input[type="radio"]:not(:checked) + label:hover + button,
-.scenes ul li.scenes-create button:hover {
-    background-color: var(--color-blues-800);
-}
-
-.scenes ul li input[type="radio"]:checked + label,
-.scenes ul li input[type="radio"]:checked + label + button {
-    background-color: var(--color-blues-900);
-}
-
-.scenes ul li.scenes-create button {
+.scenes-create button {
     border-radius: 3px 3px 0 0;
+}
+
+.scenes-create button:focus-visible {
+    border-radius: 3px 3px 0 0;
+    outline-offset: -1px;
+    outline: 2px solid var(--color-prime-500);
+}
+
+.scenes:has(:not(button):focus-visible) li:has(input),
+.scenes li:has(:focus-visible) {
+    border-radius: 3px;
+    outline-color: var(--color-prime-500);
+    outline-offset: -1px;
+    outline-width: 1px;
+}
+
+.scenes:has(:not(button):focus-visible) li:has(:focus-visible) {
+    outline-style: solid;
+    outline-width: 2px;
+}
+
+.scenes:has(:not(button):focus-visible) li:has(input) {
+    outline-style: dotted;
 }
 
 /* Toolbar */
@@ -569,7 +611,7 @@ section + section {
 .scene {
     background-color: var(--color-blues-900);
     border-radius: 0 4px 4px 4px;
-    border: 1px solid var(--color-black-900);
+    border: 1px solid var(--color-blues-900);
     box-shadow: 4px 4px 0 0 rgba(0, 0, 0, .15);
     box-sizing: border-box;
     height: 100%;
