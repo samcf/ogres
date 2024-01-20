@@ -562,9 +562,16 @@ section + section {
     background-color: var(--color-blues-500);
 }
 
-.toolbar-actions button:not([aria-disabled=true]):focus-visible {
-    outline: rgb(229, 151, 0) auto thin;
-    outline: -webkit-focus-ring-color auto thin;
+.toolbar:has(:focus-visible) {
+    border-radius: 2px;
+    outline-offset: 2px;
+    outline: 2px solid var(--color-prime-500);
+}
+
+.toolbar-actions button:focus-visible {
+    outline-offset: 2px;
+    outline: 1px dotted var(--color-prime-500);
+    z-index: 1;
 }
 
 .toolbar [name=copy-copy]    { grid-area: cop; }
