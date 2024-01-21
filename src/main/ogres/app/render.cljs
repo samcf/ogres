@@ -15,7 +15,7 @@
         [min :space (- val 1) val (+ val 1) :space max]))
 
 (defui icon [{:keys [name size] :or {size 22}}]
-  ($ :svg {:class "icon" :width size :height size :fill "currentColor"}
+  ($ :svg {:class "icon" :width size :height size :fill "currentColor" :role "presentation"}
     ($ :use {:href (str PATH "/icons.svg" "#icon-" name)})))
 
 (def error-boundary

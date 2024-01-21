@@ -41,6 +41,7 @@
     --color-session-purple: #9656a2;
 
     --transition-drag: transform 80ms linear;
+    --outline-color: var(--color-prime-500);
 }
 
 html, body, #root {
@@ -352,6 +353,12 @@ section + section {
     color: var(--color-black-500);
 }
 
+.join > button:focus-visible {
+    border-radius: 3px;
+    outline-offset: 2px;
+    outline: 2px solid var(--outline-color);
+}
+
 /* Scenes */
 .scenes,
 .scenes li,
@@ -366,10 +373,12 @@ section + section {
 }
 
 .scenes button,
-.scenes input + label {
+.scenes input + label,
+.scenes input + label + div {
     align-items: center;
 }
 
+.scenes input + label + div,
 .scenes button {
     justify-content: center;
 }
@@ -397,32 +406,35 @@ section + section {
 }
 
 .scenes input + label,
+.scenes input + label + div,
 .scenes button {
     color: var(--color-black-400);
 }
 
 .scenes input:checked + label,
+.scenes input + label + div:hover,
 .scenes button:hover {
     color: var(--color-black-100);
 }
 
 .scenes input:checked + label,
-.scenes input:checked + label + button {
+.scenes input:checked + label + div {
     background-color: var(--color-blues-900);
 }
 
 .scenes input:not(:checked) + label,
-.scenes input + label + button,
+.scenes input + label + div,
 .scenes-create button {
     cursor: pointer;
 }
 
 .scenes input:not(:checked) + label:hover,
-.scenes input:not(:checked) + label:hover + button,
+.scenes input:not(:checked) + label:hover + div,
 .scenes-create:hover button {
     background-color: var(--color-blues-800);
 }
 
+.scenes input + label + div,
 .scenes button {
     background: var(--color-blues-700);
     border: none;
@@ -439,8 +451,12 @@ section + section {
     width: 100%;
 }
 
-.scenes input + label + button {
+.scenes input + label + div {
     border-top-right-radius: 3px;
+}
+
+.scenes-remove {
+    padding: 0 4px;
 }
 
 .scenes-create button {
@@ -450,13 +466,13 @@ section + section {
 .scenes-create button:focus-visible {
     border-radius: 3px 3px 0 0;
     outline-offset: -1px;
-    outline: 2px solid var(--color-prime-500);
+    outline: 2px solid var(--outline-color);
 }
 
 .scenes:has(:not(button):focus-visible) li:has(input),
 .scenes li:has(:focus-visible) {
     border-radius: 3px;
-    outline-color: var(--color-prime-500);
+    outline-color: var(--outline-color);
     outline-offset: -1px;
     outline-width: 1px;
 }
@@ -517,10 +533,6 @@ section + section {
     padding: 2px;
 }
 
-.toolbar-actions:focus {
-    outline: 3px solid orange;
-}
-
 .toolbar-actions .icon {
     pointer-events: none;
 }
@@ -565,12 +577,12 @@ section + section {
 .toolbar:has(:focus-visible) {
     border-radius: 2px;
     outline-offset: 2px;
-    outline: 2px solid var(--color-prime-500);
+    outline: 2px solid var(--outline-color);
 }
 
 .toolbar-actions button:focus-visible {
     outline-offset: 2px;
-    outline: 1px dotted var(--color-prime-500);
+    outline: 1px dotted var(--outline-color);
     z-index: 1;
 }
 
@@ -1161,6 +1173,12 @@ section + section {
     grid-area: 2 / 1 / 3 / 2;
 }
 
+.panel-tabs input[type="radio"] {
+    position: absolute;
+    z-index: -1;
+    width: 0;
+}
+
 .panel-tabs li,
 .panel-tabs li input[type="radio"] + label {
     display: flex;
@@ -1199,16 +1217,42 @@ section + section {
 
 .panel-tabs li.panel-tabs-control {
     align-items: center;
-    color: var(--color-blues-100);
-    cursor: pointer;
     display: flex;
     flex: 8;
     justify-content: center;
     box-sizing: border-box;
 }
 
-.panel-tabs li.panel-tabs-control:hover {
+.panel-tabs li.panel-tabs-control button {
+    background: none;
+    border: none;
+    color: var(--color-blues-100);
+    cursor: pointer;
+    flex: 1;
+    height: 100%;
+}
+
+.panel-tabs li.panel-tabs-control button:hover {
     color: var(--color-paper-500);
+}
+
+.panel-tabs li.panel-tabs-control button:focus-visible {
+    border-radius: 3px;
+    outline-offset: 2px;
+    outline: 2px solid var(--outline-color);
+    z-index: 1;
+}
+
+.panel-tabs:has(:not(button):focus-visible) li:has(input:focus-visible) {
+    border-radius: 3px;
+    outline: 2px solid var(--outline-color);
+    outline-offset: -1px;
+    z-index: 1;
+}
+
+.panel-tabs:has(:not(button):focus-visible) li:has(input) {
+    outline: 1px dotted var(--outline-color);
+    outline-offset: -2px;
 }
 
 .panel-tabs-control:hover {

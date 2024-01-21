@@ -9,16 +9,16 @@
             [ogres.app.render :refer [icon]]
             [uix.core :refer [defui $]]))
 
+(def ^:private panel-data
+  {:session    {:icon "people-fill" :label "Online options"}
+   :scenes     {:icon "images" :label "Scene options"}
+   :tokens     {:icon "person-circle" :label "Tokens"}
+   :initiative {:icon "hourglass-split" :label "Initiative"}
+   :help       {:icon "wrench-adjustable-circle" :label "Manage local data"}})
+
 (def ^:private panel-forms
-  {:host [{:key :session    :label "Friends"    :icon "people-fill"}
-          {:key :scenes     :label "Scene"      :icon "images"}
-          {:key :tokens     :label "Tokens"     :icon "person-circle"}
-          {:key :initiative :label "Initiative" :icon "hourglass-split"}
-          {:key :help       :label "Help"       :icon "wrench-adjustable-circle"}]
-   :conn [{:key :session    :label "Friends"    :icon "people-fill"}
-          {:key :tokens     :label "Tokens"     :icon "person-circle"}
-          {:key :initiative :label "Initiative" :icon "hourglass-split"}
-          {:key :help       :label "Help"       :icon "wrench-adjustable-circle"}]})
+  {:host [:session :scenes :tokens :initiative :help]
+   :conn [:session :tokens :initiative :help]})
 
 (def ^:private components
   {:help       {:form help/form}
@@ -38,33 +38,42 @@
         {type :local/type
          selected :panel/selected
          expanded :panel/expanded} result
-        forms    (panel-forms type)]
-    ($ :nav.panel {:data-expanded expanded}
+        forms (panel-forms type)]
+    ($ :.panel
+      {:data-expanded expanded}
       (if expanded
         ($ :.panel-session
           ($ status/button)))
       ($ :ul.panel-tabs
-        (for [form forms :let [name (:key form) selected (= selected name)]]
-          ($ :li {:key name}
+        {:role "tablist"
+         :aria-controls "form-panel"
+         :aria-orientation "vertical"}
+        (for [[key data] (map (juxt identity panel-data) forms)
+              :let [selected (= selected key)]]
+          ($ :li
+            {:key key :role "tab" :aria-selected (and expanded selected)}
             ($ :input
-              {:id name
+              {:id key
                :type "radio"
                :name "panel"
-               :value name
-               :hidden true
+               :value key
                :checked (and expanded selected)
-               :on-change #(dispatch :local/select-panel name)})
-            ($ :label {:for name}
-              ($ icon {:name (:icon form) :size 20}))))
+               :on-change #(dispatch :local/select-panel key)
+               :aria-label (:label data)})
+            ($ :label {:for key}
+              ($ icon {:name (:icon data) :size 20}))))
         ($ :li.panel-tabs-control
-          {:on-click #(dispatch :local/toggle-panel)}
-          ($ icon {:name (if expanded "chevron-double-right" "chevron-double-left")})))
+          {:role "tab" :on-click #(dispatch :local/toggle-panel)}
+          ($ :button {:type "button" :aria-label "Collapse or expand"}
+            ($ icon {:name (if expanded "chevron-double-right" "chevron-double-left")}))))
       (if expanded
-        (let [current (:key (first (filter (comp #{selected} :key) forms)))]
-          ($ :.form {:data-form (name current)}
-            ($ :.form-container
-              ($ :.form-content
-                (if-let [component (get-in components [current :form])]
-                  ($ :.form-body ($ component)))
-                (if-let [component (get-in components [current :footer])]
-                  ($ :.form-footer ($ component)))))))))))
+        ($ :.form
+          {:id "form-panel"
+           :role "tabpanel"
+           :data-form (name selected)}
+          ($ :.form-container
+            ($ :.form-content
+              (if-let [component (get-in components [selected :form])]
+                ($ :.form-body ($ component)))
+              (if-let [component (get-in components [selected :footer])]
+                ($ :.form-footer ($ component))))))))))

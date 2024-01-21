@@ -78,7 +78,6 @@
           (get-in action-data [focused :label])))
       ($ :.toolbar-actions
         {:role "toolbar"
-         :aria-label "Options to draw or perform actions in the scene."
          :on-pointer-over on-focus
          :on-focus on-focus
          :on-click on-click}

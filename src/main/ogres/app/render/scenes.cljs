@@ -27,34 +27,28 @@
 (defui scenes []
   (let [dispatch (use-dispatch)
         result   (use-query query)]
-    ($ :ul.scenes
-      {:role "tablist" :aria-label "Select an existing scene to view."}
+    ($ :ul.scenes {:role "tablist"}
       (for [camera (:local/cameras result)
             :let [id (:db/id camera)
                   key (str "scene" id)
                   label (render-scene-name camera)
                   selected (= id (:db/id (:local/camera result)))]]
-        ($ :li {:key id}
+        ($ :li {:key id :role "tab" :aria-selected selected}
           ($ :input
             {:id key
-             :role "tab"
              :type "radio"
              :name "scene"
              :value id
              :checked selected
-             :aria-selected selected
              :on-change (fn [event] (dispatch :scenes/change (js/Number (.. event -target -value))))})
           ($ :label {:for key} label)
-          ($ :button
-            {:type "button"
-             :title (str "Remove '" label "'.")
-             :tabIndex -1
-             :on-click
+          ($ :div.scenes-remove
+            {:on-click
              (fn []
                (if (js/confirm (render-remove-prompt camera))
                  (dispatch :scenes/remove id)))}
             ($ icon {:name "x" :size 21}))))
-      ($ :li.scenes-create
+      ($ :li.scenes-create {:role "tab"}
         ($ :button
           {:type "button"
            :title "Create a new scene."
