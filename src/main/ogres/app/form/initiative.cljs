@@ -45,14 +45,19 @@
 
 (defui ^:private form-dice
   [{:keys [value on-change]}]
-  (let [input (use-ref) [editing set-editing form] (use-modal)]
+  (let [[editing set-editing form] (use-modal)
+        input (use-ref)]
     ($ :.initiative-token-roll
-      ($ :.initiative-token-roll-label
+      {:data-present (some? value)}
+      ($ :button.initiative-token-roll-label
         {:on-click
          (fn [event]
            (.stopPropagation event)
            (set-editing not)
-           (.requestAnimationFrame js/window #(if-let [node (deref input)] (.select node))))}
+           (.requestAnimationFrame
+            js/window
+            #(if-let [node (deref input)]
+               (.select node))))}
         (or value "?"))
       (if editing
         ($ :form.initiative-token-form
@@ -61,43 +66,50 @@
            :on-submit
            (fn [event]
              (.preventDefault event)
-             (on-change (.-value @input))
+             (on-change (.-value (deref input)))
              (set-editing not))}
-          ($ :input
-            {:type "number" :ref input :autoFocus true
-             :placeholder "Roll" :default-value value})
+          ($ :input.text.text-ghost
+            {:type "number"
+             :ref input
+             :auto-focus true
+             :default-value value
+             :placeholder "Initiative"
+             :aria-label "Initiative roll"})
           ($ :button {:type "submit"} "✓"))))))
 
 (defui ^:private form-hp
   [{:keys [value on-change]}]
-  (let [input (use-ref) [editing set-editing form] (use-modal)]
+  (let [[editing set-editing form] (use-modal)
+        input (use-ref)]
     ($ :.initiative-token-health
-      {:data-active (or editing (number? value))}
+      {:data-present (some? value)}
       ($ :.initiative-token-health-frame
         ($ icon {:name "heart-fill" :size 40}))
-      ($ :.initiative-token-health-label
-        {:on-click
-         (fn [event]
-           (.stopPropagation event)
-           (set-editing not))}
+      ($ :button.initiative-token-health-label
+        {:on-click (fn [event] (.stopPropagation event) (set-editing not))}
         (or value "HP"))
       (if editing
         ($ :form.initiative-token-form
           {:ref form
            :data-type "health"
            :on-submit
-           (fn [event]
-             (.preventDefault event)
+           (fn []
              (on-change (fn [_ v] v) (.-value @input))
              (set-editing not))}
-          ($ :input {:type "number" :ref input :autoFocus true :placeholder "HP"})
-          (for [[index [k f]] (map-indexed vector [["-" -] ["+" +] ["=" (fn [_ v] v)]])]
+          ($ :input.text.text-ghost
+            {:type "number"
+             :name "hitpoints"
+             :ref input
+             :auto-focus true
+             :placeholder "Hitpoints"
+             :aria-label "Hitpoints"})
+          (for [[key label f] [["-" "Subtract from" -] ["+" "Add to" +] ["=" "Set as" (fn [_ v] v)]]]
             ($ :button
-              {:key index :type "button"
+              {:key key :type "button" :aria-label label
                :on-click
                (fn []
                  (on-change f (.-value @input))
-                 (set-editing not))} k)))))))
+                 (set-editing not))} key)))))))
 
 (defui ^:private token
   [{:keys [context entity]}]
@@ -112,6 +124,11 @@
         data-url (use-image checksum)]
     ($ :li.initiative-token
       {:data-current (= (:db/id current) (:db/id entity))}
+      ($ form-dice
+        {:value (:initiative/roll entity)
+         :on-change
+         (fn [value]
+           (dispatch :initiative/change-roll id value))})
       ($ :.initiative-token-frame
         {:on-click #(dispatch :element/select id)
          :data-player (contains? flags :player)}
@@ -120,11 +137,6 @@
             {:style {:background-image (str "url(" data-url ")")}})
           ($ :.initiative-token-pattern
             ($ icon {:name "dnd" :size 36}))))
-      ($ form-dice
-        {:value (:initiative/roll entity)
-         :on-change
-         (fn [value]
-           (dispatch :initiative/change-roll id value))})
       (if suffix
         ($ :.initiative-token-suffix (char (+ suffix 64))))
       ($ :.initiative-token-info
@@ -153,7 +165,7 @@
           ($ :.prompt "Initiative is still running but there are no tokens participating.")
 
           (seq tokens)
-          ($ :section.initiative
+          ($ :.form-initiative.initiative
             ($ :ol.initiative-list
               (for [entity (sort initiative-order tokens)
                     :when  (or (= type :host) (visible? (:token/flags entity)))]
@@ -169,8 +181,7 @@
            rounds :initiative/rounds
            tokens :scene/initiative}
           :camera/scene}
-         :local/camera} result
-        started (>= rounds 1)]
+         :local/camera} result]
     ($ :<>
       ($ :button.button.button-neutral {:disabled true} "Round " rounds)
       ($ :button.button.button-neutral {:disabled true} "Time "
@@ -186,5 +197,5 @@
         {:disabled (empty? tokens) :on-click #(dispatch :initiative/reset)}
         ($ icon {:name "arrow-counterclockwise" :size 16}) "Reset")
       ($ :button.button.button-danger
-        {:disabled (not started) :on-click #(dispatch :initiative/leave)}
+        {:disabled (empty? tokens) :on-click #(dispatch :initiative/leave)}
         ($ icon {:name "x-circle-fill" :size 16}) "Leave"))))
