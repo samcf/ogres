@@ -20,6 +20,6 @@
       (case state
         :initial      ($ :button.button {:on-click #(dispatch :session/request)} status-icon "Start online game")
         :connecting   ($ :button.button {:disabled true} status-icon "Connecting...")
-        :connected    ($ :button.button {:disabled true} status-icon "Connected / " code " / [" (inc (count conns)) "]")
+        :connected    ($ :button.button {:disabled true} status-icon "Connected / " code " / [ " (inc (count conns)) " ]")
         :disconnected ($ :button.button {:disabled true} status-icon "Disconnected")
         ($ :button.button {:disabled true} status-icon "Status not known")))))
