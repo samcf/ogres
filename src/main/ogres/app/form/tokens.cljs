@@ -1,5 +1,5 @@
 (ns ogres.app.form.tokens
-  (:require [goog.object :refer [getValueByKeys]]
+  (:require [goog.object :as object :refer [getValueByKeys]]
             [ogres.app.hooks :refer [use-dispatch use-image use-image-uploader use-query]]
             [ogres.app.render :refer [icon pagination]]
             [ogres.app.util :refer [separate comp-fn]]
@@ -18,7 +18,7 @@
    {:root/token-images [:image/checksum]}])
 
 (def ^:private query-form
-  [{:root/token-images [:image/checksum :image/scope]}
+  [{:root/token-images [:image/name :image/checksum :image/scope]}
    {:root/local
     [[:local/type :default :conn]]}])
 
@@ -49,13 +49,13 @@
     (create-portal
      ($ drag-overlay {:drop-animation nil}
        (if (= active "default")
-         ($ :figure.token-gallery-item
+         ($ :.token-gallery-item
            {:data-type "default"}
            ($ icon {:name "dnd"}))
          (if (some? active)
            ($ image {:checksum active}
              (fn [{:keys [data-url]}]
-               ($ :figure.token-gallery-item
+               ($ :.token-gallery-item
                  {:data-type "image"
                   :style {:background-image (str "url(" data-url ")")}}))))))
      (.querySelector js/document "#root"))))
@@ -68,24 +68,34 @@
               (let [checksum (:image/checksum data)]
                 ($ token {:key checksum :checksum checksum}
                   (fn [{:keys [data-url ^js/object options]}]
-                    ($ :figure.token-gallery-item
+                    ($ :button.token-gallery-item
                       {:ref (.-setNodeRef options)
                        :data-type "image"
                        :style {:background-image (str "url(" data-url ")")}
+                       :on-key-down (.. options -listeners -onKeyDown)
                        :on-pointer-down (.. options -listeners -onPointerDown)
-                       :on-key-down     (.. options -listeners -onKeyDown)}))))
+                       :aria-label (:image/name data)
+                       :aria-pressed (getValueByKeys options "attributes" "aria-pressed")
+                       :aria-disabled (getValueByKeys options "attributes" "aria-disabled")
+                       :aria-describedby (getValueByKeys options "attributes" "aria-describedby")
+                       :aria-roledescription (getValueByKeys options "attributes" "aria-roledescription")}))))
               (= data :default)
               ($ draggable {:key idx :id "default"}
                 (fn [{:keys [^js/object options]}]
-                  ($ :figure.token-gallery-item
+                  ($ :button.token-gallery-item
                     {:ref (.-setNodeRef options)
                      :data-type "default"
+                     :on-key-down (.. options -listeners -onKeyDown)
                      :on-pointer-down (.. options -listeners -onPointerDown)
-                     :on-key-down (.. options -listeners -onKeyDown)}
+                     :aria-label "default"
+                     :aria-pressed (getValueByKeys options "attributes" "aria-pressed")
+                     :aria-disabled (getValueByKeys options "attributes" "aria-disabled")
+                     :aria-describedby (getValueByKeys options "attributes" "aria-describedby")
+                     :aria-roledescription (getValueByKeys options "attributes" "aria-roledescription")}
                     ($ icon {:name "dnd"}))))
               (= data :placeholder)
-              ($ :figure.token-gallery-item {:key idx :data-type "placeholder"})))
-      ($ :figure.token-gallery-item
+              ($ :.token-gallery-item {:key idx :data-type "placeholder"})))
+      ($ :.token-gallery-item
         {:ref (.-setNodeRef option) :data-type "trash"}
         ($ icon {:name "trash3-fill" :size 26})))))
 
@@ -117,18 +127,22 @@
         data-prv  (vec (reverse prv))
         drop-pub  (use-droppable #js {"id" "scope-pub"})
         drop-prv  (use-droppable #js {"id" "scope-prv"})]
-    ($ :<>
+    ($ :.form-tokens
+      ($ :.form-notice
+        "Upload images from your computer and pull them onto the scene as
+         tokens. Moving tokens to the public section will make them available
+         for other players in an online game.")
       (if (= type :host)
         ($ :<>
-          ($ :header "Public")
-          ($ :section.token-gallery
+          ($ :fieldset.fieldset.token-gallery
             {:ref (.-setNodeRef drop-pub) :data-type "host" :data-scope "public"}
+            ($ :legend "Public")
             ($ paginated {:data data-pub :limit 10}))
-          ($ :header "Private")
-          ($ :section.token-gallery
+          ($ :fieldset.fieldset.token-gallery
             {:ref (.-setNodeRef drop-prv) :data-type "host" :data-scope "private"}
+            ($ :legend "Private")
             ($ paginated {:data data-prv :limit 20})))
-        ($ :section.token-gallery
+        ($ :fieldset.fieldset.token-gallery
           {:ref (.-setNodeRef drop-pub) :data-type "conn" :data-scope "public"}
           ($ paginated {:data data-pub :limit 30}))))))
 
@@ -191,8 +205,9 @@
              (set! (.. event -target -value) ""))})
         ($ icon {:name "camera-fill" :size 16}) "Upload images")
       ($ :button.button.button-danger
-        {:type     "button"
-         :title    "Remove all"
+        {:type "button"
+         :title "Remove all tokens"
+         :aria-label "Remove all tokens"
          :disabled (or (= type :conn) (empty? images))
          :on-click #(dispatch :tokens/remove-all images)}
         ($ icon {:name "trash3-fill" :size 16})))))

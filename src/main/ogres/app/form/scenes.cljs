@@ -25,33 +25,19 @@
   (if-let [label (:camera/label camera)]
     label
     (if-let [filename (-> camera :camera/scene :scene/image :image/name)]
-      (replace filename filename-re "")
+      (-> filename (replace filename-re "") (replace  #"\s{2,}" " "))
       "Untitled scene")))
 
-(defn ^:private render-remove-prompt [camera]
-  (str "Are you sure you want to remove '" (render-scene-name camera) "'?"))
-
 (def ^:private query
-  [{:root/scene-images [:image/checksum :image/name :image/size]}
-   {:root/session
-    [{:session/conns
-      [{:local/camera
-        [:camera/scene]}]}]}
+  [{:root/scene-images
+    [:image/checksum :image/name :image/size]}
    {:root/local
-    [{:local/cameras
+    [{:local/camera
       [:db/id
        :camera/label
        {:camera/scene
         [:db/id
-         :scene/tokens
-         :scene/initiative
-         {:scene/image [:image/checksum :image/name]}]}]}
-     {:local/camera
-      [:db/id
-       :camera/label
-       {:camera/scene
-        [:db/id
-         [:scene/grid-size]
+         [:scene/grid-size :default 70]
          [:scene/show-grid :default true]
          [:scene/grid-align :default false]
          [:scene/dark-mode :default false]
@@ -72,76 +58,22 @@
         {{{scene :camera/scene} :local/camera
           camera :local/camera} :root/local} data
         [page set-page] (use-state 1)]
-    ($ :<>
-      ($ :header "Scene options")
-      ($ :section.scene-options
-        ($ :fieldset.text
-          ($ :input
-            {:type "text"
-             :title "Scene name"
-             :maxLength 36
-             :spellCheck false
-             :placeholder (render-scene-name camera)
-             :value (or (:camera/label camera) "")
-             :on-change
-             (fn [event]
-               (let [value (.. event -target -value)]
-                 (if (not= value "")
-                   (dispatch :camera/change-label value)
-                   (dispatch :camera/remove-label))))}))
-        ($ :fieldset.text
-          ($ :input
-            {:type "number"
-             :title "Tile size (px)"
-             :value (or (:scene/grid-size scene) "")
-             :placeholder "Tile size (px)"
-             :on-change
-             (fn [event]
-               (let [value (.. event -target -value)
-                     value (js/Number value)]
-                 (if (= value 0)
-                   (dispatch :scene/retract-grid-size)
-                   (dispatch :scene/change-grid-size value))))}))
-        ($ :fieldset.scene-options-group.checkbox
-          (for [[label value icon-name] options-vis
-                :let [on-change #(dispatch :scene/change-lighting value)]]
-            ($ :<> {:key value}
-              ($ :input
-                {:id (name value)
-                 :type "radio"
-                 :name "visi"
-                 :value value
-                 :checked (= (:scene/lighting scene) value)
-                 :on-change on-change})
-              ($ :label {:for (name value)}
-                ($ icon {:name icon-name :size 16})
-                label))))
-        ($ :fieldset.scene-options-group.checkbox
-          {:style {:border-style "none" :padding 0}}
-          ($ :input
-            {:id "show-grid"
-             :type "checkbox"
-             :checked (:scene/show-grid scene)
-             :on-change #(dispatch :scene/toggle-show-grid (.. % -target -checked))})
-          ($ :label {:for "show-grid"}
-            ($ icon {:name "check" :size 20})
-            "Show grid")
-          ($ :input
-            {:id "grid-align"
-             :type "checkbox"
-             :checked (:scene/grid-align scene)
-             :on-change #(dispatch :scene/toggle-grid-align (.. % -target -checked))})
-          ($ :label {:for "grid-align"}
-            ($ icon {:name "check" :size 20})
-            "Align to grid")
-          ($ :input
-            {:id "dark-grid"
-             :type "checkbox"
-             :checked (:scene/dark-mode scene)
-             :on-change #(dispatch :scene/toggle-dark-mode (.. % -target -checked))})
-          ($ :label {:for "dark-grid"}
-            ($ icon {:name "check" :size 20})
-            "Use dark grid")))
+    ($ :form.form-scenes
+      {:on-submit (fn [event] (.preventDefault event))}
+      ($ :fieldset.fieldset
+        ($ :legend "Name")
+        ($ :input.text.text-ghost
+          {:type "text"
+           :maxLength 36
+           :spellCheck false
+           :placeholder (render-scene-name camera)
+           :value (or (:camera/label camera) "")
+           :on-change
+           (fn [event]
+             (let [value (.. event -target -value)]
+               (if (not= value "")
+                 (dispatch :camera/change-label value)
+                 (dispatch :camera/remove-label))))}))
       (let [img (vec (:root/scene-images data))
             pgs (int (js/Math.ceil (/ (count img) per-page)))
             src (* (max (dec (min page pgs)) 0) per-page)
@@ -150,27 +82,29 @@
                      (into (subvec img src dst))
                      (take per-page)
                      (map-indexed vector))]
-        ($ :section.scene-images
-          ($ :.scene-images-label "Background images")
-          ($ :fieldset.scene-gallery
-            (for [[idx data] pag
-                  :let [selected
-                        (= (:image/checksum data)
-                           (:image/checksum (:scene/image scene)))]]
+        ($ :fieldset.fieldset
+          ($ :legend "Background image")
+          ($ :.scene-gallery
+            (for [[idx data] pag :let [selected (= (:image/checksum data) (:image/checksum (:scene/image scene)))]]
               (if-let [checksum (:image/checksum data)]
                 ($ thumbnail {:key idx :checksum checksum}
                   (fn [{:keys [data-url]}]
-                    ($ :figure.scene-gallery-thumbnail
-                      {:style {:background-image (str "url(" data-url ")")}
-                       :data-type "image"
-                       :data-selected selected
-                       :on-click
-                       (fn [event]
-                         (.stopPropagation event)
-                         (dispatch :scene/change-image checksum))}
+                    ($ :fieldset.scene-gallery-thumbnail
+                      {:data-type "image" :style {:background-image (str "url(" data-url ")")}}
+                      ($ :label {:aria-label (:image/name data)}
+                        ($ :input
+                          {:type "radio"
+                           :name "background-image"
+                           :value checksum
+                           :checked selected
+                           :on-change
+                           (fn [event]
+                             (let [value (.. event -target -value)]
+                               (dispatch :scene/change-image value)))}))
                       ($ :button.button.button-neutral
                         {:type "button"
-                         :data-name "info"
+                         :name "info"
+                         :aria-label "Preview"
                          :on-click
                          (fn [event]
                            (.stopPropagation event)
@@ -178,7 +112,8 @@
                         ($ icon {:name "zoom-in" :size 18}))
                       ($ :button.button.button-danger
                         {:type "button"
-                         :data-name "remove"
+                         :name "remove"
+                         :aria-label "Remove"
                          :on-click
                          (fn [event]
                            (.stopPropagation event)
@@ -187,18 +122,18 @@
                       (if (> (:image/size data) filesize-limit)
                         ($ :button.button.button-warning
                           {:type "button"
-                           :data-name "warn"
+                           :name "warn"
+                           :aria-label "Exceeds filesize limit"
                            :data-tooltip "Exceeds filesize limit"
                            :on-click
                            (fn [event]
                              (.stopPropagation event)
                              (set-preview checksum))}
                           ($ icon {:name "exclamation-triangle-fill" :size 18}))))))
-                ($ :figure.scene-gallery-thumbnail
-                  {:key idx :data-type "placeholder"}))))
+                ($ :.scene-gallery-thumbnail {:key idx :data-type "placeholder"}))))
           ($ :fieldset.scene-gallery-form
             ($ :button.button.button-neutral
-              {:on-click #(.click (deref input))}
+              {:type "button" :on-click #(.click (deref input))}
               ($ :input
                 {:ref input
                  :type "file"
@@ -251,53 +186,67 @@
                        {:on-click (fn [] (set-preview nil) (dispatch :scene/change-image preview))}
                        "Change background"))))
                node)))))
-      (let [{{cameras :local/cameras} :root/local
-             {players :session/conns} :root/session} data
-            viewing (frequencies (map (comp :db/id :camera/scene :local/camera) players))]
-        ($ :section.scene-scenes
-          ($ :header "Scenes")
-          ($ :ul.scene-list
-            (for [entity cameras
-                  :let [on-select  #(dispatch :scenes/change (:db/id entity))
-                        on-remove  #(dispatch :scenes/remove (:db/id entity))
-                        scene      (:camera/scene entity)
-                        image      (:scene/image scene)
-                        sum-tokens (count (:scene/tokens scene))
-                        sum-initiv (count (:scene/initiative scene))
-                        sum-playrs (viewing (:db/id scene))]]
-              ($ :li.scene-list-item
-                {:key (:db/id entity) :data-selected (= (:db/id entity) (:db/id camera))}
-                (if-let [checksum (:image/checksum image)]
-                  ($ thumbnail {:checksum checksum}
-                    (fn [{:keys [data-url]}]
-                      ($ :.scene-list-item-image
-                        {:style {:background-image (str "url(" data-url ")")}
-                         :on-click on-select
-                         :data-image "image"})))
-                  ($ :.scene-list-item-image
-                    {:on-click on-select :data-image "empty"}))
-                ($ :.scene-list-item-content
-                  ($ :.scene-list-item-label (render-scene-name entity))
-                  ($ :fieldset.scene-list-item-badges {:style {:grid-area "badges"}}
-                    (if (> sum-tokens 0)
-                      ($ :.scene-list-item-badge {:data-tooltip "Tokens"}
-                        ($ icon {:name "person-circle" :size 14}) sum-tokens))
-                    (if (> sum-initiv 0)
-                      ($ :.scene-list-item-badge {:data-tooltip "Initiative"}
-                        ($ icon {:name "hourglass-split" :size 14}) sum-initiv))
-                    (if (> sum-playrs 0)
-                      ($ :.scene-list-item-badge {:data-tooltip "Players"}
-                        ($ icon {:name "people-fill" :size 14}) sum-playrs))))
-                ($ :button.scene-list-item-remove.button.button-neutral
-                  {:on-click
-                   (fn []
-                     (if (js/confirm (render-remove-prompt entity))
-                       (on-remove)))}
-                  ($ icon {:name "trash3-fill" :size 16}))))
-            ($ :li.scene-list-item
-              {:data-placeholder true}
-              ($ :.scene-list-item-image {:data-image "placeholder"})
-              ($ :.scene-list-item-label)
-              ($ :button.scene-list-item-remove.button.button-neutral
-                {:on-click #(dispatch :scenes/create)}
-                ($ icon {:name "plus" :size 24})))))))))
+      ($ :fieldset.fieldset
+        ($ :legend "Tile size ( px )")
+        ($ :input.text.text-ghost
+          {:type "number"
+           :name "Tile size"
+           :value (:scene/grid-size scene)
+           :placeholder "70px"
+           :on-change
+           (fn [event]
+             (let [value (.. event -target -value)
+                   value (js/Number value)]
+               (if (= value 0)
+                 (dispatch :scene/retract-grid-size)
+                 (dispatch :scene/change-grid-size value))))})
+        ($ :details
+          ($ :summary "More Information")
+          "The tile size is the width, in pixels, of one square in the
+                         selected background image. Changes to this value will scale the
+                         image such that each square will take up the width of one token."))
+      ($ :fieldset.fieldset
+        ($ :legend "Grid options")
+        ($ :.input-group
+          ($ :label.checkbox
+            ($ :input
+              {:type "checkbox"
+               :checked (:scene/show-grid scene)
+               :on-change #(dispatch :scene/toggle-show-grid (.. % -target -checked))})
+            ($ icon {:name "check" :size 20})
+            "Show grid")
+          ($ :label.checkbox
+            ($ :input
+              {:type "checkbox"
+               :checked (:scene/grid-align scene)
+               :on-change #(dispatch :scene/toggle-grid-align (.. % -target -checked))})
+            ($ icon {:name "check" :size 20})
+            "Align to grid")
+          ($ :label.checkbox
+            ($ :input
+              {:type "checkbox"
+               :checked (:scene/dark-mode scene)
+               :on-change #(dispatch :scene/toggle-dark-mode (.. % -target -checked))})
+            ($ icon {:name "check" :size 20})
+            "Use dark grid")))
+      ($ :fieldset.fieldset.fieldset--radio
+        ($ :legend "Lighting")
+        ($ :.input-group
+          (for [[label value icon-name] options-vis
+                :let [on-change #(dispatch :scene/change-lighting value)]]
+            ($ :<> {:key value}
+              ($ :label.radio
+                ($ :input
+                  {:type "radio"
+                   :name "visi"
+                   :value value
+                   :checked (= (:scene/lighting scene) value)
+                   :on-change on-change})
+                ($ icon {:name icon-name :size 16})
+                label))))
+        ($ :details
+          ($ :summary "More Information")
+          "When set to " ($ :strong "Obscured") " or " ($ :strong "Hidden")
+          ", the scene will be shrouded in darkness and tokens will emit a
+           radius of light around themselves. The light radius of each token
+           can be customized.")))))

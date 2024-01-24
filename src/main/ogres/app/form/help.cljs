@@ -15,10 +15,10 @@
   (let [releases (use-context release/context)
         dispatch (use-dispatch)
         result   (use-query [[:local/type :default :conn]] [:db/ident :local])]
-    ($ :section.help
+    ($ :.form-help
       (if (= (:local/type result) :host)
-        ($ :section
-          ($ :header "Version" " [ " VERSION " ]")
+        ($ :fieldset.fieldset
+          ($ :legend "Version" " [ " VERSION " ]")
           ($ :div.form-notice
             (if-let [latest (last releases)]
               (if (not= VERSION latest)
@@ -43,8 +43,8 @@
                      (fn []
                        (if-let [_ (js/confirm confirm-delete)]
                          (dispatch :storage/reset)))} "Delete local data")))))))
-      ($ :section
-        ($ :header "Keyboard Shortcuts")
+      ($ :div
+        ($ :h2 "Keyboard Shortcuts")
         ($ :table.shortcuts
           ($ :tbody
             (for [shortcut shortcuts]

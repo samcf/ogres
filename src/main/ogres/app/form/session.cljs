@@ -46,54 +46,53 @@
           id    :db/id} :root/local
          local :root/local} result]
     (if (#{:connecting :connected :disconnected} state)
-      ($ :section.session
+      ($ :.form-session.session
         (if (and (= type :host) (some? code) (seq releases) (not= VERSION (last releases)))
-          ($ :section
-            ($ :div.form-notice {:style {:margin-bottom 4}}
+          ($ :div
+            ($ :.form-notice {:style {:margin-bottom 4}}
               ($ :p ($ :strong "Warning: ")
                 "You're not using the latest version of this application.
                  Either upgrade to the latest version or make sure that
                  players connect using the fully qualified URL below."))
             ($ :input.session-url {:type "text" :value (session-url code) :readOnly true})))
         (if code
-          (let [url (.. js/window -location -origin)]
-            ($ :section
-              ($ :header "Room Code")
-              ($ :.session-room
-                ($ :code.session-code code)
-                ($ :aside.form-notice
+          ($ :fieldset.fieldset
+            ($ :legend "Room Code")
+            ($ :.session-room
+              ($ :input.text-ghost.session-code
+                {:type "text" :value code :readOnly true})
+              (let [url (.. js/window -location -origin)]
+                ($ :.form-notice
                   "Players can join your room by going to "
                   ($ :a {:href url :target "_blank"} url)
                   " and entering this code.")))))
-        ($ :section
-          ($ :header "Options")
-          ($ :fieldset.session-options.checkbox
-            ($ :input
-              {:id "share-cursors"
-               :type "checkbox"
-               :checked cursors
-               :disabled (not= type :host)
-               :on-change
-               (fn [event]
-                 (let [checked (.. event -target -checked)]
-                   (dispatch :session/toggle-share-cursors checked)))})
-            ($ :label {:for "share-cursors"}
-              ($ icon {:name "check" :size 20})
-              "Share cursors")
-            ($ :input
-              {:id "share-my-cursor"
-               :type "checkbox"
-               :checked share
-               :disabled false
-               :on-change
-               (fn [event]
-                 (let [checked (.. event -target -checked)]
-                   (dispatch :session/toggle-share-my-cursor checked)))})
-            ($ :label {:for "share-my-cursor"}
-              ($ icon {:name "check" :size 20})
-              "Share my cursor")))
-        ($ :section
-          ($ :header "Host")
+        ($ :fieldset.fieldset
+          ($ :legend "Options")
+          ($ :fieldset.session-options
+            ($ :.input-group
+              ($ :label.checkbox
+                ($ :input
+                  {:type "checkbox"
+                   :checked cursors
+                   :aria-disabled (not= type :host)
+                   :on-change
+                   (fn [event]
+                     (let [checked (.. event -target -checked)]
+                       (dispatch :session/toggle-share-cursors checked)))})
+                ($ icon {:name "check" :size 20})
+                "Share cursors")
+              ($ :label.checkbox
+                ($ :input
+                  {:type "checkbox"
+                   :checked share
+                   :on-change
+                   (fn [event]
+                     (let [checked (.. event -target -checked)]
+                       (dispatch :session/toggle-share-my-cursor checked)))})
+                ($ icon {:name "check" :size 20})
+                "Share my cursor"))))
+        ($ :fieldset.fieldset
+          ($ :legend "Host")
           ($ :.session-players
             (if host
               ($ :.session-player
@@ -102,8 +101,8 @@
                   (if (= (:db/id host) id)
                     ($ :span " ( You )"))))
               ($ :.prompt "Not connected."))))
-        ($ :section
-          ($ :header (str "Players"))
+        ($ :fieldset.fieldset
+          ($ :legend (str "Players"))
           ($ :.session-players
             (if (seq conns)
               (let [xf (filter (comp-fn = :local/type :conn))]
@@ -144,7 +143,7 @@
          :title "Share room link"
          :disabled (not= state :connected)
          :on-click #(.. js/window -navigator -clipboard (writeText (session-url room-key)))}
-        ($ icon {:name "share-fill" :size 16}) "Share link")
+        ($ icon {:name "share-fill" :size 14}) "Share")
       ($ :button.button.button-danger
         {:type "button"
          :title "Disconnect"
