@@ -1,0 +1,17 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+      args:
+        VERSION: dev
+        SERVER_SOCKET_URL: ws://0.0.0.0:8080/ws
+    ports:
+      - "8000:80"
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    ports:
+      - "8080:8080"
