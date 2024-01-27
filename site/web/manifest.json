@@ -20,12 +20,12 @@
         {
             "src": "/media/ogres-desert-catacombs-combat.webp",
             "type": "image/webp",
-            "sizes": "1408x756"
+            "sizes": "878x494"
         },
         {
             "src": "/media/ogres-mage-tower-initiative.webp",
             "type": "image/webp",
-            "sizes": "1408x756",
+            "sizes": "1098x618",
             "form_factor": "wide"
         },
         {
