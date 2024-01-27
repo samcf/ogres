@@ -1,0 +1,41 @@
+{
+    "background_color": "#312e81",
+    "description": "Free online virtual tabletop",
+    "display": "fullscreen",
+    "icons": [
+        {
+            "src": "/icon/android-chrome-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/icon/android-chrome-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ],
+    "name": "Ogres Tabletop",
+    "scope": "/",
+    "screenshots": [
+        {
+            "src": "/media/ogres-desert-catacombs-combat.webp",
+            "type": "image/webp",
+            "sizes": "1408x756"
+        },
+        {
+            "src": "/media/ogres-mage-tower-initiative.webp",
+            "type": "image/webp",
+            "sizes": "1408x756",
+            "form_factor": "wide"
+        },
+        {
+            "src": "/media/ogres-initiative-mobile.webp",
+            "type": "image/webp",
+            "sizes": "412x914",
+            "form_factor": "narrow"
+        }
+    ],
+    "short_name": "Ogres",
+    "start_url": "/",
+    "theme_color": "#312e81"
+}
