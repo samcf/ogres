@@ -301,9 +301,10 @@
                   ($ :button
                     {:type "button" :data-name "inc" :on-click #(set-size inc)}
                     ($ icon {:name "plus" :size 20}))
-                  ($ :input
+                  ($ :input.text.text-ghost
                     {:type "number"
                      :value next-size
+                     :style {:color "white"}
                      :on-change
                      (fn [event]
                        (let [n (js/Number (.. event -target -value))]

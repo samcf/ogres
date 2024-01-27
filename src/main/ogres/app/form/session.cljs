@@ -49,12 +49,14 @@
       ($ :.form-session.session
         (if (and (= type :host) (some? code) (seq releases) (not= VERSION (last releases)))
           ($ :div
-            ($ :.form-notice {:style {:margin-bottom 4}}
+            ($ :.form-notice {:style {:margin-bottom 16}}
               ($ :p ($ :strong "Warning: ")
                 "You're not using the latest version of this application.
                  Either upgrade to the latest version or make sure that
                  players connect using the fully qualified URL below."))
-            ($ :input.session-url {:type "text" :value (session-url code) :readOnly true})))
+            ($ :fieldset.fieldset
+              ($ :legend "Fully qualified URL")
+              ($ :input.text.text-ghost.session-url {:type "text" :value (session-url code) :readOnly true}))))
         (if code
           ($ :fieldset.fieldset
             ($ :legend "Room Code")

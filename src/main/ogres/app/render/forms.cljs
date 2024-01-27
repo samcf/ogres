@@ -88,7 +88,7 @@
          (.preventDefault event)
          (on-change :token/change-label input-val)
          (on-close))}
-      ($ :input
+      ($ :input.text.text-ghost
         {:type "text"
          :ref input-ref
          :value input-val
