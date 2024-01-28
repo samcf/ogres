@@ -1,0 +1,44 @@
+server {
+    listen 80;
+    listen [::]:80;
+
+    # Marketing
+    location / {
+        alias /usr/share/nginx/app/site/web/;
+    }
+
+    # App entrypoint supplied from Github Pages
+    location /play {
+        alias /usr/share/nginx/html/;
+    }
+
+    # Release build
+    location /play/release/${VERSION} {
+        alias /usr/share/nginx/app/web/release/;
+    }
+
+    # Release build (for watch-mode development?)
+    location /release/${VERSION} {
+        alias /usr/share/nginx/app/web/release/;
+    }
+
+    # Past release bundles supplied from Github Pages
+    location /release {
+        root /usr/share/nginx/html;
+    }
+
+    # Backend
+    location /ws {
+        proxy_pass ${SERVER_SOCKET_URL};
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+    }
+
+    # A list of available releases
+    location = /releases.txt {
+        alias /usr/share/nginx/html/;
+        try_files releases.txt =404;
+    }
+}
