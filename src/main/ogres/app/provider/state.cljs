@@ -1,8 +1,6 @@
 (ns ogres.app.provider.state
   (:require [datascript.core :as ds]
             [ogres.app.const :refer [VERSION]]
-            [ogres.app.provider.events :refer [use-publish]]
-            [ogres.app.events :refer [event-tx-fn]]
             [uix.core :refer [defui $ create-context use-context use-callback use-state use-effect]]))
 
 (def schema
@@ -67,9 +65,6 @@
   [{:keys [children]}]
   ($ (.-Provider context) {:value context-value} children))
 
-(defn ^:private tx-fn [data event args]
-  (apply event-tx-fn data event args))
-
 (defn use-query
   ([pattern]
    (use-query pattern [:db/ident :local]))
@@ -89,14 +84,3 @@
         (fn []
           (ds/unlisten! conn listen-key))) ^:lint/disable [prev-state])
      prev-state)))
-
-(defn use-dispatch []
-  (let [publish (use-publish)
-        conn    (use-context context)]
-    (use-callback
-     (fn [topic & args]
-       (publish {:topic topic :args args})
-       (let [tx-data [[:db.fn/call tx-fn topic args]]
-             report  (ds/transact! conn tx-data)]
-         (if (seq (:tx-data report))
-           (publish {:topic :tx/commit :args (list report)})))) ^:lint/disable [publish])))

@@ -1,10 +1,11 @@
 (ns ogres.app.hooks
-  (:require [ogres.app.provider.events :as provider.events]
-            [ogres.app.provider.image :as provider.image]
-            [ogres.app.provider.portal :as provider.portal]
-            [ogres.app.provider.state :as provider.state]
-            [ogres.app.provider.storage :as provider.storage]
-            [uix.core :refer [use-effect use-state use-ref use-callback]]))
+  (:require [ogres.app.provider.events   :as provider.events]
+            [ogres.app.provider.dispatch :as provider.dispatch]
+            [ogres.app.provider.image    :as provider.image]
+            [ogres.app.provider.portal   :as provider.portal]
+            [ogres.app.provider.state    :as provider.state]
+            [ogres.app.provider.storage  :as provider.storage]
+            [uix.core                    :refer [use-effect use-state use-ref use-callback]]))
 
 (def ^{:doc "Returns a function which, when called with a topic and any number
              of additional arguments, will perform the following work:
@@ -15,7 +16,7 @@
                 report as its only argument."
        :arglists '([])}
   use-dispatch
-  provider.state/use-dispatch)
+  provider.dispatch/use-dispatch)
 
 (def ^{:doc "Returns the result of querying the underlying DataScript
              database. Queries must be a pull-style pattern. Optionally
