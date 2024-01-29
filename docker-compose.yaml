@@ -7,17 +7,18 @@ services:
         VERSION: "dev"
         # Mode must be either "release" (for production) or "watch" (for development)
         MODE: "release"
-        SERVER_SOCKET_URL: "ws://localhost/ws"
+        SERVER_SOCKET_URL: "ws://0.0.0.0:8080/ws"
     volumes:
-      - ogres-frontend:/build
+      - frontend:/build
+      - shadow-cljs:/tmp/.shadow-cljs
     ports:
       # Port used for hot reloading in shadow-cljs's watch mode
       - "9630:9630"
     develop:
       watch:
         - action: sync
-          path: ./src/main/ogres
-          target: /build/src/main/ogres
+          path: ./src/main/ogres/app
+          target: /build/src/main/ogres/app
         - action: rebuild
           path: package.json
 
@@ -35,9 +36,10 @@ services:
         SERVER_SOCKET_URL: "http://backend:8080/ws"
     volumes:
         - ./deploy/docker-nginx.template:/etc/nginx/templates/default.conf.template:ro
-        - ogres-frontend:/usr/share/nginx/app
+        - frontend:/usr/share/nginx/app
     ports:
       - "8080:80"
 
 volumes:
-  ogres-frontend:
+  frontend:
+  shadow-cljs:
