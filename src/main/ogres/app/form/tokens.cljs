@@ -128,12 +128,12 @@
         drop-pub  (use-droppable #js {"id" "scope-pub"})
         drop-prv  (use-droppable #js {"id" "scope-prv"})]
     ($ :.form-tokens
-      ($ :.form-notice
-        "Upload images from your computer and pull them onto the scene as
-         tokens. Moving tokens to the public section will make them available
-         for other players in an online game.")
       (if (= type :host)
         ($ :<>
+          ($ :.form-notice
+            "Upload images from your computer and pull them onto the scene as
+             tokens. Moving tokens to the public section will make them available
+             for other players in an online game.")
           ($ :fieldset.fieldset.token-gallery
             {:ref (.-setNodeRef drop-pub) :data-type "host" :data-scope "public"}
             ($ :legend "Public")
@@ -142,9 +142,12 @@
             {:ref (.-setNodeRef drop-prv) :data-type "host" :data-scope "private"}
             ($ :legend "Private")
             ($ paginated {:data data-prv :limit 20})))
-        ($ :fieldset.fieldset.token-gallery
-          {:ref (.-setNodeRef drop-pub) :data-type "conn" :data-scope "public"}
-          ($ paginated {:data data-pub :limit 30}))))))
+        ($ :<>
+          ($ :.form-notice "Upload images from your computer and pull them onto the scene as tokens.")
+          ($ :fieldset.fieldset.token-gallery
+            {:ref (.-setNodeRef drop-pub) :data-type "conn" :data-scope "public"}
+            ($ :legend "Tokens")
+            ($ paginated {:data data-pub :limit 30})))))))
 
 (defui form []
   (let [dispatch (use-dispatch)
