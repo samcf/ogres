@@ -1,6 +1,6 @@
 [ogres.app](https://ogres.app) is a free and open-source virtual tabletop that you can run in your browser and share with your friends.
 
-![Screenshot](web/extra/share-town-center.png)
+![Screenshot of the Ogres app](site/web/media/ogres-desert-catacombs-combat.webp)
 
 ## Features
 
