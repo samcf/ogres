@@ -10,6 +10,7 @@ server {
     # App entrypoint supplied from Github Pages
     location /play {
         alias /usr/share/nginx/html/;
+        try_files $uri $uri/index.html =404;
     }
 
     # Release build
