@@ -904,6 +904,25 @@ a:visited {
     right: 0;
 }
 
+.context-menu:has(:focus-visible) {
+    border-radius: 3px;
+    outline-offset: 2px;
+    outline: 3px solid var(--outline-color);
+}
+
+.context-menu button:focus-visible {
+    outline: 1px solid var(--outline-color);
+    outline-offset: 1px;
+    z-index: 1;
+}
+
+.context-menu input:is([type="radio"], [type="checkbox"]) {
+    position: absolute;
+    margin: 0;
+    opacity: 0;
+    width: 0;
+}
+
 .context-menu-toolbar {
     display: flex;
     justify-content: space-between;
@@ -966,7 +985,7 @@ a:visited {
     display: flex;
 }
 
-.context-menu-form-label button:hover {
+.context-menu-form-label button:is(:hover, :focus-visible) {
     color: var(--color-black-100);
 }
 
@@ -988,44 +1007,40 @@ a:visited {
     row-gap: 4px;
 }
 
-.context-menu-form-details div {
+.context-menu-form-details :is(label, data) {
     align-items: center;
     box-sizing: border-box;
     display: flex;
     height: 100%;
 }
 
-.context-menu-form-details *:nth-child(4n - 3) {
-    margin: 0 8px 0 auto;
-}
-
-.context-menu-form-details *:nth-child(4n - 2) {
-    border-radius: 2px 0 0 2px;
-}
-
-.context-menu-form-details *:nth-child(4n - 1) {
-    border: 1px solid var(--color-blues-900);
+.context-menu-form-details :is(label, data, button) {
+    display: flex;
+    align-items: center;
     justify-content: center;
 }
 
-.context-menu-form-details *:nth-child(4n - 4) {
-    border-radius: 0 2px 2px 0;
+.context-menu-form-details label {
+    justify-content: flex-end;
+    margin-right: 8px;
+}
+
+.context-menu-form-details data {
+    background-color: var(--color-blues-500);
 }
 
 .context-menu-form-details button {
-    align-items: center;
     aspect-ratio: 1;
     background-color: var(--color-blues-900);
+    border-radius: 3px;
     border: none;
     color: var(--color-black-500);
     cursor: pointer;
-    display: flex;
-    height: 100%;
-    justify-content: center;
     font-size: 18px;
+    height: 100%;
 }
 
-.context-menu-form-details button:hover {
+.context-menu-form-details button:is(:focus-visible, :hover) {
     color: var(--color-black-100);
 }
 
@@ -1047,51 +1062,100 @@ a:visited {
     position: relative;
 }
 
-.context-menu-form-conditions input:not(:checked, :indeterminate) + label:hover,
-.context-menu-form-conditions input:is(:checked, :indeterminate) + label {
+.context-menu-form-conditions label:has(input:not(:checked, :indeterminate)):hover,
+.context-menu-form-conditions label:has(:checked, :indeterminate) {
     background-color: var(--color-blues-800);
     color: var(--color-black-100);
 }
 
-.context-menu-form-conditions input:is(:checked) + label {
+.context-menu-form-conditions label:has(:checked) {
     background-color: var(--color-blues-900);
+}
+
+.context-menu-form-conditions label:has(:focus-visible) {
+    outline: 1px dotted var(--outline-color);
+    outline-offset: 1px;
+}
+
+.context-menu-form-color {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 10px;
+    cursor: default;
+}
+
+.context-menu-form-color .fieldset {
+    border-color: var(--color-paper-500);
+}
+
+.context-menu-form-color .fieldset:has(:focus-visible) {
+    outline-width: 1px;
+}
+
+.context-menu-form-color .fieldset legend {
+    background-color: var(--color-blues-700);
+    color: var(--color-paper-500);
 }
 
 .context-menu-form-color input[type="range"] {
     width: 100%;
+    border-radius: 3px;
+}
+
+.context-menu-form-color input[type="range"]:focus-visible {
+    outline: none;
 }
 
 .context-menu-form-colors {
     display: grid;
-    gap: 2px;
+    gap: 1px;
     grid-template-columns: repeat(5, 1fr);
     grid-template-rows: repeat(2, 1fr);
 }
 
-.context-menu-form-colors > div {
+.context-menu-form-colors label {
     aspect-ratio: 1 / 1;
     border: 1px solid var(--color-black-700);
-    border-radius: 2px;
+    border-radius: 3px;
+}
+
+.context-menu-form-colors:has(input[type="radio"]:focus-visible) label {
+    opacity: 0.40;
+}
+
+.context-menu-form-colors label:has(input[type="radio"]:focus-visible) {
+    outline: 1px solid var(--outline-color);
+    opacity: 1;
 }
 
 .context-menu-form-pattern {
     display: grid;
-    gap: 2px;
+    gap: 3px;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(2, 1fr);
 }
 
-.context-menu-form-pattern svg {
-    aspect-ratio: 1 / 1;
+.context-menu-form-pattern label {
     background-color: var(--color-blues-900);
-    border: 1px solid var(--color-black-900);
+    border-radius: 3px;
     box-sizing: border-box;
     color: var(--color-black-300);
     cursor: pointer;
 }
 
+.context-menu-form-pattern label:has(:focus-visible) {
+    outline: 1px solid var(--outline-color);
+}
+
+.context-menu-form-pattern svg {
+    aspect-ratio: 1;
+    height: 100%;
+    width: 100%;
+}
+
 /* Tooltips */
-[data-tooltip]:not(:disabled):hover:after {
+[data-tooltip]:not(:disabled):is(:hover, :focus-visible):after {
     background-color: var(--color-blues-900);
     border-radius: 3px;
     border: 1px solid var(--color-blues-700);

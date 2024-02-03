@@ -14,22 +14,42 @@
         (>  x 15) "Gargantuan"
         :else     "Unknown"))
 
-(def ^:private conditions
-  [[:player "people-fill"]
-   [:blinded "eye-slash-fill"]
-   [:charmed "arrow-through-heart-fill"]
-   [:defeaned "ear-fill"]
-   [:exhausted "moon-stars-fill"]
-   [:frightened "black-cat"]
-   [:grappled "fist"]
-   [:incapacitated "emoji-dizzy"]
-   [:invisible "incognito"]
-   [:petrified "gem"]
-   [:poisoned "droplet-fill"]
-   [:prone "falling"]
-   [:restrained "spiderweb"]
-   [:stunned "stars"]
-   [:unconscious "skull"]])
+(def ^:private token-conditions
+  [{:value :player        :icon "people-fill"}
+   {:value :blinded       :icon "eye-slash-fill"}
+   {:value :charmed       :icon "arrow-through-heart-fill"}
+   {:value :defeaned      :icon "ear-fill"}
+   {:value :exhausted     :icon "moon-stars-fill"}
+   {:value :frightened    :icon "black-cat"}
+   {:value :grappled      :icon "fist"}
+   {:value :incapacitated :icon "emoji-dizzy"}
+   {:value :invisible     :icon "incognito"}
+   {:value :petrified     :icon "gem"}
+   {:value :poisoned      :icon "droplet-fill"}
+   {:value :prone         :icon "falling"}
+   {:value :restrained    :icon "spiderweb"}
+   {:value :stunned       :icon "stars"}
+   {:value :unconscious   :icon "skull"}])
+
+(def ^:private shape-colors
+  [{:value "#ffeb3b" :label "Yellow"}
+   {:value "#ff9800" :label "Orange"}
+   {:value "#f44336" :label "Red"}
+   {:value "#673ab7" :label "Purple"}
+   {:value "#2196f3" :label "Blue"}
+   {:value "#009688" :label "Green"}
+   {:value "#8bc34a" :label "Light green"}
+   {:value "#ffffff" :label "White"}
+   {:value "#9e9e9e" :label "Gray"}
+   {:value "#000000" :label "Black"}])
+
+(def ^:private shape-patterns
+  [{:value :solid   :label "None"}
+   {:value :lines   :label "Lines"}
+   {:value :circles :label "Circles"}
+   {:value :crosses :label "Crosses"}
+   {:value :caps    :label "Caps"}
+   {:value :waves   :label "Waves"}])
 
 (defn ^:private stop-propagation [event]
   (.stopPropagation event))
@@ -51,24 +71,12 @@
           (children props))))))
 
 (defui ^:private checkbox
-  [{:keys [checked on-change children]}]
+  [{:keys [checked children]}]
   (let [input (use-ref)
-        indtr (= checked :indeterminate)
-        [key] (use-state (random-uuid))]
+        indtr (= checked :indeterminate)]
     (use-effect
      (fn [] (set! (.-indeterminate @input) indtr)) [indtr])
-    (children
-     {:key key
-      :input
-      ($ :input
-        {:id key
-         :ref input
-         :type "checkbox"
-         :hidden true
-         :checked (if indtr false checked)
-         :on-change
-         (fn [event]
-           (on-change (.. event -target -checked)))})})))
+    (children input)))
 
 (defui ^:private token-form-label
   [{:keys [values on-change on-close]
@@ -105,43 +113,73 @@
     ($ :<>
       (let [value (value-fn :token/size)]
         ($ :<>
-          ($ :div "Size")
-          ($ :button {:on-click #(on-change :token/change-size (max (- value 5) 5))} "-")
-          ($ :div (str value  "ft. " (token-size value)))
-          ($ :button {:on-click #(on-change :token/change-size (min (+ value 5) 50))} "+")))
+          ($ :label "Size")
+          ($ :button
+            {:type "button"
+             :auto-focus true
+             :on-click #(on-change :token/change-size (max (- value 5) 5))
+             :aria-label "Decrease token size by 5 feet"}
+            "-")
+          ($ :data {:value value}
+            (str value  "ft. " (token-size value)))
+          ($ :button
+            {:type "button"
+             :on-click #(on-change :token/change-size (min (+ value 5) 50))
+             :aria-label "Increase token size by 5 feet"} "+")))
       (let [value (value-fn :token/light)]
         ($ :<>
-          ($ :div "Light")
-          ($ :button {:on-click #(on-change :token/change-light (max (- value 5) 0))} "-")
-          ($ :div (if (> value 0) (str value "ft. radius") "None"))
-          ($ :button {:on-click #(on-change :token/change-light (min (+ value 5) 120))} "+")))
+          ($ :label "Light")
+          ($ :button
+            {:type "button"
+             :on-click #(on-change :token/change-light (max (- value 5) 0))
+             :aria-label "Decrease light radius by 5 feet"}
+            "-")
+          ($ :data {:value value}
+            (if (> value 0) (str value "ft. radius") "None"))
+          ($ :button
+            {:type "button"
+             :on-click #(on-change :token/change-light (min (+ value 5) 120))
+             :aria-label "Increase light radius by 5 feet"}
+            "+")))
       (let [value (value-fn :aura/radius)]
         ($ :<>
-          ($ :div "Aura")
-          ($ :button {:on-click #(on-change :token/change-aura (max (- value 5) 0))} "-")
-          ($ :div (if (> value 0) (str value "ft. radius") "None"))
-          ($ :button {:on-click #(on-change :token/change-aura (min (+ value 5) 120))} "+"))))))
+          ($ :label "Aura")
+          ($ :button
+            {:type "button"
+             :on-click #(on-change :token/change-aura (max (- value 5) 0))
+             :aria-label "Decrease aura size by 5 feet"}
+            "-")
+          ($ :data {:value value}
+            (if (> value 0) (str value "ft. radius") "None"))
+          ($ :button
+            {:type "button"
+             :on-click #(on-change :token/change-aura (min (+ value 5) 120))
+             :aria-label "Increase aura size by 5 feet"}
+            "+"))))))
 
-(defui ^:private token-form-conds
+(defui ^:private token-form-conditions
   [props]
   (let [fqs (frequencies (reduce into [] ((:values props) :token/flags [])))
         ids ((:values props) :db/id)]
-    (for [[flag icon-name] conditions]
-      ($ checkbox
-        {:key       flag
-         :on-change #((:on-change props) :token/change-flag flag %1)
-         :checked   (cond (= (get fqs flag 0) 0) false
-                          (= (get fqs flag 0) (count ids)) true
-                          :else :indeterminate)}
-        (fn [{:keys [key input]}]
-          ($ :<> input
-            ($ :label {:for key :data-tooltip (capitalize (name flag))}
-              ($ icon {:name icon-name :size 22}))))))))
-
-(def ^:private token-form
-  {:label token-form-label
-   :details token-form-details
-   :conditions token-form-conds})
+    (for [{value :value icon-name :icon} token-conditions
+          :let [focus (= value (:value (first token-conditions)))
+                state (cond (= (get fqs value 0) 0) false
+                            (= (get fqs value 0) (count ids)) true
+                            :else :indeterminate)]]
+      ($ checkbox {:key value :checked state}
+        (fn [input]
+          ($ :label {:aria-label (name value) :data-tooltip (capitalize (name value))}
+            ($ :input
+              {:ref input
+               :type "checkbox"
+               :name (str "token-condition-" (name value))
+               :checked (if (= state :indeterminate) false state)
+               :auto-focus focus
+               :on-change
+               (fn [event]
+                 (let [checked (.. event -target -checked)]
+                   ((:on-change props) :token/change-flag value checked)))})
+            ($ icon {:name icon-name :size 22})))))))
 
 (defui token-context-menu [{:keys [tokens type]}]
   (let [dispatch (use-dispatch)
@@ -181,40 +219,63 @@
               :on-click #(dispatch :token/remove idxs)}
              ($ icon {:name "trash3-fill" :size 22}))))}
       (fn [{:keys [selected on-change]}]
-        (if-let [component (token-form selected)]
-          ($ component
-            {:name      selected
-             :upload?   (= type :host)
-             :on-close  #(on-change nil)
-             :on-change #(apply dispatch %1 idxs %&)
-             :values    (fn vs
-                          ([f] (vs f #{}))
-                          ([f init] (into init (map f) tokens)))}))))))
+        (let [props {:on-close  #(on-change nil)
+                     :on-change #(apply dispatch %1 idxs %&)
+                     :values    (fn vs
+                                  ([f] (vs f #{}))
+                                  ([f init] (into init (map f) tokens)))}]
+          (case selected
+            :label      ($ token-form-label props)
+            :details    ($ token-form-details props)
+            :conditions ($ token-form-conditions props)))))))
 
 (defui ^:private shape-form-color
   [{:keys [on-change values]}]
-  ($ :fieldset
-    ($ :input
-      {:type "range" :min 0 :max 1 :step 0.10
-       :value (first (values :shape/opacity))
-       :on-change #(on-change :element/update :shape/opacity (.. %1 -target -value))})
-    ($ :.context-menu-form-colors
-      (for [color ["#ffeb3b" "#ff9800" "#f44336" "#673ab7" "#2196f3" "#009688" "#8bc34a" "#fff" "#9e9e9e" "#000"]]
-        ($ :div
-          {:key color :style {:background-color color}
-           :on-click #(on-change :element/update :shape/color color)})))))
+  ($ :<>
+    ($ :fieldset.fieldset
+      ($ :legend "Opacity")
+      ($ :label
+        {:aria-label "Shape opacity"}
+        ($ :input
+          {:type "range" :name "shape-opacity" :min 0 :max 1 :step 0.10
+           :value (first (values :shape/opacity))
+           :auto-focus true
+           :on-change
+           (fn [event]
+             (on-change :element/update :shape/opacity (.. event -target -value)))})))
+    ($ :fieldset.fieldset
+      ($ :legend "Color")
+      ($ :.context-menu-form-colors
+        (for [{:keys [value label]} shape-colors]
+          ($ :label {:key value :aria-label label :style {:background-color value}}
+            ($ :input
+              {:type "radio"
+               :name "shape-color"
+               :value value
+               :checked (= value (first (values :shape/color)))
+               :on-change
+               (fn [event]
+                 (on-change :element/update :shape/color (.. event -target -value)))})))))))
 
 (defui ^:private shape-form-pattern
-  [{:keys [on-change]}]
-  (for [pattern-name [:solid :lines :circles :crosses :caps :waves]]
-    (let [id (str "template-pattern-" (name pattern-name))]
-      ($ :svg {:key pattern-name :width "100%" :on-click #(on-change :element/update :shape/pattern pattern-name)}
-        ($ :defs ($ pattern {:id id :name pattern-name}))
-        ($ :rect {:x 0 :y 0 :width "100%" :height "100%" :fill (str "url(#" id ")")})))))
-
-(def ^:private shape-form
-  {:color shape-form-color
-   :pattern shape-form-pattern})
+  [{:keys [on-change values]}]
+  (for [{:keys [value label]} shape-patterns
+        :let [checked (= value (first (values :shape/pattern)))]]
+    (let [id (str "template-pattern-" (name value))]
+      ($ :label {:key value :aria-label label}
+        ($ :input
+          {:type "radio"
+           :name "shape-pattern"
+           :value value
+           :checked checked
+           :auto-focus checked
+           :on-change
+           (fn [event]
+             (let [value (.. event -target -value)]
+               (on-change :element/update :shape/pattern (keyword value))))})
+        ($ :svg
+          ($ :defs ($ pattern {:id id :name value}))
+          ($ :rect {:x 0 :y 0 :width "100%" :height "100%" :fill (str "url(#" id ")")}))))))
 
 (defui shape-context-menu [{:keys [data]}]
   (let [dispatch (use-dispatch)]
@@ -224,7 +285,6 @@
          ($ :<>
            ($ :button
              {:type "button"
-
               :data-selected (= selected :color)
               :data-tooltip "Color"
               :on-click #(on-change :color)}
@@ -240,10 +300,13 @@
               :on-click #(dispatch :element/remove [(:db/id data)])}
              ($ icon {:name "trash3-fill"}))))}
       (fn [{:keys [selected]}]
-        (if-let [component (shape-form selected)]
-          ($ component
-            {:name      selected
-             :on-change #(apply dispatch %1 [(:db/id data)] %&)
-             :values    (fn vs
-                          ([f] (vs f #{}))
-                          ([f init] (into init (map f) [data])))}))))))
+        (let [props {:values
+                     (fn vs
+                       ([f] (vs f #{}))
+                       ([f init] (into init (map f) [data])))
+                     :on-change
+                     (fn [event & args]
+                       (apply dispatch event [(:db/id data)] args))}]
+          (case selected
+            :color   ($ shape-form-color props)
+            :pattern ($ shape-form-pattern props)))))))
