@@ -5,7 +5,7 @@ RUN git clone --single-branch --branch gh-pages https://github.com/samcf/ogres.g
 
 FROM nginx:alpine
 ARG SERVER_SOCKET_URL
-ENV SERVER_SOCKET_URL=${SERVER_SOCKET_URL:-"http://backend:8080/ws"}
+ENV SERVER_SOCKET_URL=${SERVER_SOCKET_URL:-"http://backend:8090/ws"}
 ARG VERSION
 ENV VERSION=${VERSION:-"dev"}
 COPY --from=website /website /usr/share/nginx/html

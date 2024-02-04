@@ -25,7 +25,7 @@ USER clojure
 WORKDIR /service
 COPY --from=builder --chown=clojure:clojure /build/OgreServer.jar /service/OgreServer.jar
 
-EXPOSE 8080
+EXPOSE 8090
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["java", "-jar", "/service/OgreServer.jar", "-m", "ogres.server.core", "8080"]
+CMD ["java", "-jar", "/service/OgreServer.jar", "-m", "ogres.server.core", "8090"]
