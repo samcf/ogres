@@ -32,3 +32,13 @@ npm start
 # start the application server necessary for hosting online sessions
 clojure -X:server/dev
 ```
+
+## Docker Environment
+
+The following command will start the Docker environment.
+
+```
+docker compose up -d
+```
+
+This will open the appropriate ports, establish links between containers, set up volumes, and start the application as configured in `docker-compose.yaml`.
