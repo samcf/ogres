@@ -569,7 +569,7 @@
             (fn [options]
               (let [dx (getValueByKeys options "transform" "x")
                     dy (getValueByKeys options "transform" "y")]
-                ($ :g.scene-tokens-selected
+                ($ :g.scene-tokens.scene-tokens-selected
                   {:ref             (.-setNodeRef options)
                    :style           {:outline "none"}
                    :transform       (str "translate(" (or dx 0) ", " (or dy 0) ")")

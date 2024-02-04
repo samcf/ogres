@@ -28,26 +28,24 @@
   (let [dispatch (use-dispatch)
         result   (use-query query)]
     ($ :ul.scenes {:role "tablist"}
-      (for [camera (:local/cameras result)
-            :let [id (:db/id camera)
-                  key (str "scene" id)
-                  label (render-scene-name camera)
-                  selected (= id (:db/id (:local/camera result)))]]
-        ($ :li {:key id :role "tab" :aria-selected selected}
-          ($ :input
-            {:id key
-             :type "radio"
-             :name "scene"
-             :value id
-             :checked selected
-             :on-change (fn [event] (dispatch :scenes/change (js/Number (.. event -target -value))))})
-          ($ :label {:for key} label)
-          ($ :div.scenes-remove
-            {:on-click
-             (fn []
-               (if (js/confirm (render-remove-prompt camera))
-                 (dispatch :scenes/remove id)))}
-            ($ icon {:name "x" :size 21}))))
+      (for [{id :db/id :as camera} (:local/cameras result)
+            :let [selected (= id (:db/id (:local/camera result)))]]
+        ($ :li.scenes-scene {:key id :role "tab" :aria-selected selected}
+          ($ :label
+            ($ :input
+              {:type "radio"
+               :name "scene"
+               :value id
+               :checked selected
+               :on-change (fn [event] (dispatch :scenes/change (js/Number (.. event -target -value))))})
+            ($ :.scenes-label
+              (render-scene-name camera))
+            ($ :.scenes-remove
+              {:on-click
+               (fn []
+                 (if (js/confirm (render-remove-prompt camera))
+                   (dispatch :scenes/remove id)))}
+              ($ icon {:name "x" :size 21})))))
       ($ :li.scenes-create {:role "tab"}
         ($ :button
           {:type "button"

@@ -50,17 +50,14 @@
          :aria-orientation "vertical"}
         (for [[key data] (map (juxt identity panel-data) forms)
               :let [selected (= selected key)]]
-          ($ :li
-            {:key key :role "tab" :aria-selected (and expanded selected)}
-            ($ :input
-              {:id key
-               :type "radio"
-               :name "panel"
-               :value key
-               :checked (and expanded selected)
-               :on-change #(dispatch :local/select-panel key)
-               :aria-label (:label data)})
-            ($ :label {:for key}
+          ($ :li {:key key :role "tab" :aria-selected (and expanded selected)}
+            ($ :label {:aria-label (:label data)}
+              ($ :input
+                {:type "radio"
+                 :name "panel"
+                 :value key
+                 :checked (and expanded selected)
+                 :on-change #(dispatch :local/select-panel key)})
               ($ icon {:name (:icon data) :size 20}))))
         ($ :li.panel-tabs-control
           {:role "tab" :on-click #(dispatch :local/toggle-panel)}
