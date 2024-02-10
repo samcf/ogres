@@ -80,6 +80,7 @@
         {:role "toolbar"
          :on-pointer-over on-focus
          :on-focus on-focus
+         :on-blur  #(set-focused nil)
          :on-click on-click}
         ($ action {:name "scene-select" :aria-pressed (= mode :select)}
           ($ icon {:name "cursor-fill"}))
