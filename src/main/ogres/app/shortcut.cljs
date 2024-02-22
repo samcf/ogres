@@ -1,11 +1,29 @@
 (ns ogres.app.shortcut
-  (:require [datascript.core :refer [pull]]
-            [ogres.app.hooks :refer [use-event-listener use-dispatch]]
-            [ogres.app.provider.state :refer [context]]
-            [uix.core :refer [defui use-callback use-context]]))
+  (:require [ogres.app.hooks :refer [use-dispatch use-event-listener use-shortcut]]
+            [uix.core :refer [defui]]))
 
-(defn ^:private linear [dx dy rx ry]
-  (fn [n] (+ (* (/ (- n dx) (- dy dx)) (- ry rx)) rx)))
+(defn ^:private allowed? [event]
+  (let [element (.-target event)]
+    (not (instance? js/HTMLInputElement element))))
+
+(def ^:private key->vector
+  {"arrowleft"  [-1 0]
+   "arrowup"    [0 -1]
+   "arrowright" [1 0]
+   "arrowdown"  [0 1]})
+
+(def ^:private key->mode
+  {\1 :circle
+   \2 :rect
+   \3 :cone
+   \4 :poly
+   \5 :line
+   \f :mask
+   \g :grid
+   \r :ruler
+   \s :select
+   \t :mask-toggle
+   \x :mask-remove})
 
 (def shortcuts
   [{:name "scene-select"  :keys [\s]            :desc "Select: Pan, select, and move tokens"}
@@ -28,146 +46,79 @@
    {:name "mask-toggle"   :keys [\t]            :desc "Mode: Reveal or obscure a fog shape"}
    {:name "mask-remove"   :keys [\x]            :desc "Mode: Remove a fog shape"}])
 
-(def ^:private handler
-  {["keydown" "Shift"]
-   (fn [[_ dispatch] event]
-     (if (not (.-metaKey event))
-       (dispatch :local/modifier-start :shift)))
-
-   ["keyup" "Shift"]
-   (fn [[_ dispatch] event]
-     (if (not (.-metaKey event))
-       (dispatch :local/modifier-release)))
-
-   ["keydown" "Escape"]
-   (fn [[_ dispatch] event]
-     (if (not (.-metaKey event))
-       (dispatch :shortcut/escape)))
-
-   ["keydown" "Delete"]
-   (fn [[_ dispatch] event]
-     (if (not (.-metaKey event))
-       (dispatch :selection/remove)))
-
-   ["keydown" "Backspace"]
-   (fn [[_ dispatch] event]
-     (if (not (.-metaKey event))
-       (dispatch :selection/remove)))
-
-   ["keydown" \s]
-   (fn [[_ dispatch] event]
-     (if (not (.-metaKey event))
-       (dispatch :camera/change-mode :select)))
-
-   ["keydown" \r]
-   (fn [[_ dispatch] event]
-     (if (not (.-metaKey event))
-       (dispatch :camera/change-mode :ruler)))
-
-   ["keydown" \1]
-   (fn [[_ dispatch] event]
-     (if (not (.-metaKey event))
-       (dispatch :camera/change-mode :circle)))
-
-   ["keydown" \2]
-   (fn [[_ dispatch] event]
-     (if (not (.-metaKey event))
-       (dispatch :camera/change-mode :rect)))
-
-   ["keydown" \3]
-   (fn [[_ dispatch] event]
-     (if (not (.-metaKey event))
-       (dispatch :camera/change-mode :cone)))
-
-   ["keydown" \4]
-   (fn [[_ dispatch] event]
-     (if (not (.-metaKey event))
-       (dispatch :camera/change-mode :poly)))
-
-   ["keydown" \5]
-   (fn [[_ dispatch] event]
-     (if (not (.-metaKey event))
-       (dispatch :camera/change-mode :line)))
-
-   ["keydown" \g]
-   (fn [[_ dispatch] event]
-     (if (not (.-metaKey event))
-       (dispatch :camera/change-mode :grid)))
-
-   ["keydown" \f]
-   (fn [[_ dispatch] event]
-     (if (not (.-metaKey event))
-       (dispatch :camera/change-mode :mask)))
-
-   ["keydown" \t]
-   (fn [[_ dispatch] event]
-     (if (not (.-metaKey event))
-       (dispatch :camera/change-mode :mask-toggle)))
-
-   ["keydown" \x]
-   (fn [[_ dispatch] event]
-     (if (.-metaKey event)
-       (dispatch :clipboard/copy true)
-       (dispatch :camera/change-mode :mask-remove)))
-
-   ["keydown" \c]
-   (fn [[_ dispatch] event]
-     (if (.-metaKey event)
-       (dispatch :clipboard/copy false)))
-
-   ["keydown" \v]
-   (fn [[_ dispatch] event]
-     (if (.-metaKey event)
-       (dispatch :clipboard/paste)))
-
-   ["wheel"]
-   (fn [[conn dispatch] event]
-     (if (.. event -target (closest "svg.scene"))
-       (let [select [[:bounds/self :default [0 0 0 0]]]
-             result (pull @conn select [:db/ident :local])
-             {[ox oy _ _] :bounds/self} result
-             cx (- (.-clientX event) ox)
-             cy (- (.-clientY event) oy)
-             dy (.-deltaY event)
-             dt (linear -400 400 -0.50 0.50)]
-         (if (.-ctrlKey event)
-           (do (.preventDefault event)
-               (dispatch :camera/zoom-delta (dt (* -1 8 dy)) cx cy))
-           (dispatch :camera/zoom-delta (dt (* -1 2 dy)) cx cy)))))})
-
-(defn ^:private event-key [type event]
-  (case type
-    "keydown" [type (.-key event)]
-    "keyup"   [type (.-key event)]
-    "wheel"   [type]))
-
-(defn ^:private allow-event? [event]
-  (let [target (.-target event)]
-    (not (or (.-repeat event)
-             (and (not= (.-type event) "wheel") (.-ctrlKey event))
-             (and (not= (.-key event) "Shift") (.-shiftKey event))
-             (and (instance? js/HTMLInputElement target)
-                  (or (= (.-type target) "text")
-                      (= (.-type target) "number")))))))
-
 (defui handlers []
-  (let [dispatch (use-dispatch)
-        conn     (use-context context)]
-    (use-event-listener "keyup"
-      (use-callback
-       (fn [event]
-         (if (allow-event? event)
-           (if-let [f (handler (event-key "keyup" event))]
-             (f [conn dispatch] event)))) [conn dispatch]))
-    (use-event-listener "keydown"
-      (use-callback
-       (fn [event]
-         (if (allow-event? event)
-           (if-let [f (handler (event-key "keydown" event))]
-             (f [conn dispatch] event)))) [conn dispatch]))
+  (let [dispatch (use-dispatch)]
+
+    ;; Zoom the camera in and out with the mousewheel or trackpad.
     (use-event-listener "wheel"
-      (use-callback
-       (fn [event]
-         (if (allow-event? event)
-           (if-let [f (handler (event-key "wheel" event))]
-             (f [conn dispatch] event)))) [conn dispatch]))))
+      (fn [event]
+        (if (.closest (.-target event) ".scene")
+          (let [ctrl (.-ctrlKey event)
+                posx (.-clientX event)
+                posy (.-clientY event)
+                delt (.-deltaY event)]
+            (.preventDefault event)
+            (dispatch :camera/zoom-delta posx posy delt ctrl)))))
+
+    ;; Zoom the camera in and out with keyboard.
+    (use-shortcut [\= \-]
+      (fn [data]
+        (let [event (.-originalEvent data)]
+          (if (and (allowed? event) (or (.-ctrlKey event) (.-metaKey event)))
+            (do (.preventDefault data)
+                (case (.-key data)
+                  \= (dispatch :camera/zoom-in)
+                  \- (dispatch :camera/zoom-out)))))))
+
+    ;; Change draw mode.
+    (use-shortcut [\1 \2 \3 \4 \5 \f \g \r \s \t \x]
+      (fn [data]
+        (let [event (.-originalEvent data)]
+          (if (and (allowed? event) (not (or (.-metaKey event) (.-ctrlKey event))))
+            (dispatch :camera/change-mode (key->mode (.-key data)))))))
+
+    ;; Select a focused token.
+    (use-shortcut [\ ]
+      (fn [data]
+        (let [shift (.. data -originalEvent -shiftKey)
+              data  (.. js/document -activeElement -dataset)]
+          (if (= (.-type data) "token")
+            (dispatch :element/select (js/Number (.-id data)) shift)))))
+
+    ;; Move tokens and pan camera around.
+    (use-shortcut ["arrowleft" "arrowup" "arrowright" "arrowdown"]
+      (fn [data]
+        (if (allowed? (.-originalEvent data))
+          (let [[dx dy] (key->vector (.-key data))
+                attrs   (.. js/document -activeElement -dataset)]
+            (cond (.. data -originalEvent -altKey)
+                  (dispatch :camera/translate (* dx 140) (* dy 140))
+                  (= (.-type attrs) "scene")
+                  (dispatch :camera/translate (* dx 140) (* dy 140))
+                  (= (.-type attrs) "token")
+                  (dispatch :token/translate (js/Number (.-id attrs)) (* dx 70) (* dy 70)))))))
+
+    ;; Cut, copy, and paste tokens.
+    (use-shortcut [\c \x \v]
+      (fn [data]
+        (let [event (.-originalEvent data)]
+          (if (and (allowed? event) (or (.-ctrlKey event) (.-metaKey event)))
+            (case (.-key data)
+              \c (dispatch :clipboard/copy)
+              \x (dispatch :clipboard/copy true)
+              \v (dispatch :clipboard/paste))))))
+
+    ;; Removes all token selections and revert the draw mode to select.
+    (use-shortcut ["escape"]
+      (fn [data]
+        (if (allowed? (.-originalEvent data))
+          (dispatch :shortcut/escape))))
+
+    ;; Removes selected or focused tokens.
+    (use-shortcut ["delete" "backspace"]
+      (fn [data]
+        (if (allowed? (.-originalEvent data))
+          (let [attrs (.. js/document -activeElement -dataset)]
+            (if (= (.-type attrs) "token")
+              (dispatch :token/remove [(js/Number (.-id attrs))])
+              (dispatch :selection/remove))))))))

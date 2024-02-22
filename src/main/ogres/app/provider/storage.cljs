@@ -19,7 +19,6 @@
     :local/status
     :local/privileged?
     :local/sharing?
-    :local/modifier
     :session/state})
 
 (defn initialize []
