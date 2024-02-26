@@ -802,14 +802,14 @@
         scale (:camera/scale host)
         mx (+ (/ hw scale 2) hx)
         my (+ (/ hh scale 2) hy)]
-    (->> (for [conn conns
+    (->> (for [[next conn] (sequence (indexed) conns)
                :let [exst (->> (:local/cameras conn)
                                (filter (fn [conn]
                                          (= (:db/id (:camera/scene conn))
                                             (:db/id (:camera/scene host)))))
                                (first)
                                (:db/id))
-                     prev (or exst -1)
+                     prev (or exst next)
                      [_ _ cw ch] (:bounds/self conn)
                      cx (- mx (/ cw scale 2))
                      cy (- my (/ ch scale 2))]]
