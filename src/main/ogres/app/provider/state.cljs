@@ -27,14 +27,7 @@
    :token/image       {:db/valueType :db.type/ref}
    :initiative/turn   {:db/valueType :db.type/ref}})
 
-(defn local-type []
-  (let [search (.. js/window -location -search)
-        params (js/URLSearchParams. search)]
-    (cond (= (.get params "share") "true") :view
-          (string? (.get params "join"))   :conn
-          :else                            :host)))
-
-(defn ^:private initial-data []
+(defn initial-data [type]
   (ds/db-with
    (ds/empty-db schema)
    [[:db/add -1 :db/ident :root]
@@ -48,22 +41,19 @@
     [:db/add -3 :local/color "red"]
     [:db/add -3 :local/camera -4]
     [:db/add -3 :local/cameras -4]
-    [:db/add -3 :local/type (local-type)]
+    [:db/add -3 :local/type type]
     [:db/add -3 :panel/selected :tokens]
     [:db/add -4 :camera/scene -2]
     [:db/add -5 :db/ident :session]]))
 
-(def context
-  (create-context (ds/conn-from-db (initial-data))))
-
-(defonce ^:private context-value
-  (ds/conn-from-db (initial-data)))
+(def context (create-context (ds/conn-from-db (initial-data :host))))
 
 (defui provider
   "Provides a DataScript in-memory database to the application and causes
    re-renders when transactions are performed."
-  [{:keys [children]}]
-  ($ (.-Provider context) {:value context-value} children))
+  [{:keys [children type] :or {type :host}}]
+  (let [conn (ds/conn-from-db (initial-data type))]
+    ($ (.-Provider context) {:value conn} children)))
 
 (defn use-query
   ([pattern]

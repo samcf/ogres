@@ -15,6 +15,6 @@
   },
   "scripts": {
     "build": "npx shadow-cljs release app",
-    "start": "npx shadow-cljs watch app"
+    "start": "npx shadow-cljs watch app test"
   }
 }

@@ -5,5 +5,7 @@
                   :output-dir       "web/release"
                   :asset-path       "release"
                   :devtools         {:preloads [ogres.app.preload]}
-                  :modules          {:ogres.app {:entries [ogres.app.core]
-                                                 :init-fn ogres.app.core/main}}}}}
+                  :modules          {:ogres.app {:entries [ogres.app.core] :init-fn ogres.app.core/main}}}
+            :test {:target    :node-test
+                   :output-to ".shadow-cljs/builds/test/ogres.test.js"
+                   :autorun   true}}}

@@ -3,6 +3,7 @@
             [datascript.transit :as dt]
             [dexie]
             [ogres.app.const :refer [VERSION]]
+            [ogres.app.dom :refer [local-type]]
             [ogres.app.provider.events :refer [use-subscribe]]
             [ogres.app.provider.state :as state :refer [use-query]]
             [ogres.app.util :refer [debounce]]
@@ -58,7 +59,7 @@
   (let [conn    (use-context state/context)
         store   (use-store)
         tx-data [[:db/add [:db/ident :local] :local/status :ready]
-                 [:db/add [:db/ident :local] :local/type (state/local-type)]]]
+                 [:db/add [:db/ident :local] :local/type (local-type)]]]
     (use-effect
      (fn []
        (-> (.table store "app")

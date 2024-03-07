@@ -1,5 +1,6 @@
 (ns ogres.app.core
-  (:require [ogres.app.layout            :refer [layout]]
+  (:require [ogres.app.dom               :refer [local-type]]
+            [ogres.app.layout            :refer [layout]]
             [ogres.app.provider.cursor   :as cursor]
             [ogres.app.provider.dispatch :as dispatch]
             [ogres.app.provider.events   :as events]
@@ -22,6 +23,7 @@
     ($ stylesheet {:name "ogres.app.css"})
     ($ events/provider
       ($ state/provider
+        {:type (local-type)}
         ($ dispatch/provider
           ($ storage/provider
             ($ release/provider
