@@ -59,6 +59,13 @@
     ;; smallest dimension.
     (set! (.-width src) len)
     (set! (.-height src) len)
+
+    ;; Fill the canvas with a solid color to prevent images with transparency
+    ;; appearing stacked during sampling.
+    (set! (.-fillStyle srx) "rgb(24, 33, 37)")
+    (.fillRect srx 0 0 len len)
+
+    ;; Finally draw the image onto the sampling canvas.
     (.drawImage srx image sx 0 len len 0 0 len len)
 
     ;; Iteratively downsample the sample canvas by halves to minimize
