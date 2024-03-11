@@ -18,9 +18,9 @@
    "draw-poly"    {:label "Draw a polygon." :args [:camera/change-mode :poly]}
    "draw-rect"    {:label "Draw a rectangle." :args [:camera/change-mode :rect]}
    "mask-create"  {:label "Create a new mask." :args [:camera/change-mode :mask]}
-   "mask-hide"    {:label "Mask the entire scene." :args [:mask/clear]}
+   "mask-hide"    {:label "Mask the entire scene." :args [:mask/fill]}
    "mask-remove"  {:label "Remove a mask." :args [:camera/change-mode :mask-remove]}
-   "mask-show"    {:label "Reveal the entire scene." :args [:mask/fill]}
+   "mask-show"    {:label "Reveal the entire scene." :args [:mask/clear]}
    "mask-toggle"  {:label "Toggle a mask on and off." :args [:camera/change-mode :mask-toggle]}
    "scene-focus"  {:label "Focus the current view." :args [:session/focus]}
    "scene-grid"   {:label "Set the grid origin." :args [:camera/change-mode :grid]}
