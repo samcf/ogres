@@ -120,6 +120,7 @@ a:visited {
 
 .radio {
   .icon {
+    border-radius: 50%;
     padding: 3px;
   }
 
