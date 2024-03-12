@@ -2,6 +2,7 @@
   (:require [datascript.core :as ds]
             [datascript.transit :as dt]
             [dexie]
+            [dexie-export-import :refer [exportDB importDB]]
             [ogres.app.const :refer [VERSION]]
             [ogres.app.dom :refer [local-type]]
             [ogres.app.provider.events :refer [use-subscribe]]
@@ -102,11 +103,55 @@
     (use-subscribe :tokens/remove-all on-remove-bulk)
     (use-subscribe :scene-images/remove-all on-remove-bulk)))
 
+(defui ^:private backup-handler []
+  (let [store (use-store)]
+    (use-subscribe :storage/backup
+      (use-callback
+       (fn []
+         (.then
+          (exportDB store)
+          (fn [blob]
+            (let [blob-url (js/window.URL.createObjectURL blob)
+                  shadow-anchor (js/document.createElement "a")]
+              (set! shadow-anchor -href blob-url)
+              (set! shadow-anchor -download
+                    (str "ogres-"
+                         (first (.split (.toISOString (js/Date.)) "T"))
+                         ".blob"))
+              (.click shadow-anchor)
+              (.remove shadow-anchor)))))
+       [store]))))
+
+(defui ^:private restore-handler []
+  (let [store (use-store)]
+    (use-subscribe :storage/restore
+      (use-callback
+       (fn [{[file] :args}]
+         (-> (.delete store)
+             (.then
+              (fn []
+                (-> (importDB file)
+                    (.then
+                     (fn [^js/object imported-db] (.toArray (.-app imported-db))))
+                    (.then
+                     (fn [items]
+                       (first (sort-by
+                               :release
+                               #(compare %2 %1)
+                               (js->clj items :keywordize-keys true)))))
+                    (.then
+                     (fn [latest-record]
+                       (.replace (.-location js/window)
+                                 (str "/?r="
+                                      (get latest-record :release))))))))))
+
+       [store]))))
+
 (defui handlers
   "Registers event handlers related to IndexedDB, such as those involved in
    saving and loading the application state." []
   (let [{type :local/type} (use-query [:local/type])]
     (case type
-      :host ($ :<> ($ unmarshaller) ($ marshaller) ($ remove-handler) ($ reset-handler))
+      :host ($ :<> ($ unmarshaller) ($ marshaller) ($ remove-handler) ($ reset-handler) ($ backup-handler) ($ restore-handler))
       :view ($ :<> ($ unmarshaller))
       :conn ($ :<> ($ remove-handler)))))
