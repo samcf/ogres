@@ -110,75 +110,48 @@
   (let [options (use-draggable #js {"id" id "data" #js {"class" class "id" idxs} "disabled" disabled})]
     (children options)))
 
-(def ^:private query-scene-image
+(def ^:private query-image-defs
   [{:local/camera
     [{:camera/scene
       [[:scene/grid-size :default 70]
-       {:scene/image [:image/checksum]}]}]}])
+       [:scene/lighting :default :revealed]
+       {:scene/image [:image/checksum :image/width :image/height]}]}]}])
 
-(defui ^:private scene-image [props]
-  (let [url (use-image (:checksum props))]
-    ((:children props) url)))
+(defui ^:private render-image-defs []
+  (let [result (use-query query-image-defs)
+        {{{{width    :image/width
+            height   :image/height
+            checksum :image/checksum} :scene/image
+           size :scene/grid-size} :camera/scene} :local/camera} result
+        data-url  (use-image checksum)
+        transform (str "scale(" (/ grid-size size) ")")]
+    ($ :defs
+      ($ :image {:id "scene-image"       :x 0 :y 0 :width width :height height :transform transform :href data-url})
+      ($ :rect  {:id "scene-image-cover" :x 0 :y 0 :width width :height height :transform transform}))))
 
-(defui ^:private render-scene-image []
-  (let [result (use-query query-scene-image)
-        {{{size :scene/grid-size
-           {checksum :image/checksum} :scene/image}
-          :camera/scene}
-         :local/camera} result]
-    ($ :g.scene-image {:transform (str "scale(" (/ grid-size size) ")")}
-      (if checksum
-        ($ scene-image {:checksum checksum}
-          (fn [url]
-            ($ :image {:x 0 :y 0 :href url})))))))
-
-(def ^:private query-mask-vis
+(def ^:private query-light-defs
   [:local/type
    {:local/camera
     [{:camera/scene
-      [[:scene/grid-size :default 70]
-       [:scene/lighting :default :revealed]
-       {:scene/tokens
+      [{:scene/tokens
         [:db/id
          [:token/flags :default #{}]
          [:token/light :default 15]
-         [:token/point :default [0 0]]]}
-       {:scene/image [:image/checksum :image/width :image/height]}]}]}])
+         [:token/point :default [0 0]]]}]}]}])
 
-(defui ^:private render-mask-vis []
-  (let [result (use-query query-mask-vis)
-        {type :local/type
-         {{visibility :scene/lighting
-           size       :scene/grid-size
-           tokens     :scene/tokens
-           {checksum  :image/checksum
-            width     :image/width
-            height    :image/height}
-           :scene/image}
-          :camera/scene}
-         :local/camera} result
-        width  (* width  (/ grid-size size))
-        height (* height (/ grid-size size))]
-    (if (and checksum (not= visibility :revealed))
-      ($ :g.scene-mask {:data-visibility (name visibility)}
-        ($ :defs
-          ($ pattern {:id "mask-pattern" :name :lines :color "black"})
-          ($ :radialGradient {:id "mask-gradient"}
-            ($ :stop {:offset "0%" :stop-color "black" :stop-opacity "100%"})
-            ($ :stop {:offset "70%" :stop-color "black" :stop-opacity "100%"})
-            ($ :stop {:offset "100%" :stop-color "black" :stop-opacity "0%"}))
-          ($ :mask {:id "light-mask"}
-            ($ :rect {:x 0 :y 0 :width width :height height :fill "white" :fill-opacity "100%"})
-            (for [{id :db/id flags :token/flags [x y] :token/point radius :token/light} tokens
-                  :when (and (> radius 0) (or (= type :host) (not (flags :hidden))))
-                  :let  [radius (-> grid-size (* radius) (/ 5) (+ grid-size))]]
-              ($ :circle {:key id :cx x :cy y :r radius :fill "url(#mask-gradient)"}))))
-        ($ :rect.scene-mask-background
-          {:x 0 :y 0 :width width :height height :mask "url(#light-mask)"})
-        (if (= visibility :hidden)
-          ($ :rect.scene-mask-pattern
-            {:x 0 :y 0 :width width :height height
-             :fill "url(#mask-pattern)" :mask "url(#light-mask)"}))))))
+(defui ^:private render-light-defs []
+  (let [result (use-query query-light-defs)
+        {type :local/type {{tokens :scene/tokens} :camera/scene} :local/camera} result
+        paths (for [{id :db/id flags :token/flags [x y] :token/point radius :token/light} tokens
+                    :when (and (> radius 0) (or (= type :host) (not (flags :hidden))))
+                    :let  [radius (-> grid-size (* radius) (/ 5) (+ grid-size))]]
+                ($ :circle {:key id :cx x :cy y :r radius}))]
+    ($ :defs
+      ($ pattern {:id "scene-mask-pattern" :name :crosses})
+      ($ :clipPath {:id "light-clip"} paths)
+      ($ :mask {:id "light-mask"}
+        ($ :use {:href "#scene-image-cover" :fill "rgba(255, 255, 255, 1)"})
+        paths))))
 
 (def ^:private query-mask-fog
   [:local/type
@@ -239,7 +212,7 @@
       [[:scene/show-grid :default true]
        [:scene/grid-origin :default [0 0]]]}]}])
 
-(defui ^:private render-grid []
+(defui ^:private render-grid-defs []
   (let [data (use-query query-grid)
         {[_ _ w h] :bounds/self
          {[cx cy] :camera/point
@@ -254,11 +227,11 @@
             bx (+ (* wd  3) cx)
             by (+ (* ht  3) cy)
             [ox oy] (:scene/grid-origin scene)]
-        ($ :g.scene-grid {:transform (str "translate(" (mod ox grid-size) "," (mod oy grid-size) ")")}
-          ($ :defs
-            ($ :pattern {:id "grid" :width grid-size :height grid-size :patternUnits "userSpaceOnUse"}
-              ($ :path {:d (join " " ["M" 0 0 "H" grid-size "V" grid-size])})))
-          ($ :path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"]) :fill "url(#grid)"}))))))
+        ($ :defs
+          ($ :pattern {:id "grid-pattern" :width grid-size :height grid-size :patternUnits "userSpaceOnUse"}
+            ($ :path.scene-grid-path {:d (join " " ["M" 0 0 "H" grid-size "V" grid-size])}))
+          ($ :g {:id "scene-grid" :transform (str "translate(" (mod ox grid-size) "," (mod oy grid-size) ")")}
+            ($ :path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"]) :fill "url(#grid-pattern)"})))))))
 
 (defn ^:private poly-xf [x y]
   (comp (partition-all 2)
@@ -713,19 +686,65 @@
   (uix/memo
    (uix/fn []
      ($ :<>
-       ($ render-scene-image)
-       ($ render-grid)
-       ($ render-shapes)
-       ($ render-tokens)
-       ($ create-portal {:name :host-cursor}
-         (fn [{:keys [ref]}]
-           ($ :g {:ref ref :style {:outline "none"}})))
-       ($ render-mask-vis)
-       ($ render-mask-fog)
-       ($ render-cursors)
+       ;; Defines the standard square grid pattern for the scene.
+       ;; <g> #scene-grid
+       ($ render-grid-defs)
+
+       ;; Defines clip paths and masks for tokens which emit
+       ;; radial lighting.
+       ;; <clipPath> #light-clip
+       ;; <mask>     #light-mask
+       ($ render-light-defs)
+
+       ;; Defines the scene <image> element as well as a <rect>
+       ;; which has the same dimensions as the image.
+       ;; <image> #scene-image
+       ;; <rect>  #scene-image-cover
+       ($ render-image-defs)
+
+       ;; When the scene is using the "Obscured" lighting option,
+       ;; this element becomes visible for players. It renders a
+       ;; darkened and desaturated version of the scene image
+       ;; that is drawn underneath the foreground scene.
+       ($ :g.scene-background
+         ($ :use.scene-image {:href "#scene-image"})
+         ($ :use.scene-grid {:href "#scene-grid"}))
+
+       ;; The primary scene object contains all interactable objects.
+       ;; This element is clipped twice: first by tokens which emit
+       ;; light around them, and then second by user-created mask
+       ;; areas.
+       ($ :g.scene-foreground
+         ($ :use.scene-image {:href "#scene-image"})
+         ($ :use.scene-grid {:href "#scene-grid"})
+         ($ render-shapes)
+         ($ render-tokens)
+
+         ;; Portal target for the host's cursor which must remain obscured
+         ;; by visibility controls so that nosey players don't get any
+         ;; clues about what the host may be doing on the scene.
+         ($ create-portal {:name :host-cursor}
+           (fn [{:keys [ref]}]
+             ($ :g {:ref ref :style {:outline "none"}}))))
+
+       ;; This element simulates token lighting without actually totally
+       ;; obscuring them for the host. It is layered on top of the scene
+       ;; and then a special mask is applied which partially darkens the
+       ;; scene except for holes punched into it by tokens which emit a
+       ;; light around them.
+       ($ :g.scene-mask
+         ($ :use.scene-mask-fill {:href "#scene-image-cover"})
+         ($ :use.scene-mask-pattern {:href "#scene-image-cover"}))
+
+       ;; Portal target for selected tokens and shapes. This brings
+       ;; selected objects to the foreground so they are not obscured
+       ;; by visibility.
        ($ create-portal {:name :selected}
          (fn [{:keys [ref]}]
-           ($ :g {:ref ref :style {:outline "none"}})))))))
+           ($ :g {:ref ref :style {:outline "none"}})))
+
+       ;; Player cursors are rendered on top of everything else.
+       ($ render-cursors)))))
 
 (def ^:private query-scene
   [:local/type
@@ -739,7 +758,8 @@
      [:camera/scale :default 1]
      [:camera/draw-mode :default :select]
      {:camera/scene
-      [[:scene/dark-mode :default false]]}]}])
+      [[:scene/dark-mode :default false]
+       [:scene/lighting :default :revealed]]}]}])
 
 (defui render-scene []
   (let [dispatch (use-dispatch)
@@ -751,12 +771,17 @@
           scale   :camera/scale
           mode    :camera/draw-mode
           [cx cy] :camera/point
-          {dark-mode :scene/dark-mode}
+          {dark-mode :scene/dark-mode
+           lighting :scene/lighting}
           :camera/scene}
          :local/camera} result
         cx (if (= type :view) (->> (- hw vw) (max 0) (* (/ -1 2 scale)) (- cx)) cx)
         cy (if (= type :view) (->> (- hh vh) (max 0) (* (/ -1 2 scale)) (- cy)) cy)]
-    ($ :svg.scene {:key id :data-user (name type) :data-theme (if dark-mode "dark" "light")}
+    ($ :svg.scene
+      {:key id
+       :data-user  (name type)
+       :data-theme (if dark-mode "dark" "light")
+       :data-light (name lighting)}
       ($ scene-camera
         {:scale scale
          :on-translate

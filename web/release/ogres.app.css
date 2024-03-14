@@ -713,6 +713,58 @@ a:visited {
   }
 }
 
+/* Scene Lighting */
+.scene {
+  .scene-mask {
+    pointer-events: none;
+  }
+
+  .scene-background > .scene-image,
+  .scene-mask,
+  .scene-mask-fill,
+  .scene-mask-pattern {
+    visibility: hidden;
+  }
+
+  .scene-mask-fill,
+  .scene-mask-pattern {
+    fill-opacity: 0.3;
+  }
+
+  &[data-user="host"][data-light="dimmed"],
+  &[data-user="host"][data-light="hidden"] {
+    .scene-mask,
+    .scene-mask-fill {
+      visibility: visible;
+    }
+
+    .scene-mask {
+      mask: url(#light-mask);
+    }
+  }
+
+  &[data-user="host"][data-light="hidden"] {
+    .scene-mask-pattern {
+      visibility: visible;
+      fill: url(#scene-mask-pattern);
+    }
+  }
+
+  &[data-user="conn"][data-light="dimmed"],
+  &[data-user="conn"][data-light="hidden"] {
+    .scene-foreground {
+      clip-path: url(#light-clip);
+    }
+  }
+
+  &[data-user="conn"][data-light="dimmed"] {
+    .scene-background .scene-image {
+      filter: brightness(0.6) saturate(0.3);
+      visibility: visible;
+    }
+  }
+}
+
 /* Scene Cursors */
 .scene-cursor {
   color: var(--color-session);
@@ -929,14 +981,12 @@ a:visited {
   }
 }
 
-.scene-grid {
-  pattern > path {
-    fill: none;
-    stroke-dasharray: 2px;
-    stroke-width: 1px;
-    stroke: var(--scene-stroke);
-    opacity: 0.6;
-  }
+.scene-grid-path {
+  fill: none;
+  stroke-dasharray: 2px;
+  stroke-width: 1px;
+  stroke: var(--scene-stroke);
+  opacity: 0.6;
 }
 
 /* Context Menu */
@@ -1222,43 +1272,6 @@ a:visited {
   position: absolute;
   text-transform: uppercase;
   top: -20px;
-}
-
-/* Masks */
-.scene-mask {
-  pointer-events: none;
-
-  .scene-mask-background {
-    fill: var(--color-blues-900);
-  }
-
-  &[data-visibility="dimmed"] .scene-mask-background {
-    fill-opacity: 0.75;
-  }
-
-  .scene-mask-pattern {
-    fill-opacity: 0;
-  }
-
-  .scene-mask-polygon {
-    fill: transparent;
-    pointer-events: fill;
-    stroke: var(--scene-stroke);
-    stroke-width: 2px;
-
-    &:hover {
-      cursor: pointer;
-      stroke: orange;
-    }
-  }
-}
-
-[data-user="host"] .scene-mask-background {
-  fill-opacity: 0.6;
-}
-
-[data-user="host"] .scene-mask-pattern {
-  fill-opacity: 0.3;
 }
 
 /* Panel */
