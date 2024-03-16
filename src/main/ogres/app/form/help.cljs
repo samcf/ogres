@@ -12,10 +12,10 @@
   "Delete all your local data and restore this application to its original state?")
 
 (def ^:private confirm-backup
-  "Backup your local state and assets?")
+  "Backup your local data and images?")
 
 (def ^:private confirm-restore
-  "Delete all your local data and restore this application to the provided backup?")
+  "Delete all your local data and restore this application using the provided backup?")
 
 (defui form []
   (let [[file-name set-file-name] (use-state nil)
