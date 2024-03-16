@@ -2,7 +2,9 @@
   (:require [datascript.core :as ds]
             [datascript.transit :as dt]
             [dexie]
-            [dexie-export-import :refer [exportDB importDB]]
+            [dexie-export-import
+             :refer [exportDB importDB peakImportFile]
+             :rename {exportDB export-db importDB import-db peakImportFile peek-import-file}]
             [ogres.app.const :refer [VERSION]]
             [ogres.app.dom :refer [local-type]]
             [ogres.app.provider.events :refer [use-subscribe]]
@@ -109,7 +111,7 @@
       (use-callback
        (fn []
          (.then
-          (exportDB store)
+          (export-db store)
           (fn [blob]
             (let [blob-url (js/window.URL.createObjectURL blob)
                   shadow-anchor (js/document.createElement "a")]
@@ -117,7 +119,7 @@
               (set! shadow-anchor -download
                     (str "ogres-"
                          (first (.split (.toISOString (js/Date.)) "T"))
-                         ".blob"))
+                         ".json"))
               (.click shadow-anchor)
               (.remove shadow-anchor)))))
        [store]))))
@@ -127,24 +129,28 @@
     (use-subscribe :storage/restore
       (use-callback
        (fn [{[file] :args}]
-         (-> (.delete store)
+         (-> (peek-import-file file)
              (.then
-              (fn []
-                (-> (importDB file)
-                    (.then
-                     (fn [^js/object imported-db] (.toArray (.-app imported-db))))
-                    (.then
-                     (fn [items]
-                       (first (sort-by
-                               :release
-                               #(compare %2 %1)
-                               (js->clj items :keywordize-keys true)))))
-                    (.then
-                     (fn [latest-record]
-                       (.replace (.-location js/window)
-                                 (str "/?r="
-                                      (get latest-record :release))))))))))
-
+              (fn [metadata]
+                (if (= (.-formatName metadata) "dexie")
+                  (.delete store)
+                  (throw (js/Error. "Selected file is not the right format.")))))
+             (.then (fn [] (import-db file)))
+             (.then
+              (fn [^js/object db]
+                (.toArray (.-app db))))
+             (.then
+              (fn [records]
+                (.sort records (fn [^js/object a ^js/object b] (- (.-updated a) (.-updated b))))
+                (let [release (.-release (aget records 0))
+                      params  (js/URLSearchParams. #js {"r" release})]
+                  (.replace (.-location js/window) (str "/?" (.toString params))))))
+             (.catch
+              (fn [error]
+                (js/console.error error)
+                (js/alert
+                 "There was a problem trying to restore from this file. See
+                  developer console for more details.")))))
        [store]))))
 
 (defui handlers
@@ -152,6 +158,12 @@
    saving and loading the application state." []
   (let [{type :local/type} (use-query [:local/type])]
     (case type
-      :host ($ :<> ($ unmarshaller) ($ marshaller) ($ remove-handler) ($ reset-handler) ($ backup-handler) ($ restore-handler))
+      :host ($ :<>
+              ($ unmarshaller)
+              ($ marshaller)
+              ($ remove-handler)
+              ($ reset-handler)
+              ($ backup-handler)
+              ($ restore-handler))
       :view ($ :<> ($ unmarshaller))
       :conn ($ :<> ($ remove-handler)))))

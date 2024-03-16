@@ -55,17 +55,19 @@
         ($ :legend "Backup and Restore")
         ($ :div.form-notice
           ($ :<>
-            ($ :p "Backup and restore your current state and assets.")
-            ($ :br)
-            ($ :p "Restoring a backup will "
-              ($ :strong "delete all your current local data") ". ")
-            ($ :br)
+            ($ :p {:style {:margin-bottom 4}}
+              "Create a backup file that contains all your data and images. You
+               can then use this file to restore your work on another computer
+               or browser.")
             ($ :button.button.button-neutral
               {:on-click
                (fn []
                  (if-let [_ (js/confirm confirm-backup)]
                    (dispatch :storage/backup)))} "Create Backup")
             ($ :br)
+            ($ :p {:style {:margin-bottom 4}}
+              "Select a backup file to restore your data and images. Note that "
+              ($ :strong "restoring from a file will delete all your current data") ".")
             ($ :form
               {:class "form-restore"
                :on-submit
@@ -91,7 +93,7 @@
                    :name "restore-upload"
                    :id "restore-upload"
                    :style {:display "none"}
-                   :accept ".blob"
+                   :accept ".json"
                    :ref file-input
                    :on-change
                    (fn [event]
