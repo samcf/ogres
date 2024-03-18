@@ -2400,7 +2400,7 @@ a:visited {
       grid-template-rows: repeat(2, 1fr);
       grid-template-areas:
         "sel cut cop pst rul crc rct con ply lne grd fcs"
-        "zot zrt zrt zrt zin msk mtg mrm mhi msh plw .";
+        "zot zrt zrt zrt zin msk mtg mrm msh mhi plw .";
     }
 
     &[data-user="conn"] .toolbar-actions {

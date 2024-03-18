@@ -117,9 +117,9 @@
           ($ icon {:name "magic"}))
         ($ action {:name "mask-remove" :aria-pressed (= mode :mask-remove)}
           ($ icon {:name "eraser-fill"}))
-        ($ action {:name "mask-hide"}
-          ($ icon {:name "eye-slash-fill"}))
         ($ action {:name "mask-show"}
           ($ icon {:name "eye-fill"}))
+        ($ action {:name "mask-hide"}
+          ($ icon {:name "eye-slash-fill"}))
         ($ action {:name "scene-window" :aria-pressed share?}
           ($ icon {:name "pip" :size 22}))))))
