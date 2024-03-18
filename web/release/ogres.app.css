@@ -715,52 +715,43 @@ a:visited {
 
 /* Scene Lighting */
 .scene {
-  .scene-mask {
-    pointer-events: none;
-  }
+  &[data-user="host"] {
+    .scene-mask-primary {
+      mask: url(#mask-primary);
+    }
 
-  .scene-background > .scene-image,
-  .scene-mask,
-  .scene-mask-fill,
-  .scene-mask-pattern {
-    visibility: hidden;
-  }
+    .scene-mask-secondary {
+      mask: url(#mask-secondary);
+    }
 
-  .scene-mask-fill,
-  .scene-mask-pattern {
-    fill-opacity: 0.3;
-  }
+    .scene-background,
+    .scene-mask-secondary {
+      visibility: hidden;
+    }
 
-  &[data-user="host"][data-light="dimmed"],
-  &[data-user="host"][data-light="hidden"] {
-    .scene-mask,
     .scene-mask-fill {
-      visibility: visible;
+      fill-opacity: 0.3;
     }
 
-    .scene-mask {
-      mask: url(#light-mask);
-    }
-  }
-
-  &[data-user="host"][data-light="hidden"] {
     .scene-mask-pattern {
-      visibility: visible;
-      fill: url(#scene-mask-pattern);
+      fill: url(#mask-pattern);
+      fill-opacity: 0.3;
     }
-  }
 
-  &[data-user="conn"][data-light="dimmed"],
-  &[data-user="conn"][data-light="hidden"] {
-    .scene-foreground {
-      clip-path: url(#light-clip);
+    .scene-mask-fill,
+    .scene-mask-pattern {
+      pointer-events: none;
     }
-  }
 
-  &[data-user="conn"][data-light="dimmed"] {
-    .scene-background .scene-image {
-      filter: brightness(0.6) saturate(0.3);
-      visibility: visible;
+    &[data-light="dimmed"] {
+      .scene-mask-secondary {
+        visibility: visible;
+      }
+
+      &[data-masked="false"] .scene-mask-primary .scene-mask-pattern,
+      &[data-masked="true"] .scene-mask-secondary .scene-mask-pattern {
+        visibility: hidden;
+      }
     }
   }
 }

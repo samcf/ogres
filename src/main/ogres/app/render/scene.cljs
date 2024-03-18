@@ -133,74 +133,75 @@
   [:local/type
    {:local/camera
     [{:camera/scene
-      [{:scene/tokens
+      [[:mask/filled? :default false]
+       [:scene/lighting :default :revealed]
+       {:scene/masks [:db/id :mask/vecs :mask/enabled?]}
+       {:scene/tokens
         [:db/id
          [:token/flags :default #{}]
          [:token/light :default 15]
          [:token/point :default [0 0]]]}]}]}])
 
-(defui ^:private render-light-defs []
+(defui ^:private render-mask-defs []
   (let [result (use-query query-light-defs)
-        {type :local/type {{tokens :scene/tokens} :camera/scene} :local/camera} result
-        paths (for [{id :db/id flags :token/flags [x y] :token/point radius :token/light} tokens
-                    :when (and (> radius 0) (or (= type :host) (not (flags :hidden))))
-                    :let  [radius (-> grid-size (* radius) (/ 5) (+ grid-size))]]
-                ($ :circle {:key id :cx x :cy y :r radius}))]
+        {user :local/type
+         {{tokens :scene/tokens
+           masks  :scene/masks
+           light  :scene/lighting
+           masked :mask/filled?} :camera/scene} :local/camera} result]
     ($ :defs
-      ($ pattern {:id "scene-mask-pattern" :name :crosses})
-      ($ :clipPath {:id "light-clip"} paths)
-      ($ :mask {:id "light-mask"}
-        ($ :use {:href "#scene-image-cover" :fill "rgba(255, 255, 255, 1)"})
-        paths))))
-
-(def ^:private query-mask-fog
-  [:local/type
-   {:local/camera
-    [[:camera/draw-mode :default :select]
-     {:camera/scene
-      [[:scene/grid-size :default 70]
-       [:mask/filled? :default false]
-       {:scene/image [:image/width :image/height]}
-       {:scene/masks [:db/id :mask/vecs :mask/enabled?]}]}]}])
-
-(defui ^:private render-mask-fog []
-  (let [dispatch (use-dispatch)
-        result   (use-query query-mask-fog)
-        {type :local/type
-         {mode :camera/draw-mode
-          {size    :scene/grid-size
-           filled? :mask/filled?
-           masks   :scene/masks
-           {width  :image/width
-            height :image/height}
-           :scene/image}
-          :camera/scene}
-         :local/camera} result
-        modes #{:mask :mask-toggle :mask-remove}
-        width  (* width  (/ grid-size size))
-        height (* height (/ grid-size size))]
-    ($ :g.scene-mask
-      ($ :defs
-        ($ pattern {:id "mask-pattern" :name :lines})
-        ($ :mask {:id "scene-mask"}
-          (if filled?
-            ($ :rect {:x 0 :y 0 :width width :height height :fill "white"}))
-          (for [{:keys [db/id  mask/vecs mask/enabled?]} masks]
-            ($ :polygon {:key id :points (join " " vecs) :fill (if enabled? "white" "black")}))))
-      ($ :rect.scene-mask-background {:x 0 :y 0 :width width :height height :mask "url(#scene-mask)"})
-      ($ :rect.scene-mask-pattern {:x 0 :y 0 :width width :height height :fill "url(#mask-pattern)" :mask "url(#scene-mask)"})
-      (if (and (= type :host) (contains? modes mode))
-        (for [{:keys [db/id mask/vecs mask/enabled?]} masks]
-          ($ :polygon.scene-mask-polygon
-            {:key id
-             :data-enabled enabled?
-             :points (join " " vecs)
-             :on-pointer-down stop-propagation
-             :on-click
-             (fn []
-               (case mode
-                 :mask-toggle (dispatch :mask/toggle id (not enabled?))
-                 :mask-remove (dispatch :mask/remove id)))}))))))
+      ($ pattern {:id "mask-pattern" :name :crosses})
+      ($ :g {:id "mask-lights"}
+        (for [{id :db/id flags :token/flags [x y] :token/point radius :token/light} tokens
+              :when (and (> radius 0) (or (= user :host) (not (flags :hidden))))
+              :let  [radius (-> grid-size (* radius) (/ 5) (+ grid-size))]]
+          ($ :circle {:key id :cx x :cy y :r radius})))
+      ($ :g {:id "mask-areas"}
+        (for [{id :db/id vecs :mask/vecs enabled? :mask/enabled?} masks :when enabled?]
+          ($ :polygon {:key id :points (join " " vecs)})))
+      ($ :g {:id "mask-cover"}
+        ($ :use {:href "#scene-image-cover"}))
+      ($ :clipPath {:id "clip-areas"}
+        (for [{id :db/id vecs :mask/vecs enabled? :mask/enabled?} masks :when enabled?]
+          ($ :polygon {:key id :points (join " " vecs)})))
+      ($ :mask {:id "mask-areas-mask"}
+        ($ :use {:href "#mask-cover" :fill "white"})
+        ($ :use {:href "#mask-areas"}))
+      (case [user light masked]
+        [:host :revealed true]
+        ($ :mask {:id "mask-primary"}
+          ($ :use {:href "#mask-cover" :fill "white"})
+          ($ :use {:href "#mask-areas"}))
+        [:host :revealed false]
+        ($ :mask {:id "mask-primary"}
+          ($ :use {:href "#mask-areas" :fill "white"}))
+        [:host :dimmed true]
+        ($ :<>
+          ($ :mask {:id "mask-primary"}
+            ($ :use {:href "#mask-cover" :fill "white"})
+            ($ :use {:href "#mask-areas"}))
+          ($ :mask {:id "mask-secondary"}
+            ($ :g {:clip-path "url(#clip-areas)"}
+              ($ :use {:href "#mask-cover" :fill "white"})
+              ($ :use {:href "#mask-areas" :fill "rgba(0, 0, 0, 0.5)"})
+              ($ :use {:href "#mask-lights"}))))
+        [:host :dimmed false]
+        ($ :<>
+          ($ :mask {:id "mask-primary"}
+            ($ :g {:mask "url(#mask-areas-mask)"}
+              ($ :use {:href "#mask-cover" :fill "white"})
+              ($ :use {:href "#mask-lights"})))
+          ($ :mask {:id "mask-secondary"}
+            ($ :use {:href "#mask-areas" :fill "white"})))
+        [:host :hidden true]
+        ($ :mask {:id "mask-primary"}
+          ($ :use {:href "#mask-cover" :fill "white"})
+          ($ :use {:href "#mask-lights" :clip-path "url(#clip-areas)"}))
+        [:host :hidden false]
+        ($ :mask {:id "mask-primary"}
+          ($ :use {:href "#mask-cover" :fill "white"})
+          ($ :use {:href "#mask-lights"})
+          ($ :use {:href "#mask-areas" :fill "white"}))))))
 
 (def ^:private query-grid
   [[:bounds/self :default [0 0 0 0]]
@@ -694,7 +695,7 @@
        ;; radial lighting.
        ;; <clipPath> #light-clip
        ;; <mask>     #light-mask
-       ($ render-light-defs)
+       ($ render-mask-defs)
 
        ;; Defines the scene <image> element as well as a <rect>
        ;; which has the same dimensions as the image.
@@ -707,18 +708,17 @@
        ;; darkened and desaturated version of the scene image
        ;; that is drawn underneath the foreground scene.
        ($ :g.scene-background
-         ($ :use.scene-image {:href "#scene-image"})
-         ($ :use.scene-grid {:href "#scene-grid"}))
+         ($ :use.scene-image {:href "#scene-image"}))
 
        ;; The primary scene object contains all interactable objects.
        ;; This element is clipped twice: first by tokens which emit
        ;; light around them, and then second by user-created mask
        ;; areas.
        ($ :g.scene-foreground
-         ($ :use.scene-image {:href "#scene-image"})
-         ($ :use.scene-grid {:href "#scene-grid"})
-         ($ render-shapes)
-         ($ render-tokens)
+         ($ :g.scene-foreground-interior
+           ($ :use.scene-image {:href "#scene-image"})
+           ($ render-shapes)
+           ($ render-tokens))
 
          ;; Portal target for the host's cursor which must remain obscured
          ;; by visibility controls so that nosey players don't get any
@@ -727,14 +727,13 @@
            (fn [{:keys [ref]}]
              ($ :g {:ref ref :style {:outline "none"}}))))
 
-       ;; This element simulates token lighting without actually totally
-       ;; obscuring them for the host. It is layered on top of the scene
-       ;; and then a special mask is applied which partially darkens the
-       ;; scene except for holes punched into it by tokens which emit a
-       ;; light around them.
        ($ :g.scene-mask
-         ($ :use.scene-mask-fill {:href "#scene-image-cover"})
-         ($ :use.scene-mask-pattern {:href "#scene-image-cover"}))
+         ($ :g.scene-mask-primary
+           ($ :use.scene-mask-fill {:href "#scene-image-cover"})
+           ($ :use.scene-mask-pattern {:href "#scene-image-cover"}))
+         ($ :g.scene-mask-secondary
+           ($ :use.scene-mask-fill {:href "#scene-image-cover"})
+           ($ :use.scene-mask-pattern {:href "#scene-image-cover"})))
 
        ;; Portal target for selected tokens and shapes. This brings
        ;; selected objects to the foreground so they are not obscured
@@ -759,7 +758,8 @@
      [:camera/draw-mode :default :select]
      {:camera/scene
       [[:scene/dark-mode :default false]
-       [:scene/lighting :default :revealed]]}]}])
+       [:scene/lighting :default :revealed]
+       [:mask/filled? :default false]]}]}])
 
 (defui render-scene []
   (let [dispatch (use-dispatch)
@@ -772,16 +772,18 @@
           mode    :camera/draw-mode
           [cx cy] :camera/point
           {dark-mode :scene/dark-mode
-           lighting :scene/lighting}
+           lighting  :scene/lighting
+           masked    :mask/filled?}
           :camera/scene}
          :local/camera} result
         cx (if (= type :view) (->> (- hw vw) (max 0) (* (/ -1 2 scale)) (- cx)) cx)
         cy (if (= type :view) (->> (- hh vh) (max 0) (* (/ -1 2 scale)) (- cy)) cy)]
     ($ :svg.scene
       {:key id
-       :data-user  (name type)
-       :data-theme (if dark-mode "dark" "light")
-       :data-light (name lighting)}
+       :data-user   (name type)
+       :data-theme  (if dark-mode "dark" "light")
+       :data-light  (name lighting)
+       :data-masked masked}
       ($ scene-camera
         {:scale scale
          :on-translate
