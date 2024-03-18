@@ -133,7 +133,7 @@
   [:local/type
    {:local/camera
     [{:camera/scene
-      [[:mask/filled? :default false]
+      [[:scene/masked :default false]
        [:scene/lighting :default :revealed]
        {:scene/masks [:db/id :mask/vecs :mask/enabled?]}
        {:scene/tokens
@@ -148,7 +148,7 @@
          {{tokens :scene/tokens
            masks  :scene/masks
            light  :scene/lighting
-           masked :mask/filled?} :camera/scene} :local/camera} result]
+           masked :scene/masked} :camera/scene} :local/camera} result]
     ($ :defs
       ($ pattern {:id "mask-pattern" :name :crosses})
       ($ :g {:id "mask-lights"}
@@ -759,7 +759,7 @@
      {:camera/scene
       [[:scene/dark-mode :default false]
        [:scene/lighting :default :revealed]
-       [:mask/filled? :default false]]}]}])
+       [:scene/masked :default false]]}]}])
 
 (defui render-scene []
   (let [dispatch (use-dispatch)
@@ -773,7 +773,7 @@
           [cx cy] :camera/point
           {dark-mode :scene/dark-mode
            lighting  :scene/lighting
-           masked    :mask/filled?}
+           masked    :scene/masked}
           :camera/scene}
          :local/camera} result
         cx (if (= type :view) (->> (- hw vw) (max 0) (* (/ -1 2 scale)) (- cx)) cx)

@@ -701,16 +701,16 @@
           useful when the scene image is composed of many rooms and mostly
           dead space between them, such as a dungeon, and it is more efficient
           to 'carve out' the scene instead of filling it in."}
-  event-tx-fn :mask/fill
+  event-tx-fn :scene/mask
   []
-  [[:db.fn/call assoc-scene :mask/filled? true]])
+  [[:db.fn/call assoc-scene :scene/masked true]])
 
 (defmethod
   ^{:doc "Sets the current scene to not be entirely masked by default. This
           is the default behavior."}
-  event-tx-fn :mask/clear
+  event-tx-fn :scene/reveal
   []
-  [[:db.fn/call assoc-scene :mask/filled? false]])
+  [[:db.fn/call assoc-scene :scene/masked false]])
 
 (defmethod
   ^{:doc "Creates a new mask object for the current scene, accepting its
