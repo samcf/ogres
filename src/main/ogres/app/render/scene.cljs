@@ -3,7 +3,7 @@
             [clojure.string :refer [join]]
             [goog.object :refer [getValueByKeys]]
             [ogres.app.const :refer [grid-size]]
-            [ogres.app.geom :refer [bounding-box chebyshev triangle]]
+            [ogres.app.geom :refer [bounding-box chebyshev paths triangle]]
             [ogres.app.hooks :refer [create-portal use-subscribe use-dispatch use-image use-portal use-query]]
             [ogres.app.render :refer [icon]]
             [ogres.app.render.draw :refer [draw]]
@@ -148,7 +148,8 @@
          {{tokens :scene/tokens
            masks  :scene/masks
            light  :scene/lighting
-           masked :scene/masked} :camera/scene} :local/camera} result]
+           masked :scene/masked} :camera/scene} :local/camera} result
+        path-xf (comp (filter :mask/enabled?) (map :mask/vecs))]
     ($ :defs
       ($ pattern {:id "mask-pattern" :name :crosses})
       ($ :g {:id "mask-lights"}
@@ -156,14 +157,10 @@
               :when (and (> radius 0) (or (= user :host) (not (flags :hidden))))
               :let  [radius (-> grid-size (* radius) (/ 5) (+ grid-size))]]
           ($ :circle {:key id :cx x :cy y :r radius})))
-      ($ :g {:id "mask-areas"}
-        (for [{id :db/id vecs :mask/vecs enabled? :mask/enabled?} masks :when enabled?]
-          ($ :polygon {:key id :points (join " " vecs)})))
-      ($ :g {:id "mask-cover"}
-        ($ :use {:href "#scene-image-cover"}))
+      ($ :path {:id "mask-areas" :d (transduce path-xf paths masks)})
       ($ :clipPath {:id "clip-areas"}
-        (for [{id :db/id vecs :mask/vecs enabled? :mask/enabled?} masks :when enabled?]
-          ($ :polygon {:key id :points (join " " vecs)})))
+        ($ :use {:href "#mask-areas"}))
+      ($ :use {:id "mask-cover" :href "#scene-image-cover"})
       ($ :mask {:id "mask-areas-mask"}
         ($ :use {:href "#mask-cover" :fill "white"})
         ($ :use {:href "#mask-areas"}))

@@ -1,5 +1,9 @@
 (ns ogres.app.geom)
 
+(def ^:private path-xf
+  (comp (partition-all 2)
+        (mapcat (fn [[x y]] (str x "," y \L)))))
+
 (defn euclidean
   "Returns the euclidean distance from [ax ay] to [bx by]."
   [ax ay bx by]
@@ -37,3 +41,10 @@
   [& vs]
   (let [[xs ys] (partition (count vs) (apply interleave vs))]
     [(apply min xs) (apply min ys) (apply max xs) (apply max ys)]))
+
+(defn paths
+  ([] [])
+  ([result]
+   (apply str result))
+  ([result points]
+   (into result (conj (pop (into [\M] path-xf points)) \z))))
