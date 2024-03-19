@@ -160,73 +160,72 @@
            masked :scene/masked} :camera/scene} :local/camera} result]
     ($ :defs
       ($ pattern {:id "mask-pattern" :name :crosses})
-      ($ :path {:id "mask-areas" :d (transduce mask-area-xf poly->path masks)})
-      ($ :path {:id "mask-light" :d (transduce (token-light-xf user) circle->path tokens)})
-      ($ :clipPath {:id "clip-areas"}
-        ($ :use {:href "#mask-areas"}))
-      ($ :use {:id "mask-cover" :href "#scene-image-cover"})
-      ($ :mask {:id "mask-areas-mask"}
-        ($ :use {:href "#mask-cover" :fill "white"})
-        ($ :use {:href "#mask-areas"}))
+      ($ :path {:id "masks-path" :d (transduce mask-area-xf poly->path masks)})
+      ($ :path {:id "light-path" :d (transduce (token-light-xf user) circle->path tokens)})
+      ($ :clipPath {:id "masks-clip"}
+        ($ :use {:href "#masks-path"}))
+      ($ :mask {:id "masks-mask"}
+        ($ :use {:href "#scene-image-cover" :fill "white"})
+        ($ :use {:href "#masks-path"}))
       (case [(= user :host) light masked]
         [true :revealed true]
         ($ :mask {:id "mask-primary"}
-          ($ :use {:href "#mask-cover" :fill "white"})
-          ($ :use {:href "#mask-areas"}))
+          ($ :use {:href "#scene-image-cover" :fill "white"})
+          ($ :use {:href "#masks-path"}))
         [true :revealed false]
         ($ :mask {:id "mask-primary"}
-          ($ :use {:href "#mask-areas" :fill "white"}))
+          ($ :use {:href "#masks-path" :fill "white"}))
         [true :dimmed true]
         ($ :<>
           ($ :mask {:id "mask-primary"}
-            ($ :use {:href "#mask-cover" :fill "white"})
-            ($ :use {:href "#mask-areas"}))
+            ($ :use {:href "#scene-image-cover" :fill "white"})
+            ($ :use {:href "#masks-path"}))
           ($ :mask {:id "mask-secondary"}
-            ($ :g {:clip-path "url(#clip-areas)"}
-              ($ :use {:href "#mask-cover" :fill "white"})
-              ($ :use {:href "#mask-areas" :fill "rgba(0, 0, 0, 0.5)"})
-              ($ :use {:href "#mask-light"}))))
+            ($ :g {:clip-path "url(#masks-clip)"}
+              ($ :use {:href "#scene-image-cover" :fill "white"})
+              ($ :use {:href "#masks-path" :fill "rgba(0, 0, 0, 0.5)"})
+              ($ :use {:href "#light-path"}))))
         [true :dimmed false]
         ($ :<>
           ($ :mask {:id "mask-primary"}
-            ($ :g {:mask "url(#mask-areas-mask)"}
-              ($ :use {:href "#mask-cover" :fill "white"})
-              ($ :use {:href "#mask-light"})))
+            ($ :g {:mask "url(#masks-mask)"}
+              ($ :use {:href "#scene-image-cover" :fill "white"})
+              ($ :use {:href "#light-path"})))
           ($ :mask {:id "mask-secondary"}
-            ($ :use {:href "#mask-areas" :fill "white"})))
+            ($ :use {:href "#masks-path" :fill "white"})))
         [true :hidden true]
         ($ :mask {:id "mask-primary"}
-          ($ :use {:href "#mask-cover" :fill "white"})
-          ($ :use {:href "#mask-light" :clip-path "url(#clip-areas)"}))
+          ($ :use {:href "#scene-image-cover" :fill "white"})
+          ($ :use {:href "#light-path" :clip-path "url(#masks-clip)"}))
         [true :hidden false]
         ($ :mask {:id "mask-primary"}
-          ($ :use {:href "#mask-cover" :fill "white"})
-          ($ :use {:href "#mask-light"})
-          ($ :use {:href "#mask-areas" :fill "white"}))
+          ($ :use {:href "#scene-image-cover" :fill "white"})
+          ($ :use {:href "#light-path"})
+          ($ :use {:href "#masks-path" :fill "white"}))
         ([false :revealed true] [false :revealed false])
         ($ :clipPath {:id "mask-primary"}
-          ($ :use {:href "#mask-areas"}))
+          ($ :use {:href "#masks-path"}))
         [false :dimmed true]
         ($ :<>
           ($ :clipPath {:id "mask-primary"}
-            ($ :use {:href "#mask-light"}))
+            ($ :use {:href "#light-path"}))
           ($ :clipPath {:id "mask-secondary"}
-            ($ :use {:href "#mask-areas"})))
+            ($ :use {:href "#masks-path"})))
         [false :dimmed false]
         ($ :<>
           ($ :clipPath {:id "mask-primary"}
-            ($ :use {:href "#mask-light"}))
+            ($ :use {:href "#light-path"}))
           ($ :clipPath {:id "mask-secondary"}
-            ($ :use {:href "#mask-areas"})))
+            ($ :use {:href "#masks-path"})))
         [false :hidden true]
-        ($ :clipPath {:id "mask-primary" :clip-path "url(#clip-areas)"}
-          ($ :use {:href "#mask-light"}))
+        ($ :clipPath {:id "mask-primary" :clip-path "url(#masks-clip)"}
+          ($ :use {:href "#light-path"}))
         [false :hidden false]
         ($ :<>
           ($ :clipPath {:id "mask-primary"}
-            ($ :use {:href "#mask-light"}))
+            ($ :use {:href "#light-path"}))
           ($ :clipPath {:id "mask-secondary"}
-            ($ :use {:href "#mask-areas"})))))))
+            ($ :use {:href "#masks-path"})))))))
 
 (def ^:private query-grid
   [[:bounds/self :default [0 0 0 0]]
