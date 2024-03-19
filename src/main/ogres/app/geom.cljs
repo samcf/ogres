@@ -1,8 +1,16 @@
-(ns ogres.app.geom)
+(ns ogres.app.geom
+  (:require [clojure.string :refer [join]]))
 
-(def ^:private path-xf
-  (comp (partition-all 2)
-        (mapcat (fn [[x y]] (str x "," y \L)))))
+(def ^:private poly-path-xf
+  (comp (partition-all 2) (mapcat (fn [[x y]] [x y \L]))))
+
+(defn ^:private circle-path
+  [[x y r]]
+  (let [d (* r 2)]
+    [\M x y
+     \m r 0
+     \a r r 0 1 0 (- d) 0
+     \a r r 0 1 0 d 0 \z]))
 
 (defn euclidean
   "Returns the euclidean distance from [ax ay] to [bx by]."
@@ -42,9 +50,14 @@
   (let [[xs ys] (partition (count vs) (apply interleave vs))]
     [(apply min xs) (apply min ys) (apply max xs) (apply max ys)]))
 
-(defn paths
+(defn poly->path
   ([] [])
-  ([result]
-   (apply str result))
-  ([result points]
-   (into result (conj (pop (into [\M] path-xf points)) \z))))
+  ([path] (join " " path))
+  ([path points]
+   (into path (conj (pop (into [\M] poly-path-xf points)) \z))))
+
+(defn circle->path
+  ([] [])
+  ([path] (join " " path))
+  ([path circle]
+   (into path (circle-path circle))))
