@@ -754,6 +754,97 @@ a:visited {
       }
     }
   }
+
+  &:not([data-user="host"]) {
+    .scene-mask {
+      pointer-events: none;
+    }
+
+    .scene-background {
+      filter: brightness(0.5) saturate(0.2);
+    }
+
+    .scene-mask-primary {
+      clip-path: url(#mask-primary);
+    }
+
+    .scene-background,
+    .scene-mask-primary,
+    .scene-mask-secondary {
+      visibility: hidden;
+    }
+
+    .scene-mask-primary,
+    .scene-mask-secondary {
+      fill: var(--color-blues-900);
+    }
+
+    .scene-mask-primary {
+      clip-path: url(#mask-primary);
+    }
+
+    .scene-mask-secondary {
+      clip-path: url(#mask-secondary);
+    }
+
+    &[data-light="revealed"][data-masked="true"] {
+      .scene-foreground {
+        clip-path: url(#mask-primary);
+      }
+    }
+
+    &[data-light="revealed"][data-masked="false"] {
+      .scene-mask-primary {
+        pointer-events: painted;
+        visibility: visible;
+      }
+    }
+
+    &[data-light="dimmed"][data-masked="true"] {
+      .scene-foreground-interior,
+      .scene-background {
+        clip-path: url(#mask-secondary);
+        visibility: visible;
+      }
+
+      .scene-foreground {
+        clip-path: url(#mask-primary);
+      }
+    }
+
+    &[data-light="dimmed"][data-masked="false"] {
+      .scene-background,
+      .scene-mask-secondary {
+        visibility: visible;
+      }
+
+      .scene-mask-secondary {
+        pointer-events: painted;
+      }
+
+      .scene-foreground {
+        clip-path: url(#mask-primary);
+      }
+    }
+
+    &[data-light="hidden"][data-masked="true"] {
+      .scene-foreground {
+        clip-path: url(#mask-primary);
+      }
+    }
+
+    &[data-light="hidden"][data-masked="false"] {
+      .scene-foreground {
+        clip-path: url(#mask-primary);
+      }
+
+      .scene-mask-primary {
+        clip-path: url(#mask-secondary);
+        pointer-events: painted;
+        visibility: visible;
+      }
+    }
+  }
 }
 
 /* Scene Cursors */
