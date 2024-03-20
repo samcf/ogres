@@ -714,135 +714,162 @@ a:visited {
 }
 
 /* Scene Lighting */
-.scene {
-  &[data-user="host"] {
-    .scene-mask-primary {
-      mask: url(#mask-primary);
+.scene[data-user="host"] {
+  .scene-mask {
+    pointer-events: none;
+  }
+
+  .scene-background {
+    display: none;
+  }
+
+  .scene-mask-primary {
+    mask: url(#mask-primary);
+  }
+
+  .scene-mask-secondary {
+    mask: url(#mask-secondary);
+  }
+
+  .scene-mask-primary,
+  .scene-mask-secondary {
+    display: none;
+  }
+
+  .scene-mask-fill {
+    fill-opacity: 0.4;
+  }
+
+  .scene-mask-pattern {
+    fill: url(#mask-pattern);
+    fill-opacity: 0.3;
+  }
+
+  &[data-light="dimmed"] {
+    .scene-mask-primary,
+    .scene-mask-secondary {
+      display: inherit;
     }
 
-    .scene-mask-secondary {
-      mask: url(#mask-secondary);
+    &[data-masked="false"] .scene-mask-primary .scene-mask-pattern,
+    &[data-masked="true"] .scene-mask-secondary .scene-mask-pattern {
+      display: none;
+    }
+  }
+
+  &[data-light="revealed"],
+  &[data-light="hidden"] {
+    .scene-mask-primary {
+      display: inherit;
+    }
+  }
+}
+
+.scene:not([data-user="host"]) {
+  .scene-mask {
+    pointer-events: painted;
+  }
+
+  .scene-background {
+    display: none;
+    filter: brightness(0.5) saturate(0.2);
+  }
+
+  .scene-mask-primary {
+    clip-path: url(#mask-primary);
+  }
+
+  .scene-mask-secondary {
+    clip-path: url(#mask-primary);
+  }
+
+  .scene-mask-primary,
+  .scene-mask-secondary {
+    display: none;
+    fill: var(--color-blues-900);
+  }
+
+  &[data-light="revealed"][data-masked="true"] {
+    .scene-foreground,
+    .scene-background {
+      clip-path: url(#mask-primary);
+    }
+  }
+
+  &[data-light="revealed"][data-masked="false"] {
+    .scene-mask-primary {
+      display: inherit;
+    }
+  }
+
+  &[data-light="dimmed"][data-masked="true"] {
+    .scene-background {
+      display: inherit;
+    }
+
+    .scene-foreground {
+      clip-path: url(#mask-primary);
     }
 
     .scene-background,
-    .scene-mask-secondary {
-      visibility: hidden;
+    .scene-interior {
+      clip-path: url(#mask-secondary);
+    }
+  }
+
+  &[data-light="dimmed"][data-masked="false"] {
+    .scene-background {
+      display: inherit;
     }
 
-    .scene-mask-fill {
-      fill-opacity: 0.3;
+    .scene-foreground {
+      clip-path: url(#mask-primary);
     }
 
-    .scene-mask-pattern {
-      fill: url(#mask-pattern);
-      fill-opacity: 0.3;
+    .scene-mask-primary {
+      display: inherit;
+      clip-path: url(#mask-secondary);
+    }
+  }
+
+  &[data-light="hidden"][data-masked="true"] {
+    .scene-background,
+    .scene-foreground {
+      clip-path: url(#mask-primary);
+    }
+  }
+
+  &[data-light="hidden"][data-masked="false"] {
+    .scene-foreground {
+      clip-path: url(#mask-primary);
     }
 
-    .scene-mask-fill,
-    .scene-mask-pattern {
-      pointer-events: none;
+    .scene-mask-primary {
+      display: inherit;
+      clip-path: url(#mask-secondary);
     }
+  }
+}
 
-    &[data-light="dimmed"] {
-      .scene-mask-secondary {
-        visibility: visible;
-      }
+/* Scene grid */
+.scene {
+  .scene-grid {
+    display: none;
+    clip-path: url(#scene-image-clip);
+  }
 
-      &[data-masked="false"] .scene-mask-primary .scene-mask-pattern,
-      &[data-masked="true"] .scene-mask-secondary .scene-mask-pattern {
-        visibility: hidden;
+  &[data-user="host"][data-grid="true"] {
+    .scene-exterior,
+    .scene-foreground {
+      .scene-grid {
+        display: inherit;
       }
     }
   }
 
-  &:not([data-user="host"]) {
-    .scene-mask {
-      pointer-events: none;
-    }
-
-    .scene-background {
-      filter: brightness(0.5) saturate(0.2);
-    }
-
-    .scene-mask-primary {
-      clip-path: url(#mask-primary);
-    }
-
-    .scene-background,
-    .scene-mask-primary,
-    .scene-mask-secondary {
-      visibility: hidden;
-    }
-
-    .scene-mask-primary,
-    .scene-mask-secondary {
-      fill: var(--color-blues-900);
-    }
-
-    .scene-mask-primary {
-      clip-path: url(#mask-primary);
-    }
-
-    .scene-mask-secondary {
-      clip-path: url(#mask-secondary);
-    }
-
-    &[data-light="revealed"][data-masked="true"] {
-      .scene-foreground {
-        clip-path: url(#mask-primary);
-      }
-    }
-
-    &[data-light="revealed"][data-masked="false"] {
-      .scene-mask-primary {
-        pointer-events: painted;
-        visibility: visible;
-      }
-    }
-
-    &[data-light="dimmed"][data-masked="true"] {
-      .scene-foreground-interior,
-      .scene-background {
-        clip-path: url(#mask-secondary);
-        visibility: visible;
-      }
-
-      .scene-foreground {
-        clip-path: url(#mask-primary);
-      }
-    }
-
-    &[data-light="dimmed"][data-masked="false"] {
-      .scene-background,
-      .scene-mask-secondary {
-        visibility: visible;
-      }
-
-      .scene-mask-secondary {
-        pointer-events: painted;
-      }
-
-      .scene-foreground {
-        clip-path: url(#mask-primary);
-      }
-    }
-
-    &[data-light="hidden"][data-masked="true"] {
-      .scene-foreground {
-        clip-path: url(#mask-primary);
-      }
-    }
-
-    &[data-light="hidden"][data-masked="false"] {
-      .scene-foreground {
-        clip-path: url(#mask-primary);
-      }
-
-      .scene-mask-primary {
-        clip-path: url(#mask-secondary);
-        pointer-events: painted;
-        visibility: visible;
-      }
+  &:not([data-user="host"])[data-grid="true"] {
+    .scene-grid {
+      display: inherit;
     }
   }
 }

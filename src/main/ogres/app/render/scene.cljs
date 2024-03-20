@@ -136,7 +136,9 @@
         transform (str "scale(" (/ grid-size size) ")")]
     ($ :defs
       ($ :image {:id "scene-image"       :x 0 :y 0 :width width :height height :transform transform :href data-url})
-      ($ :rect  {:id "scene-image-cover" :x 0 :y 0 :width width :height height :transform transform}))))
+      ($ :rect  {:id "scene-image-cover" :x 0 :y 0 :width width :height height :transform transform})
+      ($ :clipPath {:id "scene-image-clip"}
+        ($ :use {:href "#scene-image-cover"})))))
 
 (def ^:private query-light-defs
   [:local/type
@@ -241,22 +243,20 @@
   (let [data (use-query query-grid)
         {[_ _ w h] :bounds/self
          {[cx cy] :camera/point
-          mode    :camera/draw-mode
           scale   :camera/scale
-          scene   :camera/scene} :local/camera} data]
-    (if (and (:scene/show-grid scene) (not= mode :grid))
-      (let [wd (/ w scale)
-            ht (/ h scale)
-            ax (+ (* wd -3) cx)
-            ay (+ (* ht -3) cy)
-            bx (+ (* wd  3) cx)
-            by (+ (* ht  3) cy)
-            [ox oy] (:scene/grid-origin scene)]
-        ($ :defs
-          ($ :pattern {:id "grid-pattern" :width grid-size :height grid-size :patternUnits "userSpaceOnUse"}
-            ($ :path.scene-grid-path {:d (join " " ["M" 0 0 "H" grid-size "V" grid-size])}))
-          ($ :g {:id "scene-grid" :transform (str "translate(" (mod ox grid-size) "," (mod oy grid-size) ")")}
-            ($ :path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"]) :fill "url(#grid-pattern)"})))))))
+          scene   :camera/scene} :local/camera} data
+        wd (/ w scale)
+        ht (/ h scale)
+        ax (+ (* wd -3) cx)
+        ay (+ (* ht -3) cy)
+        bx (+ (* wd  3) cx)
+        by (+ (* ht  3) cy)
+        [ox oy] (:scene/grid-origin scene)]
+    ($ :defs
+      ($ :pattern {:id "grid-pattern" :width grid-size :height grid-size :patternUnits "userSpaceOnUse"}
+        ($ :path.scene-grid-path {:d (join " " ["M" 0 0 "H" grid-size "V" grid-size])}))
+      ($ :g {:id "scene-grid" :transform (str "translate(" (mod ox grid-size) "," (mod oy grid-size) ")")}
+        ($ :path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"]) :fill "url(#grid-pattern)"})))))
 
 (defn ^:private poly-xf [x y]
   (comp (partition-all 2)
@@ -727,20 +727,25 @@
        ;; <rect>  #scene-image-cover
        ($ render-image-defs)
 
+       ($ :g.scene-exterior
+         ($ :use.scene-grid {:href "#scene-grid" :style {:clip-path "unset"}}))
+
        ;; When the scene is using the "Obscured" lighting option,
        ;; this element becomes visible for players. It renders a
        ;; darkened and desaturated version of the scene image
        ;; that is drawn underneath the foreground scene.
        ($ :g.scene-background
-         ($ :use.scene-image {:href "#scene-image"}))
+         ($ :use.scene-image {:href "#scene-image"})
+         ($ :use.scene-grid {:href "#scene-grid"}))
 
        ;; The primary scene object contains all interactable objects.
        ;; This element is clipped twice: first by tokens which emit
        ;; light around them, and then second by user-created mask
        ;; areas.
        ($ :g.scene-foreground
-         ($ :g.scene-foreground-interior
+         ($ :g.scene-interior
            ($ :use.scene-image {:href "#scene-image"})
+           ($ :use.scene-grid {:href "#scene-grid"})
            ($ render-shapes)
            ($ render-tokens))
 
@@ -754,10 +759,12 @@
        ($ :g.scene-mask
          ($ :g.scene-mask-primary
            ($ :use.scene-mask-fill {:href "#scene-image-cover"})
-           ($ :use.scene-mask-pattern {:href "#scene-image-cover"}))
+           ($ :use.scene-mask-pattern {:href "#scene-image-cover"})
+           ($ :use.scene-grid {:href "#scene-grid"}))
          ($ :g.scene-mask-secondary
            ($ :use.scene-mask-fill {:href "#scene-image-cover"})
-           ($ :use.scene-mask-pattern {:href "#scene-image-cover"})))
+           ($ :use.scene-mask-pattern {:href "#scene-image-cover"})
+           ($ :use.scene-grid {:href "#scene-grid"})))
 
        ;; Portal target for selected tokens and shapes. This brings
        ;; selected objects to the foreground so they are not obscured
@@ -782,32 +789,30 @@
      [:camera/draw-mode :default :select]
      {:camera/scene
       [[:scene/dark-mode :default false]
+       [:scene/show-grid :default true]
        [:scene/lighting :default :revealed]
        [:scene/masked :default false]]}]}])
 
 (defui render-scene []
   (let [dispatch (use-dispatch)
         result   (use-query query-scene)
-        {type        :local/type
+        {user        :local/type
          [_ _ hw hh] :bounds/host
          [_ _ vw vh] :bounds/view
          {id      :db/id
+          scene   :camera/scene
           scale   :camera/scale
           mode    :camera/draw-mode
-          [cx cy] :camera/point
-          {dark-mode :scene/dark-mode
-           lighting  :scene/lighting
-           masked    :scene/masked}
-          :camera/scene}
-         :local/camera} result
-        cx (if (= type :view) (->> (- hw vw) (max 0) (* (/ -1 2 scale)) (- cx)) cx)
-        cy (if (= type :view) (->> (- hh vh) (max 0) (* (/ -1 2 scale)) (- cy)) cy)]
+          [cx cy] :camera/point} :local/camera} result
+        cx (if (= user :view) (->> (- hw vw) (max 0) (* (/ -1 2 scale)) (- cx)) cx)
+        cy (if (= user :view) (->> (- hh vh) (max 0) (* (/ -1 2 scale)) (- cy)) cy)]
     ($ :svg.scene
       {:key id
-       :data-user   (name type)
-       :data-theme  (if dark-mode "dark" "light")
-       :data-light  (name lighting)
-       :data-masked masked}
+       :data-user   (name user)
+       :data-grid   (or (= mode :grid) (:scene/show-grid scene))
+       :data-theme  (if (:scene/dark-mode scene) "dark" "light")
+       :data-light  (name (:scene/lighting scene))
+       :data-masked (:scene/masked scene)}
       ($ scene-camera
         {:scale scale
          :on-translate
@@ -821,7 +826,7 @@
           [dispatch cx cy scale])}
         (if (and (= mode :select) (= (:local/modifier result) :shift))
           ($ draw {:mode :select}))
-        ($ :g.scene-board {:transform (str "scale(" scale ") translate(" (- cx) ", " (- cy) ")")}
+        ($ :g {:transform (str "scale(" scale ") translate(" (- cx) ", " (- cy) ")")}
           ($ scene-elements)))
       ($ create-portal {:name :multiselect}
         (fn [{:keys [ref]}]
@@ -830,4 +835,5 @@
       (if (contains? draw-modes mode)
         ($ :g.scene-drawable {:class (str "scene-drawable-" (name mode))}
           ($ draw {:key mode :mode mode :node nil})))
-      (if (:local/privileged? result) ($ render-bounds)))))
+      (if (:local/privileged? result)
+        ($ render-bounds)))))
