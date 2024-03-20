@@ -22,8 +22,8 @@
 (defn ^:private token-light-xf [user]
   (comp (filter (fn [{radius :token/light flags :token/flags}]
                   (and (> radius 0) (or (= user :host) (not (flags :hidden))))))
-        (map    (fn [{[x y] :token/point radius :token/light}]
-                  [x y (+ (/ (* radius grid-size) 5) grid-size)]))))
+        (map (fn [{[x y] :token/point radius :token/light}]
+               [x y (+ (/ (* radius grid-size) 5) grid-size)]))))
 
 (def ^:private mask-area-xf
   (comp (filter :mask/enabled?) (map :mask/vecs)))
@@ -140,7 +140,7 @@
       ($ :clipPath {:id "scene-image-clip"}
         ($ :use {:href "#scene-image-cover"})))))
 
-(def ^:private query-light-defs
+(def ^:private query-mask-defs
   [:local/type
    {:local/camera
     [{:camera/scene
@@ -154,7 +154,7 @@
          [:token/point :default [0 0]]]}]}]}])
 
 (defui ^:private render-mask-defs []
-  (let [result (use-query query-light-defs)
+  (let [result (use-query query-mask-defs)
         {user :local/type
          {{tokens :scene/tokens
            masks  :scene/masks
@@ -234,10 +234,8 @@
    {:local/camera
     [[:camera/point :default [0 0]]
      [:camera/scale :default 1]
-     [:camera/draw-mode :default :select]
      {:camera/scene
-      [[:scene/show-grid :default true]
-       [:scene/grid-origin :default [0 0]]]}]}])
+      [[:scene/grid-origin :default [0 0]]]}]}])
 
 (defui ^:private render-grid-defs []
   (let [data (use-query query-grid)
@@ -756,6 +754,7 @@
            (fn [{:keys [ref]}]
              ($ :g {:ref ref :style {:outline "none"}}))))
 
+       ;; Masking elements that fully or partially obscure the scene.
        ($ :g.scene-mask
          ($ :g.scene-mask-primary
            ($ :use.scene-mask-fill {:href "#scene-image-cover"})
