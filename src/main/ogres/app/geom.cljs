@@ -61,3 +61,18 @@
   ([path] (join " " path))
   ([path circle]
    (into path (circle-path circle))))
+
+(defn ^:private clockwise?
+  "Returns true if the given polygon has a clockwise winding order, false
+   otherwise. Points must be given in the form of [ax ay bx by cx cy ...]."
+  [[ax ay :as xs]]
+  (loop [[bx by cx cy :as xs] xs sum 0]
+    (if (some? cx)
+      (recur (rest (rest xs)) (+ (* (- cx bx) (+ cy by)) sum))
+      (neg? (+ (* (- ax bx) (+ ay by)) sum)))))
+
+(defn reorient
+  "Returns the given polygon in its clockwise winding order."
+  [xs]
+  (if (clockwise? xs) xs
+      (into [] cat (reverse (partition 2 xs)))))
