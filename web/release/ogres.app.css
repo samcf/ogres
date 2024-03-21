@@ -719,6 +719,17 @@ a:visited {
     pointer-events: none;
   }
 
+  .scene-mask-polygon {
+    cursor: pointer;
+    fill: none;
+    stroke-width: 2px;
+    stroke: var(--scene-stroke);
+
+    &:hover {
+      stroke: var(--color-prime-500);
+    }
+  }
+
   .scene-background {
     display: none;
   }

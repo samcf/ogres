@@ -229,6 +229,37 @@
           ($ :clipPath {:id "mask-secondary"}
             ($ :use {:href "#masks-path"})))))))
 
+(def ^:private query-mask-polys
+  [[:local/type :default :host]
+   {:local/camera
+    [[:camera/draw-mode :default :select]
+     {:camera/scene
+      [{:scene/masks
+        [:db/id
+         [:mask/vecs :default []]
+         [:mask/enabled? :default true]]}]}]}])
+
+(defui ^:private render-mask-polys []
+  (let [dispatch (use-dispatch)
+        result   (use-query query-mask-polys)
+        {user :local/type
+         {{masks :scene/masks} :camera/scene
+          draw-mode :camera/draw-mode} :local/camera} result
+        modes #{:mask :mask-toggle :mask-remove}]
+    ($ :g.scene-mask-polys {:id "masks-polys"}
+      (for [{id :db/id vecs :mask/vecs enabled? :mask/enabled?} masks
+            :while (and (= user :host) (contains? modes draw-mode))]
+        ($ :polygon.scene-mask-polygon
+          {:key id
+           :data-enabled enabled?
+           :points (join " " vecs)
+           :on-pointer-down stop-propagation
+           :on-click
+           (fn []
+             (case draw-mode
+               :mask-toggle (dispatch :mask/toggle id (not enabled?))
+               :mask-remove (dispatch :mask/remove id)))})))))
+
 (def ^:private query-grid
   [[:bounds/self :default [0 0 0 0]]
    {:local/camera
@@ -773,7 +804,11 @@
            ($ :g {:ref ref :style {:outline "none"}})))
 
        ;; Player cursors are rendered on top of everything else.
-       ($ render-cursors)))))
+       ($ render-cursors)
+
+       ;; Renders mask area boundaries, allowing the host to interact
+       ;; with them individually.
+       ($ render-mask-polys)))))
 
 (def ^:private query-scene
   [:local/type
