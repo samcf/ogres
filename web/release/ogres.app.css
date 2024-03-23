@@ -734,85 +734,6 @@ a:visited {
     --token-ring-stroke-width: 1px;
   }
 
-  .scene-token {
-    & > g {
-      transition: transform 60ms ease-out;
-    }
-
-    &[data-flags*="hidden"] {
-      opacity: 0.5;
-    }
-
-    &[data-flags*="player"] .scene-token-shape {
-      stroke: url("#token-base-player");
-      stroke-width: 4px;
-    }
-
-    &[data-flags*="turn"] [data-flag="initiative"] circle {
-      fill: var(--color-danger-500);
-    }
-
-    .scene-token-label {
-      fill: var(--color-black-100);
-      font-size: 13px;
-      paint-order: stroke;
-      pointer-events: none;
-      stroke-width: 3px;
-      stroke: var(--color-blues-900);
-      text-anchor: middle;
-      text-rendering: optimizeLegibility;
-
-      span {
-        background-color: var(--color-blues-900);
-        border-radius: 1px;
-        box-shadow: 0 0 2px rgba(0, 0, 0, 0.9);
-        color: var(--color-black-100);
-        font-size: 12px;
-        line-height: 1.2;
-        padding: 0 4px;
-      }
-    }
-
-    .scene-token-shape {
-      cursor: pointer;
-      filter: drop-shadow(1px 1px 0.5px rgba(0, 0, 0, 0.9));
-
-      & + text {
-        text-anchor: middle;
-      }
-    }
-
-    .scene-token-flags {
-      color: white;
-      pointer-events: none;
-
-      circle {
-        fill: var(--color-blues-900);
-        filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.8));
-      }
-    }
-
-    .scene-token-ring {
-      animation: ring-rotate 640ms linear infinite;
-      fill: none;
-      pointer-events: none;
-      stroke-dasharray: 6px 2px;
-      stroke-dashoffset: 0px;
-      stroke-width: var(--token-ring-stroke-width);
-      stroke: var(--token-ring-stroke);
-    }
-
-    .scene-token-aura {
-      fill: none;
-      pointer-events: none;
-      stroke-dasharray: 1px 3px;
-      stroke-opacity: 1;
-      stroke-width: 1px;
-      stroke: var(--scene-stroke);
-      transition: r 60ms ease-out;
-    }
-  }
-
   .scene-token-position {
     &:not([data-dragged-by="local"]) {
       transition: var(--transition-drag);
@@ -859,6 +780,86 @@ a:visited {
     stroke-width: 1px;
     stroke: var(--scene-stroke);
     transform: translate(-0.5px, 0.5px);
+  }
+}
+
+/* Scene token */
+.scene-token {
+  & > g {
+    transition: transform 60ms ease-out;
+  }
+
+  &[data-flags*="hidden"] {
+    opacity: 0.5;
+  }
+
+  &[data-flags*="player"] .scene-token-shape {
+    stroke: url("#token-base-player");
+    stroke-width: 4px;
+  }
+
+  &[data-flags*="turn"] [data-flag="initiative"] circle {
+    fill: var(--color-danger-500);
+  }
+
+  .scene-token-label {
+    fill: var(--color-black-100);
+    font-size: 13px;
+    paint-order: stroke;
+    pointer-events: none;
+    stroke-width: 3px;
+    stroke: var(--color-blues-900);
+    text-anchor: middle;
+    text-rendering: optimizeLegibility;
+
+    span {
+      background-color: var(--color-blues-900);
+      border-radius: 1px;
+      box-shadow: 0 0 2px rgba(0, 0, 0, 0.9);
+      color: var(--color-black-100);
+      font-size: 12px;
+      line-height: 1.2;
+      padding: 0 4px;
+    }
+  }
+
+  .scene-token-shape {
+    cursor: pointer;
+    filter: drop-shadow(1px 1px 0.5px rgba(0, 0, 0, 0.9));
+
+    & + text {
+      text-anchor: middle;
+    }
+  }
+
+  .scene-token-flags {
+    color: white;
+    pointer-events: none;
+
+    circle {
+      fill: var(--color-blues-900);
+      filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.8));
+    }
+  }
+
+  .scene-token-ring {
+    animation: ring-rotate 640ms linear infinite;
+    fill: none;
+    pointer-events: none;
+    stroke-dasharray: 6px 2px;
+    stroke-dashoffset: 0px;
+    stroke-width: var(--token-ring-stroke-width);
+    stroke: var(--token-ring-stroke);
+  }
+
+  .scene-token-aura {
+    fill: none;
+    pointer-events: none;
+    stroke-dasharray: 1px 3px;
+    stroke-opacity: 1;
+    stroke-width: 1px;
+    stroke: var(--scene-stroke);
+    transition: r 60ms ease-out;
   }
 }
 
