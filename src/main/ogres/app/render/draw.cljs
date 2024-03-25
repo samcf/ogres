@@ -232,8 +232,8 @@
   (let [dispatch (use-dispatch)]
     ($ polygon
       {:on-create
-       (fn [event points]
-         (dispatch :mask/create (not (.-shiftKey event)) points))})))
+       (fn [_ points]
+         (dispatch :mask/create points))})))
 
 (defui ^:private draw-grid []
   (let [dispatch (use-dispatch)

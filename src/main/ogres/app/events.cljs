@@ -717,9 +717,8 @@
           current state (hide or reveal) and its polygon points as a flat
           vector of x, y pairs."}
   event-tx-fn :mask/create
-  [_ _ state vecs]
-  [[:db.fn/call assoc-scene :scene/masks
-    {:mask/enabled? state :mask/vecs vecs}]])
+  [_ _ vecs]
+  [[:db.fn/call assoc-scene :scene/masks {:mask/vecs vecs}]])
 
 (defmethod
   ^{:doc "Toggles the state of the given mask to be either hiding or revealing

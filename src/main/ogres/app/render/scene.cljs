@@ -146,7 +146,10 @@
     [{:camera/scene
       [[:scene/masked :default false]
        [:scene/lighting :default :revealed]
-       {:scene/masks [:db/id :mask/vecs :mask/enabled?]}
+       {:scene/masks
+        [:db/id
+         [:mask/vecs :default []]
+         [:mask/enabled? :default true]]}
        {:scene/tokens
         [:db/id
          [:token/flags :default #{}]
