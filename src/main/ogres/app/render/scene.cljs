@@ -750,19 +750,14 @@
    (uix/fn []
      ($ :<>
        ;; Defines the standard square grid pattern for the scene.
-       ;; <g> #scene-grid
        ($ render-grid-defs)
 
        ;; Defines clip paths and masks for tokens which emit
        ;; radial lighting.
-       ;; <clipPath> #light-clip
-       ;; <mask>     #light-mask
        ($ render-mask-defs)
 
        ;; Defines the scene <image> element as well as a <rect>
        ;; which has the same dimensions as the image.
-       ;; <image> #scene-image
-       ;; <rect>  #scene-image-cover
        ($ render-image-defs)
 
        ($ :g.scene-exterior
