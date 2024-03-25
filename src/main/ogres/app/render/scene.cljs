@@ -873,5 +873,4 @@
       (if (contains? draw-modes mode)
         ($ :g.scene-drawable {:class (str "scene-drawable-" (name mode))}
           ($ draw {:key mode :mode mode :node nil})))
-      (if (:local/privileged? result)
-        ($ render-bounds)))))
+      (if (:local/privileged? result) ($ render-bounds)))))
