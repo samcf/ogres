@@ -135,6 +135,12 @@
         data-url  (use-image checksum)
         transform (str "scale(" (/ grid-size size) ")")]
     ($ :defs
+      ($ :filter {:id "scene-image-filter" :filterRes 1 :color-interpolation-filters "sRGB"}
+        ($ :feColorMatrix {:in "SourceGraphic" :type "saturate" :values 0.2 :result "Next"})
+        ($ :feComponentTransfer {:in "Next"}
+          ($ :feFuncR {:type "linear" :slope 0.60})
+          ($ :feFuncG {:type "linear" :slope 0.60})
+          ($ :feFuncB {:type "linear" :slope 0.60})))
       ($ :image {:id "scene-image"       :x 0 :y 0 :width width :height height :transform transform :href data-url})
       ($ :rect  {:id "scene-image-cover" :x 0 :y 0 :width width :height height :transform transform})
       ($ :clipPath {:id "scene-image-clip"}

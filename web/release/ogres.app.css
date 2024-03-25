@@ -783,7 +783,10 @@ a:visited {
 
   .scene-background {
     display: none;
-    filter: brightness(0.5) saturate(0.2);
+
+    .scene-image {
+      filter: url(#scene-image-filter);
+    }
   }
 
   .scene-mask-primary {
