@@ -2,7 +2,7 @@
   (:require [clojure.string :refer [join]]
             [ogres.app.const :refer [grid-size]]
             [ogres.app.hooks :refer [use-dispatch use-portal use-query]]
-            [ogres.app.geom :refer [chebyshev euclidean triangle]]
+            [ogres.app.geom :refer [chebyshev euclidean triangle reorient]]
             [ogres.app.render :refer [icon]]
             [uix.core :as uix :refer [defui $ use-state]]
             ["@dnd-kit/core"
@@ -94,7 +94,8 @@
          :on-click
          (fn [event]
            (if closed?
-             (let [xs (convert pairs (*' (/ scale)) (+' tx ty) cat)]
+             (let [xs (convert pairs (*' (/ scale)) (+' tx ty) round cat)
+                   xs (reorient xs)]
                (set-pairs [])
                (on-create event xs))
              (set-pairs #(conj %1 mx my))))})
@@ -231,8 +232,8 @@
   (let [dispatch (use-dispatch)]
     ($ polygon
       {:on-create
-       (fn [event points]
-         (dispatch :mask/create (not (.-shiftKey event)) points))})))
+       (fn [_ points]
+         (dispatch :mask/create points))})))
 
 (defui ^:private draw-grid []
   (let [dispatch (use-dispatch)

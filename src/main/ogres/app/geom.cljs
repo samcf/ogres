@@ -1,4 +1,16 @@
-(ns ogres.app.geom)
+(ns ogres.app.geom
+  (:require [clojure.string :refer [join]]))
+
+(def ^:private poly-path-xf
+  (comp (partition-all 2) (mapcat (fn [[x y]] [x y \L]))))
+
+(defn ^:private circle-path
+  [[x y r]]
+  (let [d (* r 2)]
+    [\M x y
+     \m r 0
+     \a r r 0 1 0 (- d) 0
+     \a r r 0 1 0 d 0 \z]))
 
 (defn euclidean
   "Returns the euclidean distance from [ax ay] to [bx by]."
@@ -37,3 +49,30 @@
   [& vs]
   (let [[xs ys] (partition (count vs) (apply interleave vs))]
     [(apply min xs) (apply min ys) (apply max xs) (apply max ys)]))
+
+(defn poly->path
+  ([] [])
+  ([path] (join " " path))
+  ([path points]
+   (into path (conj (pop (into [\M] poly-path-xf points)) \z))))
+
+(defn circle->path
+  ([] [])
+  ([path] (join " " path))
+  ([path circle]
+   (into path (circle-path circle))))
+
+(defn ^:private clockwise?
+  "Returns true if the given polygon has a clockwise winding order, false
+   otherwise. Points must be given in the form of [ax ay bx by cx cy ...]."
+  [[ax ay :as xs]]
+  (loop [[bx by cx cy :as xs] xs sum 0]
+    (if (some? cx)
+      (recur (rest (rest xs)) (+ (* (- cx bx) (+ cy by)) sum))
+      (neg? (+ (* (- ax bx) (+ ay by)) sum)))))
+
+(defn reorient
+  "Returns the given polygon in its clockwise winding order."
+  [xs]
+  (if (clockwise? xs) xs
+      (into [] cat (reverse (partition 2 xs)))))
