@@ -1029,14 +1029,21 @@ a:visited {
     }
   }
 
-  .scene-token-ring {
+  .scene-token-base {
     animation: ring-rotate 640ms linear infinite;
     fill: none;
     pointer-events: none;
     stroke-dasharray: 6px 2px;
     stroke-dashoffset: 0px;
-    stroke-width: var(--token-ring-stroke-width);
-    stroke: var(--token-ring-stroke);
+    stroke-width: var(--token-base-stroke-width);
+    stroke: var(--token-base-stroke);
+  }
+
+  .scene-token-ring {
+    fill: none;
+    pointer-events: none;
+    stroke-width: var(--token-outline-width, 0);
+    stroke: var(--color-prime-500);
   }
 
   .scene-token-aura {
