@@ -599,30 +599,62 @@
           ($ Transition {:key id :nodeRef node :timeout 240}
             ($ render-token {:node node :data data}))))
       ($ :g {:ref portal :style {:outline "none"} :tab-index -1})
-      (if (some? (.-current portal))
-        ($ use-portal {:name (if (or (= type :host) (= type :conn)) :selected)}
-          ($ render-drag
-            {:id       "tokens"
-             :class    "tokens"
-             :idxs     (seq selected?)
-             :disabled (boolean (seq (intersection (set (keys dragging)) selected?)))}
-            (fn [options]
-              (let [dx (getValueByKeys options "transform" "x")
-                    dy (getValueByKeys options "transform" "y")]
-                ($ :g.scene-tokens.scene-tokens-selected
-                  {:ref             (.-setNodeRef options)
-                   :transform       (str "translate(" (or dx 0) ", " (or dy 0) ")")
-                   :on-pointer-down (or (getValueByKeys options "listeners" "onPointerDown") stop-propagation)}
-                  ($ TransitionGroup {:component nil}
-                    (for [{id :db/id size :token/size [tx ty] :token/point} sorted
-                          :let [node  (create-ref)
-                                owner (dragging id)
-                                focus (within? tx ty [cx cy (+ (/ bw scale) cx) (+ (/ bh scale) cy)])]]
-                      ($ CSSTransition {:key id :nodeRef node :timeout 240}
-                        ($ render-live {:owner (:local/uuid owner) :ox tx :oy ty}
-                          (fn [rx ry]
-                            (if (selected? id)
-                              ($ :g.scene-token-transition {:ref node}
+      ($ TransitionGroup {:component nil}
+        (for [{id :db/id size :token/size [tx ty] :token/point} sorted :let [node (create-ref)]]
+          ($ CSSTransition {:key id :nodeRef node :timeout 240}
+            ($ :g.scene-token-transition {:ref node}
+              (if (not (selected? id))
+                (let [owner (dragging id)
+                      focus (within? tx ty [cx cy (+ (/ bw scale) cx) (+ (/ bh scale) cy)])]
+                  ($ render-live {:owner (:local/uuid owner) :ox tx :oy ty}
+                    (fn [rx ry]
+                      ($ render-drag {:id id :idxs (list id) :class "token" :disabled (some? owner)}
+                        (fn [options]
+                          (let [dx (getValueByKeys options "transform" "x")
+                                dy (getValueByKeys options "transform" "y")
+                                ax (+ tx (or rx dx 0))
+                                ay (+ ty (or ry dy 0))]
+                            ($ :<>
+                              (if (and align? (.-isDragging options) (or (not= dx 0) (not= dy 0)))
+                                (let [rd (* (/ size 5) (/ grid-size 2))
+                                      bx (round-grid ax rd ox)
+                                      by (round-grid ay rd oy)]
+                                  ($ :g.scene-token-ghost
+                                    {:transform (str "translate(" bx ", " by ")")}
+                                    ($ :rect {:x (- rd) :y (- rd) :width (* rd 2) :height (* rd 2)}))))
+                              ($ :g.scene-token-position
+                                {:ref             (.-setNodeRef options)
+                                 :transform       (str "translate(" ax ", " ay ")")
+                                 :tab-index       (if focus 0 -1)
+                                 :data-id         id
+                                 :data-type       "token"
+                                 :data-color      (:local/color owner)
+                                 :data-dragging   (or (some? owner) (.-isDragging options))
+                                 :data-dragged-by (get dragged-by id "none")
+                                 :on-pointer-down (or (getValueByKeys options "listeners" "onPointerDown") stop-propagation)}
+                                ($ :use {:href (str "#token-" id)}))))))))))))))
+      ($ use-portal {:name (if (or (= type :host) (= type :conn)) :selected)}
+        ($ render-drag
+          {:id       "tokens"
+           :class    "tokens"
+           :idxs     (seq selected?)
+           :disabled (boolean (seq (intersection (set (keys dragging)) selected?)))}
+          (fn [options]
+            (let [dx (getValueByKeys options "transform" "x")
+                  dy (getValueByKeys options "transform" "y")]
+              ($ :g.scene-tokens.scene-tokens-selected
+                {:ref             (.-setNodeRef options)
+                 :transform       (str "translate(" (or dx 0) ", " (or dy 0) ")")
+                 :on-pointer-down (or (getValueByKeys options "listeners" "onPointerDown") stop-propagation)}
+                ($ TransitionGroup {:component nil}
+                  (for [{id :db/id size :token/size [tx ty] :token/point} sorted
+                        :let [node (create-ref) owner (dragging id)]]
+                    ($ CSSTransition {:key id :nodeRef node :timeout 240}
+                      ($ :g.scene-token-transition {:ref node}
+                        (if (selected? id)
+                          ($ render-live {:owner (:local/uuid owner) :ox tx :oy ty}
+                            (fn [rx ry]
+                              ($ :<>
                                 (if (and align? (.-isDragging options) (or (not= dx 0) (not= dy 0)))
                                   (let [rd (* (/ size 5) (/ grid-size 2))
                                         ax (+ tx (or rx dx 0))
@@ -641,42 +673,15 @@
                                    :data-color      (:local/color owner)
                                    :data-dragging   (.-isDragging options)
                                    :data-dragged-by (get dragged-by id "none")}
-                                  ($ :use {:href (str "#token-" id)})))
-                              (dom/create-portal
-                               ($ render-drag {:id id :idxs (list id) :class "token" :disabled (some? owner)}
-                                 (fn [options]
-                                   (let [dx (getValueByKeys options "transform" "x")
-                                         dy (getValueByKeys options "transform" "y")
-                                         ax (+ tx (or rx dx 0))
-                                         ay (+ ty (or ry dy 0))]
-                                     ($ :g.scene-token-transition {:ref node}
-                                       (if (and align? (.-isDragging options) (or (not= dx 0) (not= dy 0)))
-                                         (let [rd (* (/ size 5) (/ grid-size 2))
-                                               bx (round-grid ax rd ox)
-                                               by (round-grid ay rd oy)]
-                                           ($ :g.scene-token-ghost
-                                             {:transform (str "translate(" bx ", " by ")")}
-                                             ($ :rect {:x (- rd) :y (- rd) :width (* rd 2) :height (* rd 2)}))))
-                                       ($ :g.scene-token-position
-                                         {:ref             (.-setNodeRef options)
-                                          :transform       (str "translate(" ax ", " ay ")")
-                                          :tab-index       (if focus 0 -1)
-                                          :data-id         id
-                                          :data-type       "token"
-                                          :data-color      (:local/color owner)
-                                          :data-dragging   (or (some? owner) (.-isDragging options))
-                                          :data-dragged-by (get dragged-by id "none")
-                                          :on-pointer-down (or (getValueByKeys options "listeners" "onPointerDown") stop-propagation)}
-                                         ($ :use {:href (str "#token-" id)}))))))
-                               (.-current portal))))))))
-                  (if (and (seq selected) (or (= type :host) (= type :conn)))
-                    (let [[ax _ bx by] (apply bounding-box (map :token/point selected))]
-                      ($ :foreignObject.context-menu-object
-                        {:x (- (+ (* ax scale) (/ (* (- bx ax) scale) 2)) (/ 400 2))
-                         :y (- (+ (* by scale) (* scale 56)) 24)
-                         :width 400 :height 400
-                         :transform (str "scale(" (/ scale) ")")}
-                        ($ token-context-menu {:tokens selected :type type})))))))))))))
+                                  ($ :use {:href (str "#token-" id)}))))))))))
+                (if (and (seq selected) (or (= type :host) (= type :conn)))
+                  (let [[ax _ bx by] (apply bounding-box (map :token/point selected))]
+                    ($ :foreignObject.context-menu-object
+                      {:x (- (+ (* ax scale) (/ (* (- bx ax) scale) 2)) (/ 400 2))
+                       :y (- (+ (* by scale) (* scale 56)) 24)
+                       :width 400 :height 400
+                       :transform (str "scale(" (/ scale) ")")}
+                      ($ token-context-menu {:tokens selected :type type}))))))))))))
 
 (defui ^:private render-bounds []
   (let [result (use-query [:bounds/host :bounds/view])
