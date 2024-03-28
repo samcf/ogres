@@ -488,6 +488,64 @@
       (let [radius (+ (* scale (/ grid-size 2)) 2)]
         ($ :circle.scene-token-ring {:cx 0 :cy 0 :style {:r radius}})))))
 
+(def ^:private query-token-defs
+  [[:local/type :default :host]
+   {:local/camera
+    [{:camera/scene
+      [{:scene/tokens
+        [:db/id
+         [:initiative/suffix :default nil]
+         [:token/point :default [0 0]]
+         [:token/flags :default #{}]
+         [:token/label :default ""]
+         [:token/size :default 5]
+         [:token/light :default 15]
+         [:aura/radius :default 0]
+         {:token/image [:image/checksum]}
+         {:scene/_initiative [:db/id :initiative/turn]}]}]}]}])
+
+(defui render-token-defs []
+  (let [result (use-query query-token-defs)
+        {{{tokens :scene/tokens} :camera/scene} :local/camera} result]
+    ($ :defs
+      ($ :linearGradient {:id "token-base-player" :x1 0 :y1 0 :x2 1 :y2 1}
+        ($ :stop {:style {:stop-color "#fcd34d"} :offset "0%"})
+        ($ :stop {:style {:stop-color "#b45309"} :offset "100%"}))
+      ($ :pattern
+        {:id "token-face-default"
+         :style {:color "white"}
+         :width "100%"
+         :height "100%"
+         :viewBox "-2 -2 16 16"
+         :patternContentUnits "objectBoundingBox"}
+        ($ :rect {:x -2 :y -2 :width 16 :height 16 :fill "var(--color-blues-700)"})
+        ($ icon {:name "dnd" :size 12}))
+      ($ :pattern
+        {:id "token-face-deceased"
+         :style {:color "white"}
+         :width "100%"
+         :height "100%"
+         :viewBox "-2 -2 16 16"
+         :patternContentUnits "objectBoundingBox"}
+        ($ :rect {:x -2 :y -2 :width 16 :height 16 :fill "var(--color-blues-700)"})
+        ($ icon {:name "skull" :size 12}))
+      ($ TransitionGroup {:component nil}
+        (for [checksum (into #{} (comp (map (comp :image/checksum :token/image)) (filter some?)) tokens)
+              :let [node (create-ref)]]
+          ($ Transition {:key checksum :nodeRef node :timeout 240}
+            ($ :pattern
+              {:id (str "token-face-" checksum)
+               :ref node
+               :style {:color "white"}
+               :width "100%"
+               :height "100%"
+               :patternContentUnits "objectBoundingBox"}
+              ($ render-token-face {:checksum checksum})))))
+      ($ TransitionGroup {:component nil}
+        (for [{id :db/id :as data} tokens :let [node (create-ref)]]
+          ($ Transition {:key id :nodeRef node :timeout 240}
+            ($ render-token {:node node :data data})))))))
+
 (def ^:private query-tokens
   [{:root/local
     [:local/type
@@ -502,7 +560,6 @@
          [:scene/grid-align :default false]
          {:scene/tokens
           [:db/id
-           [:initiative/suffix :default nil]
            [:token/point :default [0 0]]
            [:token/flags :default #{}]
            [:token/label :default ""]
@@ -510,8 +567,7 @@
            [:token/light :default 15]
            [:aura/radius :default 0]
            {:token/image [:image/checksum]}
-           {:scene/_initiative [:db/id :initiative/turn]}
-           :camera/_selected]}]}]}]
+           {:scene/_initiative [:db/id :initiative/turn]}]}]}]}]
     :root/session
     [{:session/conns
       [:local/uuid :local/color :local/dragging]}]}])
@@ -576,30 +632,8 @@
              (case (getValueByKeys data "active" "data" "current" "class")
                ("tokens" "token") (dispatch :drag/end) nil)) [dispatch])})
     ($ :g.scene-tokens
-      ($ :defs.scene-tokens-faces {:style {:color "white"}}
-        (let [attrs {:width "100%" :height "100%" :patternContentUnits "objectBoundingBox"}]
-          ($ :<>
-            ($ :linearGradient#token-base-player {:x1 0 :y1 0 :x2 1 :y2 1}
-              ($ :stop {:style {:stop-color "#fcd34d"} :offset "0%"})
-              ($ :stop {:style {:stop-color "#b45309"} :offset "100%"}))
-            ($ :pattern#token-face-default (merge attrs {:viewBox "-2 -2 16 16"})
-              ($ :rect {:x -2 :y -2 :width 16 :height 16 :fill "var(--color-blues-700)"})
-              ($ icon {:name "dnd" :size 12}))
-            ($ :pattern#token-face-deceased (merge attrs {:viewBox "-2 -2 16 16"})
-              ($ :rect {:x -2 :y -2 :width 16 :height 16 :fill "var(--color-blues-700)"})
-              ($ icon {:name "skull" :size 12}))
-            ($ TransitionGroup {:component nil}
-              (for [checksum (into #{} (comp (map (comp :image/checksum :token/image)) (filter some?)) sorted)
-                    :let [node (create-ref)]]
-                ($ Transition {:key checksum :nodeRef node :timeout 240}
-                  ($ :pattern (merge attrs {:id (str "token-face-" checksum) :ref node})
-                    ($ render-token-face {:checksum checksum}))))))))
-      ($ TransitionGroup {:component "defs" :className "scene-tokens-defs"}
-        (for [{id :db/id :as data} sorted :let [node (create-ref)]]
-          ($ Transition {:key id :nodeRef node :timeout 240}
-            ($ render-token {:node node :data data}))))
       ($ :g {:ref portal :style {:outline "none"} :tab-index -1})
-      ($ TransitionGroup {:component nil}
+      ($ TransitionGroup {:component "g" :class-name "scene-tokens-unselected"}
         (for [{id :db/id size :token/size [tx ty] :token/point} sorted :let [node (create-ref)]]
           ($ CSSTransition {:key id :nodeRef node :timeout 240}
             ($ :g.scene-token-transition {:ref node}
@@ -771,6 +805,9 @@
        ;; Defines the scene <image> element as well as a <rect>
        ;; which has the same dimensions as the image.
        ($ render-image-defs)
+
+       ;; Defines token patterns, images, and the tokens themselves.
+       ($ render-token-defs)
 
        ($ :g.scene-exterior
          ($ :use.scene-grid {:href "#scene-grid" :style {:clip-path "unset"}}))
