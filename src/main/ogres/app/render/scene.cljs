@@ -506,7 +506,7 @@
 
 (defui render-token-defs []
   (let [result (use-query query-token-defs)
-        {{{tokens :scene/tokens} :camera/scene} :local/camera} result]
+        tokens (-> result :local/camera :camera/scene :scene/tokens)]
     ($ :defs
       ($ :linearGradient {:id "token-base-player" :x1 0 :y1 0 :x2 1 :y2 1}
         ($ :stop {:style {:stop-color "#fcd34d"} :offset "0%"})
