@@ -574,7 +574,6 @@
 (defui ^:private render-tokens []
   (let [dispatch (use-dispatch)
         result   (use-query query-tokens [:db/ident :root])
-        [dragged-by set-dragged-by] (use-state {})
         {{type :local/type
           [_ _ bw bh] :bounds/self
           {scale :camera/scale
@@ -594,9 +593,6 @@
         sorted    (->> tokens
                        (filter (fn [token] (or (= type :host) (not ((:token/flags token) :hidden)))))
                        (sort token-comparator))]
-    (use-effect
-     (fn [] (set-dragged-by (dragged-by-fn "remote" (keys dragging))))
-     ^:lint/disable [result])
     (use-dnd-monitor
      #js {"onDragStart"
           (use-callback
@@ -604,7 +600,6 @@
              (let [class (getValueByKeys data "active" "data" "current" "class")]
                (if (or (= class "token") (= class "tokens"))
                  (let [idxs (getValueByKeys data "active" "data" "current" "id")]
-                   (set-dragged-by (dragged-by-fn "local" idxs))
                    (dispatch :drag/start idxs))))) [dispatch])
           "onDragEnd"
           (use-callback
@@ -656,15 +651,15 @@
                                     {:transform (str "translate(" bx ", " by ")")}
                                     ($ :rect {:x (- rd) :y (- rd) :width (* rd 2) :height (* rd 2)}))))
                               ($ :g.scene-token-position
-                                {:ref             (.-setNodeRef options)
-                                 :transform       (str "translate(" ax ", " ay ")")
-                                 :tab-index       (if focus 0 -1)
-                                 :data-id         id
-                                 :data-type       "token"
-                                 :data-color      (:local/color owner)
-                                 :data-dragging   (or (some? owner) (.-isDragging options))
-                                 :data-dragged-by (get dragged-by id "none")
-                                 :on-pointer-down (or (getValueByKeys options "listeners" "onPointerDown") stop-propagation)}
+                                {:ref              (.-setNodeRef options)
+                                 :transform        (str "translate(" ax ", " ay ")")
+                                 :tab-index        (if focus 0 -1)
+                                 :data-id          id
+                                 :data-type        "token"
+                                 :data-color       (:local/color owner)
+                                 :data-drag-local  (.-isDragging options)
+                                 :data-drag-remote (some? owner)
+                                 :on-pointer-down  (or (getValueByKeys options "listeners" "onPointerDown") stop-propagation)}
                                 ($ :use {:href (str "#token-" id)}))))))))))))))
       ($ use-portal {:name (if (or (= type :host) (= type :conn)) :selected)}
         ($ render-drag
@@ -700,12 +695,12 @@
                                        ($ :rect {:x (- rd) :y (- rd) :width (* rd 2) :height (* rd 2)}))
                                      (.-current portal))))
                                 ($ :g.scene-token-position
-                                  {:transform       (str "translate(" (+ tx rx) ", " (+ ty ry) ")")
-                                   :data-id         id
-                                   :data-type       "token"
-                                   :data-color      (:local/color owner)
-                                   :data-dragging   (.-isDragging options)
-                                   :data-dragged-by (get dragged-by id "none")}
+                                  {:transform        (str "translate(" (+ tx rx) ", " (+ ty ry) ")")
+                                   :data-id          id
+                                   :data-type        "token"
+                                   :data-color       (:local/color owner)
+                                   :data-drag-local  (.-isDragging options)
+                                   :data-drag-remote (some? owner)}
                                   ($ :use {:href (str "#token-" id)}))))))))))
                 (if (and (seq selected) (or (= type :host) (= type :conn)))
                   (let [[ax _ bx by] (apply bounding-box (map :token/point selected))]

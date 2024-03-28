@@ -913,20 +913,30 @@ a:visited {
   &.scene-tokens-selected {
     --token-base-stroke: var(--color-session, var(--scene-stroke));
     --token-base-stroke-width: 1px;
+
+    .scene-token-position {
+      transition: none;
+
+      &[data-drag-remote="true"] {
+        transition: var(--transition-drag);
+      }
+    }
   }
 
   .scene-token-position {
     outline: none;
-
-    &:not([data-dragged-by="local"]) {
-      transition: var(--transition-drag);
-    }
+    transition: var(--transition-drag);
 
     &[data-hidden="true"] {
       display: none;
     }
 
-    &[data-dragging="true"] {
+    &[data-drag-local="true"] {
+      transition: none;
+    }
+
+    &[data-drag-local="true"],
+    &[data-drag-remote="true"] {
       --token-base-stroke: var(--color-session, var(--scene-stroke));
       --token-base-stroke-width: 2px;
     }
