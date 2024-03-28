@@ -536,7 +536,6 @@
             ($ :pattern
               {:id (str "token-face-" checksum)
                :ref node
-               :style {:color "white"}
                :width "100%"
                :height "100%"
                :patternContentUnits "objectBoundingBox"}
