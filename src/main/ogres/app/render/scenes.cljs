@@ -1,8 +1,8 @@
 (ns ogres.app.render.scenes
   (:require [clojure.string :refer [replace]]
-            [ogres.app.hooks :refer [use-dispatch use-query]]
+            [ogres.app.hooks :refer [use-dispatch use-query use-shortcut]]
             [ogres.app.render :refer [icon]]
-            [uix.core :refer [defui $]]))
+            [uix.core :refer [defui $ use-callback]]))
 
 (def ^:private filename-re #"\d+x\d+|[^\w ]|.[^.]+$")
 
@@ -26,10 +26,19 @@
 
 (defui scenes []
   (let [dispatch (use-dispatch)
-        result   (use-query query)]
+        {current :local/camera
+         cameras :local/cameras} (use-query query)]
+    (use-shortcut ["delete" "backspace"]
+      (use-callback
+       (fn [event]
+         (if (= (.-name (.-activeElement js/document)) "scene")
+           (let [id (js/Number (.. event -originalEvent -target -value))
+                 cm (first (filter (comp #{id} :db/id) cameras))]
+             (if (js/confirm (render-remove-prompt cm))
+               (dispatch :scenes/remove id))))) [dispatch cameras]))
     ($ :ul.scenes {:role "tablist"}
-      (for [{id :db/id :as camera} (:local/cameras result)
-            :let [selected (= id (:db/id (:local/camera result)))]]
+      (for [{id :db/id :as camera} cameras
+            :let [selected (= id (:db/id current))]]
         ($ :li.scenes-scene {:key id :role "tab" :aria-selected selected}
           ($ :label
             ($ :input

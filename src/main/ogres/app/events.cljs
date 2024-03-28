@@ -12,6 +12,9 @@
 (def ^:private zoom-scales
   [0.15 0.30 0.50 0.75 0.90 1 1.25 1.50 2 3 4])
 
+(defn ^:private linear [dx dy rx ry]
+  (fn [n] (+ (* (/ (- n dx) (- dy dx)) (- ry rx)) rx)))
+
 (defn ^:private find-next
   "Finds the element in the given collection which passes the given predicate
    and returns the element that appears after it. Returns nil if no element
@@ -105,21 +108,6 @@
   (let [local (ds/entity data [:db/ident :local])]
     [{:db/ident :local :panel/expanded (not (get local :panel/expanded true))}]))
 
-(defmethod
-  ^{:doc "Changes the current keyboard modifier for the local user. This
-          modifier is currently only used to determine if the 'Shift' key is
-          depressed so that users can draw a selection box across the scene,
-          selecting more than one token."}
-  event-tx-fn :local/modifier-start
-  [_ _ modifier]
-  [{:db/ident :local :local/modifier modifier}])
-
-(defmethod
-  ^{:doc "Releases the given keyboard modifier for the local user."}
-  event-tx-fn :local/modifier-release
-  []
-  [[:db/retract [:db/ident :local] :local/modifier]])
-
 ;; -- Camera --
 (defn ^:private assoc-camera
   [data & kvs]
@@ -140,10 +128,16 @@
     [[:db/retract (:db/id (:local/camera local)) :camera/label]]))
 
 (defmethod
-  ^{:doc "Translates the current camera to the point given by `x` and `y`."}
+  ^{:doc "Translate the current camera by the offset given by dx and dy."}
   event-tx-fn :camera/translate
-  [_ _ x y]
-  [[:db.fn/call assoc-camera :camera/point [(round x) (round y)]]])
+  [data _ dx dy]
+  (let [local (ds/entity data [:db/ident :local])
+        {[cx cy] :camera/point
+         scale :camera/scale} (:local/camera local)]
+    [{:db/id (:db/id (:local/camera local))
+      :camera/point
+      [(round (+ (or cx 0) (/ dx (or scale 1))))
+       (round (+ (or cy 0) (/ dy (or scale 1))))]}]))
 
 (defmethod
   ^{:doc "Changes the camera draw mode to the given value. The draw mode is
@@ -187,11 +181,17 @@
           the given value `delta`. This is useful for zooming with a device
           that uses fine grained updates such as a mousewheel or a trackpad."}
   event-tx-fn :camera/zoom-delta
-  [data _ delta x y]
-  (let [local  (ds/entity data [:db/ident :local])
-        scale  (-> (:camera/scale (:local/camera local)) (or 1) (js/Math.log)
-                   (+ delta) (js/Math.exp) (to-precision 2) (constrain 0.15 4))]
-    [[:db.fn/call event-tx-fn :camera/zoom-change scale x y]]))
+  [data _ mx my delta trackpad?]
+  (let [local   (ds/entity data [:db/ident :local])
+        [ox oy] (or (:bounds/self local) [0 0 0 0])
+        scale   (linear -400 400 -0.50 0.50)
+        delta   (if trackpad? (scale (* -1 8 delta)) (scale (* -1 2 delta)))
+        zoomx   (- mx ox)
+        zoomy   (- my oy)
+        zoomz   (-> (:camera/scale (:local/camera local)) (or 1)
+                    (js/Math.log) (+ delta) (js/Math.exp)
+                    (to-precision 2) (constrain 0.15 4))]
+    [[:db.fn/call event-tx-fn :camera/zoom-change zoomz zoomx zoomy]]))
 
 (defmethod
   ^{:doc "Increases the zoom value for the current camera to the next nearest
@@ -472,6 +472,14 @@
                  [(round-grid (+ tx dx) rd (mod ox grid-size))
                   (round-grid (+ ty dy) rd (mod oy grid-size))])
                [(+ dx tx) (+ dy ty)])}))))
+
+(defmethod event-tx-fn :token/translate-selected
+  [data _ dx dy]
+  (let [local (ds/entity data [:db/ident :local])
+        idxs  (map :db/id (:camera/selected (:local/camera local)))]
+    (if (seq idxs)
+      [[:db.fn/call event-tx-fn :token/translate-all idxs dx dy]]
+      [])))
 
 (defmethod event-tx-fn :token/change-flag
   [data _ idxs flag add?]

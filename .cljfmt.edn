@@ -1,4 +1,5 @@
 {:extra-indents
  {use-subscribe      [[:inner 0]]
   use-event-listener [[:inner 0]]
+  use-shortcut       [[:inner 0]]
   $                  [[:inner 0]]}}

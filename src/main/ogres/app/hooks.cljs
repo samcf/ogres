@@ -5,7 +5,8 @@
             [ogres.app.provider.portal   :as provider.portal]
             [ogres.app.provider.state    :as provider.state]
             [ogres.app.provider.storage  :as provider.storage]
-            [uix.core                    :refer [use-effect use-state use-ref use-callback]]))
+            [uix.core                    :refer [use-effect use-state use-ref use-callback]]
+            ["@rwh/keystrokes"           :refer [bindKey unbindKey]]))
 
 (def ^{:doc "Returns a function which, when called with a topic and any number
              of additional arguments, will perform the following work:
@@ -108,3 +109,11 @@
            (if (not (.contains node (.-target event)))
              (set-state false)))) []))
     [state set-state ref]))
+
+(defn use-shortcut
+  "Binds one or more keyboard codes to the callback function given by f which
+   receives a custom event as its only argument."
+  [keys f]
+  (use-effect
+   (fn [] (doseq [key keys] (bindKey key f))
+     (fn [] (doseq [key keys] (unbindKey key f)))) [keys f]))
