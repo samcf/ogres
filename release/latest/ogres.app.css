@@ -120,6 +120,7 @@ a:visited {
 
 .radio {
   .icon {
+    border-radius: 50%;
     padding: 3px;
   }
 
@@ -476,7 +477,6 @@ a:visited {
       color: var(--color-black-400);
       cursor: pointer;
       display: flex;
-      outline: none;
 
       &:hover,
       &:focus-visible {
@@ -697,6 +697,13 @@ a:visited {
     --scene-text-outline: rgba(255, 255, 255, 1);
   }
 
+  &:has(.scene-handler:focus-visible) {
+    border-radius: 3px;
+    outline: 2px solid var(--outline-color);
+    position: relative;
+    z-index: 1;
+  }
+
   text,
   .scene-grid,
   .scene-image {
@@ -709,6 +716,181 @@ a:visited {
     paint-order: stroke;
     stroke-width: 3px;
     stroke: var(--scene-text-outline);
+  }
+}
+
+/* Scene Lighting */
+.scene[data-user="host"] {
+  .scene-mask {
+    pointer-events: none;
+  }
+
+  .scene-mask-polygon {
+    cursor: pointer;
+    fill: none;
+    stroke-width: 2px;
+    stroke: var(--scene-stroke);
+
+    &:hover {
+      stroke: var(--color-prime-500);
+    }
+  }
+
+  .scene-background {
+    display: none;
+  }
+
+  .scene-mask-primary {
+    mask: url(#mask-primary);
+  }
+
+  .scene-mask-secondary {
+    mask: url(#mask-secondary);
+  }
+
+  .scene-mask-primary,
+  .scene-mask-secondary {
+    display: none;
+  }
+
+  .scene-mask-fill {
+    fill-opacity: 0.4;
+  }
+
+  .scene-mask-pattern {
+    fill: url(#mask-pattern);
+    fill-opacity: 0.3;
+  }
+
+  &[data-light="dimmed"] {
+    .scene-mask-primary,
+    .scene-mask-secondary {
+      display: inherit;
+    }
+
+    &[data-masked="false"] .scene-mask-primary .scene-mask-pattern,
+    &[data-masked="true"] .scene-mask-secondary .scene-mask-pattern {
+      display: none;
+    }
+  }
+
+  &[data-light="revealed"],
+  &[data-light="hidden"] {
+    .scene-mask-primary {
+      display: inherit;
+    }
+  }
+}
+
+.scene:not([data-user="host"]) {
+  .scene-mask {
+    pointer-events: painted;
+  }
+
+  .scene-background {
+    display: none;
+
+    .scene-image {
+      filter: url(#scene-image-filter);
+    }
+  }
+
+  .scene-mask-primary {
+    clip-path: url(#mask-primary);
+  }
+
+  .scene-mask-secondary {
+    clip-path: url(#mask-primary);
+  }
+
+  .scene-mask-primary,
+  .scene-mask-secondary {
+    display: none;
+    fill: var(--color-blues-900);
+  }
+
+  &[data-light="revealed"][data-masked="true"] {
+    .scene-foreground,
+    .scene-background {
+      clip-path: url(#mask-primary);
+    }
+  }
+
+  &[data-light="revealed"][data-masked="false"] {
+    .scene-mask-primary {
+      display: inherit;
+    }
+  }
+
+  &[data-light="dimmed"][data-masked="true"] {
+    .scene-background {
+      display: inherit;
+    }
+
+    .scene-foreground {
+      clip-path: url(#mask-primary);
+    }
+
+    .scene-background,
+    .scene-interior {
+      clip-path: url(#mask-secondary);
+    }
+  }
+
+  &[data-light="dimmed"][data-masked="false"] {
+    .scene-background {
+      display: inherit;
+    }
+
+    .scene-foreground {
+      clip-path: url(#mask-primary);
+    }
+
+    .scene-mask-primary {
+      display: inherit;
+      clip-path: url(#mask-secondary);
+    }
+  }
+
+  &[data-light="hidden"][data-masked="true"] {
+    .scene-background,
+    .scene-foreground {
+      clip-path: url(#mask-primary);
+    }
+  }
+
+  &[data-light="hidden"][data-masked="false"] {
+    .scene-foreground {
+      clip-path: url(#mask-primary);
+    }
+
+    .scene-mask-primary {
+      display: inherit;
+      clip-path: url(#mask-secondary);
+    }
+  }
+}
+
+/* Scene grid */
+.scene {
+  .scene-grid {
+    display: none;
+    clip-path: url(#scene-image-clip);
+  }
+
+  &[data-user="host"][data-grid="true"] {
+    .scene-exterior,
+    .scene-foreground {
+      .scene-grid {
+        display: inherit;
+      }
+    }
+  }
+
+  &:not([data-user="host"])[data-grid="true"] {
+    .scene-grid {
+      display: inherit;
+    }
   }
 }
 
@@ -729,101 +911,38 @@ a:visited {
 /* Scene Tokens */
 .scene-tokens {
   &.scene-tokens-selected {
-    --token-ring-stroke: var(--color-session, var(--scene-stroke));
-    --token-ring-stroke-width: 1px;
-  }
+    --token-base-stroke: var(--color-session, var(--scene-stroke));
+    --token-base-stroke-width: 1px;
 
-  .scene-token {
-    & > g {
-      transition: transform 60ms ease-out;
-    }
+    .scene-token-position {
+      transition: none;
 
-    &[data-flags*="hidden"] {
-      opacity: 0.5;
-    }
-
-    &[data-flags*="player"] .scene-token-shape {
-      stroke: url("#token-base-player");
-      stroke-width: 4px;
-    }
-
-    &[data-flags*="turn"] [data-flag="initiative"] circle {
-      fill: var(--color-danger-500);
-    }
-
-    .scene-token-label {
-      fill: var(--color-black-100);
-      font-size: 13px;
-      paint-order: stroke;
-      pointer-events: none;
-      stroke-width: 3px;
-      stroke: var(--color-blues-900);
-      text-anchor: middle;
-      text-rendering: optimizeLegibility;
-
-      span {
-        background-color: var(--color-blues-900);
-        border-radius: 1px;
-        box-shadow: 0 0 2px rgba(0, 0, 0, 0.9);
-        color: var(--color-black-100);
-        font-size: 12px;
-        line-height: 1.2;
-        padding: 0 4px;
+      &[data-drag-remote="true"] {
+        transition: var(--transition-drag);
       }
-    }
-
-    .scene-token-shape {
-      cursor: pointer;
-      filter: drop-shadow(1px 1px 0.5px rgba(0, 0, 0, 0.9));
-
-      & + text {
-        text-anchor: middle;
-      }
-    }
-
-    .scene-token-flags {
-      color: white;
-      pointer-events: none;
-
-      circle {
-        fill: var(--color-blues-900);
-        filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.8));
-      }
-    }
-
-    .scene-token-ring {
-      animation: ring-rotate 640ms linear infinite;
-      fill: none;
-      pointer-events: none;
-      stroke-dasharray: 6px 2px;
-      stroke-dashoffset: 0px;
-      stroke-width: var(--token-ring-stroke-width);
-      stroke: var(--token-ring-stroke);
-    }
-
-    .scene-token-aura {
-      fill: none;
-      pointer-events: none;
-      stroke-dasharray: 1px 3px;
-      stroke-opacity: 1;
-      stroke-width: 1px;
-      stroke: var(--scene-stroke);
-      transition: r 60ms ease-out;
     }
   }
 
   .scene-token-position {
-    &:not([data-dragged-by="local"]) {
-      transition: var(--transition-drag);
-    }
+    outline: none;
+    transition: var(--transition-drag);
 
     &[data-hidden="true"] {
       display: none;
     }
 
-    &[data-dragging="true"] {
-      --token-ring-stroke: var(--color-session, var(--scene-stroke));
-      --token-ring-stroke-width: 2px;
+    &[data-drag-local="true"] {
+      transition: none;
+    }
+
+    &[data-drag-local="true"],
+    &[data-drag-remote="true"] {
+      --token-base-stroke: var(--color-session, var(--scene-stroke));
+      --token-base-stroke-width: 2px;
+    }
+
+    &:focus-visible {
+      --token-outline-width: 3px;
     }
   }
 
@@ -858,6 +977,93 @@ a:visited {
     stroke-width: 1px;
     stroke: var(--scene-stroke);
     transform: translate(-0.5px, 0.5px);
+  }
+}
+
+/* Scene token */
+.scene-token {
+  & > g {
+    transition: transform 60ms ease-out;
+  }
+
+  &[data-flags*="hidden"] {
+    opacity: 0.5;
+  }
+
+  &[data-flags*="player"] .scene-token-shape {
+    stroke: url("#token-base-player");
+    stroke-width: 4px;
+  }
+
+  &[data-flags*="turn"] [data-flag="initiative"] circle {
+    fill: var(--color-danger-500);
+  }
+
+  .scene-token-label {
+    fill: var(--color-black-100);
+    font-size: 13px;
+    paint-order: stroke;
+    pointer-events: none;
+    stroke-width: 3px;
+    stroke: var(--color-blues-900);
+    text-anchor: middle;
+    text-rendering: optimizeLegibility;
+
+    span {
+      background-color: var(--color-blues-900);
+      border-radius: 1px;
+      box-shadow: 0 0 2px rgba(0, 0, 0, 0.9);
+      color: var(--color-black-100);
+      font-size: 12px;
+      line-height: 1.2;
+      padding: 0 4px;
+    }
+  }
+
+  .scene-token-shape {
+    cursor: pointer;
+    filter: drop-shadow(1px 1px 0.5px rgba(0, 0, 0, 0.9));
+
+    & + text {
+      text-anchor: middle;
+    }
+  }
+
+  .scene-token-flags {
+    color: white;
+    pointer-events: none;
+
+    circle {
+      fill: var(--color-blues-900);
+      filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.8));
+    }
+  }
+
+  .scene-token-base {
+    animation: ring-rotate 640ms linear infinite;
+    fill: none;
+    pointer-events: none;
+    stroke-dasharray: 6px 2px;
+    stroke-dashoffset: 0px;
+    stroke-width: var(--token-base-stroke-width);
+    stroke: var(--token-base-stroke);
+  }
+
+  .scene-token-ring {
+    fill: none;
+    pointer-events: none;
+    stroke-width: var(--token-outline-width, 0);
+    stroke: var(--color-prime-500);
+  }
+
+  .scene-token-aura {
+    fill: none;
+    pointer-events: none;
+    stroke-dasharray: 1px 3px;
+    stroke-opacity: 1;
+    stroke-width: 1px;
+    stroke: var(--scene-stroke);
+    transition: r 60ms ease-out;
   }
 }
 
@@ -927,14 +1133,12 @@ a:visited {
   }
 }
 
-.scene-grid {
-  pattern > path {
-    fill: none;
-    stroke-dasharray: 2px;
-    stroke-width: 1px;
-    stroke: var(--scene-stroke);
-    opacity: 0.6;
-  }
+.scene-grid-path {
+  fill: none;
+  stroke-dasharray: 2px;
+  stroke-width: 1px;
+  stroke: var(--scene-stroke);
+  opacity: 0.6;
 }
 
 /* Context Menu */
@@ -1220,43 +1424,6 @@ a:visited {
   position: absolute;
   text-transform: uppercase;
   top: -20px;
-}
-
-/* Masks */
-.scene-mask {
-  pointer-events: none;
-
-  .scene-mask-background {
-    fill: var(--color-blues-900);
-  }
-
-  &[data-visibility="dimmed"] .scene-mask-background {
-    fill-opacity: 0.75;
-  }
-
-  .scene-mask-pattern {
-    fill-opacity: 0;
-  }
-
-  .scene-mask-polygon {
-    fill: transparent;
-    pointer-events: fill;
-    stroke: var(--scene-stroke);
-    stroke-width: 2px;
-
-    &:hover {
-      cursor: pointer;
-      stroke: orange;
-    }
-  }
-}
-
-[data-user="host"] .scene-mask-background {
-  fill-opacity: 0.6;
-}
-
-[data-user="host"] .scene-mask-pattern {
-  fill-opacity: 0.3;
 }
 
 /* Panel */
@@ -2394,7 +2561,7 @@ a:visited {
       grid-template-rows: repeat(2, 1fr);
       grid-template-areas:
         "sel cut cop pst rul crc rct con ply lne grd fcs"
-        "zot zrt zrt zrt zin msk mtg mrm mhi msh plw .";
+        "zot zrt zrt zrt zin msk mtg mrm msh mhi plw .";
     }
 
     &[data-user="conn"] .toolbar-actions {
