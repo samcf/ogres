@@ -112,15 +112,13 @@
          (.then
           (export-db store)
           (fn [blob]
-            (let [blob-url (js/window.URL.createObjectURL blob)
-                  shadow-anchor (js/document.createElement "a")]
-              (set! shadow-anchor -href blob-url)
-              (set! shadow-anchor -download
-                    (str "ogres-"
-                         (first (.split (.toISOString (js/Date.)) "T"))
-                         ".json"))
-              (.click shadow-anchor)
-              (.remove shadow-anchor)))))
+            (let [anchor (.. js/document (createElement "a"))
+                  date   (.. (js/Date.) (toLocaleDateString) (replaceAll "/" "-"))
+                  url    (.. js/window -URL (createObjectURL blob))]
+              (set! anchor -href url)
+              (set! anchor -download (str "ogres-" date ".json"))
+              (.click anchor)
+              (.remove anchor)))))
        [store]))))
 
 (defui ^:private restore-handler []
@@ -142,8 +140,11 @@
               (fn [records]
                 (.sort records (fn [^js/object a ^js/object b] (- (.-updated a) (.-updated b))))
                 (let [release (.-release (aget records 0))
-                      params  (js/URLSearchParams. #js {"r" release})]
-                  (.replace (.-location js/window) (str "/?" (.toString params))))))
+                      params  (js/URLSearchParams. #js {"r" release})
+                      origin  (.. js/window -location -origin)
+                      path    (.. js/window -location -pathname)
+                      url     (str origin path "?" (.toString params))]
+                  (.. js/window -location (replace url)))))
              (.catch
               (fn [error]
                 (js/console.error error)
