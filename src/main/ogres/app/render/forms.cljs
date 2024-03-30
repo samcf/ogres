@@ -15,21 +15,21 @@
         :else     "Unknown"))
 
 (def ^:private token-conditions
-  [{:value :player        :icon "people-fill"}
-   {:value :blinded       :icon "eye-slash-fill"}
+  [{:value :blinded       :icon "eye-slash-fill"}
    {:value :charmed       :icon "arrow-through-heart-fill"}
    {:value :defeaned      :icon "ear-fill"}
    {:value :exhausted     :icon "moon-stars-fill"}
    {:value :frightened    :icon "black-cat"}
    {:value :grappled      :icon "fist"}
-   {:value :incapacitated :icon "emoji-dizzy"}
+   {:value :incapacitated :icon "lock-fill"}
    {:value :invisible     :icon "incognito"}
+   {:value :paralyzed     :icon "lightning-fill"}
    {:value :petrified     :icon "gem"}
    {:value :poisoned      :icon "droplet-fill"}
    {:value :prone         :icon "falling"}
    {:value :restrained    :icon "spiderweb"}
    {:value :stunned       :icon "stars"}
-   {:value :unconscious   :icon "skull"}])
+   {:value :unconscious   :icon "activity"}])
 
 (def ^:private shape-colors
   [{:value "#ffeb3b" :label "Yellow"}
@@ -55,7 +55,9 @@
   (.stopPropagation event))
 
 (defui ^:private context-menu
-  [{:keys [render-toolbar children]}]
+  [{:keys [render-toolbar render-aside children]
+    :or   {render-toolbar (constantly nil)
+           render-aside   (constantly nil)}}]
   (let [[selected set-selected] (use-state nil)
         props {:selected  selected
                :on-change (fn [form]
@@ -63,12 +65,16 @@
                               (set-selected nil)
                               (set-selected form)))}]
     ($ :.context-menu {:on-pointer-down stop-propagation}
-      ($ :.context-menu-toolbar
-        (render-toolbar props))
-      (if selected
-        ($ :.context-menu-form
-          {:class (str "context-menu-form-" (name selected))}
-          (children props))))))
+      ($ :.context-menu-main {:data-expanded (some? selected)}
+        ($ :.context-menu-toolbar
+          (render-toolbar props))
+        (if selected
+          ($ :.context-menu-form
+            {:class (str "context-menu-form-" (name selected))}
+            (children props))))
+      ($ :.context-menu-aside
+        ($ :.context-menu-toolbar
+          (render-aside props))))))
 
 (defui ^:private checkbox
   [{:keys [checked children]}]
@@ -101,10 +107,10 @@
          :ref input-ref
          :value input-val
          :auto-focus true
-         :placeholder "Change token label..."
+         :placeholder "Change token label"
          :on-change #(set-input-val (.. %1 -target -value))})
       ($ :button {:type "submit"}
-        ($ icon {:name "check" :size 22})))))
+        ($ icon {:name "check"})))))
 
 (defui ^:private token-form-details
   [{:keys [on-change values]
@@ -179,7 +185,7 @@
                (fn [event]
                  (let [checked (.. event -target -checked)]
                    ((:on-change props) :token/change-flag value checked)))})
-            ($ icon {:name icon-name :size 22})))))))
+            ($ icon {:name icon-name})))))))
 
 (defui token-context-menu [{:keys [tokens type]}]
   (let [dispatch (use-dispatch)
@@ -198,7 +204,31 @@
                 :data-selected (= selected form)
                 :data-tooltip tooltip
                 :on-click #(on-change form)}
-               ($ icon {:name icon-name :size 22})))
+               ($ icon {:name icon-name})))
+           (let [on (every? (comp vector? :scene/_initiative) tokens)]
+             ($ :button
+               {:type "button"
+                :data-selected on
+                :data-tooltip "Initiative"
+                :on-click #(dispatch :initiative/toggle idxs (not on))}
+               ($ icon {:name "hourglass-split"})))
+           (let [on (every? (comp boolean :player :token/flags) tokens)]
+             ($ :button
+               {:type "button"
+                :data-tooltip "Player"
+                :data-selected on
+                :on-click #(dispatch :token/change-flag idxs :player (not on))}
+               ($ icon {:name "people-fill"})))
+           (let [on (every? (comp boolean :dead :token/flags) tokens)]
+             ($ :button
+               {:type "button"
+                :data-tooltip "Dead"
+                :data-selected on
+                :on-click #(dispatch :token/change-dead idxs (not on))}
+               ($ icon {:name "skull"})))))
+       :render-aside
+       (fn []
+         ($ :<>
            (if (= type :host)
              (let [on (every? (comp boolean :hidden :token/flags) tokens)]
                ($ :button
@@ -206,18 +236,11 @@
                   :data-selected on
                   :data-tooltip (if on "Reveal" "Hide")
                   :on-click #(dispatch :token/change-flag idxs :hidden (not on))}
-                 ($ icon {:name (if on "eye-slash-fill" "eye-fill") :size 22}))))
-           (let [on (every? (comp vector? :scene/_initiative) tokens)]
-             ($ :button
-               {:type "button"
-                :data-selected on
-                :data-tooltip "Initiative"
-                :on-click #(dispatch :initiative/toggle idxs (not on))}
-               ($ icon {:name "hourglass-split" :size 22})))
+                 ($ icon {:name (if on "eye-slash-fill" "eye-fill")}))))
            ($ :button
              {:type "button" :data-tooltip "Remove"
               :on-click #(dispatch :token/remove idxs)}
-             ($ icon {:name "trash3-fill" :size 22}))))}
+             ($ icon {:name "trash3-fill"}))))}
       (fn [{:keys [selected on-change]}]
         (let [props {:on-close  #(on-change nil)
                      :on-change #(apply dispatch %1 idxs %&)
@@ -294,11 +317,13 @@
               :data-selected (= selected :pattern)
               :data-tooltip "Pattern"
               :on-click #(on-change :pattern)}
-             ($ icon {:name "paint-bucket"}))
-           ($ :button
-             {:type "button" :data-tooltip "Remove" :style {:margin-left "auto"}
-              :on-click #(dispatch :element/remove [(:db/id data)])}
-             ($ icon {:name "trash3-fill"}))))}
+             ($ icon {:name "paint-bucket"}))))
+       :render-aside
+       (fn []
+         ($ :button
+           {:type "button" :data-tooltip "Remove" :style {:margin-left "auto"}
+            :on-click #(dispatch :element/remove [(:db/id data)])}
+           ($ icon {:name "trash3-fill"})))}
       (fn [{:keys [selected]}]
         (let [props {:values
                      (fn vs

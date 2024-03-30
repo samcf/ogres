@@ -39,16 +39,16 @@
    :exhausted     "moon-stars-fill"
    :frightened    "black-cat"
    :grappled      "fist"
-   :incapacitated "emoji-dizzy"
+   :incapacitated "lock-fill"
    :initiative    "hourglass-split"
    :invisible     "incognito"
+   :paralyzed     "lightning-fill"
    :petrified     "gem"
-   :player        "people-fill"
    :poisoned      "droplet-fill"
    :prone         "falling"
    :restrained    "spiderweb"
    :stunned       "stars"
-   :unconscious   "skull"})
+   :unconscious   "activity"})
 
 (defn ^:private stop-propagation [event]
   (.stopPropagation event))
@@ -455,16 +455,14 @@
 (defn ^:private token-conditions [data]
   (let [xform (comp (map key) (filter (complement #{:initiative})))
         order (into [:initiative] xform condition->icon)
-        exclu #{:player :hidden :unconscious}]
+        exclu #{:player :hidden :dead}]
     (take 4 (filter (difference (token-flags data) exclu) order))))
 
 (defui ^:private render-token [{:keys [node data]}]
   (let [radii (- (/ grid-size 2) 2)
-        flags (:token/flags data)
         scale (/ (:token/size data) 5)
         hashs (:image/checksum (:token/image data))
-        pttrn (cond (flags :unconscious) (str "token-face-deceased")
-                    (string? hashs)      (str "token-face-" hashs)
+        pttrn (cond (string? hashs)      (str "token-face-" hashs)
                     :else                (str "token-face-default"))]
     ($ :g.scene-token
       {:ref node :id (str "token-" (:db/id data)) :data-flags (token-flags-attr data)}
@@ -508,6 +506,12 @@
   (let [result (use-query query-token-defs)
         tokens (-> result :local/camera :camera/scene :scene/tokens)]
     ($ :defs
+      ($ :filter {:id "token-status-dead" :filterRes 1 :color-interpolation-filters "sRGB"}
+        ($ :feColorMatrix {:in "SourceGraphic" :type "saturate" :values 0 :result "Next"})
+        ($ :feComponentTransfer {:in "Next"}
+          ($ :feFuncR {:type "linear" :slope 0.70})
+          ($ :feFuncG {:type "linear" :slope 0.70})
+          ($ :feFuncB {:type "linear" :slope 0.70})))
       ($ :linearGradient {:id "token-base-player" :x1 0 :y1 0 :x2 1 :y2 1}
         ($ :stop {:style {:stop-color "#fcd34d"} :offset "0%"})
         ($ :stop {:style {:stop-color "#b45309"} :offset "100%"}))
@@ -520,15 +524,6 @@
          :patternContentUnits "objectBoundingBox"}
         ($ :rect {:x -2 :y -2 :width 16 :height 16 :fill "var(--color-blues-700)"})
         ($ icon {:name "dnd" :size 12}))
-      ($ :pattern
-        {:id "token-face-deceased"
-         :style {:color "white"}
-         :width "100%"
-         :height "100%"
-         :viewBox "-2 -2 16 16"
-         :patternContentUnits "objectBoundingBox"}
-        ($ :rect {:x -2 :y -2 :width 16 :height 16 :fill "var(--color-blues-700)"})
-        ($ icon {:name "skull" :size 12}))
       ($ TransitionGroup {:component nil}
         (for [checksum (into #{} (comp (map (comp :image/checksum :token/image)) (filter some?)) tokens)
               :let [node (create-ref)]]

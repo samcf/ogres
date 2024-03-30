@@ -507,6 +507,12 @@
   (for [id idxs]
     {:db/id id :aura/radius radius}))
 
+(defmethod event-tx-fn :token/change-dead
+  [_ _ idxs add?]
+  [[:db.fn/call event-tx-fn :token/change-flag idxs :dead add?]
+   (if add?
+     [:db.fn/call event-tx-fn :initiative/toggle idxs false])])
+
 (defmethod event-tx-fn :shape/create
   [_ _ kind vecs]
   [{:db/id -1 :shape/kind kind :shape/vecs vecs}
