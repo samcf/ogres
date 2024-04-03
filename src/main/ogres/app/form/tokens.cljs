@@ -1,7 +1,7 @@
 (ns ogres.app.form.tokens
   (:require [goog.object :as object :refer [getValueByKeys]]
             [ogres.app.hooks :refer [use-dispatch use-image use-image-uploader use-query]]
-            [ogres.app.render :refer [icon pagination]]
+            [ogres.app.render :refer [icon image pagination]]
             [ogres.app.util :refer [separate comp-fn]]
             [uix.core :as uix :refer [defui $ use-callback use-ref use-state]]
             [uix.dom :refer [create-portal]]
@@ -24,11 +24,6 @@
 
 (def ^:private query-bounds
   [[:bounds/self :default [0 0 0 0]]])
-
-(defui ^:private image
-  [{:keys [checksum children]}]
-  (let [data-url (use-image checksum)]
-    (children {:data-url data-url})))
 
 (defui ^:private draggable
   [{:keys [id children]}]
@@ -55,9 +50,7 @@
          (if (some? active)
            ($ image {:checksum active}
              (fn [{:keys [data-url]}]
-               ($ :.token-gallery-item
-                 {:data-type "image"
-                  :style {:background-image (str "url(" data-url ")")}}))))))
+               ($ :.token-gallery-item {:data-type "image" :style {:background-image (str "url(" data-url ")")}}))))))
      (.querySelector js/document "#root"))))
 
 (defui ^:private gallery [props]

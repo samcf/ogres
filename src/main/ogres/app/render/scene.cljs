@@ -4,8 +4,8 @@
             [goog.object :refer [getValueByKeys]]
             [ogres.app.const :refer [grid-size]]
             [ogres.app.geom :refer [bounding-box chebyshev circle->path poly->path triangle within?]]
-            [ogres.app.hooks :refer [create-portal use-subscribe use-dispatch use-image use-portal use-query]]
-            [ogres.app.render :refer [icon]]
+            [ogres.app.hooks :refer [create-portal use-subscribe use-dispatch use-portal use-query]]
+            [ogres.app.render :refer [icon image]]
             [ogres.app.render.draw :refer [draw]]
             [ogres.app.render.forms :refer [token-context-menu shape-context-menu]]
             [ogres.app.render.pattern :refer [pattern]]
@@ -132,7 +132,6 @@
             height   :image/height
             checksum :image/checksum} :scene/image
            size :scene/grid-size} :camera/scene} :local/camera} result
-        data-url  (use-image checksum)
         transform (str "scale(" (/ grid-size size) ")")]
     ($ :defs
       ($ :filter {:id "scene-image-filter" :filterRes 1 :color-interpolation-filters "sRGB"}
@@ -141,7 +140,10 @@
           ($ :feFuncR {:type "linear" :slope 0.60})
           ($ :feFuncG {:type "linear" :slope 0.60})
           ($ :feFuncB {:type "linear" :slope 0.60})))
-      ($ :image {:id "scene-image"       :x 0 :y 0 :width width :height height :transform transform :href data-url})
+      (if (some? checksum)
+        ($ image {:checksum checksum}
+          (fn [{:keys [data-url]}]
+            ($ :image {:id "scene-image" :x 0 :y 0 :width width :height height :transform transform :href data-url}))))
       ($ :rect  {:id "scene-image-cover" :x 0 :y 0 :width width :height height :transform transform})
       ($ :clipPath {:id "scene-image-clip"}
         ($ :use {:href "#scene-image-cover"})))))
@@ -438,11 +440,6 @@
                           ($ shape-context-menu
                             {:data data}))))))))))))))
 
-(defui ^:private render-token-face
-  [{:keys [checksum]}]
-  (let [url (use-image checksum)]
-    ($ :image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"})))
-
 (defn ^:private token-flags [data]
   (let [{[{turn :initiative/turn}] :scene/_initiative} data]
     (cond-> (:token/flags data)
@@ -534,7 +531,9 @@
                :width "100%"
                :height "100%"
                :patternContentUnits "objectBoundingBox"}
-              ($ render-token-face {:checksum checksum})))))
+              ($ image {:checksum checksum}
+                (fn [{:keys [data-url]}]
+                  ($ :image {:href data-url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"})))))))
       ($ TransitionGroup {:component nil}
         (for [{id :db/id :as data} tokens :let [node (create-ref)]]
           ($ Transition {:key id :nodeRef node :timeout 240}

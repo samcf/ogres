@@ -1,5 +1,6 @@
 (ns ogres.app.render
   (:require [ogres.app.const :refer [PATH]]
+            [ogres.app.hooks :refer [use-image]]
             [ogres.app.provider.storage :refer [initialize]]
             [uix.core :refer [defui $ create-error-boundary use-insertion-effect]]))
 
@@ -46,6 +47,10 @@
                    ($ :li ($ :a {:href "https://github.com/samcf/ogres/wiki"} "Wiki"))
                    ($ :li ($ :a {:href "https://github.com/samcf/ogres/discussions"} "Support")))))))
          children)))))
+
+(defui image [{:keys [checksum children]}]
+  (let [data-url (use-image checksum)]
+    (children {:data-url data-url})))
 
 (defui pagination
   [{:keys [pages value on-change]

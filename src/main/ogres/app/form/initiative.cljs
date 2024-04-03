@@ -1,8 +1,8 @@
 (ns ogres.app.form.initiative
   (:require [clojure.string :refer [join capitalize blank?]]
-            [ogres.app.hooks :refer [use-dispatch use-image use-modal use-query]]
-            [ogres.app.render :refer [icon]]
-            [uix.core :refer [defui $ use-ref]]))
+            [ogres.app.hooks :refer [use-dispatch use-modal use-query]]
+            [ogres.app.render :refer [icon image]]
+            [uix.core :as uix :refer [defui $ use-ref]]))
 
 (def ^:private query-form
   [:local/type
@@ -120,8 +120,7 @@
          label     :token/label
          flags     :token/flags
          suffix    :initiative/suffix
-         {checksum :image/checksum} :token/image} entity
-        data-url (use-image checksum)]
+         {checksum :image/checksum} :token/image} entity]
     ($ :li.initiative-token
       {:data-current (= (:db/id current) (:db/id entity))}
       ($ form-dice
@@ -132,9 +131,11 @@
       ($ :.initiative-token-frame
         {:on-click #(dispatch :element/select id)
          :data-player (contains? flags :player)}
-        (if data-url
-          ($ :.initiative-token-image
-            {:style {:background-image (str "url(" data-url ")")}})
+        (if (some? checksum)
+          ($ image {:checksum checksum}
+            (fn [{:keys [data-url]}]
+              ($ :.initiative-token-image
+                {:style {:background-image (str "url(" data-url ")")}})))
           ($ :.initiative-token-pattern
             ($ icon {:name "dnd" :size 36}))))
       (if suffix

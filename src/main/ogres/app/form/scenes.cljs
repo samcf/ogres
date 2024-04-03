@@ -1,7 +1,7 @@
 (ns ogres.app.form.scenes
   (:require [clojure.string :refer [replace]]
-            [ogres.app.hooks :refer [use-dispatch use-image use-image-uploader use-query]]
-            [ogres.app.render :refer [icon pagination]]
+            [ogres.app.hooks :refer [use-dispatch use-image-uploader use-query]]
+            [ogres.app.render :refer [icon image pagination]]
             [uix.core :as uix :refer [defui $ use-ref use-state]]
             [uix.dom :refer [create-portal]]))
 
@@ -44,11 +44,6 @@
          [:scene/lighting :default :revealed]
          {:scene/image [:image/checksum :image/name]}]}]}]}])
 
-(defui ^:private thumbnail
-  [{:keys [checksum children]}]
-  (let [data-url (use-image checksum)]
-    (children {:data-url data-url})))
-
 (defui form []
   (let [[preview set-preview] (use-state nil)
         dispatch (use-dispatch)
@@ -87,7 +82,7 @@
           ($ :.scene-gallery
             (for [[idx data] pag :let [selected (= (:image/checksum data) (:image/checksum (:scene/image scene)))]]
               (if-let [checksum (:image/checksum data)]
-                ($ thumbnail {:key idx :checksum checksum}
+                ($ image {:key idx :checksum checksum}
                   (fn [{:keys [data-url]}]
                     ($ :fieldset.scene-gallery-thumbnail
                       {:data-type "image" :style {:background-image (str "url(" data-url ")")}}
@@ -157,7 +152,7 @@
               (create-portal
                ($ :.scene-gallery-modal
                  ($ :.scene-gallery-modal-container
-                   ($ thumbnail {:checksum preview}
+                   ($ image {:checksum preview}
                      (fn [{:keys [data-url]}]
                        ($ :figure.scene-gallery-modal-preview
                          {:style {:background-image (str "url(" data-url ")")}}
