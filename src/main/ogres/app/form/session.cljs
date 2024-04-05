@@ -47,6 +47,7 @@
          local :root/local} result]
     (if (#{:connecting :connected :disconnected} state)
       ($ :.form-session.session
+        ($ :header ($ :h2 "Lobby"))
         (if (and (= type :host) (some? code) (seq releases) (not= VERSION (last releases)))
           ($ :div
             ($ :.form-notice {:style {:margin-bottom 16}}
@@ -115,10 +116,12 @@
                       (if (= (:db/id conn) id)
                         ($ :span " ( You )"))))))
               ($ :.prompt "No one else is here.")))))
-      ($ :.prompt
-        "Invite your friends to this virtual tabletop by clicking
-         the 'Start online game' button and sharing the room code
-         or URL with them."))))
+      ($ :<>
+        ($ :header ($ :h2 "Lobby"))
+        ($ :.prompt
+          "Invite your friends to this virtual tabletop by clicking
+           the 'Start online game' button and sharing the room code
+           or URL with them.")))))
 
 (defui footer []
   (let [dispatch (use-dispatch)

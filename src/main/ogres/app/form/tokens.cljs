@@ -123,10 +123,7 @@
     ($ :.form-tokens
       (if (= type :host)
         ($ :<>
-          ($ :.form-notice
-            "Upload images from your computer and pull them onto the scene as
-             tokens. Moving tokens to the public section will make them available
-             for other players in an online game.")
+          ($ :header ($ :h2 "Tokens"))
           ($ :fieldset.fieldset.token-gallery
             {:ref (.-setNodeRef drop-pub) :data-type "host" :data-scope "public"}
             ($ :legend "Public")
@@ -134,9 +131,13 @@
           ($ :fieldset.fieldset.token-gallery
             {:ref (.-setNodeRef drop-prv) :data-type "host" :data-scope "private"}
             ($ :legend "Private")
-            ($ paginated {:data data-prv :limit 20})))
+            ($ paginated {:data data-prv :limit 20}))
+          ($ :.form-notice
+            "Upload images from your computer and pull them onto the scene as
+             tokens. Moving tokens to the public section will make them available
+             for other players in an online game."))
         ($ :<>
-          ($ :.form-notice "Upload images from your computer and pull them onto the scene as tokens.")
+          ($ :header ($ :h2 "Tokens"))
           ($ :fieldset.fieldset.token-gallery
             {:ref (.-setNodeRef drop-pub) :data-type "conn" :data-scope "public"}
             ($ :legend "Tokens")

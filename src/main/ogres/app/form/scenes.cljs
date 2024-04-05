@@ -55,6 +55,7 @@
         [page set-page] (use-state 1)]
     ($ :form.form-scenes
       {:on-submit (fn [event] (.preventDefault event))}
+      ($ :header ($ :h2 "Scene"))
       ($ :fieldset.fieldset
         ($ :legend "Name")
         ($ :input.text.text-ghost

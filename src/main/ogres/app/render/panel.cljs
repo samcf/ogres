@@ -18,7 +18,7 @@
 
 (def ^:private panel-forms
   {:host [:session :scenes :tokens :initiative :help]
-   :conn [:session :tokens :initiative :help]})
+   :conn [:session :tokens :initiative]})
 
 (def ^:private components
   {:help       {:form help/form}
