@@ -82,10 +82,11 @@
     (compare (f b) (f a))))
 
 (defn ^:private random-rolls
-  "Returns a lazy infinite sequence of random integers in the domain of
-   [1, 20]. The first 20 numbers are guaranteed to be unique among each
-   other, as are the next 20, and so on." []
-  (sequence (mapcat shuffle) (repeat (range 1 21))))
+  "Returns a lazy infinite sequence of random integers in the domain
+   of [start, end]. Each group of integers in the domain are guaranteed
+   to be unique among each other."
+  [start end]
+  (sequence (mapcat shuffle) (repeat (range start (inc end)))))
 
 (defn ^:private roll-token? [token]
   (let [{:keys [initiative/roll token/flags]} token]
@@ -660,9 +661,10 @@
 (defmethod event-tx-fn :initiative/roll-all
   [data]
   (let [local (ds/entity data [:db/ident :local])
-        {{{tokens :scene/initiative} :camera/scene} :local/camera} local]
-    (for [[roll token] (zipmap (random-rolls) (filter roll-token? tokens))]
-      {:db/id (:db/id token) :initiative/roll roll})))
+        {{{tokens :scene/initiative} :camera/scene} :local/camera} local
+        idxs (sequence (comp (filter roll-token?) (map :db/id)) tokens)]
+    (for [[id roll] (zipmap idxs (random-rolls 1 20))]
+      {:db/id id :initiative/roll roll})))
 
 (defmethod event-tx-fn :initiative/reset
   [data]
