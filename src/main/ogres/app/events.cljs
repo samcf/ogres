@@ -81,6 +81,17 @@
   (let [f (juxt :initiative/roll :db/id)]
     (compare (f b) (f a))))
 
+(defn ^:private random-rolls
+  "Returns a lazy infinite sequence of random integers in the domain of
+   [1, 20]. The first 20 numbers are guaranteed to be unique among each
+   other, as are the next 20, and so on." []
+  (sequence (mapcat shuffle) (repeat (range 1 21))))
+
+(defn ^:private roll-token? [token]
+  (let [{:keys [initiative/roll token/flags]} token]
+    (and (not (contains? flags :player))
+         (not (number? roll)))))
+
 (defmulti event-tx-fn (fn [_ event] event))
 
 (defmethod event-tx-fn :default [] [])
@@ -648,12 +659,10 @@
 
 (defmethod event-tx-fn :initiative/roll-all
   [data]
-  (let [local  (ds/entity data [:db/ident :local])
-        scene  (:camera/scene (:local/camera local))]
-    (for [token (:scene/initiative scene)
-          :let  [{:keys [db/id token/flags initiative/roll]} token]
-          :when (and (nil? roll) (not (contains? flags :player)))]
-      {:db/id id :initiative/roll (inc (rand-int 20))})))
+  (let [local (ds/entity data [:db/ident :local])
+        {{{tokens :scene/initiative} :camera/scene} :local/camera} local]
+    (for [[roll token] (zipmap (random-rolls) (filter roll-token? tokens))]
+      {:db/id (:db/id token) :initiative/roll roll})))
 
 (defmethod event-tx-fn :initiative/reset
   [data]
