@@ -62,7 +62,7 @@
 
 (def ^:private query
   [[:bounds/self :default [0 0 0 0]]
-   {:local/camera
+   {:user/camera
     [[:camera/scale :default 1]
      [:camera/point :default [0 0]]
      {:camera/scene
@@ -74,7 +74,7 @@
   (let [result (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
-          scale :camera/scale} :local/camera} result
+          scale :camera/scale} :user/camera} result
         [pairs set-pairs] (use-state [])
         [mouse set-mouse] (use-state [])
         [ax ay] pairs
@@ -115,7 +115,7 @@
         result   (use-query query)
         {[ox oy]  :bounds/self
          {[tx ty] :camera/point
-          scale   :camera/scale} :local/camera} result]
+          scale   :camera/scale} :user/camera} result]
     ($ drawable
       {:on-release
        (fn [points]
@@ -129,7 +129,7 @@
 (defui ^:private draw-ruler []
   (let [result (use-query query)
         {[ox oy] :bounds/self
-         {scale  :camera/scale} :local/camera} result]
+         {scale  :camera/scale} :user/camera} result]
     ($ drawable
       {:on-release identity}
       (fn [points]
@@ -146,7 +146,7 @@
         result   (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
-          scale :camera/scale} :local/camera} result]
+          scale :camera/scale} :user/camera} result]
     ($ drawable
       {:on-release
        (fn [points]
@@ -166,7 +166,7 @@
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
           scale   :camera/scale}
-         :local/camera} result]
+         :user/camera} result]
     ($ drawable
       {:on-release
        (fn [points]
@@ -186,7 +186,7 @@
         result   (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
-          scale   :camera/scale} :local/camera} result]
+          scale   :camera/scale} :user/camera} result]
     ($ drawable
       {:on-release
        (fn [points]
@@ -206,7 +206,7 @@
         result   (use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
-          scale   :camera/scale} :local/camera} result]
+          scale   :camera/scale} :user/camera} result]
     ($ drawable
       {:on-release
        (fn [points]
@@ -242,7 +242,7 @@
           scale   :camera/scale
           {prev-size :scene/grid-size
            prev-origin :scene/grid-origin}
-          :camera/scene} :local/camera} (use-query query)
+          :camera/scene} :user/camera} (use-query query)
         [next-origin set-origin] (use-state nil)
         [next-size     set-size] (use-state prev-size)]
     ($ :g.grid-align

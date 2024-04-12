@@ -8,14 +8,14 @@
             [uix.core :refer [defui $]]))
 
 (def ^:private query
-  [[:local/type :default :conn]
-   [:local/status :default :none]
+  [[:user/type :default :conn]
+   [:user/status :default :none]
    [:panel/expanded :default true]])
 
 (defui layout []
   (let [result (use-query query)
-        {type :local/type
-         status :local/status
+        {type :user/type
+         status :user/status
          expanded :panel/expanded} result]
     (case [type status]
       [:host :ready]

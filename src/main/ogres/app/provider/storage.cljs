@@ -6,7 +6,7 @@
              :refer [exportDB importDB peakImportFile]
              :rename {exportDB export-db importDB import-db peakImportFile peek-import-file}]
             [ogres.app.const :refer [VERSION]]
-            [ogres.app.dom :refer [local-type]]
+            [ogres.app.dom :refer [user-type]]
             [ogres.app.provider.events :refer [use-subscribe]]
             [ogres.app.provider.state :as state :refer [use-query]]
             [ogres.app.util :refer [debounce]]
@@ -15,10 +15,10 @@
 (def ^:private context (create-context))
 
 (def ^:private ignored-attrs
-  #{:local/type
-    :local/status
-    :local/privileged?
-    :local/sharing?
+  #{:user/type
+    :user/status
+    :user/privileged?
+    :user/sharing?
     :session/state})
 
 (defn initialize []
@@ -45,7 +45,7 @@
        (ds/listen! conn :marshaller
                    (debounce
                     (fn [{:keys [db-after]}]
-                      (if (= (:local/status (ds/entity db-after [:db/ident :local])) :ready)
+                      (if (= (:user/status (ds/entity db-after [:db/ident :user])) :ready)
                         (-> db-after
                             (ds/db-with [[:db/retract [:db/ident :session] :session/host]
                                          [:db/retract [:db/ident :session] :session/conns]])
@@ -60,8 +60,8 @@
   []
   (let [conn    (use-context state/context)
         store   (use-store)
-        tx-data [[:db/add [:db/ident :local] :local/status :ready]
-                 [:db/add [:db/ident :local] :local/type (local-type)]]]
+        tx-data [[:db/add [:db/ident :user] :user/status :ready]
+                 [:db/add [:db/ident :user] :user/type (user-type)]]]
     (use-effect
      (fn []
        (-> (.table store "app")
@@ -156,7 +156,7 @@
 (defui handlers
   "Registers event handlers related to IndexedDB, such as those involved in
    saving and loading the application state." []
-  (let [{type :local/type} (use-query [:local/type])]
+  (let [{type :user/type} (use-query [:user/type])]
     (case type
       :host ($ :<>
               ($ unmarshaller)

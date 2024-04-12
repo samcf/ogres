@@ -31,8 +31,8 @@
 (def ^:private query
   [{:root/scene-images
     [:image/checksum :image/name :image/size]}
-   {:root/local
-    [{:local/camera
+   {:root/user
+    [{:user/camera
       [:db/id
        :camera/label
        {:camera/scene
@@ -50,8 +50,8 @@
         uploader (use-image-uploader {:type :scene})
         input    (use-ref)
         data     (use-query query [:db/ident :root])
-        {{{scene :camera/scene} :local/camera
-          camera :local/camera} :root/local} data
+        {{{scene :camera/scene} :user/camera
+          camera :user/camera} :root/user} data
         [page set-page] (use-state 1)]
     ($ :form.form-scenes
       {:on-submit (fn [event] (.preventDefault event))}

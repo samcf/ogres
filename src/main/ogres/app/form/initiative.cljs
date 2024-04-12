@@ -5,8 +5,8 @@
             [uix.core :as uix :refer [defui $ use-ref]]))
 
 (def ^:private query-form
-  [:local/type
-   {:local/camera
+  [:user/type
+   {:user/camera
     [{:camera/scene
       [:db/id
        :initiative/rounds
@@ -23,7 +23,7 @@
          {:token/image [:image/checksum]}]}]}]}])
 
 (def ^:private query-footer
-  [{:local/camera
+  [{:user/camera
     [{:camera/scene
       [{:scene/initiative
         [:db/id :initiative/roll :token/flags]}
@@ -111,10 +111,10 @@
 (defui ^:private token
   [{:keys [context entity]}]
   (let [dispatch (use-dispatch)
-        {type :local/type
+        {type :user/type
          {{curr :initiative/turn
            went :initiative/played}
-          :camera/scene} :local/camera} context
+          :camera/scene} :user/camera} context
         {id        :db/id
          label     :token/label
          flags     :token/flags
@@ -189,7 +189,7 @@
         result (use-query query-form)
         {{{tokens :scene/initiative
            rounds :initiative/rounds} :camera/scene}
-         :local/camera} result]
+         :user/camera} result]
     ($ :.initiative
       ($ :header
         ($ :h2 "Initiative")
@@ -223,7 +223,7 @@
            played :initiative/played
            tokens :scene/initiative}
           :camera/scene}
-         :local/camera} result
+         :user/camera} result
         on-quit (uix/use-callback #(dispatch :initiative/leave) [dispatch])
         on-next (uix/use-callback #(dispatch :initiative/next) [dispatch])]
     ($ :<>

@@ -82,10 +82,10 @@
             "y" (/ dy scale)}))))
 
 (def ^:private invert-drag-data-xf
-  (comp (filter (comp seq :local/dragging))
-        (mapcat (fn [local]
-                  (map (juxt :db/id (constantly local))
-                       (:local/dragging local))))))
+  (comp (filter (comp seq :user/dragging))
+        (mapcat (fn [user]
+                  (map (juxt :db/id (constantly user))
+                       (:user/dragging user))))))
 
 (defn ^:private dragged-by-fn [name keys]
   (fn [dict]
@@ -120,7 +120,7 @@
     (children options)))
 
 (def ^:private query-image-defs
-  [{:local/camera
+  [{:user/camera
     [{:camera/scene
       [[:scene/grid-size :default 70]
        [:scene/lighting :default :revealed]
@@ -131,7 +131,7 @@
         {{{{width    :image/width
             height   :image/height
             checksum :image/checksum} :scene/image
-           size :scene/grid-size} :camera/scene} :local/camera} result
+           size :scene/grid-size} :camera/scene} :user/camera} result
         transform (str "scale(" (/ grid-size size) ")")]
     ($ :defs
       ($ :filter {:id "scene-image-filter" :filterRes 1 :color-interpolation-filters "sRGB"}
@@ -149,8 +149,8 @@
         ($ :use {:href "#scene-image-cover"})))))
 
 (def ^:private query-mask-defs
-  [:local/type
-   {:local/camera
+  [:user/type
+   {:user/camera
     [{:camera/scene
       [[:scene/masked :default false]
        [:scene/lighting :default :revealed]
@@ -166,11 +166,11 @@
 
 (defui ^:private render-mask-defs []
   (let [result (use-query query-mask-defs)
-        {user :local/type
+        {user :user/type
          {{tokens :scene/tokens
            masks  :scene/masks
            light  :scene/lighting
-           masked :scene/masked} :camera/scene} :local/camera} result]
+           masked :scene/masked} :camera/scene} :user/camera} result]
     ($ :defs
       ($ pattern {:id "mask-pattern" :name :crosses})
       ($ :path {:id "masks-path" :d (transduce mask-area-xf poly->path masks)})
@@ -241,8 +241,8 @@
             ($ :use {:href "#masks-path"})))))))
 
 (def ^:private query-mask-polys
-  [[:local/type :default :host]
-   {:local/camera
+  [[:user/type :default :host]
+   {:user/camera
     [[:camera/draw-mode :default :select]
      {:camera/scene
       [{:scene/masks
@@ -253,9 +253,9 @@
 (defui ^:private render-mask-polys []
   (let [dispatch (use-dispatch)
         result   (use-query query-mask-polys)
-        {user :local/type
+        {user :user/type
          {{masks :scene/masks} :camera/scene
-          draw-mode :camera/draw-mode} :local/camera} result
+          draw-mode :camera/draw-mode} :user/camera} result
         modes #{:mask :mask-toggle :mask-remove}]
     ($ :g.scene-mask-polys {:id "masks-polys"}
       (for [{id :db/id vecs :mask/vecs enabled? :mask/enabled?} masks
@@ -273,7 +273,7 @@
 
 (def ^:private query-grid
   [[:bounds/self :default [0 0 0 0]]
-   {:local/camera
+   {:user/camera
     [[:camera/point :default [0 0]]
      [:camera/scale :default 1]
      {:camera/scene
@@ -284,7 +284,7 @@
         {[_ _ w h] :bounds/self
          {[cx cy] :camera/point
           scale   :camera/scale
-          scene   :camera/scene} :local/camera} data
+          scene   :camera/scene} :user/camera} data
         wd (/ w scale)
         ht (/ h scale)
         ax (+ (* wd -3) cx)
@@ -355,9 +355,9 @@
        :poly   ($ render-shape-poly props)))))
 
 (def ^:private query-shapes
-  [{:root/local
-    [:local/type
-     {:local/camera
+  [{:root/user
+    [:user/type
+     {:user/camera
       [:db/id
        :camera/selected
        [:camera/scale :default 1]
@@ -371,16 +371,16 @@
            [:shape/pattern :default :solid]]}]}]}]}
    {:root/session
     [{:session/conns
-      [:local/uuid :local/color :local/dragging]}]}])
+      [:user/uuid :user/color :user/dragging]}]}])
 
 (defui ^:private render-shapes []
   (let [dispatch (use-dispatch)
         result   (use-query query-shapes [:db/ident :root])
         [dragged-by set-dragged-by] (use-state {})
-        {{type :local/type
+        {{type :user/type
           {scale :camera/scale
            selected :camera/selected
-           {shapes :scene/shapes} :camera/scene} :local/camera} :root/local
+           {shapes :scene/shapes} :camera/scene} :user/camera} :root/user
          {conns :session/conns} :root/session} result
         selected (into #{} (map :db/id) selected)
         dragging (into {} invert-drag-data-xf conns)
@@ -413,7 +413,7 @@
                   selected? (contains? selected id)
                   owner     (dragging id)]]
         ($ use-portal {:key id :name (if (and user? selected?) :selected)}
-          ($ render-live {:owner (:local/uuid owner) :ox sx :oy sy}
+          ($ render-live {:owner (:user/uuid owner) :ox sx :oy sy}
             (fn [rx ry]
               ($ render-drag {:id id :class "shape" :idxs (list id) :disabled (some? owner)}
                 (fn [options]
@@ -426,7 +426,7 @@
                        :class (str "scene-shape-" (name (:shape/kind data)))
                        :transform (str "translate(" tx ", " ty ")")
                        :on-pointer-down (or (getValueByKeys options "listeners" "onPointerDown") stop-propagation)
-                       :data-color (:local/color owner)
+                       :data-color (:user/color owner)
                        :data-dragging (or (some? owner) (.-isDragging options))
                        :data-dragged-by (get dragged-by id "none")
                        :data-selected selected?}
@@ -484,8 +484,8 @@
         ($ :circle.scene-token-ring {:cx 0 :cy 0 :style {:r radius}})))))
 
 (def ^:private query-token-defs
-  [[:local/type :default :host]
-   {:local/camera
+  [[:user/type :default :host]
+   {:user/camera
     [{:camera/scene
       [{:scene/tokens
         [:db/id
@@ -501,7 +501,7 @@
 
 (defui render-token-defs []
   (let [result (use-query query-token-defs)
-        tokens (-> result :local/camera :camera/scene :scene/tokens)]
+        tokens (-> result :user/camera :camera/scene :scene/tokens)]
     ($ :defs
       ($ :filter {:id "token-status-dead" :filterRes 1 :color-interpolation-filters "sRGB"}
         ($ :feColorMatrix {:in "SourceGraphic" :type "saturate" :values 0 :result "Next"})
@@ -540,10 +540,10 @@
             ($ render-token {:node node :data data})))))))
 
 (def ^:private query-tokens
-  [{:root/local
-    [:local/type
+  [{:root/user
+    [:user/type
      [:bounds/self :default [0 0 0 0]]
-     {:local/camera
+     {:user/camera
       [:db/id
        :camera/selected
        [:camera/scale :default 1]
@@ -563,12 +563,12 @@
            {:scene/_initiative [:db/id :initiative/turn]}]}]}]}]
     :root/session
     [{:session/conns
-      [:local/uuid :local/color :local/dragging]}]}])
+      [:user/uuid :user/color :user/dragging]}]}])
 
 (defui ^:private render-tokens []
   (let [dispatch (use-dispatch)
         result   (use-query query-tokens [:db/ident :root])
-        {{type :local/type
+        {{type :user/type
           [_ _ bw bh] :bounds/self
           {scale :camera/scale
            [cx cy] :camera/point
@@ -576,7 +576,7 @@
            {[ox oy] :scene/grid-origin
             tokens :scene/tokens
             align? :scene/grid-align}
-           :camera/scene} :local/camera} :root/local
+           :camera/scene} :user/camera} :root/user
          {conns :session/conns} :root/session} result
         ox        (mod ox grid-size)
         oy        (mod oy grid-size)
@@ -628,7 +628,7 @@
               (if (not (selected? id))
                 (let [owner (dragging id)
                       focus (within? tx ty [cx cy (+ (/ bw scale) cx) (+ (/ bh scale) cy)])]
-                  ($ render-live {:owner (:local/uuid owner) :ox tx :oy ty}
+                  ($ render-live {:owner (:user/uuid owner) :ox tx :oy ty}
                     (fn [rx ry]
                       ($ render-drag {:id id :idxs (list id) :class "token" :disabled (some? owner)}
                         (fn [options]
@@ -650,7 +650,7 @@
                                  :tab-index        (if focus 0 -1)
                                  :data-id          id
                                  :data-type        "token"
-                                 :data-color       (:local/color owner)
+                                 :data-color       (:user/color owner)
                                  :data-drag-local  (.-isDragging options)
                                  :data-drag-remote (some? owner)
                                  :on-pointer-down  (or (getValueByKeys options "listeners" "onPointerDown") stop-propagation)}
@@ -674,7 +674,7 @@
                     ($ CSSTransition {:key id :nodeRef node :timeout 240}
                       ($ :g.scene-token-transition {:ref node}
                         (if (selected? id)
-                          ($ render-live {:owner (:local/uuid owner) :ox tx :oy ty}
+                          ($ render-live {:owner (:user/uuid owner) :ox tx :oy ty}
                             (fn [rx ry]
                               ($ :<>
                                 (if (and align? (.-isDragging options) (or (not= dx 0) (not= dy 0)))
@@ -692,7 +692,7 @@
                                   {:transform        (str "translate(" (+ tx rx) ", " (+ ty ry) ")")
                                    :data-id          id
                                    :data-type        "token"
-                                   :data-color       (:local/color owner)
+                                   :data-color       (:user/color owner)
                                    :data-drag-local  (.-isDragging options)
                                    :data-drag-remote (some? owner)}
                                   ($ :use {:href (str "#token-" id)}))))))))))
@@ -714,19 +714,19 @@
       ($ :rect {:x 0 :y 0 :width vw :height vh :rx 8}))))
 
 (def ^:private cursors-query
-  [{:root/local [{:local/camera [:camera/scene]}]}
+  [{:root/user [{:user/camera [:camera/scene]}]}
    {:root/session
     [[:session/share-cursors :default true]
-     {:session/host [:local/uuid]}
+     {:session/host [:user/uuid]}
      {:session/conns
-      [:local/uuid
-       [:local/share-cursor :default true]
-       [:local/color :default "none"]
-       {:local/camera [:camera/scene]}]}]}])
+      [:user/uuid
+       [:user/share-cursor :default true]
+       [:user/color :default "none"]
+       {:user/camera [:camera/scene]}]}]}])
 
 (defui ^:private render-cursors []
   (let [result (use-query cursors-query [:db/ident :root])
-        conns  (key-by :local/uuid (:session/conns (:root/session result)))
+        conns  (key-by :user/uuid (:session/conns (:root/session result)))
         share  (:session/share-cursors (:root/session result))
         host   (:session/host (:root/session result))
         [points set-points] (use-state {})]
@@ -739,12 +739,12 @@
         (for [[uuid [x y]] points
               :let [conn (conns uuid)]
               :when (and (some? conn)
-                         (:local/share-cursor conn)
-                         (= (:camera/scene (:local/camera conn))
-                            (:camera/scene (:local/camera (:root/local result)))))]
-          ($ use-portal {:key uuid :name (if (= (:local/uuid host) (:local/uuid conn)) :host-cursor)}
+                         (:user/share-cursor conn)
+                         (= (:camera/scene (:user/camera conn))
+                            (:camera/scene (:user/camera (:root/user result)))))]
+          ($ use-portal {:key uuid :name (if (= (:user/uuid host) (:user/uuid conn)) :host-cursor)}
             ($ :g.scene-cursor
-              {:transform (str "translate(" (- x 3) ", " (- y 3) ")") :data-color (:local/color conn)}
+              {:transform (str "translate(" (- x 3) ", " (- y 3) ")") :data-color (:user/color conn)}
               ($ icon {:name "cursor-fill" :size 28}))))))))
 
 (defui ^:private scene-camera-draggable
@@ -852,11 +852,11 @@
        ($ render-mask-polys)))))
 
 (def ^:private query-scene
-  [:local/type
-   [:local/privileged? :default false]
+  [:user/type
+   [:user/privileged? :default false]
    [:bounds/host :default [0 0 0 0]]
    [:bounds/view :default [0 0 0 0]]
-   {:local/camera
+   {:user/camera
     [:db/id
      [:camera/point :default [0 0]]
      [:camera/scale :default 1]
@@ -870,14 +870,14 @@
 (defui render-scene []
   (let [dispatch (use-dispatch)
         result   (use-query query-scene)
-        {user        :local/type
+        {user        :user/type
          [_ _ hw hh] :bounds/host
          [_ _ vw vh] :bounds/view
          {id      :db/id
           scene   :camera/scene
           scale   :camera/scale
           mode    :camera/draw-mode
-          [cx cy] :camera/point} :local/camera} result
+          [cx cy] :camera/point} :user/camera} result
         cx (if (= user :view) (->> (- hw vw) (max 0) (* (/ -1 2 scale)) (- cx)) cx)
         cy (if (= user :view) (->> (- hh vh) (max 0) (* (/ -1 2 scale)) (- cy)) cy)
         multi-select? (use-key "shift")]
@@ -909,4 +909,4 @@
       (if (contains? draw-modes mode)
         ($ :g.scene-drawable {:class (str "scene-drawable-" (name mode))}
           ($ draw {:key mode :mode mode :node nil})))
-      (if (:local/privileged? result) ($ render-bounds)))))
+      (if (:user/privileged? result) ($ render-bounds)))))

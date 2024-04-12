@@ -17,8 +17,8 @@
   (str "Are you sure you want to remove '" (render-scene-name camera) "'?"))
 
 (def ^:private query
-  [:local/camera
-   {:local/cameras
+  [:user/camera
+   {:user/cameras
     [:db/id
      :camera/label
      {:camera/scene
@@ -26,8 +26,8 @@
 
 (defui scenes []
   (let [dispatch (use-dispatch)
-        {current :local/camera
-         cameras :local/cameras} (use-query query)]
+        {current :user/camera
+         cameras :user/cameras} (use-query query)]
     (use-shortcut ["delete" "backspace"]
       (use-callback
        (fn [event]

@@ -28,14 +28,14 @@
    :tokens     {:form tokens/form :footer tokens/footer}})
 
 (def ^:private query
-  [[:local/type :default :conn]
+  [[:user/type :default :conn]
    [:panel/selected :default :session]
    [:panel/expanded :default true]])
 
 (defui container []
   (let [dispatch (use-dispatch)
         result   (use-query query)
-        {type :local/type
+        {type :user/type
          selected :panel/selected
          expanded :panel/expanded} result
         forms (panel-forms type)]
@@ -57,10 +57,10 @@
                  :name "panel"
                  :value key
                  :checked (and expanded selected)
-                 :on-change #(dispatch :local/select-panel key)})
+                 :on-change #(dispatch :user/select-panel key)})
               ($ icon {:name (:icon data) :size 20}))))
         ($ :li.panel-tabs-control
-          {:role "tab" :on-click #(dispatch :local/toggle-panel)}
+          {:role "tab" :on-click #(dispatch :user/toggle-panel)}
           ($ :button {:type "button" :aria-label "Collapse or expand"}
             ($ icon {:name (if expanded "chevron-double-right" "chevron-double-left")}))))
       (if expanded

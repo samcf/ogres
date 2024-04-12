@@ -41,10 +41,10 @@
 
 (def ^:private query
   [:session/_host
-   :local/clipboard
-   [:local/type :default :conn]
-   [:local/sharing? :default false]
-   {:local/camera
+   :user/clipboard
+   [:user/type :default :conn]
+   [:user/sharing? :default false]
+   {:user/camera
     [{:camera/selected [:scene/_tokens]}
      [:camera/draw-mode :default :select]
      [:camera/scale :default 1]]}])
@@ -53,11 +53,11 @@
   (let [[focused set-focused] (use-state nil)
         dispatch  (use-dispatch)
         result    (use-query query)
-        {type      :local/type
-         share?    :local/sharing?
+        {type      :user/type
+         share?    :user/sharing?
          {scale    :camera/scale
           mode     :camera/draw-mode
-          selected :camera/selected} :local/camera} result
+          selected :camera/selected} :user/camera} result
         copyable (some (comp-fn contains? identity :scene/_tokens) selected)
         on-focus (use-callback
                   (fn [event]
@@ -88,7 +88,7 @@
           ($ icon {:name "scissors"}))
         ($ action {:name "copy-copy" :aria-disabled (nil? copyable)}
           ($ icon {:name "files"}))
-        ($ action {:name "copy-paste" :aria-disabled (nil? (:local/clipboard result))}
+        ($ action {:name "copy-paste" :aria-disabled (nil? (:user/clipboard result))}
           ($ icon {:name "clipboard2-plus"}))
         ($ action {:name "scene-ruler" :aria-pressed (= mode :ruler)}
           ($ icon {:name "rulers"}))

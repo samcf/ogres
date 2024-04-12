@@ -96,28 +96,28 @@
           is used to decide what the top-level rendering mode is in order
           to, for example, render an error page when a WebSocket connection
           has failed."}
-  event-tx-fn :local/change-status
+  event-tx-fn :user/change-status
   [_ _ status]
-  [{:db/ident :local :local/status status}])
+  [{:db/ident :user :user/status status}])
 
 (defmethod
   ^{:doc "Change the selected panel to the keyword given by `panel`."}
-  event-tx-fn :local/select-panel
+  event-tx-fn :user/select-panel
   [_ _ panel]
-  [{:db/ident :local :panel/selected panel :panel/expanded true}])
+  [{:db/ident :user :panel/selected panel :panel/expanded true}])
 
 (defmethod
   ^{:doc "Toggle the expanded state of the panel."}
-  event-tx-fn :local/toggle-panel
+  event-tx-fn :user/toggle-panel
   [data]
-  (let [local (ds/entity data [:db/ident :local])]
-    [{:db/ident :local :panel/expanded (not (get local :panel/expanded true))}]))
+  (let [user (ds/entity data [:db/ident :user])]
+    [{:db/ident :user :panel/expanded (not (get user :panel/expanded true))}]))
 
 ;; -- Camera --
 (defn ^:private assoc-camera
   [data & kvs]
-  (let [local (ds/entity data [:db/ident :local])]
-    [(apply assoc {:db/id (:db/id (:local/camera local))} kvs)]))
+  (let [user (ds/entity data [:db/ident :user])]
+    [(apply assoc {:db/id (:db/id (:user/camera user))} kvs)]))
 
 (defmethod
   ^{:doc "Changes the public label for the current camera."}
@@ -129,17 +129,17 @@
   ^{:doc "Removes the public label for the current camera."}
   event-tx-fn :camera/remove-label
   [data]
-  (let [local (ds/entity data [:db/ident :local])]
-    [[:db/retract (:db/id (:local/camera local)) :camera/label]]))
+  (let [user (ds/entity data [:db/ident :user])]
+    [[:db/retract (:db/id (:user/camera user)) :camera/label]]))
 
 (defmethod
   ^{:doc "Translate the current camera by the offset given by dx and dy."}
   event-tx-fn :camera/translate
   [data _ dx dy]
-  (let [local (ds/entity data [:db/ident :local])
+  (let [user (ds/entity data [:db/ident :user])
         {[cx cy] :camera/point
-         scale :camera/scale} (:local/camera local)]
-    [{:db/id (:db/id (:local/camera local))
+         scale :camera/scale} (:user/camera user)]
+    [{:db/id (:db/id (:user/camera user))
       :camera/point
       [(round (+ (or cx 0) (/ dx (or scale 1))))
        (round (+ (or cy 0) (/ dy (or scale 1))))]}]))
@@ -151,9 +151,9 @@
           between two points."}
   event-tx-fn :camera/change-mode
   [data _ mode]
-  (let [local (ds/entity data [:db/ident :local])]
-    (if (mode-allowed? mode (:local/type local))
-      [{:db/id (:db/id (:local/camera local)) :camera/draw-mode mode}]
+  (let [user (ds/entity data [:db/ident :user])]
+    (if (mode-allowed? mode (:user/type user))
+      [{:db/id (:db/id (:user/camera user)) :camera/draw-mode mode}]
       [])))
 
 (defmethod
@@ -164,14 +164,14 @@
           they are zooming in or out from their cursor."}
   event-tx-fn :camera/zoom-change
   ([data event & args]
-   (let [local (ds/entity data [:db/ident :local])]
+   (let [user (ds/entity data [:db/ident :user])]
      (case (count args)
        0 [[:db.fn/call event-tx-fn event 1]]
        1 (let [[scale] args
-               [_ _ w h] (or (:bounds/self local) [0 0 0 0])]
+               [_ _ w h] (or (:bounds/self user) [0 0 0 0])]
            [[:db.fn/call event-tx-fn event scale (/ w 2) (/ h 2)]])
        (let [[scale x y] args
-             camera  (:local/camera local)
+             camera  (:user/camera user)
              [cx cy] (or (:camera/point camera) [0 0])
              prev    (or (:camera/scale camera) 1)
              fx      (/ scale prev)
@@ -187,15 +187,15 @@
           that uses fine grained updates such as a mousewheel or a trackpad."}
   event-tx-fn :camera/zoom-delta
   [data _ mx my delta trackpad?]
-  (let [local   (ds/entity data [:db/ident :local])
-        [ox oy] (or (:bounds/self local) [0 0 0 0])
-        scale   (linear -400 400 -0.50 0.50)
-        delta   (if trackpad? (scale (* -1 8 delta)) (scale (* -1 2 delta)))
-        zoomx   (- mx ox)
-        zoomy   (- my oy)
-        zoomz   (-> (:camera/scale (:local/camera local)) (or 1)
-                    (js/Math.log) (+ delta) (js/Math.exp)
-                    (to-precision 2) (constrain 0.15 4))]
+  (let [user (ds/entity data [:db/ident :user])
+        [ox oy] (or (:bounds/self user) [0 0 0 0])
+        scale (linear -400 400 -0.50 0.50)
+        delta (if trackpad? (scale (* -1 8 delta)) (scale (* -1 2 delta)))
+        zoomx (- mx ox)
+        zoomy (- my oy)
+        zoomz (-> (:camera/scale (:user/camera user)) (or 1)
+                  (js/Math.log) (+ delta) (js/Math.exp)
+                  (to-precision 2) (constrain 0.15 4))]
     [[:db.fn/call event-tx-fn :camera/zoom-change zoomz zoomx zoomy]]))
 
 (defmethod
@@ -204,8 +204,8 @@
           constant."}
   event-tx-fn :camera/zoom-in
   [data]
-  (let [local  (ds/entity data [:db/ident :local])
-        camera (:local/camera local)
+  (let [user   (ds/entity data [:db/ident :user])
+        camera (:user/camera user)
         prev   (or (:camera/scale camera) 1)
         next   (reduce (fn [n s] (if (> s prev) (reduced s) n)) prev zoom-scales)]
     [[:db.fn/call event-tx-fn :camera/zoom-change next]]))
@@ -216,8 +216,8 @@
           internal constant."}
   event-tx-fn :camera/zoom-out
   [data]
-  (let [local  (ds/entity data [:db/ident :local])
-        camera (:local/camera local)
+  (let [user   (ds/entity data [:db/ident :user])
+        camera (:user/camera user)
         prev   (or (:camera/scale camera) 1)
         next   (reduce (fn [n s] (if (< s prev) (reduced s) n)) prev (reverse zoom-scales))]
     [[:db.fn/call event-tx-fn :camera/zoom-change next]]))
@@ -237,16 +237,16 @@
   []
   [{:db/ident    :root
     :root/scenes {:db/id -1 :db/empty true}
-    :root/local
-    {:db/ident :local
-     :local/camera -2
-     :local/cameras {:db/id -2 :camera/scene -1}}}])
+    :root/user
+    {:db/ident :user
+     :user/camera -2
+     :user/cameras {:db/id -2 :camera/scene -1}}}])
 
 (defmethod
   ^{:doc "Switches to the given scene by the given camera identifier."}
   event-tx-fn :scenes/change
   [_ _ id]
-  [{:db/ident :local :local/camera id}])
+  [{:db/ident :user :user/camera id}])
 
 (defmethod
   ^{:doc "Removes the scene and corresponding camera for the local user. Also
@@ -255,40 +255,40 @@
   event-tx-fn :scenes/remove
   [data _ id]
   (let [camera  (ds/entity data id)
-        local   (ds/entity data [:db/ident :local])
+        user    (ds/entity data [:db/ident :user])
         session (ds/entity data [:db/ident :session])]
     (cond
-      (= (count (:local/cameras local)) 1)
+      (= (count (:user/cameras user)) 1)
       (into [[:db/retractEntity (:db/id camera)]
              [:db/retractEntity (:db/id (:camera/scene camera))]
              {:db/ident :root
               :root/scenes {:db/id -2 :db/empty true}
-              :root/local
-              {:db/ident :local
-               :local/camera -1
-               :local/cameras {:db/id -1 :camera/scene -2}}}]
+              :root/user
+              {:db/ident :user
+               :user/camera -1
+               :user/cameras {:db/id -1 :camera/scene -2}}}]
             (for [[idx conn] (sequence (indexed 3 2) (:session/conns session))]
               {:db/id (:db/id conn)
-               :local/camera idx
-               :local/cameras
+               :user/camera idx
+               :user/cameras
                {:db/id idx
                 :camera/scene -2
                 :camera/point [0 0]
                 :camera/scale 1}}))
-      (= id (:db/id (:local/camera local)))
-      (let [host-cam (first (filter (comp-fn not= :db/id id) (:local/cameras local)))
+      (= id (:db/id (:user/camera user)))
+      (let [host-cam (first (filter (comp-fn not= :db/id id) (:user/cameras user)))
             host-scn (:db/id (:camera/scene host-cam))]
         (into [[:db/retractEntity (:db/id camera)]
                [:db/retractEntity (:db/id (:camera/scene camera))]
-               {:db/ident :local :local/camera {:db/id (:db/id host-cam)}}]
+               {:db/ident :user :user/camera {:db/id (:db/id host-cam)}}]
               (for [[tmp conn] (sequence (indexed) (:session/conns session))
-                    :let [cam (->> (:local/cameras conn)
+                    :let [cam (->> (:user/cameras conn)
                                    (filter (comp-fn = (comp :db/id :camera/scene) host-scn))
                                    (first))
                           idx (or (:db/id cam) tmp)]]
                 {:db/id (:db/id conn)
-                 :local/camera idx
-                 :local/cameras
+                 :user/camera idx
+                 :user/cameras
                  {:db/id idx
                   :camera/scene host-scn
                   :camera/point [0 0]
@@ -321,8 +321,8 @@
 ;; -- Scene --
 (defn ^:private assoc-scene
   [data & kvs]
-  (let [local (ds/entity data [:db/ident :local])
-        scene (:db/id (:camera/scene (:local/camera local)))]
+  (let [user (ds/entity data [:db/ident :user])
+        scene (:db/id (:camera/scene (:user/camera user)))]
     [(apply assoc {:db/id scene} kvs)]))
 
 (defmethod
@@ -342,11 +342,11 @@
   ^{:doc "Applies both a grid origin and tile size to the current scene."}
   event-tx-fn :scene/apply-grid-options
   [data _ origin size]
-  (let [local (ds/entity data [:db/ident :local])]
-    [{:db/id (:db/id (:local/camera local))
+  (let [user (ds/entity data [:db/ident :user])]
+    [{:db/id (:db/id (:user/camera user))
       :camera/draw-mode :select
       :camera/scene
-      {:db/id (:db/id (:camera/scene (:local/camera local)))
+      {:db/id (:db/id (:camera/scene (:user/camera user)))
        :scene/grid-size size
        :scene/grid-origin origin}}]))
 
@@ -354,8 +354,8 @@
   ^{:doc "Resets the grid origin to (0, 0)."}
   event-tx-fn :scene/reset-grid-origin
   [data]
-  (let [local (ds/entity data [:db/ident :local])
-        scene (:db/id (:camera/scene (:local/camera local)))]
+  (let [user (ds/entity data [:db/ident :user])
+        scene (:db/id (:camera/scene (:user/camera user)))]
     [[:db.fn/call assoc-camera :camera/draw-mode :select]
      [:db/retract scene :scene/grid-origin]]))
 
@@ -364,8 +364,8 @@
           revert to their defaults."}
   event-tx-fn :scene/retract-grid-size
   [data]
-  (let [local (ds/entity data [:db/ident :local])
-        scene (:db/id (:camera/scene (:local/camera local)))]
+  (let [user (ds/entity data [:db/ident :user])
+        scene (:db/id (:camera/scene (:user/camera user)))]
     [[:db/retract scene :scene/grid-size]]))
 
 (defmethod
@@ -401,11 +401,11 @@
   ([_ event id]
    [[:db.fn/call event-tx-fn event id false]])
   ([data _ id shift?]
-   (let [local    (ds/entity data [:db/ident :local])
-         entity   (ds/entity data id)
-         camera   (:db/id (:local/camera local))
-         selected (contains? (:camera/selected (:local/camera local)) entity)]
-     [[:db/retract [:db/ident :local] :local/dragging]
+   (let [user (ds/entity data [:db/ident :user])
+         entity (ds/entity data id)
+         camera (:db/id (:user/camera user))
+         selected (contains? (:camera/selected (:user/camera user)) entity)]
+     [[:db/retract [:db/ident :user] :user/dragging]
       (if (not shift?)
         [:db/retract camera :camera/selected])
       (if (and shift? selected)
@@ -423,12 +423,12 @@
           scene coordinate space."}
   event-tx-fn :token/create
   [data _ sx sy checksum]
-  (let [local (ds/entity data [:db/ident :local])
+  (let [user (ds/entity data [:db/ident :user])
         {{[cx cy] :camera/point
           scale :camera/scale
           {align? :scene/grid-align
            [ox oy] :scene/grid-origin}
-          :camera/scene} :local/camera} local
+          :camera/scene} :user/camera} user
         tx (+ (/ sx (or scale 1)) (or cx 0))
         ty (+ (/ sy (or scale 1)) (or cy 0))]
     [{:db/id -1
@@ -438,12 +438,12 @@
          (round-grid ty (/ grid-size 2) (mod oy grid-size))]
         [(round tx) (round ty)])
       :token/image (if (some? checksum) {:image/checksum checksum} {})
-      :local/camera
-      {:db/id (:db/id (:local/camera local))
+      :user/camera
+      {:db/id (:db/id (:user/camera user))
        :camera/selected -1
        :camera/draw-mode :select
        :camera/scene
-       {:db/id (:db/id (:camera/scene (:local/camera local)))
+       {:db/id (:db/id (:camera/scene (:user/camera user)))
         :scene/tokens -1}}}]))
 
 (defmethod event-tx-fn :token/remove
@@ -458,10 +458,10 @@
 (defmethod event-tx-fn :token/translate-all
   [data _ idxs dx dy]
   (let [tokens (ds/pull-many data [:db/id :token/point [:token/size :default 5]] idxs)
-        local  (ds/entity data [:db/ident :local])
+        user   (ds/entity data [:db/ident :user])
         {{{[ox oy] :scene/grid-origin align? :scene/grid-align}
-          :camera/scene} :local/camera} local]
-    (into [[:db/retract [:db/ident :local] :local/dragging]]
+          :camera/scene} :user/camera} user]
+    (into [[:db/retract [:db/ident :user] :user/dragging]]
           (for [{id :db/id size :token/size [tx ty] :token/point} tokens]
             {:db/id id :token/point
              (if align?
@@ -472,8 +472,8 @@
 
 (defmethod event-tx-fn :token/translate-selected
   [data _ dx dy]
-  (let [local (ds/entity data [:db/ident :local])
-        idxs  (map :db/id (:camera/selected (:local/camera local)))]
+  (let [user (ds/entity data [:db/ident :user])
+        idxs (map :db/id (:camera/selected (:user/camera user)))]
     (if (seq idxs)
       [[:db.fn/call event-tx-fn :token/translate-all idxs dx dy]]
       [])))
@@ -528,53 +528,53 @@
          vecs    :shape/vecs} result
         x (round (+ ax dx))
         y (round (+ ay dy))]
-    [[:db/retract [:db/ident :local] :local/dragging]
+    [[:db/retract [:db/ident :user] :user/dragging]
      {:db/id id :shape/vecs (into [x y] (trans-xf (- x ax) (- y ay)) vecs)}]))
 
 (defmethod event-tx-fn :share/initiate [] [])
 
 (defmethod event-tx-fn :share/toggle
   [data _ open?]
-  (let [local (ds/entity data [:db/ident :local])]
-    [{:db/ident          :local
-      :local/sharing?    open?
-      :local/privileged? (and (= (:local/type local) :host) open?)}]))
+  (let [user (ds/entity data [:db/ident :user])]
+    [{:db/ident :user
+      :user/sharing? open?
+      :user/privileged? (and (= (:user/type user) :host) open?)}]))
 
 (defmethod event-tx-fn :bounds/change
   [data _ w-type bounds]
-  (let [local (ds/entity data [:db/ident :local])]
-    [[:db/add -1 :db/ident :local]
-     (if (= w-type (:local/type local))
+  (let [user (ds/entity data [:db/ident :user])]
+    [[:db/add -1 :db/ident :user]
+     (if (= w-type (:user/type user))
        [:db/add -1 :bounds/self bounds])
      [:db/add -1 (keyword :bounds w-type) bounds]]))
 
 (defmethod event-tx-fn :selection/from-rect
   [data _ [ax ay bx by]]
   (let [root  (ds/entity data [:db/ident :root])
-        local (:root/local root)
+        user  (:root/user root)
         bound (bounding-box [ax ay] [bx by])
-        owned (into #{} (comp (mapcat :local/dragging) (map :db/id))
+        owned (into #{} (comp (mapcat :user/dragging) (map :db/id))
                     (:session/conns (:root/session root)))]
-    [{:db/id (:db/id (:local/camera local))
+    [{:db/id (:db/id (:user/camera user))
       :camera/draw-mode :select
       :camera/selected
-      (for [token (:scene/tokens (:camera/scene (:local/camera local)))
+      (for [token (:scene/tokens (:camera/scene (:user/camera user)))
             :let  [{id :db/id [x y] :token/point flags :token/flags} token]
             :when (and (within? x y bound)
                        (not (owned id))
-                       (or (= (:local/type local) :host)
+                       (or (= (:user/type user) :host)
                            (not ((or flags #{}) :hidden))))]
         {:db/id id})}]))
 
 (defmethod event-tx-fn :selection/clear
   [data]
-  (let [local (ds/entity data [:db/ident :local])]
-    [[:db/retract (:db/id (:local/camera local)) :camera/selected]]))
+  (let [user (ds/entity data [:db/ident :user])]
+    [[:db/retract (:db/id (:user/camera user)) :camera/selected]]))
 
 (defmethod event-tx-fn :selection/remove
   [data]
-  (let [local (ds/entity data [:db/ident :local])
-        type  (->> (:camera/selected (:local/camera local))
+  (let [user (ds/entity data [:db/ident :user])
+        type  (->> (:camera/selected (:user/camera user))
                    (group-by (fn [x] (cond (:scene/_tokens x) :token (:scene/_shapes x) :shape)))
                    (first))]
     (case (first type)
@@ -584,8 +584,8 @@
 
 (defmethod event-tx-fn :initiative/toggle
   [data _ idxs adding?]
-  (let [local  (ds/entity data [:db/ident :local])
-        scene  (:db/id (:camera/scene (:local/camera local)))
+  (let [user   (ds/entity data [:db/ident :user])
+        scene  (:db/id (:camera/scene (:user/camera user)))
         select [:db/id {:token/image [:image/checksum]} [:token/flags :default #{}] :initiative/suffix :token/label]
         result (ds/pull data [{:scene/initiative select}] scene)
         change (into #{} (ds/pull-many data select idxs))
@@ -609,8 +609,8 @@
 
 (defmethod event-tx-fn :initiative/next
   [data]
-  (let [local (ds/entity data [:db/ident :local])
-        scene (:camera/scene (:local/camera local))
+  (let [user (ds/entity data [:db/ident :user])
+        scene (:camera/scene (:user/camera user))
         {rounds :initiative/rounds
          tokens :scene/initiative
          played :initiative/played} scene]
@@ -631,8 +631,8 @@
 
 (defmethod event-tx-fn :initiative/mark
   [data _ id]
-  (let [local (ds/entity data [:db/ident :local])
-        scene (:camera/scene (:local/camera local))]
+  (let [user (ds/entity data [:db/ident :user])
+        scene (:camera/scene (:user/camera user))]
     [{:db/id (:db/id scene)
       :initiative/turn {:db/id id}
       :initiative/played {:db/id id}
@@ -640,8 +640,8 @@
 
 (defmethod event-tx-fn :initiative/unmark
   [data _ id]
-  (let [local (ds/entity data [:db/ident :local])
-        scene (:camera/scene (:local/camera local))]
+  (let [user (ds/entity data [:db/ident :user])
+        scene (:camera/scene (:user/camera user))]
     [[:db/retract (:db/id scene) :initiative/played id]
      (if (= (:db/id (:initiative/turn scene)) id)
        [:db/retract (:db/id scene) :initiative/turn])]))
@@ -662,8 +662,8 @@
 
 (defmethod event-tx-fn :initiative/roll-all
   [data]
-  (let [local (ds/entity data [:db/ident :local])
-        {{{tokens :scene/initiative} :camera/scene} :local/camera} local
+  (let [user (ds/entity data [:db/ident :user])
+        {{{tokens :scene/initiative} :camera/scene} :user/camera} user
         idxs (sequence (comp (filter roll-token?) (map :db/id)) tokens)]
     (for [[id roll] (zipmap idxs (random-rolls 1 20))]
       {:db/id id :initiative/roll roll})))
@@ -677,8 +677,8 @@
 
 (defmethod event-tx-fn :initiative/leave
   [data]
-  (let [local (ds/entity data [:db/ident :local])
-        scene (:camera/scene (:local/camera local))]
+  (let [user (ds/entity data [:db/ident :user])
+        scene (:camera/scene (:user/camera user))]
     (apply concat
            [[:db/retract (:db/id scene) :scene/initiative]
             [:db/retract (:db/id scene) :initiative/turn]
@@ -758,21 +758,21 @@
   []
   [{:db/ident :root :root/session
     {:db/ident :session :session/host
-     {:db/ident :local :session/state :connecting :panel/selected :session}}}])
+     {:db/ident :user :session/state :connecting :panel/selected :session}}}])
 
 (defmethod
   ^{:doc "Attempts to join an existing online session through the server. This
           transaction only updates the connection status of the local user."}
   event-tx-fn :session/join
   []
-  [{:db/ident :local :session/state :connecting}])
+  [{:db/ident :user :session/state :connecting}])
 
 (defmethod
   ^{:doc "Destroys the existing online session, pruning it and all player
           user state."}
   event-tx-fn :session/close
   []
-  [{:db/ident :local :session/state :disconnected}
+  [{:db/ident :user :session/state :disconnected}
    [:db/retract [:db/ident :session] :session/host]
    [:db/retract [:db/ident :session] :session/conns]])
 
@@ -782,7 +782,7 @@
           server connection."}
   event-tx-fn :session/disconnected
   []
-  [{:db/ident :local :session/state :disconnected}
+  [{:db/ident :user :session/state :disconnected}
    [:db/retract [:db/ident :session] :session/host]
    [:db/retract [:db/ident :session] :session/conns]])
 
@@ -798,7 +798,7 @@
           to other players in the session."}
   event-tx-fn :session/toggle-share-my-cursor
   [_ _ enabled]
-  [{:db/ident :local :local/share-cursor enabled}])
+  [{:db/ident :user :user/share-cursor enabled}])
 
 (defmethod
   ^{:doc "Updates the current scene, camera position, and zoom level of all
@@ -807,18 +807,18 @@
   event-tx-fn :session/focus
   [data]
   (let [select-w [:camera/scene [:camera/point :default [0 0]] [:camera/scale :default 1]]
-        select-l [:db/id [:bounds/self :default [0 0 0 0]] {:local/cameras [:camera/scene] :local/camera select-w}]
+        select-l [:db/id [:bounds/self :default [0 0 0 0]] {:user/cameras [:camera/scene] :user/camera select-w}]
         select-s [{:session/host select-l} {:session/conns select-l}]
         result   (ds/pull data select-s [:db/ident :session])
         {{[_ _ hw hh] :bounds/self
-          {[hx hy] :camera/point} :local/camera
-          host :local/camera} :session/host
+          {[hx hy] :camera/point} :user/camera
+          host :user/camera} :session/host
          conns :session/conns} result
         scale (:camera/scale host)
         mx (+ (/ hw scale 2) hx)
         my (+ (/ hh scale 2) hy)]
     (->> (for [[next conn] (sequence (indexed) conns)
-               :let [exst (->> (:local/cameras conn)
+               :let [exst (->> (:user/cameras conn)
                                (filter (fn [conn]
                                          (= (:db/id (:camera/scene conn))
                                             (:db/id (:camera/scene host)))))
@@ -828,7 +828,7 @@
                      [_ _ cw ch] (:bounds/self conn)
                      cx (- mx (/ cw scale 2))
                      cy (- my (/ ch scale 2))]]
-           [{:db/id (:db/id conn) :local/camera prev :local/cameras prev}
+           [{:db/id (:db/id conn) :user/camera prev :user/cameras prev}
             {:db/id prev
              :camera/point [cx cy]
              :camera/scale scale
@@ -849,22 +849,22 @@
    [[:db.fn/call event-tx-fn event false]])
   ([data _ cut?]
    (let [attrs  [:db/id :token/label :token/flags :token/light :token/size :aura/radius :token/image :token/point]
-         select [{:local/camera [{:camera/selected (into attrs [:scene/_tokens {:token/image [:image/checksum]}])}]}]
-         result (ds/pull data select [:db/ident :local])
-         tokens (filter (comp-fn contains? identity :scene/_tokens) (:camera/selected (:local/camera result)))
+         select [{:user/camera [{:camera/selected (into attrs [:scene/_tokens {:token/image [:image/checksum]}])}]}]
+         result (ds/pull data select [:db/ident :user])
+         tokens (filter (comp-fn contains? identity :scene/_tokens) (:camera/selected (:user/camera result)))
          copies (into [] (map (comp-fn select-keys identity attrs)) tokens)]
      (cond-> []
        (seq tokens)
-       (into [{:db/ident :local :local/clipboard copies}])
+       (into [{:db/ident :user :user/clipboard copies}])
        (and (seq tokens) cut?)
        (into (for [{id :db/id} tokens]
                [:db/retractEntity id]))))))
 
 (def ^:private clipboard-paste-select
-  [{:root/local
-    [[:local/clipboard :default []]
+  [{:root/user
+    [[:user/clipboard :default []]
      [:bounds/self :default [0 0 0 0]]
-     {:local/camera
+     {:user/camera
       [:db/id
        [:camera/scale :default 1]
        [:camera/point :default [0 0]]
@@ -882,14 +882,14 @@
   event-tx-fn :clipboard/paste
   [data]
   (let [result (ds/pull data clipboard-paste-select [:db/ident :root])
-        {{clipboard :local/clipboard
+        {{clipboard :user/clipboard
           [_ _ sw sh] :bounds/self
           {camera :db/id
            scale :camera/scale
            [cx cy] :camera/point
            {scene :db/id
             align? :scene/grid-align
-            [gx gy] :scene/grid-origin} :camera/scene} :local/camera} :root/local
+            [gx gy] :scene/grid-origin} :camera/scene} :user/camera} :root/user
          images :root/token-images} result
         hashes (into #{} (map :image/checksum) images)
         [ax ay bx by] (apply bounding-box (map :token/point clipboard))
@@ -922,8 +922,8 @@
           selections and changing the mode to `select`."}
   event-tx-fn :shortcut/escape
   [data]
-  (let [local (ds/entity data [:db/ident :local])
-        id   (:db/id (:local/camera local))]
+  (let [user (ds/entity data [:db/ident :user])
+        id   (:db/id (:user/camera user))]
     [{:db/id id :camera/draw-mode :select}
      [:db/retract id :camera/selected]]))
 
@@ -932,10 +932,10 @@
   ^{:doc "User has started dragging one or more scene objects."}
   event-tx-fn :drag/start
   [_ _ ids]
-  [{:db/ident :local :local/dragging ids}])
+  [{:db/ident :user :user/dragging ids}])
 
 (defmethod
   ^{:doc "User has ended all dragging."}
   event-tx-fn :drag/end
   []
-  [[:db/retract [:db/ident :local] :local/dragging]])
+  [[:db/retract [:db/ident :user] :user/dragging]])

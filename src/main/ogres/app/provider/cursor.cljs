@@ -4,7 +4,7 @@
 
 (def ^:private handler-query
   [[:bounds/self :default [0 0 0 0]]
-   {:local/camera
+   {:user/camera
     [[:camera/scale :default 1]
      [:camera/point :default [0 0]]]}])
 
@@ -13,7 +13,7 @@
         result  (use-query handler-query)
         {[sx sy] :bounds/self
          {[cx cy] :camera/point
-          scale :camera/scale} :local/camera} result]
+          scale :camera/scale} :user/camera} result]
     (use-event-listener js/window "pointermove"
       (use-callback
        (fn [event]

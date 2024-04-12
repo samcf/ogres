@@ -1,6 +1,6 @@
 (ns ogres.app.dom)
 
-(defn local-type []
+(defn user-type []
   (let [search (.. js/window -location -search)
         params (js/URLSearchParams. search)]
     (cond (= (.get params "share") "true") :view

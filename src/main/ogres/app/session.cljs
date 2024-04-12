@@ -21,7 +21,7 @@
 (defn ^:private next-color [data colors]
   (let [session (ds/entity data [:db/ident :session])
         conns   (:session/conns session)
-        taken   (into #{} (map :local/color) conns)]
+        taken   (into #{} (map :user/color) conns)]
     (or (first (filter (complement taken) colors))
         (first (shuffle colors)))))
 
@@ -29,16 +29,16 @@
   [{:root/session
     [{:session/host
       [:db/id
-       {:local/camera
+       {:user/camera
         [:camera/scene]}]}]}])
 
 (defn ^:private merge-initial-state
   "Returns a new DataScript database with the current local state `prev` mixed
    into the incoming initial state `next`."
   [next prev]
-  (let [prev-local  (ds/entity prev [:db/ident :local])
-        next-local  (ds/entity next [:local/uuid (:local/uuid prev-local)])
-        prev-camera (:local/camera prev-local)
+  (let [prev-user   (ds/entity prev [:db/ident :user])
+        next-user   (ds/entity next [:user/uuid (:user/uuid prev-user)])
+        prev-camera (:user/camera prev-user)
 
         {{{host :db/id} :session/host} :root/session}
         (ds/pull next merge-query [:db/ident :root])
@@ -49,22 +49,22 @@
 
                ;; Selectively merge parts of the previous local entity into the
                ;; next local entity.
-               {:db/id       (:db/id next-local)
-                :db/ident    :local
-                :bounds/self (or (:bounds/self prev-local) [0 0 0 0])}
+               {:db/id (:db/id next-user)
+                :db/ident :user
+                :bounds/self (or (:bounds/self prev-user) [0 0 0 0])}
 
                ;; Replace host as the local user, swap places in session
                ;; connections.
-               [:db/retract [:db/ident :session] :session/conns (:db/id next-local)]
-               {:db/ident     :root
-                :root/local   (:db/id next-local)
+               [:db/retract [:db/ident :session] :session/conns (:db/id next-user)]
+               {:db/ident :root
+                :root/user (:db/id next-user)
                 :root/session {:db/ident :session :session/conns host}}]
 
               ;; Maintain local camera state when reconnecting and starting
               ;; with a camera that references the same scene.
-              (if (= (:db/id (:camera/scene (:local/camera prev-local)))
-                     (:db/id (:camera/scene (:local/camera next-local))))
-                [{:db/id (:db/id (:local/camera next-local))
+              (if (= (:db/id (:camera/scene (:user/camera prev-user)))
+                     (:db/id (:camera/scene (:user/camera next-user))))
+                [{:db/id (:db/id (:user/camera next-user))
                   :camera/point (or (:camera/point prev-camera) [0 0])
                   :camera/scale (or (:camera/scale prev-camera) 1)}]
                 []))]
@@ -86,46 +86,46 @@
     :session/created
     (ds/transact!
      conn
-     [[:db/add [:db/ident :local] :local/uuid (:uuid data)]
-      [:db/add [:db/ident :local] :session/state :connected]
-      [:db/add [:db/ident :local] :session/last-room (:room data)]
+     [[:db/add [:db/ident :user] :user/uuid (:uuid data)]
+      [:db/add [:db/ident :user] :session/state :connected]
+      [:db/add [:db/ident :user] :session/last-room (:room data)]
       [:db/add [:db/ident :session] :session/room (:room data)]])
 
     :session/joined
     (ds/transact!
      conn
-     [[:db/add [:db/ident :local] :local/uuid (:uuid data)]
-      [:db/add [:db/ident :local] :session/state :connected]])
+     [[:db/add [:db/ident :user] :user/uuid (:uuid data)]
+      [:db/add [:db/ident :user] :session/state :connected]])
 
     :session/join
-    (let [local   (ds/entity @conn [:db/ident :local])
+    (let [user (ds/entity @conn [:db/ident :user])
           tx-data
-          [[:db/add -1 :local/uuid (:uuid data)]
-           [:db/add -1 :local/type :conn]
+          [[:db/add -1 :user/uuid (:uuid data)]
+           [:db/add -1 :user/type :conn]
            [:db/add -1 :panel/selected :session]
            [:db/add [:db/ident :session] :session/conns -1]]
 
           tx-data-addtl
-          (if (= (:local/type local) :host)
-            [[:db/add -1 :local/uuid (:uuid data)]
-             [:db/add -1 :local/type :conn]
-             [:db/add -1 :local/status :ready]
-             [:db/add -1 :local/color (next-color @conn color-options)]
+          (if (= (:user/type user) :host)
+            [[:db/add -1 :user/uuid (:uuid data)]
+             [:db/add -1 :user/type :conn]
+             [:db/add -1 :user/status :ready]
+             [:db/add -1 :user/color (next-color @conn color-options)]
              [:db/add -1 :session/state :connected]
-             [:db/add -1 :local/camera -2]
-             [:db/add -1 :local/cameras -2]
-             [:db/add -2 :camera/scene (-> local :local/camera :camera/scene :db/id)]
-             [:db/add -2 :camera/point (or (-> local :local/camera :camera/point) [0 0])]
-             [:db/add -2 :camera/scale (or (-> local :local/camera :camera/scale) 1)]]
+             [:db/add -1 :user/camera -2]
+             [:db/add -1 :user/cameras -2]
+             [:db/add -2 :camera/scene (-> user :user/camera :camera/scene :db/id)]
+             [:db/add -2 :camera/point (or (-> user :user/camera :camera/point) [0 0])]
+             [:db/add -2 :camera/scale (or (-> user :user/camera :camera/scale) 1)]]
             [])
           report (ds/transact! conn (into tx-data tx-data-addtl))]
-      (if (= (:local/type local) :host)
+      (if (= (:user/type user) :host)
         (let [datoms (ds/datoms (:db-after report) :eavt)]
           (on-send {:type :datoms :data (into [] datoms) :dst (:uuid data)})
           (on-send {:type :tx :data tx-data-addtl}))))
 
     :session/leave
-    (ds/transact! conn [[:db/retractEntity [:local/uuid (:uuid data)]]])
+    (ds/transact! conn [[:db/retractEntity [:user/uuid (:uuid data)]]])
 
     :image/request
     (-> (.get (.table store "images") (:checksum data))
@@ -163,8 +163,8 @@
   (let [data-url (:data message)
         checksum (create-checksum data-url)
         record   #js {:checksum checksum :data-url data-url :created-at (js/Date.now)}
-        entity   (ds/entity (ds/db conn) [:db/ident :local])]
-    (if (= (:local/type entity) :host)
+        entity   (ds/entity (ds/db conn) [:db/ident :user])]
+    (if (= (:user/type entity) :host)
       ;; The host has received an image from another connection. This is
       ;; inferred as another connection in the session uploading a token
       ;; image. Put the image into local storage, update state, and publish
@@ -192,8 +192,8 @@
                   (fn [message]
                     (if (some? socket)
                       (if (= (.-readyState socket) 1)
-                        (let [local    (ds/entity @conn [:db/ident :local])
-                              defaults {:time (js/Date.now) :src (:local/uuid local)}]
+                        (let [user (ds/entity @conn [:db/ident :user])
+                              defaults {:time (js/Date.now) :src (:user/uuid user)}]
                           (->> (merge defaults message)
                                (transit/write writer)
                                (.send socket)))))) ^:lint/disable [socket])]
@@ -202,9 +202,9 @@
     ;; query parameter in the URL.
     (use-effect
      (fn []
-       (let [local (ds/entity @conn [:db/ident :local])
-             state (:session/state local)
-             type  (:local/type local)]
+       (let [user (ds/entity @conn [:db/ident :user])
+             state (:session/state user)
+             type (:user/type user)]
          (if (and (= type :conn) (or (nil? state) (= state :initial)))
            (dispatch :session/join)))) [conn dispatch])
 
@@ -212,9 +212,9 @@
     (use-interval
      (use-callback
       (fn []
-        (let [local (ds/entity @conn [:db/ident :local])]
-          (if (and (= (:local/type local) :conn)
-                   (= (:session/state local) :disconnected))
+        (let [user (ds/entity @conn [:db/ident :user])]
+          (if (and (= (:user/type user) :conn)
+                   (= (:session/state user) :disconnected))
             (dispatch :session/join)))) [conn dispatch]) interval-reconnect)
 
     ;; Periodically send heartbeat messages to keep the session connections
@@ -223,9 +223,9 @@
     (use-interval
      (use-callback
       (fn []
-        (let [local (ds/entity @conn [:db/ident :local])]
-          (if (and (= (:local/type local) :host)
-                   (= (:session/state local) :connected))
+        (let [user (ds/entity @conn [:db/ident :user])]
+          (if (and (= (:user/type user) :host)
+                   (= (:session/state user) :connected))
             (dispatch :session/heartbeat)))) [conn dispatch]), interval-heartbeat)
 
     ;; Subscribe to requests to create a new session, creating a WebSocket
@@ -233,7 +233,7 @@
     (use-subscribe :session/request
       (use-callback
        (fn []
-         (let [host (ds/entity @conn [:db/ident :local])
+         (let [host (ds/entity @conn [:db/ident :user])
                conn (js/WebSocket.
                      (if (:session/last-room host)
                        (str SOCKET-URL "?host=" (:session/last-room host))
@@ -276,14 +276,14 @@
     (use-subscribe :image/create
       (use-callback
        (fn [{[type data] :args}]
-         (let [{{kind :local/type} :root/local
+         (let [{{kind :user/type} :root/user
                 {host :session/host} :root/session}
                (ds/entity (ds/db conn) [:db/ident :root])]
            (case [kind type]
              [:host :token] (dispatch :tokens/create data :private)
              [:host :scene] (dispatch :scene-images/create data)
              ([:conn :token] [:conn :scene])
-             (on-send {:type :image :dst (:local/uuid host) :data (:data-url data)})))) [conn dispatch on-send]))
+             (on-send {:type :image :dst (:user/uuid host) :data (:data-url data)})))) [conn dispatch on-send]))
 
     ;; Subscribe to requests for image data from other non-host connections
     ;; and reply with the appropriate image data in the form of a data URL.
@@ -291,7 +291,7 @@
       (use-callback
        (fn [{[checksum] :args}]
          (let [session (ds/entity @conn [:db/ident :session])]
-           (if-let [host (-> session :session/host :local/uuid)]
+           (if-let [host (-> session :session/host :user/uuid)]
              (let [data {:name :image/request :checksum checksum}]
                (on-send {:type :event :dst host :data data}))))) [conn on-send]))
 
@@ -322,9 +322,9 @@
     (use-event-listener socket "error"
       (use-callback
        (fn []
-         (let [local (ds/entity (ds/db conn) [:db/ident :local])]
-           (if (= (:local/type local) :conn)
-             (dispatch :local/change-status :disconnected)))) [conn dispatch]))
+         (let [user (ds/entity (ds/db conn) [:db/ident :user])]
+           (if (= (:user/type user) :conn)
+             (dispatch :user/change-status :disconnected)))) [conn dispatch]))
 
     ;; Listen to the "message" event on the WebSocket object and forward the
     ;; event details to the appropriate handler.

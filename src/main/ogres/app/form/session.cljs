@@ -7,23 +7,23 @@
             [uix.core :refer [defui $ use-context]]))
 
 (def ^:private query-footer
-  [{:root/local
-    [[:local/type :default :conn]
+  [{:root/user
+    [[:user/type :default :conn]
      [:session/state :default :initial]]}
    {:root/session [:session/room]}])
 
 (def ^:private query-form
-  [{:root/local
+  [{:root/user
     [:db/id
-     :local/uuid
-     :local/type
-     :local/color
+     :user/uuid
+     :user/type
+     :user/color
      [:session/state :default :initial]
-     [:local/share-cursor :default true]]}
+     [:user/share-cursor :default true]]}
    {:root/session
     [:session/room
-     {:session/conns [:db/id :local/uuid :local/color :local/type]}
-     {:session/host [:db/id :local/uuid :local/color]}
+     {:session/conns [:db/id :user/uuid :user/color :user/type]}
+     {:session/host [:db/id :user/uuid :user/color]}
      [:session/share-cursors :default true]]}])
 
 (defn ^:private session-url [room-key]
@@ -40,11 +40,11 @@
           host    :session/host
           conns   :session/conns
           cursors :session/share-cursors} :root/session
-         {share :local/share-cursor
+         {share :user/share-cursor
           state :session/state
-          type  :local/type
-          id    :db/id} :root/local
-         local :root/local} result]
+          type  :user/type
+          id    :db/id} :root/user
+         user :root/user} result]
     (if (#{:connecting :connected :disconnected} state)
       ($ :.form-session.session
         ($ :header ($ :h2 "Lobby"))
@@ -99,7 +99,7 @@
           ($ :.session-players
             (if host
               ($ :.session-player
-                ($ :.session-player-color {:data-color (:local/color host)})
+                ($ :.session-player-color {:data-color (:user/color host)})
                 ($ :.session-player-label "Host"
                   (if (= (:db/id host) id)
                     ($ :span " ( You )"))))
@@ -108,10 +108,10 @@
           ($ :legend (str "Players"))
           ($ :.session-players
             (if (seq conns)
-              (let [xf (filter (comp-fn = :local/type :conn))]
-                (for [conn (->> (conj conns local) (sequence xf) (sort-by :db/id))]
+              (let [xf (filter (comp-fn = :user/type :conn))]
+                (for [conn (->> (conj conns user) (sequence xf) (sort-by :db/id))]
                   ($ :.session-player {:key (:db/id conn)}
-                    ($ :.session-player-color {:data-color (:local/color conn)})
+                    ($ :.session-player-color {:data-color (:user/color conn)})
                     ($ :.session-player-label "Friend"
                       (if (= (:db/id conn) id)
                         ($ :span " ( You )"))))))
@@ -126,7 +126,7 @@
 (defui footer []
   (let [dispatch (use-dispatch)
         result   (use-query query-footer [:db/ident :root])
-        {{state :session/state type :local/type} :root/local
+        {{state :session/state type :user/type} :root/user
          {room-key :session/room} :root/session} result]
     ($ :<>
       ($ :button.button.button-primary

@@ -14,13 +14,13 @@
                       useDroppable  use-droppable}]))
 
 (def ^:private query-footer
-  [{:root/local [:local/type]}
+  [{:root/user [:user/type]}
    {:root/token-images [:image/checksum]}])
 
 (def ^:private query-form
   [{:root/token-images [:image/name :image/checksum :image/scope]}
-   {:root/local
-    [[:local/type :default :conn]]}])
+   {:root/user
+    [[:user/type :default :conn]]}])
 
 (def ^:private query-bounds
   [[:bounds/self :default [0 0 0 0]]])
@@ -114,7 +114,7 @@
 (defui tokens []
   (let [result (use-query query-form [:db/ident :root])
         {data :root/token-images
-         {type :local/type} :root/local} result
+         {type :user/type} :root/user} result
         [pub prv] (separate (comp-fn = :image/scope :public) data)
         data-pub  (into [:default] (reverse pub))
         data-prv  (vec (reverse prv))
@@ -145,7 +145,7 @@
 
 (defui form []
   (let [dispatch (use-dispatch)
-        results  (use-query query-bounds [:db/ident :local])
+        results  (use-query query-bounds [:db/ident :user])
         {[bx by bw bh] :bounds/self} results
         on-create
         (use-callback
@@ -183,7 +183,7 @@
 (defui footer []
   (let [dispatch (use-dispatch)
         result   (use-query query-footer [:db/ident :root])
-        {{type :local/type} :root/local
+        {{type :user/type} :root/user
          images :root/token-images} result
         images   (sequence (map :image/checksum) images)
         upload   (use-image-uploader {:type :token})
