@@ -1,6 +1,6 @@
 (ns ogres.app.events
   (:require [datascript.core :as ds]
-            [clojure.set :refer [union]]
+            [clojure.set :refer [union difference]]
             [clojure.string :refer [trim]]
             [ogres.app.const :refer [grid-size]]
             [ogres.app.geom :refer [bounding-box within?]]
@@ -14,13 +14,6 @@
 
 (defn ^:private linear [dx dy rx ry]
   (fn [n] (+ (* (/ (- n dx) (- dy dx)) (- ry rx)) rx)))
-
-(defn ^:private find-next
-  "Finds the element in the given collection which passes the given predicate
-   and returns the element that appears after it. Returns nil if no element
-   passes the predicate or if the element found is the last in the collection."
-  [pred xs]
-  (first (next (drop-while (complement pred) xs))))
 
 (defn ^:private indexed
   "Returns a transducer which decorates each element with a decreasing
@@ -454,17 +447,9 @@
         :scene/tokens -1}}}]))
 
 (defmethod event-tx-fn :token/remove
-  [data _ idxs]
-  (let [local (ds/entity data [:db/ident :local])
-        scene (:camera/scene (:local/camera local))
-        idxs (set idxs)
-        curr (->> (:initiative/turn scene) :db/id)
-        tkns (->> (:scene/initiative scene) (sort initiative-order) (map :db/id))
-        tkfn (complement (partial contains? (disj idxs curr)))
-        next (->> (filter tkfn tkns) (find-next (partial = curr)))
-        data {:db/id (:db/id scene) :initiative/turn (if-let [id (or next (first tkns))] {:db/id id} {})}]
-    (cond-> (for [id idxs] [:db/retractEntity id])
-      (contains? idxs curr) (conj data))))
+  [_ _ idxs]
+  (for [id idxs]
+    [:db/retractEntity id]))
 
 (defmethod event-tx-fn :token/translate
   [_ _ id dx dy]
@@ -619,30 +604,47 @@
               [[:db/retract id :initiative/suffix]
                [:db/retract id :initiative/roll]
                [:db/retract id :initiative/health]
-               [:db/retract scene :scene/initiative id]])))))
+               [:db/retract scene :scene/initiative id]
+               [:db/retract scene :initiative/played id]])))))
 
 (defmethod event-tx-fn :initiative/next
   [data]
   (let [local (ds/entity data [:db/ident :local])
         scene (:camera/scene (:local/camera local))
-        {curr :initiative/turn
-         trns :initiative/turns
-         rnds :initiative/rounds
-         tkns :scene/initiative} scene
-        tkns (map :db/id (sort initiative-order tkns))]
-    (if (nil? rnds)
-      [{:db/id (:db/id scene)
-        :initiative/turn {:db/id (first tkns)}
-        :initiative/turns 0
-        :initiative/rounds 1}]
-      (if-let [next (find-next (partial = (:db/id curr)) tkns)]
+        {rounds :initiative/rounds
+         tokens :scene/initiative
+         played :initiative/played} scene]
+    (if (some? rounds)
+      (let [[next] (sort initiative-order (difference tokens played))]
+        (if (some? next)
+          [{:db/id (:db/id scene)
+            :initiative/turn (:db/id next)
+            :initiative/played (:db/id next)}]
+          [[:db/retract (:db/id scene) :initiative/played]
+           [:db/retract (:db/id scene) :initiative/turn]
+           {:db/id (:db/id scene) :initiative/rounds (inc rounds)}]))
+      (let [[next] (sort initiative-order tokens)]
         [{:db/id (:db/id scene)
-          :initiative/turn next
-          :initiative/turns (inc trns)}]
-        [{:db/id (:db/id scene)
-          :initiative/turn (first tkns)
-          :initiative/turns (inc trns)
-          :initiative/rounds (inc rnds)}]))))
+          :initiative/turn {:db/id (:db/id next)}
+          :initiative/played {:db/id (:db/id next)}
+          :initiative/rounds 1}]))))
+
+(defmethod event-tx-fn :initiative/mark
+  [data _ id]
+  (let [local (ds/entity data [:db/ident :local])
+        scene (:camera/scene (:local/camera local))]
+    [{:db/id (:db/id scene)
+      :initiative/turn {:db/id id}
+      :initiative/played {:db/id id}
+      :initiative/rounds (max (:initiative/rounds scene) 1)}]))
+
+(defmethod event-tx-fn :initiative/unmark
+  [data _ id]
+  (let [local (ds/entity data [:db/ident :local])
+        scene (:camera/scene (:local/camera local))]
+    [[:db/retract (:db/id scene) :initiative/played id]
+     (if (= (:db/id (:initiative/turn scene)) id)
+       [:db/retract (:db/id scene) :initiative/turn])]))
 
 (defmethod event-tx-fn :initiative/change-roll
   [_ _ id roll]
@@ -666,17 +668,6 @@
     (for [[id roll] (zipmap idxs (random-rolls 1 20))]
       {:db/id id :initiative/roll roll})))
 
-(defmethod event-tx-fn :initiative/reset
-  [data]
-  (let [local (ds/entity data [:db/ident :local])
-        scene (:camera/scene (:local/camera local))]
-    (->> (for [token (:scene/initiative scene)
-               :let [{id :db/id} token]]
-           [[:db/retract id :initiative/roll]])
-         (into [[:db/retract (:db/id scene) :initiative/turn]
-                [:db/retract (:db/id scene) :initiative/turns]
-                [:db/retract (:db/id scene) :initiative/rounds]] cat))))
-
 (defmethod event-tx-fn :initiative/change-health
   [data _ id f value]
   (let [parsed (.parseFloat js/window value)]
@@ -691,7 +682,7 @@
     (apply concat
            [[:db/retract (:db/id scene) :scene/initiative]
             [:db/retract (:db/id scene) :initiative/turn]
-            [:db/retract (:db/id scene) :initiative/turns]
+            [:db/retract (:db/id scene) :initiative/played]
             [:db/retract (:db/id scene) :initiative/rounds]]
            (for [{id :db/id} (:scene/initiative scene)]
              [[:db/retract id :initiative/roll]

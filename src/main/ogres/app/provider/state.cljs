@@ -25,7 +25,8 @@
    :scene/shapes      {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :scene/tokens      {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :token/image       {:db/valueType :db.type/ref}
-   :initiative/turn   {:db/valueType :db.type/ref}})
+   :initiative/turn   {:db/valueType :db.type/ref}
+   :initiative/played {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}})
 
 (defn initial-data [type]
   (ds/db-with
