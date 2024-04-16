@@ -431,20 +431,18 @@
           :camera/scene} :user/camera} user
         tx (+ (/ sx (or scale 1)) (or cx 0))
         ty (+ (/ sy (or scale 1)) (or cy 0))]
-    [{:db/id -1
-      :token/point
-      (if align?
-        [(round-grid tx (/ grid-size 2) (mod ox grid-size))
-         (round-grid ty (/ grid-size 2) (mod oy grid-size))]
-        [(round tx) (round ty)])
-      :token/image (if (some? checksum) {:image/checksum checksum} {})
-      :user/camera
-      {:db/id (:db/id (:user/camera user))
-       :camera/selected -1
-       :camera/draw-mode :select
-       :camera/scene
-       {:db/id (:db/id (:camera/scene (:user/camera user)))
-        :scene/tokens -1}}}]))
+    [(cond-> {:db/id -1}
+       (some? checksum) (assoc :token/image {:image/checksum checksum})
+       (not align?)     (assoc :token/point [(round tx) (round ty)])
+       align?           (assoc :token/point
+                               [(round-grid tx (/ grid-size 2) (mod ox grid-size))
+                                (round-grid ty (/ grid-size 2) (mod oy grid-size))]))
+     {:db/id (:db/id (:user/camera user))
+      :camera/selected -1
+      :camera/draw-mode :select
+      :camera/scene
+      {:db/id (:db/id (:camera/scene (:user/camera user)))
+       :scene/tokens -1}}]))
 
 (defmethod event-tx-fn :token/remove
   [_ _ idxs]
