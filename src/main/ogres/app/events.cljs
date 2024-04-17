@@ -902,16 +902,14 @@
                 rd (* (/ (or sz 5) 5) (/ grid-size 2))
                 ax (+ sx tx ox (- ax))
                 ay (+ sy ty oy (- ay))
-                dt (merge token
-                          {:db/id idx
-                           :token/image (if (some? cs) [:image/checksum (hashes cs)] {})
-                           :token/point
-                           (if align?
-                             [(round-grid ax rd (mod gx grid-size))
-                              (round-grid ay rd (mod gy grid-size))]
-                             [ax ay])})]]
+                tk (cond-> (merge token {:db/id idx})
+                     (hashes cs)  (assoc :token/image [:image/checksum (hashes cs)])
+                     (not align?) (assoc :token/point [ax ay])
+                     align?       (assoc :token/point
+                                         [(round-grid ax rd (mod gx grid-size))
+                                          (round-grid ay rd (mod gy grid-size))]))]]
       {:db/id camera
-       :camera/scene {:db/id scene :scene/tokens dt}
+       :camera/scene {:db/id scene :scene/tokens tk}
        :camera/selected idx})))
 
 ;; -- Shortcuts --
