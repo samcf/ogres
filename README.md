@@ -1,8 +1,12 @@
-[ogres.app](https://ogres.app) is a free and open-source virtual tabletop that you can run in your browser and share with your friends.
+## Ogres Tabletop
 
-![Screenshot of the Ogres app](site/web/media/ogres-desert-catacombs-combat.webp)
+[ogres.app](https://ogres.app) is a free and open-source virtual tabletop that you can run in your browser and use to play with your friends.
+
+![Screenshot of the Ogres app](site/web/media/ogres-media-collection.webp)
 
 ## Features
+
+Ogres aims to be a very lightweight alternative to some of the more comprehensive tools available today. Its limited core feature-set is intended to help dungeon masters quickly setup encounters and adventures with only the most important necessities.
 
 - Instantly start preparing your game; no sign-ups or ads
 - Start an online collaborative session for your friends
@@ -10,35 +14,35 @@
 - Built-in initiative tracker for streamlined encounters
 - Responsive design for phones and tablets
 - Easy to use for other game systems
-- Polygonal fog tool
 - ... and much more planned!
 
-## Install
+## Contributing
 
-The following are instructions to start a local development environment (for developers only).
+Interested in helping fix bugs or extending features? Look for issues labeled as **beginner friendly** and comment that you'd like to work on it. The following are instructions to start a local development environment (for developers only).
 
-You'll need to have `node` and `clojure` installed.
+You'll need to have `node`, `npm`, and `clojure` installed.
 
 ```sh
-# clone the repository
+#!/bin/sh
+
+# copy the repository
 git clone git@github.com:samcf/ogres.git
 
-# install dependencies
+# install dependencies and start the local web server
+# by default opens at http://localhost:8080
 npm install
-
-# start the local web server at http://localhost:8080
 npm start
 
-# start the application server necessary for hosting online sessions
+# optionally, start the application server necessary
+# for hosting online sessions
 clojure -X:server/dev
 ```
 
-## Docker Environment
+## Run your own server
 
-The following command will start the Docker environment.
+You can run your own instance of this application by using Docker. For more information, refer to the [wiki docs](https://github.com/samcf/ogres/wiki/Docker-Usage). The following command will install and run the application.
 
-```
+```sh
+#!/bin/sh
 docker compose up -d
 ```
-
-This will open the appropriate ports, establish links between containers, set up volumes, and start the application as configured in `docker-compose.yaml`.
