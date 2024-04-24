@@ -2231,10 +2231,18 @@ a:visited {
     border-style: dotted;
     border-width: 1px;
     color: var(--color-blues-500);
-    cursor: pointer;
     display: flex;
     justify-content: center;
     padding: 0;
+
+    &:not(:disabled) {
+      cursor: pointer;
+    }
+
+    &:disabled {
+      border-color: var(--color-black-300);
+      color: var(--color-black-400);
+    }
   }
 
   .initiative-token-frame {

@@ -113,6 +113,7 @@
   (let [dispatch (use-dispatch)
         {type :user/type
          {{curr :initiative/turn
+           rnds :initiative/rounds
            went :initiative/played}
           :camera/scene} :user/camera} context
         {id        :db/id
@@ -131,7 +132,8 @@
        :data-hidden hidden
        :data-type "token"}
       ($ :button.initiative-token-turn
-        {:on-click
+        {:disabled (or (nil? rnds) (zero? rnds))
+         :on-click
          (fn []
            (if played
              (dispatch :initiative/unmark id)

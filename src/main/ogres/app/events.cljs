@@ -621,11 +621,7 @@
           [[:db/retract (:db/id scene) :initiative/played]
            [:db/retract (:db/id scene) :initiative/turn]
            {:db/id (:db/id scene) :initiative/rounds (inc rounds)}]))
-      (let [[next] (sort initiative-order tokens)]
-        [{:db/id (:db/id scene)
-          :initiative/turn {:db/id (:db/id next)}
-          :initiative/played {:db/id (:db/id next)}
-          :initiative/rounds 1}]))))
+      [{:db/id (:db/id scene) :initiative/rounds 1}])))
 
 (defmethod event-tx-fn :initiative/mark
   [data _ id]
