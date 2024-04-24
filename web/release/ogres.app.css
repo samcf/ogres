@@ -496,6 +496,7 @@ a:visited {
 /* Toolbar */
 .toolbar {
   pointer-events: all;
+  position: relative;
 
   &:has(:focus-visible) {
     border-radius: 2px;
@@ -519,8 +520,13 @@ a:visited {
     display: flex;
     font-size: 13px;
     gap: 8px;
-    margin-bottom: 4px;
     padding: 4px 8px;
+    position: absolute;
+    white-space: nowrap;
+    /* Subtract 2px to account for both vertical borders and then 16px for the horizontal padding */
+    min-width: calc(100% - 18px);
+    max-width: max-content;
+    bottom: calc(100% + 4px);
   }
 
   .toolbar-shortcut {
