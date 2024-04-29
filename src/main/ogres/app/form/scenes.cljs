@@ -144,7 +144,8 @@
               ($ icon {:name "camera-fill" :size 16}) "Upload images")
             (if (> pgs 1)
               ($ pagination
-                {:pages pgs
+                {:name "scenes-gallery"
+                 :pages pgs
                  :value (min page pgs)
                  :on-change set-page})))
           (if (some? preview)

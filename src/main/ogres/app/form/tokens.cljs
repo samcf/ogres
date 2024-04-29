@@ -93,9 +93,9 @@
         ($ icon {:name "trash3-fill" :size 26})))))
 
 (defui ^:private paginated
-  [props]
-  (let [{:keys [data limit] :or {data [] limit 10}} props
-        [page set-page] (use-state 1)
+  [{:keys [name data limit]
+    :or   {data [] limit 10}}]
+  (let [[page set-page] (use-state 1)
         limit (dec limit)
         pages (-> (count data) (/ limit) (js/Math.ceil))
         start (-> (min page pages) (dec) (* limit) (max 0))
@@ -107,7 +107,8 @@
       ($ gallery {:data data})
       (if (> pages 1)
         ($ pagination
-          {:pages (max pages 1)
+          {:name  name
+           :pages (max pages 1)
            :value (max (min pages page) 1)
            :on-change set-page})))))
 
@@ -127,11 +128,11 @@
           ($ :fieldset.fieldset.token-gallery
             {:ref (.-setNodeRef drop-pub) :data-type "host" :data-scope "public"}
             ($ :legend "Public")
-            ($ paginated {:data data-pub :limit 10}))
+            ($ paginated {:name "tokens-public" :data data-pub :limit 10}))
           ($ :fieldset.fieldset.token-gallery
             {:ref (.-setNodeRef drop-prv) :data-type "host" :data-scope "private"}
             ($ :legend "Private")
-            ($ paginated {:data data-prv :limit 20}))
+            ($ paginated {:name "tokens-private" :data data-prv :limit 20}))
           ($ :.form-notice
             "Upload images from your computer and pull them onto the scene as
              tokens. Moving tokens to the public section will make them available
@@ -141,7 +142,7 @@
           ($ :fieldset.fieldset.token-gallery
             {:ref (.-setNodeRef drop-pub) :data-type "conn" :data-scope "public"}
             ($ :legend "Tokens")
-            ($ paginated {:data data-pub :limit 30})))))))
+            ($ paginated {:name "tokens-public" :data data-pub :limit 30})))))))
 
 (defui form []
   (let [dispatch (use-dispatch)

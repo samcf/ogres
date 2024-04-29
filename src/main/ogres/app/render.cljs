@@ -9,11 +9,11 @@
   (cond (< (- max min) 7)
         (range min (inc max))
         (<= val (+ min 3))
-        [min (+ min 1) (+ min 2) (+ min 3) (+ min 4) :space max]
+        [min (+ min 1) (+ min 2) (+ min 3) (+ min 4) :spacel max]
         (>= val (- max 3))
-        [min :space (- max 4) (- max 3) (- max 2) (- max 1) max]
+        [min :spacel (- max 4) (- max 3) (- max 2) (- max 1) max]
         :else
-        [min :space (- val 1) val (+ val 1) :space max]))
+        [min :spacel (- val 1) val (+ val 1) :spacer max]))
 
 (defui icon [{:keys [name size] :or {size 22}}]
   ($ :svg {:class "icon" :width size :height size :fill "currentColor" :role "presentation"}
@@ -53,22 +53,37 @@
     (children {:data-url data-url})))
 
 (defui pagination
-  [{:keys [pages value on-change]
+  [{:keys [name pages value on-change]
     :or   {pages 10 value 1 on-change identity}}]
   ($ :nav {:role "navigation"}
     ($ :ol.pagination
-      ($ :li {:on-click #(on-change (dec value)) :data-selectable (> value 1)}
-        ($ icon {:name "chevron-left" :size 16}))
-      (for [[idx term] (->> (create-range 1 pages value) (map-indexed vector))]
-        ($ :li
-          {:key idx
-           :data-selectable (and (not= term value) (not= term :space))
-           :data-selected   (= term value)
-           :on-click #(on-change term)}
-          (if (= term :space) \… term)))
       ($ :li
-        {:on-click #(on-change (inc value)) :data-selectable (< value pages)}
-        ($ icon {:name "chevron-right" :size 16})))))
+        ($ :button
+          {:aria-disabled (= value 1)
+           :on-click
+           (fn []
+             (if (not (= value 1))
+               (on-change (dec value))))}
+          ($ icon {:name "chevron-left" :size 16})))
+      (for [term (create-range 1 pages value)]
+        ($ :li {:key term}
+          (if (or (= term :spacel) (= term :spacer))
+            ($ :label \…)
+            ($ :label
+              ($ :input
+                {:type "radio"
+                 :name name
+                 :value value
+                 :checked (= term value)
+                 :on-change #(on-change term)}) term))))
+      ($ :li
+        ($ :button
+          {:aria-disabled (= value pages)
+           :on-click
+           (fn []
+             (if (not (= value pages))
+               (on-change (inc value))))}
+          ($ icon {:name "chevron-right" :size 16}))))))
 
 (defui stylesheet [props]
   (let [{:keys [name]} props]
