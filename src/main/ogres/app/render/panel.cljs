@@ -17,8 +17,8 @@
    :help       {:icon "wrench-adjustable-circle" :label "Manage local data"}})
 
 (def ^:private panel-forms
-  {:host [:session :scenes :tokens :initiative :help]
-   :conn [:session :tokens :initiative]})
+  {:host [:tokens :scenes :initiative :session :help]
+   :conn [:tokens :initiative :session]})
 
 (def ^:private components
   {:help       {:form help/form}
@@ -29,7 +29,7 @@
 
 (def ^:private query
   [[:user/type :default :conn]
-   [:panel/selected :default :session]
+   [:panel/selected :default :tokens]
    [:panel/expanded :default true]])
 
 (defui container []
