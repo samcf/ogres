@@ -1,7 +1,7 @@
-(ns ogres.app.render.toolbar
-  (:require [ogres.app.hooks :refer [use-dispatch use-query]]
-            [ogres.app.render :refer [icon]]
-            [ogres.app.shortcut :refer [shortcuts]]
+(ns ogres.app.component.toolbar
+  (:require [ogres.app.component :refer [icon]]
+            [ogres.app.hooks :refer [use-dispatch use-query]]
+            [ogres.app.provider.shortcut :refer [shortcuts]]
             [ogres.app.util :refer [comp-fn]]
             [uix.core :as uix :refer [defui $ use-callback use-state]]))
 

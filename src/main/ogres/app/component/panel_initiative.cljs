@@ -1,7 +1,7 @@
-(ns ogres.app.form.initiative
+(ns ogres.app.component.panel-initiative
   (:require [clojure.string :refer [join capitalize blank?]]
+            [ogres.app.component :refer [icon image]]
             [ogres.app.hooks :refer [use-dispatch use-modal use-query]]
-            [ogres.app.render :refer [icon image]]
             [uix.core :as uix :refer [defui $ use-ref]]))
 
 (def ^:private query-form

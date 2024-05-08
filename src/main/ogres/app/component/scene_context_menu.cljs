@@ -1,8 +1,8 @@
-(ns ogres.app.render.forms
+(ns ogres.app.component.scene-context-menu
   (:require [clojure.string :refer [capitalize]]
+            [ogres.app.component :refer [icon]]
+            [ogres.app.component.scene-pattern :refer [pattern]]
             [ogres.app.hooks :refer [use-dispatch]]
-            [ogres.app.render :refer [icon]]
-            [ogres.app.render.pattern :refer [pattern]]
             [uix.core :as uix :refer [defui $ use-effect use-ref use-state]]))
 
 (defn token-size [x]

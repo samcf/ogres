@@ -1,7 +1,7 @@
-(ns ogres.app.form.tokens
+(ns ogres.app.component.panel-tokens
   (:require [goog.object :as object :refer [getValueByKeys]]
+            [ogres.app.component :refer [icon image pagination]]
             [ogres.app.hooks :refer [use-dispatch use-image use-image-uploader use-query]]
-            [ogres.app.render :refer [icon image pagination]]
             [ogres.app.util :refer [separate comp-fn]]
             [uix.core :as uix :refer [defui $ use-callback use-ref use-state]]
             [uix.dom :refer [create-portal]]

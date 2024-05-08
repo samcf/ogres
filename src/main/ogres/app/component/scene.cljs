@@ -1,24 +1,24 @@
-(ns ogres.app.render.scene
+(ns ogres.app.component.scene
   (:require [clojure.set :refer [difference intersection]]
             [clojure.string :refer [join]]
             [goog.object :refer [getValueByKeys]]
+            [ogres.app.component :refer [icon image]]
+            [ogres.app.component.scene-context-menu :refer [token-context-menu shape-context-menu]]
+            [ogres.app.component.scene-draw :refer [draw]]
+            [ogres.app.component.scene-pattern :refer [pattern]]
             [ogres.app.const :refer [grid-size]]
             [ogres.app.geom :refer [bounding-box chebyshev circle->path poly->path triangle within?]]
             [ogres.app.hooks :refer [create-portal use-subscribe use-dispatch use-portal use-query]]
-            [ogres.app.render :refer [icon image]]
-            [ogres.app.render.draw :refer [draw]]
-            [ogres.app.render.forms :refer [token-context-menu shape-context-menu]]
-            [ogres.app.render.pattern :refer [pattern]]
             [ogres.app.util :refer [key-by round-grid]]
+            [react-transition-group :refer [TransitionGroup CSSTransition Transition]]
             [uix.core :as uix :refer [defui $ create-ref use-callback use-effect use-memo use-state]]
             [uix.dom :as dom]
-            [react-transition-group :refer [TransitionGroup CSSTransition Transition]]
             ["@rwh/react-keystrokes" :refer [useKey] :rename {useKey use-key}]
             ["@dnd-kit/core"
-             :refer  [DndContext useDndMonitor useDraggable]
-             :rename {DndContext    dnd-context
+             :refer [DndContext useDndMonitor useDraggable]
+             :rename {DndContext dnd-context
                       useDndMonitor use-dnd-monitor
-                      useDraggable  use-draggable}]))
+                      useDraggable use-draggable}]))
 
 (defn ^:private token-light-xf [user]
   (comp (filter (fn [{radius :token/light flags :token/flags}]

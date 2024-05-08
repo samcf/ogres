@@ -1,30 +1,30 @@
-(ns ogres.app.render.panel
-  (:require [ogres.app.hooks :refer [use-dispatch use-query]]
-            [ogres.app.render.status :as status]
-            [ogres.app.form.session :as session]
-            [ogres.app.form.scenes  :as scenes]
-            [ogres.app.form.tokens  :as tokens]
-            [ogres.app.form.help    :as help]
-            [ogres.app.form.initiative :as initiative]
-            [ogres.app.render :refer [icon]]
-            [uix.core :refer [defui $]]))
+(ns ogres.app.component.panel
+  (:require [ogres.app.component :refer [icon]]
+            [ogres.app.component.panel-data :as data]
+            [ogres.app.component.panel-initiative :as initiative]
+            [ogres.app.component.panel-lobby :as lobby]
+            [ogres.app.component.panel-scene :as scene]
+            [ogres.app.component.panel-status :as status]
+            [ogres.app.component.panel-tokens :as tokens]
+            [ogres.app.hooks           :refer [use-dispatch use-query]]
+            [uix.core                  :refer [defui $]]))
 
 (def ^:private panel-data
-  {:session    {:icon "people-fill" :label "Online options"}
-   :scenes     {:icon "images" :label "Scene options"}
-   :tokens     {:icon "person-circle" :label "Tokens"}
+  {:data       {:icon "wrench-adjustable-circle" :label "Manage local data"}
    :initiative {:icon "hourglass-split" :label "Initiative"}
-   :help       {:icon "wrench-adjustable-circle" :label "Manage local data"}})
+   :lobby      {:icon "people-fill" :label "Online options"}
+   :scene      {:icon "images" :label "Scene options"}
+   :tokens     {:icon "person-circle" :label "Tokens"}})
 
 (def ^:private panel-forms
-  {:host [:tokens :scenes :initiative :session :help]
-   :conn [:tokens :initiative :session]})
+  {:host [:tokens :scene :initiative :lobby :data]
+   :conn [:tokens :initiative :lobby]})
 
 (def ^:private components
-  {:help       {:form help/form}
+  {:data       {:form data/form}
    :initiative {:form initiative/form :footer initiative/footer}
-   :scenes     {:form scenes/form}
-   :session    {:form session/form :footer session/footer}
+   :lobby      {:form lobby/form :footer lobby/footer}
+   :scene      {:form scene/form}
    :tokens     {:form tokens/form :footer tokens/footer}})
 
 (def ^:private query

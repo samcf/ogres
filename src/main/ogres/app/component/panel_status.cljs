@@ -1,5 +1,5 @@
-(ns ogres.app.render.status
-  (:require [ogres.app.render :refer [icon]]
+(ns ogres.app.component.panel-status
+  (:require [ogres.app.component :refer [icon]]
             [ogres.app.hooks :refer [use-query use-dispatch]]
             [uix.core :refer [defui $]]))
 

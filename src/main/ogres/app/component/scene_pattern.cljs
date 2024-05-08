@@ -1,4 +1,4 @@
-(ns ogres.app.render.pattern
+(ns ogres.app.component.scene-pattern
   (:require [uix.core :refer [defui $]]))
 
 (defui ^:private pattern-solid

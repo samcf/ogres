@@ -1,4 +1,4 @@
-(ns ogres.app.shortcut
+(ns ogres.app.provider.shortcut
   (:require [ogres.app.hooks :refer [use-dispatch use-event-listener use-shortcut]]
             [uix.core :refer [defui]]))
 

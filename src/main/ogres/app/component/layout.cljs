@@ -1,10 +1,10 @@
-(ns ogres.app.layout
+(ns ogres.app.component.layout
   (:require [ogres.app.hooks :refer [use-query]]
-            [ogres.app.render :refer [icon]]
-            [ogres.app.render.panel :refer [container]]
-            [ogres.app.render.scene :refer [render-scene]]
-            [ogres.app.render.scenes :refer [scenes]]
-            [ogres.app.render.toolbar :refer [toolbar]]
+            [ogres.app.component :refer [icon]]
+            [ogres.app.component.panel :refer [container]]
+            [ogres.app.component.scene :refer [render-scene]]
+            [ogres.app.component.scenes :refer [scenes]]
+            [ogres.app.component.toolbar :refer [toolbar]]
             [uix.core :refer [defui $]]))
 
 (def ^:private query

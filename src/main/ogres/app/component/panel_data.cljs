@@ -1,4 +1,4 @@
-(ns ogres.app.form.help
+(ns ogres.app.component.panel-data
   (:require [ogres.app.const :refer [VERSION]]
             [ogres.app.hooks :refer [use-dispatch]]
             [ogres.app.provider.release :as release]

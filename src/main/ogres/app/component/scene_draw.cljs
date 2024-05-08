@@ -1,9 +1,9 @@
-(ns ogres.app.render.draw
+(ns ogres.app.component.scene-draw
   (:require [clojure.string :refer [join]]
+            [ogres.app.component :refer [icon]]
             [ogres.app.const :refer [grid-size]]
-            [ogres.app.hooks :refer [use-dispatch use-portal use-query]]
             [ogres.app.geom :refer [chebyshev euclidean triangle reorient]]
-            [ogres.app.render :refer [icon]]
+            [ogres.app.hooks :refer [use-dispatch use-portal use-query]]
             [uix.core :as uix :refer [defui $ use-state]]
             ["@dnd-kit/core"
              :refer  [DndContext useDraggable useDndMonitor]

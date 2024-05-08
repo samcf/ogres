@@ -1,7 +1,7 @@
-(ns ogres.app.form.scenes
+(ns ogres.app.component.panel-scene
   (:require [clojure.string :refer [replace]]
+            [ogres.app.component :refer [icon pagination image]]
             [ogres.app.hooks :refer [use-dispatch use-image-uploader use-query]]
-            [ogres.app.render :refer [icon image pagination]]
             [uix.core :as uix :refer [defui $ use-ref use-state]]
             [uix.dom :refer [create-portal]]))
 

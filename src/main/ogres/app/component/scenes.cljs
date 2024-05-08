@@ -1,7 +1,7 @@
-(ns ogres.app.render.scenes
+(ns ogres.app.component.scenes
   (:require [clojure.string :refer [replace]]
+            [ogres.app.component :refer [icon]]
             [ogres.app.hooks :refer [use-dispatch use-query use-shortcut]]
-            [ogres.app.render :refer [icon]]
             [uix.core :refer [defui $ use-callback]]))
 
 (def ^:private filename-re #"\d+x\d+|[^\w ]|.[^.]+$")

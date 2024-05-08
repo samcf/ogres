@@ -1,8 +1,8 @@
-(ns ogres.app.form.session
-  (:require [ogres.app.const :refer [VERSION]]
+(ns ogres.app.component.panel-lobby
+  (:require [ogres.app.component :refer [icon]]
+            [ogres.app.const :refer [VERSION]]
             [ogres.app.hooks :refer [use-dispatch use-query]]
             [ogres.app.provider.release :as release]
-            [ogres.app.render :refer [icon]]
             [ogres.app.util :refer [comp-fn]]
             [uix.core :refer [defui $ use-context]]))
 

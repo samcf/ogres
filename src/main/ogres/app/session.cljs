@@ -1,6 +1,6 @@
 (ns ogres.app.session
-  (:require [cognitect.transit :as transit]
-            [clojure.core.async :refer [chan sliding-buffer]]
+  (:require [clojure.core.async :refer [chan sliding-buffer]]
+            [cognitect.transit :as transit]
             [datascript.core :as ds]
             [datascript.transit :as dst]
             [goog.object :as go]
