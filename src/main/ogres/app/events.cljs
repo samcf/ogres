@@ -645,8 +645,7 @@
   (let [parsed (.parseFloat js/window roll)]
     (cond
       (or (nil? roll) (= roll ""))
-      [[:db/add id]
-       [:db/retract id :initiative/roll]]
+      [[:db/retract id :initiative/roll]]
 
       (.isNaN js/Number parsed)
       []

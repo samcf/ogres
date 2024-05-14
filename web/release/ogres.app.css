@@ -91,8 +91,8 @@ a:visited {
   &:has(input:not([aria-disabled="true"])) {
     cursor: pointer;
 
-  &:hover {
-    background-color: var(--color-paper-900);
+    &:hover {
+      background-color: var(--color-paper-900);
     }
   }
 
@@ -100,9 +100,9 @@ a:visited {
     color: var(--color-blues-900);
 
     .icon {
-    background-color: var(--color-prime-500);
-    border-color: var(--color-prime-500);
-    color: var(--color-paper-500);
+      background-color: var(--color-prime-500);
+      border-color: var(--color-prime-500);
+      color: var(--color-paper-500);
     }
   }
 
@@ -2400,7 +2400,7 @@ a:visited {
     }
 
     &[data-type="roll"] {
-      inset: 20% auto auto 46px;
+      inset: 20% auto auto 64px;
       width: 120px;
     }
 
