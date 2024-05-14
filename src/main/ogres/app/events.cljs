@@ -752,7 +752,7 @@
   []
   [{:db/ident :root :root/session
     {:db/ident :session :session/host
-     {:db/ident :user :session/state :connecting :panel/selected :session}}}])
+     {:db/ident :user :session/state :connecting :panel/selected :lobby}}}])
 
 (defmethod
   ^{:doc "Attempts to join an existing online session through the server. This

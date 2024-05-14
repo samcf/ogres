@@ -1700,7 +1700,7 @@ a:visited {
     }
   }
 
-  &[data-form="session"] .form-footer {
+  &[data-form="lobby"] .form-footer {
     display: grid;
     gap: 4px;
     grid-template-columns: 1fr max-content max-content;
