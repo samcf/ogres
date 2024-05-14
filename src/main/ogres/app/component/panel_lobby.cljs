@@ -80,8 +80,9 @@
                    :aria-disabled (not= type :host)
                    :on-change
                    (fn [event]
-                     (let [checked (.. event -target -checked)]
-                       (dispatch :session/toggle-share-cursors checked)))})
+                     (if (= type :host)
+                       (let [checked (.. event -target -checked)]
+                         (dispatch :session/toggle-share-cursors checked))))})
                 ($ icon {:name "check" :size 20})
                 "Share cursors")
               ($ :label.checkbox
