@@ -83,28 +83,40 @@ a:visited {
   box-sizing: border-box;
   color: var(--color-black-500);
   column-gap: 6px;
-  cursor: pointer;
   display: flex;
   padding: 3px;
   position: relative;
   width: 100%;
 
-  &:hover {
-    background-color: var(--color-paper-900);
+  &:has(input:not([aria-disabled="true"])) {
+    cursor: pointer;
+
+    &:hover {
+      background-color: var(--color-paper-900);
+    }
   }
 
   &:has(:checked) {
     color: var(--color-blues-900);
-  }
 
-  &:has(:checked) .icon {
-    background-color: var(--color-prime-500);
-    border-color: var(--color-prime-500);
-    color: var(--color-paper-500);
+    .icon {
+      background-color: var(--color-prime-500);
+      border-color: var(--color-prime-500);
+      color: var(--color-paper-500);
+    }
   }
 
   &:has(:focus-visible) {
     outline: 1px dashed var(--outline-color);
+  }
+
+  &:has([aria-disabled="true"]) {
+    color: var(--color-black-300);
+
+    .icon {
+      background-color: var(--color-black-300);
+      border-color: var(--color-black-300);
+    }
   }
 
   input {
@@ -1688,7 +1700,7 @@ a:visited {
     }
   }
 
-  &[data-form="session"] .form-footer {
+  &[data-form="lobby"] .form-footer {
     display: grid;
     gap: 4px;
     grid-template-columns: 1fr max-content max-content;
@@ -2388,7 +2400,7 @@ a:visited {
     }
 
     &[data-type="roll"] {
-      inset: 20% auto auto 46px;
+      inset: 20% auto auto 64px;
       width: 120px;
     }
 
