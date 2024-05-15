@@ -1,5 +1,6 @@
 (ns ogres.app.core
-  (:require [ogres.app.component         :refer [stylesheet error-boundary]]
+  (:require [ogres.app.component         :refer [stylesheet]]
+            [ogres.app.component.error   :refer [error-page]]
             [ogres.app.component.layout  :refer [layout]]
             [ogres.app.dom               :refer [user-type]]
             [ogres.app.provider.cursor   :as cursor]
@@ -16,10 +17,10 @@
             [uix.core :as uix :refer [defui $]]
             [uix.dom  :as dom]))
 
-(def ^:private error-page
+(def ^:private error-boundary
   (uix/create-error-boundary
    {:derive-error-state identity}
-   error-boundary))
+   error-page))
 
 (defui ^:private app []
   ($ uix/strict-mode
@@ -39,7 +40,7 @@
                     ($ shortcut/handlers)
                     ($ session/handlers)
                     ($ cursor/handlers)
-                    ($ error-page
+                    ($ error-boundary
                       ($ layout))))))))))))
 
 (defn ^:export main []
