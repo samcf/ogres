@@ -83,28 +83,40 @@ a:visited {
   box-sizing: border-box;
   color: var(--color-black-500);
   column-gap: 6px;
-  cursor: pointer;
   display: flex;
   padding: 3px;
   position: relative;
   width: 100%;
 
-  &:hover {
-    background-color: var(--color-paper-900);
+  &:has(input:not([aria-disabled="true"])) {
+    cursor: pointer;
+
+    &:hover {
+      background-color: var(--color-paper-900);
+    }
   }
 
   &:has(:checked) {
     color: var(--color-blues-900);
-  }
 
-  &:has(:checked) .icon {
-    background-color: var(--color-prime-500);
-    border-color: var(--color-prime-500);
-    color: var(--color-paper-500);
+    .icon {
+      background-color: var(--color-prime-500);
+      border-color: var(--color-prime-500);
+      color: var(--color-paper-500);
+    }
   }
 
   &:has(:focus-visible) {
     outline: 1px dashed var(--outline-color);
+  }
+
+  &:has([aria-disabled="true"]) {
+    color: var(--color-black-300);
+
+    .icon {
+      background-color: var(--color-black-300);
+      border-color: var(--color-black-300);
+    }
   }
 
   input {
@@ -170,12 +182,12 @@ a:visited {
   legend {
     background-color: var(--color-paper-500);
     font-size: 11px;
+    inset: -7px auto auto auto;
     line-height: 1;
     margin-left: 0.5rem;
     padding: 0 6px;
     position: absolute;
     text-transform: uppercase;
-    top: -7px;
   }
 
   details {
@@ -283,7 +295,14 @@ a:visited {
     "canvas side";
 
   &[data-expanded="false"] {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr 40px;
+  }
+
+  .layout-scenes,
+  .layout-scene,
+  .layout-toolbar,
+  .layout-panel {
+    contain: size layout style;
   }
 
   .layout-scenes {
@@ -296,23 +315,16 @@ a:visited {
     grid-area: canvas;
   }
 
-  .layout-join {
-    grid-area: join;
-  }
-
   .layout-panel {
     grid-area: side;
   }
 
   .layout-toolbar {
-    pointer-events: none;
-  }
-
-  .layout-toolbar {
-    display: flex;
-    padding: 16px;
     align-items: flex-end;
+    display: flex;
     justify-content: center;
+    padding: 16px;
+    pointer-events: none;
     z-index: 1;
   }
 }
@@ -380,8 +392,7 @@ a:visited {
 
     &:focus-visible {
       border-radius: 3px;
-      outline-offset: 2px;
-      outline: 2px solid var(--outline-color);
+      outline-offset: -2px;
     }
   }
 }
@@ -410,6 +421,7 @@ a:visited {
 
     &:has(input:focus-visible) {
       outline: 2px solid var(--outline-color);
+      outline-offset: -2px;
     }
 
     label {
@@ -488,6 +500,7 @@ a:visited {
       &:focus-visible {
         border-radius: 3px;
         outline: 2px solid var(--outline-color);
+        outline-offset: -2px;
       }
     }
   }
@@ -496,10 +509,11 @@ a:visited {
 /* Toolbar */
 .toolbar {
   pointer-events: all;
+  position: relative;
 
   &:has(:focus-visible) {
     border-radius: 2px;
-    outline-offset: 2px;
+    outline-offset: 0px;
     outline: 2px solid var(--outline-color);
   }
 
@@ -515,12 +529,16 @@ a:visited {
     background-color: var(--color-blues-900);
     border-radius: 2px;
     border: 1px solid var(--color-blues-700);
+    bottom: calc(100% + 4px);
     color: var(--color-black-100);
     display: flex;
     font-size: 13px;
     gap: 8px;
-    margin-bottom: 4px;
+    max-width: max-content;
+    min-width: calc(100% - 18px);
     padding: 4px 8px;
+    position: absolute;
+    white-space: nowrap;
   }
 
   .toolbar-shortcut {
@@ -565,18 +583,18 @@ a:visited {
 
       &:not([aria-disabled="true"]) {
         cursor: pointer;
-      }
 
-      &:not([aria-disabled="true"]):active {
-        border-color: var(--color-blues-100);
-      }
+        &:active {
+          border-color: var(--color-blues-100);
+        }
 
-      &:not([aria-disabled="true"]):hover {
-        background-color: var(--color-blues-500);
+        &:hover {
+          background-color: var(--color-blues-500);
+        }
       }
 
       &:focus-visible {
-        outline-offset: 2px;
+        outline-offset: -1px;
         outline: 1px dotted var(--outline-color);
         z-index: 1;
       }
@@ -701,6 +719,7 @@ a:visited {
   &:has(.scene-handler:focus-visible) {
     border-radius: 3px;
     outline: 2px solid var(--outline-color);
+    outline-offset: -2px;
     position: relative;
     z-index: 1;
   }
@@ -1456,12 +1475,12 @@ a:visited {
   color: white;
   content: attr(data-tooltip);
   font-size: 11px;
+  inset: -20px auto auto auto;
   line-height: 1;
   padding: 2px 4px;
   pointer-events: none;
   position: absolute;
   text-transform: uppercase;
-  top: -20px;
 }
 
 /* Panel */
@@ -1503,7 +1522,7 @@ a:visited {
     &:has(input:focus-visible) li:has(input:focus-visible) {
       border-radius: 3px;
       outline: 2px solid var(--outline-color);
-      outline-offset: -1px;
+      outline-offset: -2px;
       z-index: 1;
     }
 
@@ -1579,7 +1598,7 @@ a:visited {
 
         &:focus-visible {
           border-radius: 3px;
-          outline-offset: 2px;
+          outline-offset: -2px;
           outline: 2px solid var(--outline-color);
           z-index: 1;
         }
@@ -1649,7 +1668,7 @@ a:visited {
     background-color: var(--color-paper-500);
     border-radius: 0 0 3px 0;
     border-top: 1px solid var(--color-black-300);
-    bottom: 0;
+    inset: auto auto 0 auto;
     padding: 6px;
     position: sticky;
   }
@@ -1665,9 +1684,8 @@ a:visited {
 
     svg {
       fill: var(--color-blues-100);
-      left: 0;
+      inset: 0 auto auto 0;
       position: absolute;
-      top: 0;
       transform: translate(-25%, -25%);
     }
   }
@@ -1682,7 +1700,7 @@ a:visited {
     }
   }
 
-  &[data-form="session"] .form-footer {
+  &[data-form="lobby"] .form-footer {
     display: grid;
     gap: 4px;
     grid-template-columns: 1fr max-content max-content;
@@ -1706,42 +1724,47 @@ a:visited {
 .pagination {
   align-items: center;
   display: flex;
-  gap: 3px;
+  gap: 5px;
 
-  li {
+  label,
+  button {
     align-items: center;
-    background-color: var(--color-black-100);
-    border-color: var(--color-blues-700);
+    aspect-ratio: 1;
+    border-color: var(--color-black-300);
     border-radius: 3px;
     border-style: solid;
     border-width: 1px;
-    box-shadow: 1px 1px 0 0 rgba(0, 0, 0, 0.1);
     box-sizing: border-box;
-    color: var(--color-black-300);
-    cursor: default;
     display: flex;
-    font-size: 14px;
-    height: 32px;
     justify-content: center;
-    pointer-events: none;
+    margin: 0;
+    padding: 0;
+    position: relative;
     width: 32px;
+  }
 
-    &[data-selectable="false"] {
-      border-color: var(--color-black-300);
-    }
+  label:has(:focus-visible),
+  button:focus-visible {
+    outline: 1px dashed Highlight;
+    outline: 1px dashed -webkit-focus-ring-color;
+    outline-offset: 1px;
+  }
 
-    &:is([data-selectable="true"]) {
-      background-color: var(--color-paper-500);
-      color: var(--color-black-900);
-      cursor: pointer;
-      pointer-events: all;
-    }
+  label:has(input:not(:checked)),
+  button:not([aria-disabled="true"]) {
+    border-color: var(--color-blues-500);
+    cursor: pointer;
+  }
 
-    &:is([data-selected="true"]) {
-      background-color: var(--color-blues-700);
-      border-color: var(--color-blues-900);
-      color: var(--color-black-100);
-    }
+  label:has(input:checked) {
+    background-color: var(--color-blues-500);
+    border-color: transparent;
+    color: var(--color-paper-500);
+  }
+
+  input[type="radio"] {
+    z-index: -1;
+    position: absolute;
   }
 }
 
@@ -1816,22 +1839,19 @@ a:visited {
       }
 
       &[name="info"] {
-        top: 0;
-        left: 0;
+        inset: 0 auto auto 0;
       }
 
       &[name="remove"] {
-        top: 0;
-        right: 0;
+        inset: 0 0 auto auto;
       }
 
       &[name="warn"] {
-        bottom: 0;
-        left: 0;
+        inset: auto auto 0 0;
       }
 
       &[data-tooltip]::after {
-        top: 0;
+        inset: 0 auto auto auto;
         transform: translateY(-50%);
       }
     }
@@ -1872,14 +1892,12 @@ a:visited {
   align-items: center;
   backdrop-filter: blur(3px);
   background-color: rgba(0, 0, 0, 0.65);
-  bottom: 0;
   box-sizing: border-box;
   display: flex;
+  inset: 0 auto 0 0;
   justify-content: center;
-  left: 0;
   padding: 5vw;
   position: absolute;
-  top: 0;
   width: 100%;
   z-index: 1;
 
@@ -1950,7 +1968,8 @@ a:visited {
   grid-template-rows: repeat(4, 1fr) min-content;
   justify-content: space-between;
 
-  &:has(:focus-visible) .token-gallery-item:not(:focus-visible) {
+  &:has(.token-gallery-item:focus-visible)
+    .token-gallery-item:not(:focus-visible) {
     filter: opacity(0.3);
   }
 
@@ -2076,9 +2095,8 @@ a:visited {
   margin-top: 20px;
 
   &.initiative-list-placeholder {
+    inset: auto 0;
     position: absolute;
-    left: 0;
-    right: 0;
 
     &::after {
       background-image: linear-gradient(
@@ -2088,11 +2106,8 @@ a:visited {
       );
 
       content: "";
+      inset: 0;
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
     }
   }
 }
@@ -2225,10 +2240,18 @@ a:visited {
     border-style: dotted;
     border-width: 1px;
     color: var(--color-blues-500);
-    cursor: pointer;
     display: flex;
     justify-content: center;
     padding: 0;
+
+    &:not(:disabled) {
+      cursor: pointer;
+    }
+
+    &:disabled {
+      border-color: var(--color-black-300);
+      color: var(--color-black-400);
+    }
   }
 
   .initiative-token-frame {
@@ -2299,14 +2322,13 @@ a:visited {
     background-color: white;
     border-radius: 2px;
     border: 1px solid var(--color-blues-900);
-    bottom: -1px;
     color: black;
     font-size: 10px;
     grid-area: 1 / 3 / 1 / 3;
     height: 12px;
+    inset: auto -1px -1px auto;
     line-height: 1;
     position: absolute;
-    right: -1px;
     width: 12px;
   }
 
@@ -2347,7 +2369,7 @@ a:visited {
     flex: 1;
     font-size: 1.1rem;
     position: relative;
-    top: -4px;
+    inset: -4px auto auto auto;
     z-index: 1;
   }
 
@@ -2378,14 +2400,12 @@ a:visited {
     }
 
     &[data-type="roll"] {
-      top: 20%;
-      left: 46px;
+      inset: 20% auto auto 64px;
       width: 120px;
     }
 
     &[data-type="health"] {
-      top: 11%;
-      right: 52px;
+      inset: 11% 52px auto auto;
       width: 160px;
     }
 
@@ -2518,9 +2538,8 @@ a:visited {
   .grid-align-origin {
     aspect-ratio: 1;
     box-sizing: border-box;
-    left: 50%;
+    inset: 50% auto auto 50%;
     position: absolute;
-    top: 50%;
     transform: translate(-50%, -50%);
     width: 128px;
 
@@ -2530,32 +2549,27 @@ a:visited {
       aspect-ratio: 1;
 
       &[data-name="up"] {
-        left: 50%;
-        top: 0;
+        inset: 0 auto auto 50%;
         transform: translate(-50%, 0);
       }
 
       &[data-name="right"] {
-        right: 0;
-        top: 50%;
+        inset: 50% 0 auto auto;
         transform: translate(0, -50%);
       }
 
       &[data-name="down"] {
-        bottom: 0;
-        left: 50%;
+        inset: auto 50% 0 auto;
         transform: translate(-50%, 0);
       }
 
       &[data-name="left"] {
-        left: 0;
-        top: 50%;
+        inset: 50% auto auto 0;
         transform: translate(0, -50%);
       }
 
       &[data-name="clear"] {
-        left: 18%;
-        top: 18%;
+        inset: 18% auto auto 18%;
         transform: translate(-50%, -50%);
       }
     }
@@ -2565,16 +2579,15 @@ a:visited {
     align-items: stretch;
     background-color: var(--color-blues-900);
     border-radius: 2px;
-    bottom: 0;
     box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 0.35);
     cursor: default;
     display: flex;
     gap: 4px;
+    inset: auto 0 0 auto;
     margin: 4px;
     padding: 4px;
     pointer-events: all;
     position: absolute;
-    right: 0;
 
     button {
       background-color: var(--color-blues-500);
@@ -2632,7 +2645,7 @@ a:visited {
       grid-template-rows: 32px 1fr 1fr;
 
       &[data-expanded="false"] {
-        grid-template-rows: 32px 1fr auto;
+        grid-template-rows: 32px 1fr 40px;
       }
 
       .scenes-scene {
