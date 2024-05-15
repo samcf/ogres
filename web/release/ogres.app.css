@@ -2645,7 +2645,7 @@ a:visited {
       grid-template-rows: 32px 1fr 1fr;
 
       &[data-expanded="false"] {
-        grid-template-rows: 32px 1fr auto;
+        grid-template-rows: 32px 1fr 40px;
       }
 
       .scenes-scene {
