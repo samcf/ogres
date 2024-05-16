@@ -132,7 +132,18 @@
             height   :image/height
             checksum :image/checksum} :scene/image
            size :scene/grid-size} :camera/scene} :user/camera} result
-        transform (str "scale(" (/ grid-size size) ")")]
+        transform (str "scale(" (/ grid-size size) ")")
+        node (uix/use-ref)]
+    ;; Safari has issues with rendering an `<image ...> immediately after it is
+    ;; defined. One way to fix this is to update its `class` attribute after
+    ;; a small delay. (#146)
+    (uix/use-layout-effect
+     (fn []
+       (.setTimeout
+        js/window
+        (fn []
+          (if-let [node (deref node)]
+            (.. node -classList (add "__SAFARI_FIX")))) 128)) [])
     ($ :defs
       ($ :filter {:id "scene-image-filter" :filterRes 1 :color-interpolation-filters "sRGB"}
         ($ :feColorMatrix {:in "SourceGraphic" :type "saturate" :values 0.2 :result "Next"})
@@ -143,8 +154,9 @@
       (if (some? checksum)
         ($ image {:checksum checksum}
           (fn [{:keys [data-url]}]
-            ($ :image {:id "scene-image" :x 0 :y 0 :width width :height height :transform transform :href data-url}))))
-      ($ :rect  {:id "scene-image-cover" :x 0 :y 0 :width width :height height :transform transform})
+            ($ :image
+              {:x 0 :y 0 :id "scene-image" :ref node :href data-url :width width :height height :transform transform}))))
+      ($ :rect {:id "scene-image-cover" :x 0 :y 0 :width width :height height :transform transform})
       ($ :clipPath {:id "scene-image-clip"}
         ($ :use {:href "#scene-image-cover"})))))
 
