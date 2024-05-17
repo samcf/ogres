@@ -53,13 +53,13 @@
 (defn ^:private stop-propagation [event]
   (.stopPropagation event))
 
-(defn ^:private label
+(defn ^:private token-label
   [{:keys [token/label initiative/suffix]}]
   (cond-> ""
     (string? label) (str label)
     (number? suffix) (str " " (char (+ suffix 64)))))
 
-(defn ^:private token-comparator [a b]
+(defn ^:private tokens-order-cmp [a b]
   (let [{size-a :token/size [ax ay] :token/point} a
         {size-b :token/size [bx by] :token/point} b]
     (compare [size-b ax ay] [size-a bx by])))
@@ -119,15 +119,15 @@
   (let [options (use-draggable #js {"id" id "data" #js {"class" class "id" idxs} "disabled" disabled})]
     (children options)))
 
-(def ^:private query-image-defs
+(def ^:private image-defs-query
   [{:user/camera
     [{:camera/scene
       [[:scene/grid-size :default 70]
        [:scene/lighting :default :revealed]
        {:scene/image [:image/checksum :image/width :image/height]}]}]}])
 
-(defui ^:private render-image-defs []
-  (let [result (use-query query-image-defs)
+(defui ^:private image-defs []
+  (let [result (use-query image-defs-query)
         {{{{width    :image/width
             height   :image/height
             checksum :image/checksum} :scene/image
@@ -160,7 +160,7 @@
       ($ :clipPath {:id "scene-image-clip"}
         ($ :use {:href "#scene-image-cover"})))))
 
-(def ^:private query-mask-defs
+(def ^:private mask-defs-query
   [:user/type
    {:user/camera
     [{:camera/scene
@@ -176,8 +176,8 @@
          [:token/light :default 15]
          [:token/point :default [0 0]]]}]}]}])
 
-(defui ^:private render-mask-defs []
-  (let [result (use-query query-mask-defs)
+(defui ^:private mask-defs []
+  (let [result (use-query mask-defs-query)
         {user :user/type
          {{tokens :scene/tokens
            masks  :scene/masks
@@ -252,7 +252,7 @@
           ($ :clipPath {:id "mask-secondary"}
             ($ :use {:href "#masks-path"})))))))
 
-(def ^:private query-mask-polys
+(def ^:private mask-polys-query
   [[:user/type :default :host]
    {:user/camera
     [[:camera/draw-mode :default :select]
@@ -262,9 +262,9 @@
          [:mask/vecs :default []]
          [:mask/enabled? :default true]]}]}]}])
 
-(defui ^:private render-mask-polys []
+(defui ^:private mask-polys []
   (let [dispatch (use-dispatch)
-        result   (use-query query-mask-polys)
+        result   (use-query mask-polys-query)
         {user :user/type
          {{masks :scene/masks} :camera/scene
           draw-mode :camera/draw-mode} :user/camera} result
@@ -283,7 +283,7 @@
                :mask-toggle (dispatch :mask/toggle id (not enabled?))
                :mask-remove (dispatch :mask/remove id)))})))))
 
-(def ^:private query-grid
+(def ^:private grid-defs-query
   [[:bounds/self :default [0 0 0 0]]
    {:user/camera
     [[:camera/point :default [0 0]]
@@ -291,8 +291,8 @@
      {:camera/scene
       [[:scene/grid-origin :default [0 0]]]}]}])
 
-(defui ^:private render-grid-defs []
-  (let [data (use-query query-grid)
+(defui ^:private grid-defs []
+  (let [data (use-query grid-defs-query)
         {[_ _ w h] :bounds/self
          {[cx cy] :camera/point
           scale   :camera/scale
@@ -310,11 +310,11 @@
       ($ :g {:id "scene-grid" :transform (str "translate(" (mod ox grid-size) "," (mod oy grid-size) ")")}
         ($ :path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"]) :fill "url(#grid-pattern)"})))))
 
-(defn ^:private poly-xf [x y]
+(defn ^:private shape-poly-xf [x y]
   (comp (partition-all 2)
         (mapcat (fn [[ax ay]] [(- ax x) (- ay y)]))))
 
-(defui ^:private render-shape-circle
+(defui ^:private shape-circle
   [props]
   (let [{:keys [data attrs]} props
         {:keys [shape/vecs shape/color shape/opacity]} data
@@ -323,7 +323,7 @@
       (->> {:cx 0 :cy 0 :r (chebyshev ax ay bx by) :fill-opacity opacity :stroke color}
            (merge attrs)))))
 
-(defui ^:private render-shape-rect
+(defui ^:private shape-rect
   [props]
   (let [{:keys [data attrs]} props
         {:keys [shape/vecs shape/color shape/opacity]} data
@@ -332,14 +332,14 @@
       (->> {:d (join " " ["M" 0 0 "H" (- bx ax) "V" (- by ay) "H" 0 "Z"]) :fill-opacity opacity :stroke color}
            (merge attrs)))))
 
-(defui ^:private render-shape-line
+(defui ^:private shape-line
   [props]
   (let [{:keys [data]} props
         {:keys [shape/vecs shape/color]} data
         [ax ay bx by] vecs]
     ($ :line {:x1 0 :y1 0 :x2 (- bx ax) :y2 (- by ay) :stroke color :stroke-width 4 :stroke-linecap "round"})))
 
-(defui ^:private render-shape-cone
+(defui ^:private shape-cone
   [props]
   (let [{:keys [data attrs]} props
         {:keys [shape/vecs shape/color shape/opacity]} data
@@ -348,25 +348,25 @@
       (->> {:points (join " " (triangle 0 0 (- bx ax) (- by ay))) :fill-opacity opacity :stroke color}
            (merge attrs)))))
 
-(defui ^:private render-shape-poly
+(defui ^:private shape-poly
   [props]
   (let [{:keys [data attrs]} props
         {:keys [shape/vecs shape/color shape/opacity]} data
         [ax ay] (into [] (take 2) vecs)
-        pairs   (into [] (poly-xf ax ay) vecs)]
+        pairs   (into [] (shape-poly-xf ax ay) vecs)]
     ($ :polygon (assoc attrs :points (join " " pairs) :fill-opacity opacity :stroke color))))
 
-(def ^:private render-shape
+(def ^:private shape
   (uix/memo
    (uix/fn [props]
      (case (:shape/kind (:data props))
-       :circle ($ render-shape-circle props)
-       :rect   ($ render-shape-rect props)
-       :line   ($ render-shape-line props)
-       :cone   ($ render-shape-cone props)
-       :poly   ($ render-shape-poly props)))))
+       :circle ($ shape-circle props)
+       :rect   ($ shape-rect props)
+       :line   ($ shape-line props)
+       :cone   ($ shape-cone props)
+       :poly   ($ shape-poly props)))))
 
-(def ^:private query-shapes
+(def ^:private shapes-query
   [{:root/user
     [:user/type
      {:user/camera
@@ -385,9 +385,9 @@
     [{:session/conns
       [:user/uuid :user/color :user/dragging]}]}])
 
-(defui ^:private render-shapes []
+(defui ^:private shapes []
   (let [dispatch (use-dispatch)
-        result   (use-query query-shapes [:db/ident :root])
+        result   (use-query shapes-query [:db/ident :root])
         [dragged-by set-dragged-by] (use-state {})
         {{type :user/type
           {scale :camera/scale
@@ -443,7 +443,7 @@
                        :data-dragged-by (get dragged-by id "none")
                        :data-selected selected?}
                       ($ :defs ($ pattern {:id tempid :name (:shape/pattern data) :color (:shape/color data)}))
-                      ($ render-shape {:data data :attrs {:fill (str "url(#" tempid ")")}})
+                      ($ shape {:data data :attrs {:fill (str "url(#" tempid ")")}})
                       (if (and user? selected?)
                         ($ :foreignObject.context-menu-object
                           {:x -200 :y 0
@@ -467,7 +467,7 @@
         exclu #{:player :hidden :dead}]
     (take 4 (filter (difference (token-flags data) exclu) order))))
 
-(defui ^:private render-token [{:keys [node data]}]
+(defui ^:private token [{:keys [node data]}]
   (let [radii (- (/ grid-size 2) 2)
         scale (/ (:token/size data) 5)
         hashs (:image/checksum (:token/image data))
@@ -489,13 +489,13 @@
             ($ :circle {:cx 0 :cy 0 :r 12})
             ($ :g {:transform (str "translate(" -8 ", " -8 ")")}
               ($ icon {:name (condition->icon flag) :size 16}))))
-        (if-let [label (label data)]
+        (if-let [label (token-label data)]
           ($ :text.scene-token-label {:y (/ grid-size 2)}
             label)))
       (let [radius (+ (* scale (/ grid-size 2)) 2)]
         ($ :circle.scene-token-ring {:cx 0 :cy 0 :style {:r radius}})))))
 
-(def ^:private query-token-defs
+(def ^:private tokens-defs-query
   [[:user/type :default :host]
    {:user/camera
     [{:camera/scene
@@ -511,8 +511,8 @@
          {:token/image [:image/checksum]}
          {:scene/_initiative [:db/id :initiative/turn]}]}]}]}])
 
-(defui render-token-defs []
-  (let [result (use-query query-token-defs)
+(defui ^:private tokens-defs []
+  (let [result (use-query tokens-defs-query)
         tokens (-> result :user/camera :camera/scene :scene/tokens)]
     ($ :defs
       ($ :filter {:id "token-status-dead" :filterRes 1 :color-interpolation-filters "sRGB"}
@@ -549,9 +549,9 @@
       ($ TransitionGroup {:component nil}
         (for [{id :db/id :as data} tokens :let [node (create-ref)]]
           ($ Transition {:key id :nodeRef node :timeout 240}
-            ($ render-token {:node node :data data})))))))
+            ($ token {:node node :data data})))))))
 
-(def ^:private query-tokens
+(def ^:private tokens-query
   [{:root/user
     [:user/type
      [:bounds/self :default [0 0 0 0]]
@@ -577,9 +577,9 @@
     [{:session/conns
       [:user/uuid :user/color :user/dragging]}]}])
 
-(defui ^:private render-tokens []
+(defui ^:private tokens []
   (let [dispatch (use-dispatch)
-        result   (use-query query-tokens [:db/ident :root])
+        result   (use-query tokens-query [:db/ident :root])
         {{type :user/type
           [_ _ bw bh] :bounds/self
           {scale :camera/scale
@@ -598,7 +598,7 @@
         dragging  (into {} invert-drag-data-xf conns)
         sorted    (->> tokens
                        (filter (fn [token] (or (= type :host) (not ((:token/flags token) :hidden)))))
-                       (sort token-comparator))]
+                       (sort tokens-order-cmp))]
     (use-dnd-monitor
      #js {"onDragStart"
           (use-callback
@@ -717,7 +717,7 @@
                        :transform (str "scale(" (/ scale) ")")}
                       ($ token-context-menu {:tokens selected :type type}))))))))))))
 
-(defui ^:private render-bounds []
+(defui ^:private player-window-bounds []
   (let [result (use-query [:bounds/host :bounds/view])
         {[_ _ hw hh] :bounds/host
          [_ _ vw vh] :bounds/view} result
@@ -725,7 +725,7 @@
     ($ :g.scene-bounds {:transform (str "translate(" ox " , " oy ")")}
       ($ :rect {:x 0 :y 0 :width vw :height vh :rx 8}))))
 
-(def ^:private cursors-query
+(def ^:private player-cursors-query
   [{:root/user [{:user/camera [:camera/scene]}]}
    {:root/session
     [[:session/share-cursors :default true]
@@ -736,8 +736,8 @@
        [:user/color :default "none"]
        {:user/camera [:camera/scene]}]}]}])
 
-(defui ^:private render-cursors []
-  (let [result (use-query cursors-query [:db/ident :root])
+(defui ^:private player-cursors []
+  (let [result (use-query player-cursors-query [:db/ident :root])
         conns  (key-by :user/uuid (:session/conns (:root/session result)))
         share  (:session/share-cursors (:root/session result))
         host   (:session/host (:root/session result))
@@ -796,18 +796,18 @@
    (uix/fn []
      ($ :<>
        ;; Defines the standard square grid pattern for the scene.
-       ($ render-grid-defs)
+       ($ grid-defs)
 
        ;; Defines clip paths and masks for tokens which emit
        ;; radial lighting.
-       ($ render-mask-defs)
+       ($ mask-defs)
 
        ;; Defines the scene <image> element as well as a <rect>
        ;; which has the same dimensions as the image.
-       ($ render-image-defs)
+       ($ image-defs)
 
        ;; Defines token patterns, images, and the tokens themselves.
-       ($ render-token-defs)
+       ($ tokens-defs)
 
        ($ :g.scene-exterior
          ($ :use.scene-grid {:href "#scene-grid" :style {:clip-path "unset"}}))
@@ -828,8 +828,8 @@
          ($ :g.scene-interior
            ($ :use.scene-image {:href "#scene-image"})
            ($ :use.scene-grid {:href "#scene-grid"})
-           ($ render-shapes)
-           ($ render-tokens))
+           ($ shapes)
+           ($ tokens))
 
          ;; Portal target for the host's cursor which must remain obscured
          ;; by visibility controls so that nosey players don't get any
@@ -857,13 +857,13 @@
            ($ :g {:ref ref :style {:outline "none"} :tab-index -1})))
 
        ;; Player cursors are rendered on top of everything else.
-       ($ render-cursors)
+       ($ player-cursors)
 
        ;; Renders mask area boundaries, allowing the host to interact
        ;; with them individually.
-       ($ render-mask-polys)))))
+       ($ mask-polys)))))
 
-(def ^:private query-scene
+(def ^:private scene-query
   [:user/type
    [:user/privileged? :default false]
    [:bounds/host :default [0 0 0 0]]
@@ -879,9 +879,9 @@
        [:scene/lighting :default :revealed]
        [:scene/masked :default false]]}]}])
 
-(defui render-scene []
+(defui scene []
   (let [dispatch (use-dispatch)
-        result   (use-query query-scene)
+        result   (use-query scene-query)
         {user        :user/type
          [_ _ hw hh] :bounds/host
          [_ _ vw vh] :bounds/view
@@ -921,4 +921,4 @@
       (if (contains? draw-modes mode)
         ($ :g.scene-drawable {:class (str "scene-drawable-" (name mode))}
           ($ draw {:key mode :mode mode :node nil})))
-      (if (:user/privileged? result) ($ render-bounds)))))
+      (if (:user/privileged? result) ($ player-window-bounds)))))

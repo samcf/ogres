@@ -2,7 +2,7 @@
   (:require [ogres.app.hooks :refer [use-query]]
             [ogres.app.component :refer [icon]]
             [ogres.app.component.panel :refer [container]]
-            [ogres.app.component.scene :refer [render-scene]]
+            [ogres.app.component.scene :refer [scene]]
             [ogres.app.component.scenes :refer [scenes]]
             [ogres.app.component.toolbar :refer [toolbar]]
             [uix.core :refer [defui $]]))
@@ -24,7 +24,7 @@
          :data-user (name type)
          :data-expanded expanded}
         ($ :.layout-scenes  ($ scenes))
-        ($ :.layout-scene   ($ render-scene))
+        ($ :.layout-scene   ($ scene))
         ($ :.layout-toolbar ($ toolbar))
         ($ :.layout-panel   ($ container)))
       [:conn :ready]
@@ -32,7 +32,7 @@
         {:style {:visibility "hidden"}
          :data-user (name type)
          :data-expanded expanded}
-        ($ :.layout-scene   ($ render-scene))
+        ($ :.layout-scene   ($ scene))
         ($ :.layout-toolbar ($ toolbar))
         ($ :.layout-panel   ($ container)))
       [:conn :disconnected]
@@ -62,4 +62,4 @@
         {:style {:visibility "hidden"}
          :data-user (name type)
          :data-expanded expanded}
-        ($ :.layout-scene ($ render-scene))) nil)))
+        ($ :.layout-scene ($ scene))) nil)))
