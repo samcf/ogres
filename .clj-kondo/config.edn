@@ -1,2 +1,1 @@
-{:linters {:missing-else-branch {:level :off}}
- :lint-as {uix.core/defui clojure.core/defn}}
+{:linters {:missing-else-branch {:level :off}}}
