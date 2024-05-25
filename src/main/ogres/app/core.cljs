@@ -14,7 +14,7 @@
             [ogres.app.provider.storage  :as storage]
             [ogres.app.provider.window   :as window]
             [ogres.app.session           :as session]
-            [uix.core :as uix :refer [defui $]]
+            [uix.core :as uix :refer [$ defui]]
             [uix.dom  :as dom]))
 
 (def ^:private error-boundary
@@ -24,8 +24,6 @@
 
 (defui ^:private app []
   ($ uix/strict-mode
-    ($ stylesheet {:name "fonts.css"})
-    ($ stylesheet {:name "reset.css"})
     ($ stylesheet {:name "ogres.app.css"})
     ($ events/provider
       ($ state/provider {:type (user-type)}
