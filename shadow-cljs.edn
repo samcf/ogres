@@ -1,6 +1,6 @@
 {:deps     true
  :dev-http {8080 ["web" "site/web"]}
- :builds   {:app {:target           :browser
+ :builds   {:app {:target           :esm
                   :compiler-options {:infer-externs :auto :externs ["datascript/externs.js"]}
                   :output-dir       "web/release"
                   :asset-path       "release"
