@@ -12,8 +12,8 @@
     "@rwh/react-keystrokes": "^1.5.4",
     "dexie": "^3.0.3",
     "dexie-export-import": "^4.1.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "^19.0.0-rc-512b09b2-20240718",
+    "react-dom": "^19.0.0-rc-512b09b2-20240718",
     "react-transition-group": "^4.4.5"
   },
   "scripts": {

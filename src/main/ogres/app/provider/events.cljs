@@ -19,7 +19,7 @@
    for the given children. Refer to `use-publish` and `use-subscribe` to publish
    and subscribe to events, respectively."
   [{:keys [children]}]
-  ($ (.-Provider context) {:value context-value} children))
+  ($ context {:value context-value} children))
 
 (defui use-publish
   "Returns a function that must be called with a topic as the first argument

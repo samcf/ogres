@@ -54,7 +54,7 @@
    re-renders when transactions are performed."
   [{:keys [children type] :or {type :host}}]
   (let [conn (ds/conn-from-db (initial-data type))]
-    ($ (.-Provider context) {:value conn} children)))
+    ($ context {:value conn} children)))
 
 (defn use-query
   ([pattern]

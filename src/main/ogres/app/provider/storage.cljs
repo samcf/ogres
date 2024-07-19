@@ -34,7 +34,7 @@
    the browser's IndexedDB data store."
   [{:keys [children]}]
   (let [store (initialize)]
-    ($ (.-Provider context) {:value store} children)))
+    ($ context {:value store} children)))
 
 (defui ^:private marshaller
   []

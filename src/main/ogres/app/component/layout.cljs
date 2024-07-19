@@ -20,8 +20,7 @@
     (case [type status]
       [:host :ready]
       ($ :.layout
-        {:style {:visibility "hidden"}
-         :data-user (name type)
+        {:data-user (name type)
          :data-expanded expanded}
         ($ :.layout-scenes  ($ scenes))
         ($ :.layout-scene   ($ scene))
@@ -29,8 +28,7 @@
         ($ :.layout-panel   ($ container)))
       [:conn :ready]
       ($ :.layout
-        {:style {:visibility "hidden"}
-         :data-user (name type)
+        {:data-user (name type)
          :data-expanded expanded}
         ($ :.layout-scene   ($ scene))
         ($ :.layout-toolbar ($ toolbar))
@@ -59,7 +57,6 @@
                 ($ :li ($ :a {:href "https://github.com/samcf/ogres/discussions"} "Support")))))))
       [:view :ready]
       ($ :.layout
-        {:style {:visibility "hidden"}
-         :data-user (name type)
+        {:data-user (name type)
          :data-expanded expanded}
         ($ :.layout-scene ($ scene))) nil)))
