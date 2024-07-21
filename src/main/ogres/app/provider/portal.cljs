@@ -16,7 +16,7 @@
                                  (set-portals
                                   (fn [portals]
                                     (assoc portals name ref)))) [])]
-    ($ (.-Provider context) {:value [portals register]} children)))
+    ($ context {:value [portals register]} children)))
 
 (defui create
   "Registers the DOM element returned by `f` as a portal labeled by `label`.

@@ -119,7 +119,7 @@
                           (set-screen nil)))
                     ([element] (set-screen element))) [dispatch screen])]
     (if (= (:user/status result) :ready)
-      ($ (.-Provider context) {:value {:view screen :reset on-reset}}
+      ($ context {:value {:view screen :reset on-reset}}
         (case (:user/type result)
           :host ($ :<>
                   ($ initialize)

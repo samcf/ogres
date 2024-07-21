@@ -11,4 +11,4 @@
        (-> (js/fetch "/releases.txt")
            (.then (fn [res] (.text res)))
            (.then (fn [txt] (set-releases (split-lines txt)))))) [])
-    ($ (.-Provider context) {:value releases} children)))
+    ($ context {:value releases} children)))

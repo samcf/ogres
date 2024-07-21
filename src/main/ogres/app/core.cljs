@@ -1,7 +1,7 @@
 (ns ogres.app.core
-  (:require [ogres.app.component         :refer [stylesheet]]
-            [ogres.app.component.error   :refer [error-page]]
+  (:require [ogres.app.component.error   :refer [error-page]]
             [ogres.app.component.layout  :refer [layout]]
+            [ogres.app.const             :refer [PATH]]
             [ogres.app.dom               :refer [user-type]]
             [ogres.app.provider.cursor   :as cursor]
             [ogres.app.provider.dispatch :as dispatch]
@@ -24,7 +24,7 @@
 
 (defui ^:private app []
   ($ uix/strict-mode
-    ($ stylesheet {:name "ogres.app.css"})
+    ($ :link {:rel "stylesheet" :href (str PATH "/ogres.app.css") :precedence "default"})
     ($ events/provider
       ($ state/provider {:type (user-type)}
         ($ dispatch/provider

@@ -1,7 +1,7 @@
 (ns ogres.app.component
   (:require [ogres.app.const :refer [PATH]]
             [ogres.app.hooks :refer [use-image]]
-            [uix.core :refer [$ defui use-insertion-effect]]))
+            [uix.core :refer [$ defui]]))
 
 (defn ^:private create-range
   "Returns a vector of page indexes or spacing sentinels suitable for use
@@ -89,14 +89,3 @@
   [{:keys [checksum children]}]
   (let [data-url (use-image checksum)]
     (children {:data-url data-url})))
-
-(defui stylesheet
-  "Injects a stylesheet into the head via `<link rel='stylesheet' href='...' />`."
-  [props]
-  (let [{:keys [name]} props]
-    (use-insertion-effect
-     (fn []
-       (let [element (js/document.createElement "link")]
-         (set! (.-href element) (str PATH "/" name))
-         (set! (.-rel element) "stylesheet")
-         (.. js/document -head (appendChild element)))) [name])) nil)

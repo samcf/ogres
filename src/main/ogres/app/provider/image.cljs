@@ -131,7 +131,7 @@
          (let [url (create-object-url data-url)]
            (update (fn [urls] (assoc urls checksum url)))))
        []))
-    ($ (.-Provider image) {:value [urls on-request]}
+    ($ image {:value [urls on-request]}
       (:children props))))
 
 (defn use-image-uploader [{:keys [type]}]

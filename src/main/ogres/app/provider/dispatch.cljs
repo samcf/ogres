@@ -27,5 +27,5 @@
 
 (defui provider [{:keys [children]}]
   (let [dispatch (use-dispatch-fn)]
-    ($ (.-Provider context) {:value dispatch}
+    ($ context {:value dispatch}
       children)))
