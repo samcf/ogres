@@ -2,7 +2,7 @@
   (:require [clojure.string :refer [join]]
             [ogres.app.component :refer [icon]]
             [ogres.app.const :refer [grid-size]]
-            [ogres.app.geom :refer [chebyshev euclidean triangle reorient]]
+            [ogres.app.geom :refer [chebyshev-distance euclidean-distance cone-points reorient]]
             [ogres.app.hooks :refer [use-dispatch use-portal use-query]]
             [uix.core :as uix :refer [defui $ use-state]]
             ["@dnd-kit/core"
@@ -79,7 +79,7 @@
         [mouse set-mouse] (use-state [])
         [ax ay] pairs
         [mx my] mouse
-        closed? (< (euclidean ax ay mx my) 32)]
+        closed? (< (euclidean-distance ax ay mx my) 32)]
     ($ :<>
       ($ :rect
         {:x 0 :y 0 :fill "transparent"
@@ -137,7 +137,7 @@
           ($ :g
             ($ :line {:x1 ax :y1 ay :x2 bx :y2 by})
             ($ text {:attrs {:x (- bx 48) :y (- by 8) :fill "white"}}
-              (-> (chebyshev ax ay bx by)
+              (-> (chebyshev-distance ax ay bx by)
                   (px->ft (* grid-size scale))
                   (str "ft.")))))))))
 
@@ -154,7 +154,7 @@
            (dispatch :shape/create :circle points)))}
       (fn [points]
         (let [[ax ay bx by] (convert points (+' (- ox) (- oy)) cat)
-              radius (chebyshev ax ay bx by)]
+              radius (chebyshev-distance ax ay bx by)]
           ($ :g
             ($ :circle {:cx ax :cy ay :r radius})
             ($ text {:attrs {:x ax :y ay :fill "white"}}
@@ -197,7 +197,7 @@
           ($ :g
             ($ :line {:x1 ax :y1 ay :x2 bx :y2 by})
             ($ text {:attrs {:x (+ ax 8) :y (- ay 8) :fill "white"}}
-              (-> (chebyshev ax ay bx by)
+              (-> (chebyshev-distance ax ay bx by)
                   (px->ft (* grid-size scale))
                   (str "ft.")))))))))
 
@@ -215,9 +215,9 @@
       (fn [points]
         (let [[ax ay bx by] (convert points (+' (- ox) (- oy)) cat)]
           ($ :g
-            ($ :polygon {:points (join " " (triangle ax ay bx by))})
+            ($ :polygon {:points (join " " (cone-points ax ay bx by))})
             ($ text {:attrs {:x (+ bx 16) :y (+ by 16) :fill "white"}}
-              (-> (euclidean ax ay bx by)
+              (-> (euclidean-distance ax ay bx by)
                   (px->ft (* grid-size scale))
                   (str "ft.")))))))))
 

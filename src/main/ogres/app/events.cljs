@@ -3,7 +3,7 @@
             [clojure.set :refer [union difference]]
             [clojure.string :refer [trim]]
             [ogres.app.const :refer [grid-size]]
-            [ogres.app.geom :refer [bounding-box within?]]
+            [ogres.app.geom :refer [bounding-rect euclidean-distance point-within-rect]]
             [ogres.app.util :refer [comp-fn round round-grid with-ns]]))
 
 (def ^:private suffix-max-xf
@@ -510,9 +510,14 @@
 
 (defmethod event-tx-fn :shape/create
   [_ _ kind vecs]
-  [{:db/id -1 :shape/kind kind :shape/vecs vecs}
-   [:db.fn/call assoc-camera :camera/draw-mode :select :camera/selected -1]
-   [:db.fn/call assoc-scene :scene/shapes -1]])
+  (if (> (count vecs) 2)
+    (let [[ax ay bx by] vecs]
+      (if (> (euclidean-distance ax ay bx by) 16)
+        [{:db/id -1 :shape/kind kind :shape/vecs vecs}
+         [:db.fn/call assoc-camera :camera/draw-mode :select :camera/selected -1]
+         [:db.fn/call assoc-scene :scene/shapes -1]]
+        []))
+    []))
 
 (defmethod event-tx-fn :shape/remove
   [_ _ idxs]
@@ -547,18 +552,18 @@
      [:db/add -1 (keyword :bounds w-type) bounds]]))
 
 (defmethod event-tx-fn :selection/from-rect
-  [data _ [ax ay bx by]]
-  (let [root  (ds/entity data [:db/ident :root])
-        user  (:root/user root)
-        bound (bounding-box [ax ay] [bx by])
+  [data _ rect]
+  (let [root (ds/entity data [:db/ident :root])
+        user (:root/user root)
+        rect (bounding-rect rect)
         owned (into #{} (comp (mapcat :user/dragging) (map :db/id))
                     (:session/conns (:root/session root)))]
     [{:db/id (:db/id (:user/camera user))
       :camera/draw-mode :select
       :camera/selected
       (for [token (:scene/tokens (:camera/scene (:user/camera user)))
-            :let  [{id :db/id [x y] :token/point flags :token/flags} token]
-            :when (and (within? x y bound)
+            :let  [{id :db/id point :token/point flags :token/flags} token]
+            :when (and (point-within-rect point rect)
                        (not (owned id))
                        (or (= (:user/type user) :host)
                            (not ((or flags #{}) :hidden))))]
@@ -885,7 +890,7 @@
             [gx gy] :scene/grid-origin} :camera/scene} :user/camera} :root/user
          images :root/token-images} result
         hashes (into #{} (map :image/checksum) images)
-        [ax ay bx by] (apply bounding-box (map :token/point clipboard))
+        [ax ay bx by] (bounding-rect (mapcat :token/point clipboard))
         sx (+ (/ sw scale 2) cx)
         sy (+ (/ sh scale 2) cy)
         ox (/ (- ax bx) 2)
