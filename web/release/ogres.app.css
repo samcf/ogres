@@ -1544,6 +1544,7 @@ a:visited {
     li {
       color: var(--color-paper-900);
       flex: 1;
+      max-height: 65px;
 
       label {
         background-color: var(--color-blues-500);
@@ -1581,8 +1582,8 @@ a:visited {
       align-items: center;
       box-sizing: border-box;
       display: flex;
-      flex: 8;
       justify-content: center;
+      max-height: none;
 
       button {
         align-items: center;
