@@ -431,8 +431,8 @@
                 (fn [options]
                   (let [dx (getValueByKeys options "transform" "x")
                         dy (getValueByKeys options "transform" "y")
-                        tx (or rx dx 0)
-                        ty (or ry dy 0)]
+                        tx (+ sx (or rx dx 0))
+                        ty (+ sy (or ry dy 0))]
                     ($ :g.scene-shapes.scene-shapes-selected
                       ($ :g.scene-shape
                         {:ref (.-setNodeRef options)
@@ -444,14 +444,13 @@
                          :data-dragged-by (get dragged-by id "none")
                          :data-selected selected?}
                         ($ :defs ($ pattern {:id tempid :name (:shape/pattern data) :color (:shape/color data)}))
-                        ($ :g {:transform (str "translate(" sx ", " sy ")")}
-                          ($ shape {:data data :attrs {:fill (str "url(#" tempid ")")}}))
+                        ($ shape {:data data :attrs {:fill (str "url(#" tempid ")")}})
                         (if (and user? selected?)
                           (let [{kind :shape/kind points :shape/vecs} data
                                 [ax _ bx by] (shape-bounding-rect kind points)
                                 sz 400
-                                tx (-> (+ ax bx) (* scale) (- sz) (/ 2) int)
-                                ty (-> (* scale by) int)]
+                                tx (-> (+ ax bx) (* scale) (- sz) (/ 2) (- (* scale sx)) int)
+                                ty (-> (- by sy) (* scale) int)]
                             ($ :foreignObject.context-menu-object
                               {:x tx :y ty :width sz :height sz :transform (str "scale(" (/ scale) ")")}
                               ($ shape-context-menu {:data data}))))))))))))))))
