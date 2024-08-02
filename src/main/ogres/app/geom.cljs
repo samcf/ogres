@@ -1,16 +1,4 @@
-(ns ogres.app.geom
-  (:require [clojure.string :refer [join]]))
-
-(def ^:private poly-path-xf
-  (comp (partition-all 2) (mapcat (fn [[x y]] [x y \L]))))
-
-(defn ^:private circle-path
-  [[x y r]]
-  (let [d (* r 2)]
-    [\M x y
-     \m r 0
-     \a r r 0 1 0 (- d) 0
-     \a r r 0 1 0 d 0 \z]))
+(ns ogres.app.geom)
 
 (defn euclidean-distance
   "Returns the euclidean distance from [Ax Ay] to [Bx By]."
@@ -53,18 +41,6 @@
       (let [[x y] points]
         (recur (rest (rest points)) (min min-x x) (min min-y y) (max max-x x) (max max-y y)))
       [min-x min-y max-x max-y])))
-
-(defn poly->path
-  ([] [])
-  ([path] (join " " path))
-  ([path points]
-   (into path (conj (pop (into [\M] poly-path-xf points)) \z))))
-
-(defn circle->path
-  ([] [])
-  ([path] (join " " path))
-  ([path circle]
-   (into path (circle-path circle))))
 
 (defn ^:private clockwise?
   "Returns true if the given polygon has a clockwise winding order, false
