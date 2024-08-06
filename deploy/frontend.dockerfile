@@ -4,7 +4,7 @@ FROM node:alpine AS node
 RUN mkdir -p /node
 WORKDIR /node
 COPY package.json package-lock.json /node/
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 FROM clojure:temurin-21-tools-deps-bookworm AS frontend-release
 ARG VERSION="dev"

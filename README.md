@@ -30,7 +30,7 @@ git clone git@github.com:samcf/ogres.git
 
 # install dependencies and start the local web server
 # by default opens at http://localhost:8080
-npm install
+npm install --legacy-peer-deps
 npm start
 
 # optionally, start the application server necessary
