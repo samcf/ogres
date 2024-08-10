@@ -74,33 +74,34 @@
 ;; Circles are defined by points {A, B} where A is the center and B is
 ;; some point on the circumference.
 (defmethod object-bounding-rect :shape/circle
-  [{[ax ay] :object/point [bx by cx cy] :shape/points}]
-  (let [rd (euclidean-distance bx by cx cy)]
+  [{[ax ay] :object/point [bx by] :shape/points}]
+  (let [rd (chebyshev-distance 0 0 bx by)]
     [(- ax rd) (- ay rd)
      (+ ax rd) (+ ay rd)]))
 
 ;; Cones are isosceles triangles defined by points {A, B} where A is
 ;; the apex and B is the center of the base.
 (defmethod object-bounding-rect :shape/cone
-  [{[ax ay] :object/point [bx by cx cy] :shape/points}]
-  (bounding-rect (cone-points ax ay (- cx (- bx ax)) (- cy (- by ay)))))
+  [{[ax ay] :object/point [bx by] :shape/points}]
+  (bounding-rect (cone-points ax ay (+ ax bx) (+ ay by))))
 
 ;; Rectangles are defined by points {A, B} where A and B are opposite and
 ;; opposing corners, such as top-left and bottom-right.
 (defmethod object-bounding-rect :shape/rect
-  [{[ax ay] :object/point [bx by cx cy] :shape/points}]
-  (bounding-rect [ax ay (- cx (- bx ax)) (- cy (- by ay))]))
+  [{[ax ay] :object/point [bx by] :shape/points}]
+  (bounding-rect [ax ay (+ ax bx) (+ ay by)]))
 
 ;; Polygons are defined by points {A, B, C, [...]} where each point is
 ;; adjacent to its neighbors.
 (defmethod object-bounding-rect :shape/poly
-  [{[ax ay] :object/point [bx by :as points] :shape/points}]
-  (let [dx (- bx ax)
-        dy (- by ay)
-        xf (comp (partition-all 2) (mapcat (fn [[x y]] [(- x dx) (- y dy)])))]
-    (bounding-rect (sequence xf points))))
+  [{[ax ay] :object/point points :shape/points}]
+  (let [xf (comp (partition-all 2)
+                 (mapcat
+                  (fn [[bx by]]
+                    [(+ ax bx) (+ ay by)])))]
+    (bounding-rect (into [ax ay] xf points))))
 
 ;; Lines are defined by points {A, B}, opposite ends of the segment.
 (defmethod object-bounding-rect :shape/line
-  [{[ax ay] :object/point [bx by cx cy] :shape/points}]
-  (bounding-rect [ax ay (- cx (- bx ax)) (- cy (- by ay))]))
+  [{[ax ay] :object/point [bx by] :shape/points}]
+  (bounding-rect [ax ay (+ ax bx) (+ ay by)]))

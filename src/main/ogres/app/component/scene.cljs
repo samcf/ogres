@@ -297,36 +297,33 @@
 
 (defui ^:private shape-circle
   [{:keys [data]}]
-  (let [{[ax ay bx by] :shape/points} data]
+  (let [{[ax ay] :shape/points} data]
     ($ :circle
-      {:cx 0 :cy 0 :r (geom/chebyshev-distance ax ay bx by)})))
+      {:cx 0 :cy 0 :r (geom/chebyshev-distance 0 0 ax ay)})))
 
 (defui ^:private shape-rect
   [{:keys [data]}]
-  (let [{[ax ay bx by] :shape/points} data]
+  (let [{[ax ay] :shape/points} data]
     ($ :path
-      {:d (join " " ["M" 0 0 "H" (- bx ax) "V" (- by ay) "H" 0 "Z"])})))
+      {:d (join " " ["M" 0 0 "H" ax "V" ay "H" 0 "Z"])})))
 
 (defui ^:private shape-line
   [{:keys [data]}]
-  (let [{[ax ay bx by] :shape/points} data]
+  (let [{[ax ay] :shape/points} data]
     ($ :line
-      {:x1 0 :y1 0 :x2 (- bx ax) :y2 (- by ay)})))
+      {:x1 0 :y1 0 :x2 ax :y2 ay})))
 
 (defui ^:private shape-cone
   [{:keys [data]}]
-  (let [{[ax ay bx by] :shape/points} data]
+  (let [{[bx by] :shape/points} data]
     ($ :polygon
-      {:points (join " " (geom/cone-points 0 0 (- bx ax) (- by ay)))})))
+      {:points (join " " (geom/cone-points 0 0 bx by))})))
 
 (defui ^:private shape-poly
   [{:keys [data]}]
-  (let [xf (fn [x y] (comp (partition-all 2) (mapcat (fn [[ax ay]] [(- ax x) (- ay y)]))))
-        {points :shape/points} data
-        [ax ay] (into [] (take 2) points)
-        pairs   (into [] (xf ax ay) points)]
+  (let [{points :shape/points} data]
     ($ :polygon
-      {:points (join " " pairs)})))
+      {:points (join " " (into [0 0] points))})))
 
 (defui ^:private shape [props]
   (case (keyword (name (:object/type (:data props))))

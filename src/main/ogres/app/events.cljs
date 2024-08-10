@@ -493,12 +493,19 @@
 (defmethod event-tx-fn :shape/create
   [_ _ type points]
   (if (> (count points) 2)
-    (let [[ax ay bx by] points]
+    (let [[ax ay bx by] points
+          origin [ax ay]
+          offset (fn [[ax ay]]
+                   (comp (partition-all 2)
+                         (drop 1)
+                         (mapcat
+                          (fn [[bx by]]
+                            [(- bx ax) (- by ay)]))))]
       (if (> (geom/euclidean-distance ax ay bx by) 16)
         [{:db/id -1
           :object/type (keyword :shape type)
-          :object/point [ax ay]
-          :shape/points points}
+          :object/point origin
+          :shape/points (into [] (offset origin) points)}
          [:db.fn/call assoc-camera :camera/draw-mode :select :camera/selected -1]
          [:db.fn/call assoc-scene :scene/shapes -1]]
         []))
