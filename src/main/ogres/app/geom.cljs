@@ -1,4 +1,5 @@
-(ns ogres.app.geom)
+(ns ogres.app.geom
+  (:require [ogres.app.const :refer [grid-size]]))
 
 (defn euclidean-distance
   "Returns the euclidean distance from [Ax Ay] to [Bx By]."
@@ -57,39 +58,49 @@
   (if (clockwise? xs) xs
       (into [] cat (reverse (partition 2 xs)))))
 
-(defmulti shape-bounding-rect
+(defmulti object-bounding-rect
   "Returns an axis-aligned minimum bounding rectangle (AABB) of the given
-   shape and its points in the form of [Ax Ay Bx By] where A is the
-   top-left corner and B is the bottom-right corner."
-  (fn [kind _] kind))
+   object in the form of [Ax Ay Bx By] where A is the top-left corner and B
+   is the bottom-right corner."
+  :object/type)
 
-;; Circles are defined by points {A, B} where A is the center and B is
-;; some point on the circumference.
-(defmethod shape-bounding-rect :circle
-  [_ [ax ay bx by]]
-  (let [rd (euclidean-distance ax ay bx by)]
+;; Tokens are defined by their position {A} and size.
+(defmethod object-bounding-rect :token/token
+  [{[ax ay] :object/point size :token/size}]
+  (let [rd (/ (* size grid-size) 10)]
     [(- ax rd) (- ay rd)
      (+ ax rd) (+ ay rd)]))
 
+;; Circles are defined by points {A, B} where A is the center and B is
+;; some point on the circumference.
+(defmethod object-bounding-rect :shape/circle
+  [{[ax ay] :object/point [bx by cx cy] :shape/points}]
+  (let [rd (euclidean-distance bx by cx cy)]
+    [(- ax rd) (- ay rd)
+     (+ ax rd) (+ ay rd)]))
+
+;; Cones are isosceles triangles defined by points {A, B} where A is
+;; the apex and B is the center of the base.
+(defmethod object-bounding-rect :shape/cone
+  [{[ax ay] :object/point [bx by cx cy] :shape/points}]
+  (bounding-rect (cone-points ax ay (- cx (- bx ax)) (- cy (- by ay)))))
+
 ;; Rectangles are defined by points {A, B} where A and B are opposite and
 ;; opposing corners, such as top-left and bottom-right.
-(defmethod shape-bounding-rect :rect
-  [_ points]
-  (bounding-rect points))
+(defmethod object-bounding-rect :shape/rect
+  [{[ax ay] :object/point [bx by cx cy] :shape/points}]
+  (bounding-rect [ax ay (- cx (- bx ax)) (- cy (- by ay))]))
 
 ;; Polygons are defined by points {A, B, C, [...]} where each point is
 ;; adjacent to its neighbors.
-(defmethod shape-bounding-rect :poly
-  [_ points]
-  (bounding-rect points))
+(defmethod object-bounding-rect :shape/poly
+  [{[ax ay] :object/point [bx by :as points] :shape/points}]
+  (let [dx (- bx ax)
+        dy (- by ay)
+        xf (comp (partition-all 2) (mapcat (fn [[x y]] [(- x dx) (- y dy)])))]
+    (bounding-rect (sequence xf points))))
 
 ;; Lines are defined by points {A, B}, opposite ends of the segment.
-(defmethod shape-bounding-rect :line
-  [_ points]
-  (bounding-rect points))
-
-;; Cones are isosceles triangles defined by points {A, B} where A is
-;; the apex perpendicular and B is the center of the base.
-(defmethod shape-bounding-rect :cone
-  [_ [ax ay bx by]]
-  (bounding-rect (cone-points ax ay bx by)))
+(defmethod object-bounding-rect :shape/line
+  [{[ax ay] :object/point [bx by cx cy] :shape/points}]
+  (bounding-rect [ax ay (- cx (- bx ax)) (- cy (- by ay))]))

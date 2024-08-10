@@ -83,7 +83,7 @@
         (let [shift (.. data -originalEvent -shiftKey)
               data  (.. js/document -activeElement -dataset)]
           (if (= (.-type data) "token")
-            (dispatch :element/select (js/Number (.-id data)) shift)))))
+            (dispatch :objects/select (js/Number (.-id data)) shift)))))
 
     ;; Move tokens and pan camera around.
     (use-shortcut ["arrowleft" "arrowup" "arrowright" "arrowdown"]
