@@ -311,7 +311,7 @@
   [{:keys [data]}]
   (let [{[ax ay] :shape/points} data]
     ($ :line
-      {:x1 0 :y1 0 :x2 ax :y2 ay})))
+      {:x1 0 :y1 0 :x2 ax :y2 ay :stroke-width 16 :stroke-linecap "round"})))
 
 (defui ^:private shape-cone
   [{:keys [data]}]
