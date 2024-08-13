@@ -622,6 +622,7 @@
                              :tab-index (if seen 0 -1)
                              :transform (str "translate(" tx ", " ty ")")
                              :on-pointer-down (or handler stop-propagation)
+                             :data-id id
                              :data-type (namespace (:object/type entity))}
                             ($ object {:entity entity}))))))))))))
       ($ use-portal {:name :selected}

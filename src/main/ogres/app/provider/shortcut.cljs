@@ -96,9 +96,11 @@
                   (= (.-type attrs) "scene")
                   (dispatch :camera/translate (* dx 140) (* dy 140))
                   (= (.-type attrs) "token")
-                  (dispatch :token/translate (js/Number (.-id attrs)) (* dx 70) (* dy 70))
+                  (dispatch :objects/translate (js/Number (.-id attrs)) (* dx 70) (* dy 70))
+                  (= (.-type attrs) "shape")
+                  (dispatch :objects/translate (js/Number (.-id attrs)) (* dx 70) (* dy 70))
                   (= (.-activeElement js/document) (.-body js/document))
-                  (dispatch :token/translate-selected (* dx 70) (* dy 70)))))))
+                  (dispatch :objects/translate-selected (* dx 70) (* dy 70)))))))
 
     ;; Cut, copy, and paste tokens.
     (use-shortcut [\c \x \v]
