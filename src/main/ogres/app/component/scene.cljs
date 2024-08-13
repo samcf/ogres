@@ -520,6 +520,11 @@
         {size-b :token/size [bx by] :object/point} b]
     (compare [size-b ax ay] [size-a bx by])))
 
+(defn ^:private object-shapes-cmp [a b]
+  (let [{[ax ay] :object/point} a
+        {[bx by] :object/point} b]
+    (compare [ax ay] [bx by])))
+
 (defui ^:private object-token
   [{:keys [entity]}]
   (let [{id :db/id} entity]
@@ -576,14 +581,18 @@
 
 (defui ^:private objects []
   (let [result (use-query objects-query [:db/ident :root])
-        {{type :user/type
-          {scale    :camera/scale
+        {{[_ _ bw bh] :bounds/self
+          type :user/type
+          {[cx cy]  :camera/point
+           scale    :camera/scale
            selected :camera/selected
            {tokens :scene/tokens
             shapes :scene/shapes}
            :camera/scene}
           :user/camera}
          :root/user} result
+        bounds [cx cy (+ (/ bw scale) cx) (+ (/ bh scale) cy)]
+        shapes (sort object-shapes-cmp shapes)
         tokens (sort object-tokens-cmp (sequence (object-tokens-xf type) tokens))
         entities (concat shapes tokens)
         selected (into #{} (map :db/id) selected)
@@ -592,8 +601,10 @@
     ($ :g.scene-objects {}
       ($ TransitionGroup {:component nil}
         (for [entity entities
-              :let [{id :db/id [ax ay] :object/point} entity]
-              :let [node (create-ref)]]
+              :let [node (create-ref)
+                    {id :db/id [ax ay] :object/point} entity
+                    rect (geom/object-bounding-rect entity)
+                    seen (geom/rect-intersects-rect rect bounds)]]
           ($ CSSTransition {:key id :nodeRef node :timeout 256}
             ($ :g.scene-object-transition {:ref node}
               (if (not (selected id))
@@ -608,6 +619,7 @@
                               ty (+ ay (or ry dy 0))]
                           ($ :g.scene-object
                             {:ref (.-setNodeRef drag)
+                             :tab-index (if seen 0 -1)
                              :transform (str "translate(" tx ", " ty ")")
                              :on-pointer-down (or handler stop-propagation)
                              :data-type (namespace (:object/type entity))}

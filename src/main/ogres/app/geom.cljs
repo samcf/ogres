@@ -32,6 +32,13 @@
   [[ax ay] [bx by cx cy]]
   (and (> ax bx) (> ay by) (< ax cx) (< ay cy)))
 
+(defn rect-intersects-rect
+  "Returns true if any of the 4 corners of [Ax Ay Bx by] are within the
+   rect [Cx Cy Dx Dy]. Each rect must be given as (Min, Max)."
+  [[ax ay bx by] bounds]
+  (some (fn [point] (point-within-rect point bounds))
+        [[ax ay] [bx ay] [bx by] [ax by]]))
+
 (defn bounding-rect
   "Returns an axis-aligned minimum bounding rectangle (AABB) of the set of
    points given in the form of [Ax Ay Bx By [...]] as points [Ax Ay Bx By]
