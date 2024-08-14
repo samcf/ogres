@@ -590,11 +590,10 @@
 
 (defn ^:private object-align-xf [dx dy ox oy]
   (comp (partition-all 2)
-        (map (fn [[x y]] [(+ x (or dx 0)) (+ y (or dy 0))]))
-        (map (fn [[x y]] [(- x ox) (- y oy)]))
-        (map (fn [[x y]] [(round x grid-size) (round y grid-size)]))
-        (map (fn [[x y]] [(+ x ox) (+ y oy)]))
-        cat))
+        (mapcat
+         (fn [[x y]]
+           [(+ (round (- (+ x dx) ox) grid-size) ox)
+            (+ (round (- (+ y dy) oy) grid-size) oy)]))))
 
 (defui ^:private objects []
   (let [result (use-query objects-query [:db/ident :root])
@@ -635,8 +634,8 @@
                     ($ render-drag {:id id :disabled false}
                       (fn [drag]
                         (let [handler (getValueByKeys drag "listeners" "onPointerDown")
-                              dx (getValueByKeys drag "transform" "x")
-                              dy (getValueByKeys drag "transform" "y")
+                              dx (or (getValueByKeys drag "transform" "x") 0)
+                              dy (or (getValueByKeys drag "transform" "y") 0)
                               tx (+ ax (or rx dx 0))
                               ty (+ ay (or ry dy 0))
                               to (if (and align? (.-isDragging drag) (or (not= dx 0) (not= dy 0)))
@@ -659,11 +658,11 @@
           ($ render-drag {:id "selected" :disabled false}
             (fn [drag]
               (let [handler (getValueByKeys drag "listeners" "onPointerDown")
-                    dx (getValueByKeys drag "transform" "x")
-                    dy (getValueByKeys drag "transform" "y")]
+                    dx (or (getValueByKeys drag "transform" "x") 0)
+                    dy (or (getValueByKeys drag "transform" "y") 0)]
                 ($ :g.scene-objects.scene-objects-selected
                   {:on-pointer-down (or handler stop-propagation)
-                   :transform (str "translate(" (or dx 0) ", " (or dy 0) ")")
+                   :transform (str "translate(" dx ", " dy ")")
                    :ref (.-setNodeRef drag)}
                   (if (> (count selected) 1)
                     ($ :rect.scene-objects-bounds
