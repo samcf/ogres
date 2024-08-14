@@ -959,6 +959,10 @@ a:visited {
     stroke-width: 1px;
     stroke: var(--scene-stroke);
   }
+
+  .scene-objects-portal {
+    pointer-events: none;
+  }
 }
 
 .scene-object {
@@ -968,6 +972,11 @@ a:visited {
     border-radius: 3px;
     outline: 2px solid var(--outline-color);
   }
+}
+
+.scene-object-align {
+  fill: rgba(255, 255, 255, 0.25);
+  pointer-events: none;
 }
 
 .scene-shape {

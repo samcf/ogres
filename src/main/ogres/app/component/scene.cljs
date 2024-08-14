@@ -10,9 +10,10 @@
             [ogres.app.geom :as geom]
             [ogres.app.hooks :refer [create-portal use-subscribe use-dispatch use-portal use-query]]
             [ogres.app.svg :refer [circle->path poly->path]]
-            [ogres.app.util :refer [key-by]]
+            [ogres.app.util :refer [key-by round]]
             [react-transition-group :refer [TransitionGroup CSSTransition Transition]]
             [uix.core :as uix :refer [defui $ create-ref use-callback use-effect use-memo use-state]]
+            [uix.dom :as dom]
             ["@rwh/react-keystrokes" :refer [useKey] :rename {useKey use-key}]
             ["@dnd-kit/core"
              :refer [DndContext useDndMonitor useDraggable]
@@ -525,13 +526,21 @@
         {[bx by] :object/point} b]
     (compare [ax ay] [bx by])))
 
-(defui ^:private object-token
-  [{:keys [entity]}]
-  (let [{id :db/id} entity]
-    ($ :use {:href (str "#token" id)})))
+(defui ^:private object-token [props]
+  (let [{id :db/id} (:entity props)]
+    ($ :<>
+      ($ :use {:href (str "#token" id)})
+      (if-let [[ax ay bx by] (:aligned-to props)]
+        (if-let [portal (deref (:portal props))]
+          (dom/create-portal
+           ($ :g.scene-object-align
+             ($ :rect
+               {:x  ax :y (+ ay 1)
+                :rx 3  :ry 3
+                :width (- bx ax 1)
+                :height (- by ay 1)})) portal))))))
 
-(defui ^:private object-shape
-  [{:keys [entity]}]
+(defui ^:private object-shape [{:keys [entity]}]
   (let [{id :db/id
          color :shape/color
          pattern-name :shape/pattern
@@ -579,6 +588,14 @@
                    (dispatch :objects/translate-selected dx dy)
                    (dispatch :objects/translate id dx dy))))) [dispatch])})))
 
+(defn ^:private object-align-xf [dx dy ox oy]
+  (comp (partition-all 2)
+        (map (fn [[x y]] [(+ x (or dx 0)) (+ y (or dy 0))]))
+        (map (fn [[x y]] [(- x ox) (- y oy)]))
+        (map (fn [[x y]] [(round x grid-size) (round y grid-size)]))
+        (map (fn [[x y]] [(+ x ox) (+ y oy)]))
+        cat))
+
 (defui ^:private objects []
   (let [result (use-query objects-query [:db/ident :root])
         {{[_ _ bw bh] :bounds/self
@@ -586,11 +603,14 @@
           {[cx cy]  :camera/point
            scale    :camera/scale
            selected :camera/selected
-           {tokens :scene/tokens
+           {[ox oy] :scene/grid-origin
+            align? :scene/grid-align
+            tokens :scene/tokens
             shapes :scene/shapes}
            :camera/scene}
           :user/camera}
          :root/user} result
+        portal (uix/use-ref)
         bounds [cx cy (+ (/ bw scale) cx) (+ (/ bh scale) cy)]
         shapes (sort object-shapes-cmp shapes)
         tokens (sort object-tokens-cmp (sequence (object-tokens-xf type) tokens))
@@ -599,6 +619,8 @@
         selectxf (filter (comp selected :db/id))]
     (use-objects-listener)
     ($ :g.scene-objects {}
+      ($ :g.scene-objects-portal
+        {:ref portal :tab-index -1})
       ($ TransitionGroup {:component nil}
         (for [entity entities
               :let [node (create-ref)
@@ -616,50 +638,59 @@
                               dx (getValueByKeys drag "transform" "x")
                               dy (getValueByKeys drag "transform" "y")
                               tx (+ ax (or rx dx 0))
-                              ty (+ ay (or ry dy 0))]
+                              ty (+ ay (or ry dy 0))
+                              to (if (and align? (.-isDragging drag) (or (not= dx 0) (not= dy 0)))
+                                   (into [] (object-align-xf dx dy ox oy) rect))]
                           ($ :g.scene-object
-                            {:ref (.-setNodeRef drag)
-                             :tab-index (if seen 0 -1)
+                            {:on-pointer-down (or handler stop-propagation)
                              :transform (str "translate(" tx ", " ty ")")
-                             :on-pointer-down (or handler stop-propagation)
+                             :tab-index (if seen 0 -1)
+                             :data-type (namespace (:object/type entity))
                              :data-id id
-                             :data-type (namespace (:object/type entity))}
-                            ($ object {:entity entity}))))))))))))
+                             :ref (.-setNodeRef drag)}
+                            ($ object
+                              {:entity entity
+                               :portal portal
+                               :aligned-to to}))))))))))))
       ($ use-portal {:name :selected}
-        (let [bounds-xf     (comp selectxf (mapcat geom/object-bounding-rect))
-              [ax ay bx by] (geom/bounding-rect (sequence bounds-xf entities))]
+        (let [bounds (sequence (comp selectxf (mapcat geom/object-bounding-rect)) entities)
+              bounds (geom/bounding-rect bounds)
+              [ax ay bx by] bounds]
           ($ render-drag {:id "selected" :disabled false}
             (fn [drag]
               (let [handler (getValueByKeys drag "listeners" "onPointerDown")
                     dx (getValueByKeys drag "transform" "x")
                     dy (getValueByKeys drag "transform" "y")]
                 ($ :g.scene-objects.scene-objects-selected
-                  {:ref (.-setNodeRef drag)
+                  {:on-pointer-down (or handler stop-propagation)
                    :transform (str "translate(" (or dx 0) ", " (or dy 0) ")")
-                   :on-pointer-down (or handler stop-propagation)}
+                   :ref (.-setNodeRef drag)}
                   (if (> (count selected) 1)
                     ($ :rect.scene-objects-bounds
-                      {:x (- ax 6)
-                       :y (- ay 6)
-                       :width (+ (- bx ax) (* 6 2))
+                      {:x (- ax 6) :y (- ay 6)
+                       :width  (+ (- bx ax) (* 6 2))
                        :height (+ (- by ay) (* 6 2))
-                       :rx 3
-                       :ry 3}))
+                       :rx 3 :ry 3}))
                   ($ TransitionGroup {:component nil}
                     (for [entity entities
-                          :let [{id :db/id [ax ay] :object/point} entity]
-                          :let [node (create-ref)]]
+                          :let [{id :db/id [ax ay] :object/point} entity
+                                node (create-ref)
+                                rect (geom/object-bounding-rect entity)
+                                rect (if (and align? (.-isDragging drag) (or (not= dx 0) (not= dy 0)))
+                                       (into [] (object-align-xf dx dy ox oy) rect))]]
                       ($ CSSTransition {:key id :nodeRef node :timeout 256}
                         ($ :g.scene-object-transition {:ref node}
                           (if (selected id)
-                            ($ render-live
+                            ($ render-live {}
                               (fn [[rx ry]]
                                 ($ :g.scene-object
                                   {:transform (str "translate(" (+ ax rx) ", " (+ ay ry) ")")
-                                   :data-id id
                                    :data-type (namespace (:object/type entity))
-                                   :data-selected true}
-                                  ($ object {:entity entity})))))))))
+                                   :data-id id}
+                                  ($ object
+                                    {:entity entity
+                                     :portal portal
+                                     :aligned-to rect})))))))))
                   (let [sz 400
                         tx (-> (+ ax bx) (* scale) (- sz) (/ 2) int)
                         ty (-> (+ by 24) (* scale) (- 24) int)
