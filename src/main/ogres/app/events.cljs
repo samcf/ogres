@@ -392,9 +392,32 @@
 ;; --- Objects ---
 (defmethod event-tx-fn :objects/translate
   ^{:doc "Translates the object given by id by the delta dx and dy."}
-  [data _ id dx dy]
-  (let [{[ax ay] :object/point} (ds/entity data id)]
-    [[:db/add id :object/point [(+ ax dx) (+ ay dy)]]]))
+  [_ _ id dx dy]
+  [[:db.fn/call event-tx-fn :objects/translate-many #{id} dx dy]])
+
+(defmethod event-tx-fn :objects/translate-many
+  ^{:doc "Translates the objects given by idxs by the delta dx and dy,
+          possibly aligning them to the grid if the appropriate scene
+          option is enabled."}
+  [data _ idxs dx dy]
+  (let [result (ds/entity data [:db/ident :user])
+        {{{align? :scene/grid-align
+           [ox oy] :scene/grid-origin} :camera/scene}
+         :user/camera} result
+        selected [:db/id :object/type :object/point :shape/points :token/size]
+        entities (ds/pull-many data selected idxs)
+        align-xf (comp (partition-all 2)
+                       (mapcat
+                        (fn [[x y]]
+                          [(+ (round (- (+ x dx) ox) grid-size) ox)
+                           (+ (round (- (+ y dy) oy) grid-size) oy)])))]
+    (for [{id :db/id :as entity} entities
+          :let [type (keyword (namespace (:object/type entity)))]]
+      (if (and (= type :token) align?)
+        (let [[ax ay bx by] (sequence align-xf (geom/object-bounding-rect entity))]
+          {:db/id id :object/point [(/ (+ ax bx) 2) (/ (+ ay by) 2)]})
+        (let [[ax ay] (:object/point entity)]
+          {:db/id id :object/point [(+ ax dx) (+ ay dy)]})))))
 
 (defmethod event-tx-fn :objects/translate-selected
   ^{:doc "Translate the currently selected objects by the delta dx and dy."}
@@ -402,9 +425,7 @@
   (let [select [{:user/camera [{:camera/selected [:db/id :object/point]}]}]
         result (ds/pull data select [:db/ident :user])
         {{selected :camera/selected} :user/camera} result]
-    (for [entity selected
-          :let [{id :db/id [ax ay] :object/point} entity]]
-      {:db/id id :object/point [(+ ax dx) (+ ay dy)]})))
+    [[:db.fn/call event-tx-fn :objects/translate-many (into #{} (map :db/id) selected) dx dy]]))
 
 (defmethod event-tx-fn :objects/select
   ^{:doc "Joins or removes the object given by id to the current selection,

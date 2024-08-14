@@ -74,7 +74,7 @@
 ;; Tokens are defined by their position {A} and size.
 (defmethod object-bounding-rect :token/token
   [{[ax ay] :object/point size :token/size}]
-  (let [rd (/ (* size grid-size) 10)]
+  (let [rd (/ (* (or size 5) grid-size) 10)]
     [(- ax rd) (- ay rd)
      (+ ax rd) (+ ay rd)]))
 
@@ -102,10 +102,7 @@
 ;; adjacent to its neighbors.
 (defmethod object-bounding-rect :shape/poly
   [{[ax ay] :object/point points :shape/points}]
-  (let [xf (comp (partition-all 2)
-                 (mapcat
-                  (fn [[bx by]]
-                    [(+ ax bx) (+ ay by)])))]
+  (let [xf (comp (partition-all 2) (mapcat (fn [[bx by]] [(+ ax bx) (+ ay by)])))]
     (bounding-rect (into [ax ay] xf points))))
 
 ;; Lines are defined by points {A, B}, opposite ends of the segment.
