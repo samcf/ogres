@@ -411,13 +411,14 @@
                         (fn [[x y]]
                           [(+ (round (- (+ x dx) ox) grid-size) ox)
                            (+ (round (- (+ y dy) oy) grid-size) oy)])))]
-    (for [{id :db/id :as entity} entities
-          :let [type (keyword (namespace (:object/type entity)))]]
-      (if (and (= type :token) align?)
-        (let [[ax ay bx by] (sequence align-xf (geom/object-bounding-rect entity))]
-          {:db/id id :object/point [(/ (+ ax bx) 2) (/ (+ ay by) 2)]})
-        (let [[ax ay] (:object/point entity)]
-          {:db/id id :object/point [(+ ax dx) (+ ay dy)]})))))
+    (into [[:db/retract [:db/ident :user] :user/dragging]]
+          (for [{id :db/id :as entity} entities
+                :let [type (keyword (namespace (:object/type entity)))]]
+            (if (and (= type :token) align?)
+              (let [[ax ay bx by] (sequence align-xf (geom/object-bounding-rect entity))]
+                {:db/id id :object/point [(/ (+ ax bx) 2) (/ (+ ay by) 2)]})
+              (let [[ax ay] (:object/point entity)]
+                {:db/id id :object/point [(+ ax dx) (+ ay dy)]}))))))
 
 (defmethod event-tx-fn :objects/translate-selected
   ^{:doc "Translate the currently selected objects by the delta dx and dy."}
@@ -928,10 +929,18 @@
 
 ;; -- Dragging --
 (defmethod
-  ^{:doc "User has started dragging one or more scene objects."}
+  ^{:doc "User has started dragging a single object."}
   event-tx-fn :drag/start
-  [_ _ ids]
-  [{:db/ident :user :user/dragging ids}])
+  [_ _ id]
+  [{:db/ident :user :user/dragging id}])
+
+(defmethod
+  ^{:doc "User has started dragging all selected objects."}
+  event-tx-fn :drag/start-selected
+  [data _]
+  (let [result (ds/entity data [:db/ident :user])
+        {{selected :camera/selected} :user/camera} result]
+    [{:db/ident :user :user/dragging (map :db/id selected)}]))
 
 (defmethod
   ^{:doc "User has ended all dragging."}

@@ -94,15 +94,15 @@
                   [(- rx rx) (- ry ry) rx ry]
                   [(- cx ox dx) (- cy oy dy) dx dy])))))) [uuid ox oy])) point))
 
-(defui ^:private render-live
-  [{:keys [children owner ox oy]}]
-  (let [point (use-cursor-point owner ox oy)]
+(defui ^:private drag-remote-fn
+  [{:keys [children user x y]}]
+  (let [point (use-cursor-point user x y)]
     (children point)))
 
-(defui ^:private render-drag
+(defui ^:private drag-local-fn
   [{:keys [children id disabled]
     :or   {disabled false}}]
-  (let [options (use-draggable #js {"id" id "disabled" disabled})]
+  (let [options (use-draggable #js {"id" id "disabled" (boolean disabled)})]
     (children options)))
 
 (def ^:private image-defs-query
@@ -571,7 +571,18 @@
 (defn ^:private use-objects-listener []
   (let [dispatch (use-dispatch)]
     (use-dnd-monitor
-     #js {"onDragEnd"
+     #js {"onDragStart"
+          (use-callback
+           (fn [data]
+             (let [id (.. data -active -id)]
+               (if (= id "selected")
+                 (dispatch :drag/start-selected)
+                 (dispatch :drag/start id)))) [dispatch])
+          "onDragCancel"
+          (use-callback
+           (fn []
+             (dispatch :drag/end)) [dispatch])
+          "onDragEnd"
           (use-callback
            (fn [data]
              (let [event (.-activatorEvent data)
@@ -607,31 +618,37 @@
             tokens :scene/tokens
             shapes :scene/shapes}
            :camera/scene}
-          :user/camera}
-         :root/user} result
+          :user/camera} :root/user
+         {conns :session/conns} :root/session} result
         portal (uix/use-ref)
         bounds [cx cy (+ (/ bw scale) cx) (+ (/ bh scale) cy)]
         shapes (sort object-shapes-cmp shapes)
         tokens (sort object-tokens-cmp (sequence (object-tokens-xf type) tokens))
         entities (concat shapes tokens)
         selected (into #{} (map :db/id) selected)
-        selectxf (filter (comp selected :db/id))]
+        selectxf (filter (comp selected :db/id))
+        drags-xf (comp (filter (comp seq :user/dragging))
+                       (mapcat (fn [user]
+                                 (map (juxt :db/id (constantly user))
+                                      (:user/dragging user)))))
+        dragging (into {} drags-xf conns)]
     (use-objects-listener)
     ($ :g.scene-objects {}
       ($ :g.scene-objects-portal
         {:ref portal :tab-index -1})
       ($ TransitionGroup {:component nil}
         (for [entity entities
-              :let [node (create-ref)
-                    {id :db/id [ax ay] :object/point} entity
+              :let [{id :db/id [ax ay] :object/point} entity
+                    node (create-ref)
+                    user (dragging id)
                     rect (geom/object-bounding-rect entity)
                     seen (geom/rect-intersects-rect rect bounds)]]
           ($ CSSTransition {:key id :nodeRef node :timeout 256}
             ($ :g.scene-object-transition {:ref node}
               (if (not (selected id))
-                ($ render-live {}
+                ($ drag-remote-fn {:user (:user/uuid user) :x ax :y ay}
                   (fn [[rx ry]]
-                    ($ render-drag {:id id :disabled false}
+                    ($ drag-local-fn {:id id :disabled (some? user)}
                       (fn [drag]
                         (let [handler (getValueByKeys drag "listeners" "onPointerDown")
                               dx (or (getValueByKeys drag "transform" "x") 0)
@@ -641,12 +658,15 @@
                               to (if (and align? (.-isDragging drag) (or (not= dx 0) (not= dy 0)))
                                    (into [] (object-align-xf dx dy ox oy) rect))]
                           ($ :g.scene-object
-                            {:on-pointer-down (or handler stop-propagation)
+                            {:ref (.-setNodeRef drag)
                              :transform (str "translate(" tx ", " ty ")")
                              :tab-index (if seen 0 -1)
+                             :on-pointer-down (or handler stop-propagation)
+                             :data-drag-remote (some? user)
+                             :data-drag-local (.-isDragging drag)
+                             :data-color (:user/color user)
                              :data-type (namespace (:object/type entity))
-                             :data-id id
-                             :ref (.-setNodeRef drag)}
+                             :data-id id}
                             ($ object
                               {:entity entity
                                :portal portal
@@ -655,15 +675,16 @@
         (let [bounds (sequence (comp selectxf (mapcat geom/object-bounding-rect)) entities)
               bounds (geom/bounding-rect bounds)
               [ax ay bx by] bounds]
-          ($ render-drag {:id "selected" :disabled false}
+          ($ drag-local-fn {:id "selected" :disabled (some dragging selected)}
             (fn [drag]
               (let [handler (getValueByKeys drag "listeners" "onPointerDown")
                     dx (or (getValueByKeys drag "transform" "x") 0)
                     dy (or (getValueByKeys drag "transform" "y") 0)]
                 ($ :g.scene-objects.scene-objects-selected
-                  {:on-pointer-down (or handler stop-propagation)
+                  {:ref (.-setNodeRef drag)
                    :transform (str "translate(" dx ", " dy ")")
-                   :ref (.-setNodeRef drag)}
+                   :on-pointer-down (or handler stop-propagation)
+                   :data-drag-local (.-isDragging drag)}
                   (if (> (count selected) 1)
                     ($ :rect.scene-objects-bounds
                       {:x (- ax 6) :y (- ay 6)
@@ -674,16 +695,20 @@
                     (for [entity entities
                           :let [{id :db/id [ax ay] :object/point} entity
                                 node (create-ref)
+                                user (dragging id)
                                 rect (geom/object-bounding-rect entity)
                                 rect (if (and align? (.-isDragging drag) (or (not= dx 0) (not= dy 0)))
                                        (into [] (object-align-xf dx dy ox oy) rect))]]
                       ($ CSSTransition {:key id :nodeRef node :timeout 256}
                         ($ :g.scene-object-transition {:ref node}
                           (if (selected id)
-                            ($ render-live {}
+                            ($ drag-remote-fn {:user (:user/uuid user) :x ax :y ay}
                               (fn [[rx ry]]
                                 ($ :g.scene-object
                                   {:transform (str "translate(" (+ ax rx) ", " (+ ay ry) ")")
+                                   :data-drag-remote (some? user)
+                                   :data-drag-local (.-isDragging drag)
+                                   :data-color (:user/color user)
                                    :data-type (namespace (:object/type entity))
                                    :data-id id}
                                   ($ object
