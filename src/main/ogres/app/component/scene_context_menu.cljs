@@ -239,7 +239,7 @@
                  ($ icon {:name (if on "eye-slash-fill" "eye-fill")}))))
            ($ :button
              {:type "button" :data-tooltip "Remove"
-              :on-click #(dispatch :token/remove idxs)}
+              :on-click #(dispatch :objects/remove idxs)}
              ($ icon {:name "trash3-fill"}))))}
       (fn [{:keys [selected on-change]}]
         (let [props {:on-close  #(on-change nil)

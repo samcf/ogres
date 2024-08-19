@@ -437,6 +437,11 @@
        [:db/retract camera :camera/selected id]
        {:db/id camera :camera/selected {:db/id id}})]))
 
+(defmethod event-tx-fn :objects/remove
+  [_ _ idxs]
+  (for [id idxs]
+    [:db/retractEntity id]))
+
 (defmethod event-tx-fn :object/update
   [_ _ idxs attr value]
   (for [id idxs]
@@ -469,11 +474,6 @@
       :camera/scene
       {:db/id (:db/id (:camera/scene (:user/camera user)))
        :scene/tokens -1}}]))
-
-(defmethod event-tx-fn :token/remove
-  [_ _ idxs]
-  (for [id idxs]
-    [:db/retractEntity id]))
 
 (defmethod event-tx-fn :token/change-flag
   [data _ idxs flag add?]
@@ -527,11 +527,6 @@
          [:db.fn/call assoc-scene :scene/shapes -1]]
         []))
     []))
-
-(defmethod event-tx-fn :shape/remove
-  [_ _ idxs]
-  (for [id idxs]
-    [:db/retractEntity id]))
 
 (defmethod event-tx-fn :share/initiate [] [])
 

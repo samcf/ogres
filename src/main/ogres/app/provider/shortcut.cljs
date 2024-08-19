@@ -81,8 +81,9 @@
     (use-shortcut [\ ]
       (fn [data]
         (let [shift (.. data -originalEvent -shiftKey)
-              data  (.. js/document -activeElement -dataset)]
-          (if (= (.-type data) "token")
+              data  (.. js/document -activeElement -dataset)
+              type  (.-type data)]
+          (if (or (= type "shape") (= type "token"))
             (dispatch :objects/select (js/Number (.-id data)) shift)))))
 
     ;; Move tokens and pan camera around.
@@ -122,7 +123,8 @@
     (use-shortcut ["delete" "backspace"]
       (fn [data]
         (if (allowed? (.-originalEvent data))
-          (let [attrs (.. js/document -activeElement -dataset)]
-            (if (= (.-type attrs) "token")
-              (dispatch :token/remove [(js/Number (.-id attrs))])
+          (let [attr (.. js/document -activeElement -dataset)
+                type (.-type attr)]
+            (if (or (= type "shape") (= type "token"))
+              (dispatch :objects/remove [(js/Number (.-id attr))])
               (dispatch :selection/remove))))))))
