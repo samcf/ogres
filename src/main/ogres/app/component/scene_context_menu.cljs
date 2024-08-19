@@ -265,7 +265,7 @@
            :auto-focus true
            :on-change
            (fn [event]
-             (on-change :object/update :shape/opacity (.. event -target -value)))})))
+             (on-change :objects/update :shape/opacity (.. event -target -value)))})))
     ($ :fieldset.fieldset
       ($ :legend "Color")
       ($ :.context-menu-form-colors
@@ -278,7 +278,7 @@
                :checked (= value (first (values :shape/color)))
                :on-change
                (fn [event]
-                 (on-change :object/update :shape/color (.. event -target -value)))})))))))
+                 (on-change :objects/update :shape/color (.. event -target -value)))})))))))
 
 (defui ^:private shape-form-pattern
   [{:keys [on-change values]}]
@@ -295,7 +295,7 @@
            :on-change
            (fn [event]
              (let [value (.. event -target -value)]
-               (on-change :object/update :shape/pattern (keyword value))))})
+               (on-change :objects/update :shape/pattern (keyword value))))})
         ($ :svg
           ($ :defs ($ pattern {:id id :name value}))
           ($ :rect {:x 0 :y 0 :width "100%" :height "100%" :fill (str "url(#" id ")")}))))))

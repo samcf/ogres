@@ -255,7 +255,8 @@
         tokens (sort tokens-comparator (sequence (tokens-xf type) tokens))
         entities (concat shapes tokens)
         selected (into #{} (map :db/id) selected)
-        dragging (into {} user-drag-xf conns)]
+        dragging (into {} user-drag-xf conns)
+        boundsxf (comp (filter (comp selected :db/id)) (mapcat geom/object-bounding-rect))]
     (use-drag-listener)
     ($ :g.scene-objects {}
       ($ :g.scene-objects-portal
@@ -296,7 +297,7 @@
                                :portal portal
                                :aligned-to to}))))))))))))
       ($ use-portal {:name :selected}
-        (let [[ax ay bx by] (-> (comp (filter (comp selected :db/id)) (mapcat geom/object-bounding-rect)) (sequence entities) (geom/bounding-rect))]
+        (let [[ax ay bx by] (geom/bounding-rect (sequence boundsxf entities))]
           ($ drag-local-fn {:id "selected" :disabled (some dragging selected)}
             (fn [drag]
               (let [handler (getValueByKeys drag "listeners" "onPointerDown")

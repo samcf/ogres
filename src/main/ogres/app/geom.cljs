@@ -55,7 +55,7 @@
   "Returns a transducer which expects a collection of points in the
    form of [Ax Ay Bx By ...] and aligns those points to the nearest
    grid intersection given a drag delta (dx dy) and the current
-   grid offset given as (ox oy)."
+   grid offset (ox oy)."
   [dx dy ox oy]
   (comp (partition-all 2)
         (mapcat

@@ -405,12 +405,13 @@
            [ox oy] :scene/grid-origin} :camera/scene}
          :user/camera} result
         selected [:db/id :object/type :object/point :shape/points :token/size]
-        entities (ds/pull-many data selected idxs)]
+        entities (ds/pull-many data selected idxs)
+        align-xf (geom/alignment-xf dx dy ox oy)]
     (into [[:db/retract [:db/ident :user] :user/dragging]]
           (for [{id :db/id :as entity} entities
                 :let [type (keyword (namespace (:object/type entity)))]]
             (if (and (= type :token) align?)
-              (let [[ax ay bx by] (sequence (geom/alignment-xf dx dy ox oy) (geom/object-bounding-rect entity))]
+              (let [[ax ay bx by] (sequence align-xf (geom/object-bounding-rect entity))]
                 {:db/id id :object/point [(/ (+ ax bx) 2) (/ (+ ay by) 2)]})
               (let [[ax ay] (:object/point entity)]
                 {:db/id id :object/point [(+ ax dx) (+ ay dy)]}))))))
@@ -437,12 +438,17 @@
        [:db/retract camera :camera/selected id]
        {:db/id camera :camera/selected {:db/id id}})]))
 
-(defmethod event-tx-fn :objects/remove
+(defmethod
+  ^{:doc "Removes the objects given by idxs."}
+  event-tx-fn :objects/remove
   [_ _ idxs]
   (for [id idxs]
     [:db/retractEntity id]))
 
-(defmethod event-tx-fn :object/update
+(defmethod
+  ^{:doc "Updates the attribute for the objects given by idxs to the
+          given value."}
+  event-tx-fn :objects/update
   [_ _ idxs attr value]
   (for [id idxs]
     (assoc {:db/id id} attr value)))
