@@ -2,7 +2,6 @@
   (:require [ogres.app.component :refer [icon]]
             [ogres.app.hooks :refer [use-dispatch use-query]]
             [ogres.app.provider.shortcut :refer [shortcuts]]
-            [ogres.app.util :refer [comp-fn]]
             [uix.core :as uix :refer [defui $ use-callback use-state]]))
 
 (def ^:private shortcut-keys
@@ -45,7 +44,7 @@
    [:user/type :default :conn]
    [:user/sharing? :default false]
    {:user/camera
-    [{:camera/selected [:scene/_tokens]}
+    [:camera/selected
      [:camera/draw-mode :default :select]
      [:camera/scale :default 1]]}])
 
@@ -58,7 +57,6 @@
          {scale    :camera/scale
           mode     :camera/draw-mode
           selected :camera/selected} :user/camera} result
-        copyable (some (comp-fn contains? identity :scene/_tokens) selected)
         on-focus (use-callback
                   (fn [event]
                     (if-let [node (.. event -target (closest "button"))]
@@ -84,9 +82,9 @@
          :on-click on-click}
         ($ action {:name "scene-select" :aria-pressed (= mode :select)}
           ($ icon {:name "cursor-fill"}))
-        ($ action {:name "copy-cut" :aria-disabled (nil? copyable)}
+        ($ action {:name "copy-cut" :aria-disabled (nil? selected)}
           ($ icon {:name "scissors"}))
-        ($ action {:name "copy-copy" :aria-disabled (nil? copyable)}
+        ($ action {:name "copy-copy" :aria-disabled (nil? selected)}
           ($ icon {:name "files"}))
         ($ action {:name "copy-paste" :aria-disabled (nil? (:user/clipboard result))}
           ($ icon {:name "clipboard2-plus"}))

@@ -145,7 +145,7 @@
          (fn [value]
            (dispatch :initiative/change-roll id value))})
       ($ :.initiative-token-frame
-        {:on-click #(dispatch :element/select id)
+        {:on-click #(dispatch :objects/select id)
          :data-player (contains? flags :player)
          :data-hidden hidden}
         (cond hidden \?

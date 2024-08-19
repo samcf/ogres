@@ -12,7 +12,7 @@
     ($ :path
       {:d "M 0,20 l 20,-20 M -5,5 l 10,-10 M 15,25 l 10,-10"
        :stroke color
-       :stroke-width "1px"
+       :stroke-width 1
        :stroke-linecap "square"})))
 
 (defui ^:private pattern-circles
@@ -27,7 +27,7 @@
       {:d "M 2.5,2.5l5,5M2.5,7.5l5,-5"
        :fill "transparent"
        :stroke color
-       :stroke-width "1px"
+       :stroke-width 1
        :shape-rendering "auto"
        :stroke-linecap "square"})))
 

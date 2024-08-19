@@ -5,7 +5,7 @@
             [ogres.app.hooks :refer [use-dispatch]]
             [uix.core :as uix :refer [defui $ use-effect use-ref use-state]]))
 
-(defn token-size [x]
+(defn ^:private token-size [x]
   (cond (<= x 3)  "Tiny"
         (<  x 5)  "Small"
         (<= x 5)  "Medium"
@@ -54,7 +54,7 @@
 (defn ^:private stop-propagation [event]
   (.stopPropagation event))
 
-(defui ^:private context-menu
+(defui ^:private context-menu-fn
   [{:keys [render-toolbar render-aside children]
     :or   {render-toolbar (constantly nil)
            render-aside   (constantly nil)}}]
@@ -187,10 +187,10 @@
                    ((:on-change props) :token/change-flag value checked)))})
             ($ icon {:name icon-name})))))))
 
-(defui token-context-menu [{:keys [tokens type]}]
+(defui ^:private context-menu-token [{:keys [data type]}]
   (let [dispatch (use-dispatch)
-        idxs (map :db/id tokens)]
-    ($ context-menu
+        idxs (map :db/id data)]
+    ($ context-menu-fn
       {:render-toolbar
        (fn [{:keys [selected on-change]}]
          ($ :<>
@@ -205,21 +205,21 @@
                 :data-tooltip tooltip
                 :on-click #(on-change form)}
                ($ icon {:name icon-name})))
-           (let [on (every? (comp vector? :scene/_initiative) tokens)]
+           (let [on (every? (comp vector? :scene/_initiative) data)]
              ($ :button
                {:type "button"
                 :data-selected on
                 :data-tooltip "Initiative"
                 :on-click #(dispatch :initiative/toggle idxs (not on))}
                ($ icon {:name "hourglass-split"})))
-           (let [on (every? (comp boolean :player :token/flags) tokens)]
+           (let [on (every? (comp boolean :player :token/flags) data)]
              ($ :button
                {:type "button"
                 :data-tooltip "Player"
                 :data-selected on
                 :on-click #(dispatch :token/change-flag idxs :player (not on))}
                ($ icon {:name "people-fill"})))
-           (let [on (every? (comp boolean :dead :token/flags) tokens)]
+           (let [on (every? (comp boolean :dead :token/flags) data)]
              ($ :button
                {:type "button"
                 :data-tooltip "Dead"
@@ -230,7 +230,7 @@
        (fn []
          ($ :<>
            (if (= type :host)
-             (let [on (every? (comp boolean :hidden :token/flags) tokens)]
+             (let [on (every? (comp boolean :hidden :token/flags) data)]
                ($ :button
                  {:type "button"
                   :data-selected on
@@ -239,14 +239,14 @@
                  ($ icon {:name (if on "eye-slash-fill" "eye-fill")}))))
            ($ :button
              {:type "button" :data-tooltip "Remove"
-              :on-click #(dispatch :token/remove idxs)}
+              :on-click #(dispatch :objects/remove idxs)}
              ($ icon {:name "trash3-fill"}))))}
       (fn [{:keys [selected on-change]}]
         (let [props {:on-close  #(on-change nil)
                      :on-change #(apply dispatch %1 idxs %&)
                      :values    (fn vs
                                   ([f] (vs f #{}))
-                                  ([f init] (into init (map f) tokens)))}]
+                                  ([f init] (into init (map f) data)))}]
           (case selected
             :label      ($ token-form-label props)
             :details    ($ token-form-details props)
@@ -265,7 +265,7 @@
            :auto-focus true
            :on-change
            (fn [event]
-             (on-change :element/update :shape/opacity (.. event -target -value)))})))
+             (on-change :objects/update :shape/opacity (.. event -target -value)))})))
     ($ :fieldset.fieldset
       ($ :legend "Color")
       ($ :.context-menu-form-colors
@@ -278,7 +278,7 @@
                :checked (= value (first (values :shape/color)))
                :on-change
                (fn [event]
-                 (on-change :element/update :shape/color (.. event -target -value)))})))))))
+                 (on-change :objects/update :shape/color (.. event -target -value)))})))))))
 
 (defui ^:private shape-form-pattern
   [{:keys [on-change values]}]
@@ -295,14 +295,14 @@
            :on-change
            (fn [event]
              (let [value (.. event -target -value)]
-               (on-change :element/update :shape/pattern (keyword value))))})
+               (on-change :objects/update :shape/pattern (keyword value))))})
         ($ :svg
           ($ :defs ($ pattern {:id id :name value}))
           ($ :rect {:x 0 :y 0 :width "100%" :height "100%" :fill (str "url(#" id ")")}))))))
 
-(defui shape-context-menu [{:keys [data]}]
+(defui ^:private context-menu-shape [{:keys [data]}]
   (let [dispatch (use-dispatch)]
-    ($ context-menu
+    ($ context-menu-fn
       {:render-toolbar
        (fn [{:keys [selected on-change]}]
          ($ :<>
@@ -322,16 +322,23 @@
        (fn []
          ($ :button
            {:type "button" :data-tooltip "Remove" :style {:margin-left "auto"}
-            :on-click #(dispatch :element/remove [(:db/id data)])}
+            :on-click #(dispatch :selection/remove)}
            ($ icon {:name "trash3-fill"})))}
       (fn [{:keys [selected]}]
         (let [props {:values
                      (fn vs
                        ([f] (vs f #{}))
-                       ([f init] (into init (map f) [data])))
+                       ([f init] (into init (map f) data)))
                      :on-change
                      (fn [event & args]
-                       (apply dispatch event [(:db/id data)] args))}]
+                       (apply dispatch event (map :db/id data) args))}]
           (case selected
             :color   ($ shape-form-color props)
             :pattern ($ shape-form-pattern props)))))))
+
+(defui context-menu [props]
+  (let [types (into #{} (map (comp keyword namespace :object/type)) (:data props))]
+    (if (= (count types) 1)
+      (case (first types)
+        :shape ($ context-menu-shape props)
+        :token ($ context-menu-token props)))))

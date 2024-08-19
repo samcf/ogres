@@ -81,9 +81,10 @@
     (use-shortcut [\ ]
       (fn [data]
         (let [shift (.. data -originalEvent -shiftKey)
-              data  (.. js/document -activeElement -dataset)]
-          (if (= (.-type data) "token")
-            (dispatch :element/select (js/Number (.-id data)) shift)))))
+              data  (.. js/document -activeElement -dataset)
+              type  (.-type data)]
+          (if (or (= type "shape") (= type "token"))
+            (dispatch :objects/select (js/Number (.-id data)) shift)))))
 
     ;; Move tokens and pan camera around.
     (use-shortcut ["arrowleft" "arrowup" "arrowright" "arrowdown"]
@@ -96,9 +97,11 @@
                   (= (.-type attrs) "scene")
                   (dispatch :camera/translate (* dx 140) (* dy 140))
                   (= (.-type attrs) "token")
-                  (dispatch :token/translate (js/Number (.-id attrs)) (* dx 70) (* dy 70))
+                  (dispatch :objects/translate (js/Number (.-id attrs)) (* dx 70) (* dy 70))
+                  (= (.-type attrs) "shape")
+                  (dispatch :objects/translate (js/Number (.-id attrs)) (* dx 70) (* dy 70))
                   (= (.-activeElement js/document) (.-body js/document))
-                  (dispatch :token/translate-selected (* dx 70) (* dy 70)))))))
+                  (dispatch :objects/translate-selected (* dx 70) (* dy 70)))))))
 
     ;; Cut, copy, and paste tokens.
     (use-shortcut [\c \x \v]
@@ -120,7 +123,8 @@
     (use-shortcut ["delete" "backspace"]
       (fn [data]
         (if (allowed? (.-originalEvent data))
-          (let [attrs (.. js/document -activeElement -dataset)]
-            (if (= (.-type attrs) "token")
-              (dispatch :token/remove [(js/Number (.-id attrs))])
+          (let [attr (.. js/document -activeElement -dataset)
+                type (.-type attr)]
+            (if (or (= type "shape") (= type "token"))
+              (dispatch :objects/remove [(js/Number (.-id attr))])
               (dispatch :selection/remove))))))))

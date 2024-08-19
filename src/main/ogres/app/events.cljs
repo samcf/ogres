@@ -3,7 +3,7 @@
             [clojure.set :refer [union difference]]
             [clojure.string :refer [trim]]
             [ogres.app.const :refer [grid-size]]
-            [ogres.app.geom :refer [bounding-rect euclidean-distance point-within-rect]]
+            [ogres.app.geom :as geom]
             [ogres.app.util :refer [comp-fn round round-grid with-ns]]))
 
 (def ^:private suffix-max-xf
@@ -66,9 +66,6 @@
 (defn ^:private mode-allowed? [mode type]
   (not (and (contains? #{:mask :mask-toggle :mask-remove :grid} mode)
             (not= type :host))))
-
-(defn ^:private trans-xf [x y]
-  (comp (partition-all 2) (drop 1) (map (fn [[ax ay]] [(+ ax x) (+ ay y)])) cat))
 
 (defn ^:private initiative-order [a b]
   (let [f (juxt :initiative/roll :db/id)]
@@ -392,31 +389,71 @@
   [_ _ value]
   [[:db.fn/call assoc-scene :scene/lighting value]])
 
-(defmethod event-tx-fn :element/update
-  [_ _ idxs attr value]
-  (for [id idxs]
-    (assoc {:db/id id} attr value)))
+;; --- Objects ---
+(defmethod event-tx-fn :objects/translate
+  ^{:doc "Translates the object given by id by the delta dx and dy."}
+  [_ _ id dx dy]
+  [[:db.fn/call event-tx-fn :objects/translate-many #{id} dx dy]])
 
-(defmethod event-tx-fn :element/select
-  ([_ event id]
-   [[:db.fn/call event-tx-fn event id false]])
-  ([data _ id shift?]
-   (let [user (ds/entity data [:db/ident :user])
-         entity (ds/entity data id)
-         camera (:db/id (:user/camera user))
-         selected (contains? (:camera/selected (:user/camera user)) entity)]
-     [[:db/retract [:db/ident :user] :user/dragging]
-      (if (not shift?)
-        [:db/retract camera :camera/selected])
-      (if (and shift? selected)
-        [:db/retract camera :camera/selected id]
-        {:db/id camera :camera/selected {:db/id id}})])))
+(defmethod event-tx-fn :objects/translate-many
+  ^{:doc "Translates the objects given by idxs by the delta dx and dy,
+          possibly aligning them to the grid if the appropriate scene
+          option is enabled."}
+  [data _ idxs dx dy]
+  (let [result (ds/entity data [:db/ident :user])
+        {{{align? :scene/grid-align
+           [ox oy] :scene/grid-origin} :camera/scene}
+         :user/camera} result
+        selected [:db/id :object/type :object/point :shape/points :token/size]
+        entities (ds/pull-many data selected idxs)
+        align-xf (geom/alignment-xf dx dy ox oy)]
+    (into [[:db/retract [:db/ident :user] :user/dragging]]
+          (for [{id :db/id :as entity} entities
+                :let [type (keyword (namespace (:object/type entity)))]]
+            (if (and (= type :token) align?)
+              (let [[ax ay bx by] (sequence align-xf (geom/object-bounding-rect entity))]
+                {:db/id id :object/point [(/ (+ ax bx) 2) (/ (+ ay by) 2)]})
+              (let [[ax ay] (:object/point entity)]
+                {:db/id id :object/point [(+ ax dx) (+ ay dy)]}))))))
 
-(defmethod event-tx-fn :element/remove
+(defmethod event-tx-fn :objects/translate-selected
+  ^{:doc "Translate the currently selected objects by the delta dx and dy."}
+  [data _ dx dy]
+  (let [select [{:user/camera [{:camera/selected [:db/id :object/point]}]}]
+        result (ds/pull data select [:db/ident :user])
+        {{selected :camera/selected} :user/camera} result]
+    [[:db.fn/call event-tx-fn :objects/translate-many (into #{} (map :db/id) selected) dx dy]]))
+
+(defmethod event-tx-fn :objects/select
+  ^{:doc "Joins or removes the object given by id to the current selection,
+          alternating behavior based on the boolean modify."}
+  [data _ id modify]
+  (let [object (ds/entity data id)
+        entity (ds/entity data [:db/ident :user])
+        {{camera :db/id selected :camera/selected} :user/camera} entity]
+    [[:db/retract [:db/ident :user] :user/dragging]
+     (if (not modify)
+       [:db/retract camera :camera/selected])
+     (if (and modify (contains? selected object))
+       [:db/retract camera :camera/selected id]
+       {:db/id camera :camera/selected {:db/id id}})]))
+
+(defmethod
+  ^{:doc "Removes the objects given by idxs."}
+  event-tx-fn :objects/remove
   [_ _ idxs]
   (for [id idxs]
     [:db/retractEntity id]))
 
+(defmethod
+  ^{:doc "Updates the attribute for the objects given by idxs to the
+          given value."}
+  event-tx-fn :objects/update
+  [_ _ idxs attr value]
+  (for [id idxs]
+    (assoc {:db/id id} attr value)))
+
+;; --- Tokens ---
 (defmethod
   ^{:doc "Creates a new token on the current scene at the screen coordinates
           given by `sx` and `sy`. These coordinates are converted to the
@@ -431,10 +468,10 @@
           :camera/scene} :user/camera} user
         tx (+ (/ sx (or scale 1)) (or cx 0))
         ty (+ (/ sy (or scale 1)) (or cy 0))]
-    [(cond-> {:db/id -1}
+    [(cond-> {:db/id -1 :object/type :token/token}
        (some? checksum) (assoc :token/image {:image/checksum checksum})
-       (not align?)     (assoc :token/point [(round tx) (round ty)])
-       align?           (assoc :token/point
+       (not align?)     (assoc :object/point [(round tx) (round ty)])
+       align?           (assoc :object/point
                                [(round-grid tx (/ grid-size 2) (mod ox grid-size))
                                 (round-grid ty (/ grid-size 2) (mod oy grid-size))]))
      {:db/id (:db/id (:user/camera user))
@@ -443,38 +480,6 @@
       :camera/scene
       {:db/id (:db/id (:camera/scene (:user/camera user)))
        :scene/tokens -1}}]))
-
-(defmethod event-tx-fn :token/remove
-  [_ _ idxs]
-  (for [id idxs]
-    [:db/retractEntity id]))
-
-(defmethod event-tx-fn :token/translate
-  [_ _ id dx dy]
-  [[:db.fn/call event-tx-fn :token/translate-all [id] dx dy]])
-
-(defmethod event-tx-fn :token/translate-all
-  [data _ idxs dx dy]
-  (let [tokens (ds/pull-many data [:db/id :token/point [:token/size :default 5]] idxs)
-        user   (ds/entity data [:db/ident :user])
-        {{{[ox oy] :scene/grid-origin align? :scene/grid-align}
-          :camera/scene} :user/camera} user]
-    (into [[:db/retract [:db/ident :user] :user/dragging]]
-          (for [{id :db/id size :token/size [tx ty] :token/point} tokens]
-            {:db/id id :token/point
-             (if align?
-               (let [rd (* (/ size 5) (/ grid-size 2))]
-                 [(round-grid (+ tx dx) rd (mod ox grid-size))
-                  (round-grid (+ ty dy) rd (mod oy grid-size))])
-               [(+ dx tx) (+ dy ty)])}))))
-
-(defmethod event-tx-fn :token/translate-selected
-  [data _ dx dy]
-  (let [user (ds/entity data [:db/ident :user])
-        idxs (map :db/id (:camera/selected (:user/camera user)))]
-    (if (seq idxs)
-      [[:db.fn/call event-tx-fn :token/translate-all idxs dx dy]]
-      [])))
 
 (defmethod event-tx-fn :token/change-flag
   [data _ idxs flag add?]
@@ -509,30 +514,25 @@
      [:db.fn/call event-tx-fn :initiative/toggle idxs false])])
 
 (defmethod event-tx-fn :shape/create
-  [_ _ kind vecs]
-  (if (> (count vecs) 2)
-    (let [[ax ay bx by] vecs]
-      (if (> (euclidean-distance ax ay bx by) 16)
-        [{:db/id -1 :shape/kind kind :shape/vecs vecs}
+  [_ _ type points]
+  (if (> (count points) 2)
+    (let [[ax ay bx by] points
+          origin [ax ay]
+          offset (fn [[ax ay]]
+                   (comp (partition-all 2)
+                         (drop 1)
+                         (mapcat
+                          (fn [[bx by]]
+                            [(- bx ax) (- by ay)]))))]
+      (if (> (geom/euclidean-distance ax ay bx by) 16)
+        [{:db/id -1
+          :object/type (keyword :shape type)
+          :object/point origin
+          :shape/points (into [] (offset origin) points)}
          [:db.fn/call assoc-camera :camera/draw-mode :select :camera/selected -1]
          [:db.fn/call assoc-scene :scene/shapes -1]]
         []))
     []))
-
-(defmethod event-tx-fn :shape/remove
-  [_ _ idxs]
-  (for [id idxs]
-    [:db/retractEntity id]))
-
-(defmethod event-tx-fn :shape/translate
-  [data _ id dx dy]
-  (let [result (ds/pull data [:shape/vecs] id)
-        {[ax ay] :shape/vecs
-         vecs    :shape/vecs} result
-        x (round (+ ax dx))
-        y (round (+ ay dy))]
-    [[:db/retract [:db/ident :user] :user/dragging]
-     {:db/id id :shape/vecs (into [x y] (trans-xf (- x ax) (- y ay)) vecs)}]))
 
 (defmethod event-tx-fn :share/initiate [] [])
 
@@ -553,20 +553,25 @@
 
 (defmethod event-tx-fn :selection/from-rect
   [data _ rect]
-  (let [root (ds/entity data [:db/ident :root])
-        user (:root/user root)
-        rect (bounding-rect rect)
-        owned (into #{} (comp (mapcat :user/dragging) (map :db/id))
-                    (:session/conns (:root/session root)))]
-    [{:db/id (:db/id (:user/camera user))
+  (let [result (ds/entity data [:db/ident :root])
+        {{{{tokens :scene/tokens
+            shapes :scene/shapes} :camera/scene
+           camera :db/id} :user/camera
+          type :user/type} :root/user
+         {conns :session/conns} :root/session} result
+        bounds (geom/bounding-rect rect)
+        restri (into #{} (comp (mapcat :user/dragging) (map :db/id)) conns)]
+    [{:db/id            camera
       :camera/draw-mode :select
       :camera/selected
-      (for [token (:scene/tokens (:camera/scene (:user/camera user)))
-            :let  [{id :db/id point :token/point flags :token/flags} token]
-            :when (and (point-within-rect point rect)
-                       (not (owned id))
-                       (or (= (:user/type user) :host)
-                           (not ((or flags #{}) :hidden))))]
+      (for [entity (concat shapes tokens)
+            :let   [{id :db/id flags :token/flags} entity]
+            :let   [[ax ay bx by] (geom/object-bounding-rect entity)]
+            :when  (and (geom/point-within-rect [ax ay] bounds)
+                        (geom/point-within-rect [bx by] bounds)
+                        (not (restri id))
+                        (or (= type :host)
+                            (not (contains? flags :hidden))))]
         {:db/id id})}]))
 
 (defmethod event-tx-fn :selection/clear
@@ -576,14 +581,9 @@
 
 (defmethod event-tx-fn :selection/remove
   [data]
-  (let [user (ds/entity data [:db/ident :user])
-        type  (->> (:camera/selected (:user/camera user))
-                   (group-by (fn [x] (cond (:scene/_tokens x) :token (:scene/_shapes x) :shape)))
-                   (first))]
-    (case (first type)
-      :token [[:db.fn/call event-tx-fn :token/remove (map :db/id (val type))]]
-      :shape [[:db.fn/call event-tx-fn :shape/remove (map :db/id (val type))]]
-      [])))
+  (let [user (ds/entity data [:db/ident :user])]
+    (for [entity (:camera/selected (:user/camera user))]
+      [:db/retractEntity (:db/id entity)])))
 
 (defmethod event-tx-fn :initiative/toggle
   [data _ idxs adding?]
@@ -834,6 +834,26 @@
          (into [] cat))))
 
 ;; -- Clipboard --
+(def ^:private clipboard-copy-attrs
+  [:object/point
+   :object/type
+   :shape/points
+   :shape/color
+   :shape/opacity
+   :shape/pattern
+   :token/label
+   :token/flags
+   :token/light
+   :token/size
+   :aura/radius
+   :token/image])
+
+(def ^:private clipboard-copy-select
+  [{:user/camera
+    [{:camera/selected
+      (into clipboard-copy-attrs
+            [:db/id {:token/image [:image/checksum]}])}]}])
+
 (defmethod
   ^{:doc "Copy the currently selected tokens to the clipboard. Optionally
           removes them from the current scene if cut? is passed as true.
@@ -846,17 +866,13 @@
   ([_ event]
    [[:db.fn/call event-tx-fn event false]])
   ([data _ cut?]
-   (let [attrs  [:db/id :token/label :token/flags :token/light :token/size :aura/radius :token/image :token/point]
-         select [{:user/camera [{:camera/selected (into attrs [:scene/_tokens {:token/image [:image/checksum]}])}]}]
-         result (ds/pull data select [:db/ident :user])
-         tokens (filter (comp-fn contains? identity :scene/_tokens) (:camera/selected (:user/camera result)))
-         copies (into [] (map (comp-fn select-keys identity attrs)) tokens)]
+   (let [result (ds/pull data clipboard-copy-select [:db/ident :user])
+         copied (:camera/selected (:user/camera result))
+         copies (into [] (map #(select-keys % clipboard-copy-attrs)) copied)]
      (cond-> []
-       (seq tokens)
-       (into [{:db/ident :user :user/clipboard copies}])
-       (and (seq tokens) cut?)
-       (into (for [{id :db/id} tokens]
-               [:db/retractEntity id]))))))
+       (seq copies) (conj {:db/ident :user :user/clipboard copies})
+       cut?         (into (for [{id :db/id} copied]
+                            [:db/retractEntity id]))))))
 
 (def ^:private clipboard-paste-select
   [{:root/user
@@ -887,30 +903,31 @@
            [cx cy] :camera/point
            {scene :db/id
             align? :scene/grid-align
-            [gx gy] :scene/grid-origin} :camera/scene} :user/camera} :root/user
+            [ox oy] :scene/grid-origin}
+           :camera/scene} :user/camera} :root/user
          images :root/token-images} result
         hashes (into #{} (map :image/checksum) images)
-        [ax ay bx by] (bounding-rect (mapcat :token/point clipboard))
-        sx (+ (/ sw scale 2) cx)
-        sy (+ (/ sh scale 2) cy)
-        ox (/ (- ax bx) 2)
-        oy (/ (- ay by) 2)]
-    (for [[idx token] (sequence (indexed) clipboard)
-          :let [[tx ty] (:token/point token)
-                cs (:image/checksum (:token/image token))
-                sz (:token/size token)
-                rd (* (/ (or sz 5) 5) (/ grid-size 2))
-                ax (+ sx tx ox (- ax))
-                ay (+ sy ty oy (- ay))
-                tk (cond-> (merge token {:db/id idx})
-                     (hashes cs)  (assoc :token/image [:image/checksum (hashes cs)])
-                     (not align?) (assoc :token/point [ax ay])
-                     align?       (assoc :token/point
-                                         [(round-grid ax rd (mod gx grid-size))
-                                          (round-grid ay rd (mod gy grid-size))]))]]
+        [ax ay bx by] (geom/bounding-rect (mapcat geom/object-bounding-rect clipboard))
+        dx (- (+ cx (/ sw scale 2)) (+ ax (/ (- bx ax) 2)))
+        dy (- (+ cy (/ sh scale 2)) (+ ay (/ (- by ay) 2)))
+        xf (geom/alignment-xf dx dy ox oy)]
+    (for [[idx copy] (sequence (indexed) clipboard)
+          :let [{[tx ty] :object/point type :object/type} copy
+                hash (:image/checksum (:token/image copy))
+                type (keyword (namespace type))
+                data (cond-> (assoc copy :db/id idx :object/point [(+ tx dx) (+ ty dy)])
+                       (and (= type :token) (hashes hash))
+                       (assoc :token/image [:image/checksum (hashes hash)])
+                       (and (= type :token) align?)
+                       (assoc :object/point
+                              (let [[ax ay bx by] (sequence xf (geom/object-bounding-rect copy))]
+                                [(/ (+ ax bx) 2) (/ (+ ay by) 2)])))]]
       {:db/id camera
-       :camera/scene {:db/id scene :scene/tokens tk}
-       :camera/selected idx})))
+       :camera/selected idx
+       :camera/scene
+       (cond-> {:db/id scene}
+         (= type :shape) (assoc :scene/shapes data)
+         (= type :token) (assoc :scene/tokens data))})))
 
 ;; -- Shortcuts --
 (defmethod
@@ -925,10 +942,18 @@
 
 ;; -- Dragging --
 (defmethod
-  ^{:doc "User has started dragging one or more scene objects."}
+  ^{:doc "User has started dragging a single object."}
   event-tx-fn :drag/start
-  [_ _ ids]
-  [{:db/ident :user :user/dragging ids}])
+  [_ _ id]
+  [{:db/ident :user :user/dragging id}])
+
+(defmethod
+  ^{:doc "User has started dragging all selected objects."}
+  event-tx-fn :drag/start-selected
+  [data _]
+  (let [result (ds/entity data [:db/ident :user])
+        {{selected :camera/selected} :user/camera} result]
+    [{:db/ident :user :user/dragging (map :db/id selected)}]))
 
 (defmethod
   ^{:doc "User has ended all dragging."}
