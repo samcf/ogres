@@ -3,10 +3,8 @@
             [goog.object :refer [getValueByKeys]]
             [ogres.app.component.scene-context-menu :refer [context-menu]]
             [ogres.app.component.scene-pattern :refer [pattern]]
-            [ogres.app.const :refer [grid-size]]
             [ogres.app.geom :as geom]
             [ogres.app.hooks :refer [use-subscribe use-dispatch use-portal use-query]]
-            [ogres.app.util :refer [round]]
             [react-transition-group :refer [TransitionGroup CSSTransition]]
             [uix.core :as uix :refer [defui $ create-ref use-callback use-effect use-state]]
             [uix.dom :as dom]
@@ -44,18 +42,6 @@
         (mapcat (fn [user]
                   (map (juxt :db/id (constantly user))
                        (:user/dragging user))))))
-
-(defn ^:private alignment-xf
-  "Returns a transducer which expects a collection of points in the
-   form of [Ax Ay Bx By ...] and aligns those points to the nearest
-   grid intersection given a drag delta (dx dy) and the current
-   grid offset given as (ox oy)."
-  [dx dy ox oy]
-  (comp (partition-all 2)
-        (mapcat
-         (fn [[x y]]
-           [(+ (round (- (+ x dx) ox) grid-size) ox)
-            (+ (round (- (+ y dy) oy) grid-size) oy)]))))
 
 (defn ^:private tokens-xf
   "Defines a transducer which expects a collection of token entities
@@ -276,7 +262,7 @@
         {:ref portal :tab-index -1})
       ($ TransitionGroup {:component nil}
         (for [entity entities
-              :let [{id :db/id [ax ay] :object/point} entity
+              :let [{id :db/id [ax ay] :object/point type :object/type} entity
                     node (create-ref)
                     user (dragging id)
                     rect (geom/object-bounding-rect entity)
@@ -294,7 +280,7 @@
                               tx (+ ax (or rx dx 0))
                               ty (+ ay (or ry dy 0))
                               to (if (and align? (.-isDragging drag) (or (not= dx 0) (not= dy 0)))
-                                   (into [] (alignment-xf dx dy ox oy) rect))]
+                                   (into [] (geom/alignment-xf dx dy ox oy) rect))]
                           ($ :g.scene-object
                             {:ref (.-setNodeRef drag)
                              :transform (str "translate(" tx ", " ty ")")
@@ -303,16 +289,14 @@
                              :data-drag-remote (some? user)
                              :data-drag-local (.-isDragging drag)
                              :data-color (:user/color user)
+                             :data-type (namespace type)
                              :data-id id}
                             ($ object
                               {:entity entity
                                :portal portal
                                :aligned-to to}))))))))))))
       ($ use-portal {:name :selected}
-        (let [[ax ay bx by] (-> (comp (filter (comp selected :db/id))
-                                      (mapcat geom/object-bounding-rect))
-                                (sequence entities)
-                                (geom/bounding-rect))]
+        (let [[ax ay bx by] (-> (comp (filter (comp selected :db/id)) (mapcat geom/object-bounding-rect)) (sequence entities) (geom/bounding-rect))]
           ($ drag-local-fn {:id "selected" :disabled (some dragging selected)}
             (fn [drag]
               (let [handler (getValueByKeys drag "listeners" "onPointerDown")
@@ -336,7 +320,7 @@
                                 user (dragging id)
                                 rect (geom/object-bounding-rect entity)
                                 rect (if (and align? (.-isDragging drag) (or (not= dx 0) (not= dy 0)))
-                                       (into [] (alignment-xf dx dy ox oy) rect))]]
+                                       (into [] (geom/alignment-xf dx dy ox oy) rect))]]
                       ($ CSSTransition {:key id :nodeRef node :timeout 256}
                         ($ :g.scene-object-transition {:ref node}
                           (if (selected id)

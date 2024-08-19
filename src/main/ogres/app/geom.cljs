@@ -1,5 +1,6 @@
 (ns ogres.app.geom
-  (:require [ogres.app.const :refer [grid-size]]))
+  (:require [ogres.app.const :refer [grid-size]]
+            [ogres.app.util :refer [round]]))
 
 (defn euclidean-distance
   "Returns the euclidean distance from [Ax Ay] to [Bx By]."
@@ -49,6 +50,18 @@
       (let [[x y] points]
         (recur (rest (rest points)) (min min-x x) (min min-y y) (max max-x x) (max max-y y)))
       [min-x min-y max-x max-y])))
+
+(defn alignment-xf
+  "Returns a transducer which expects a collection of points in the
+   form of [Ax Ay Bx By ...] and aligns those points to the nearest
+   grid intersection given a drag delta (dx dy) and the current
+   grid offset given as (ox oy)."
+  [dx dy ox oy]
+  (comp (partition-all 2)
+        (mapcat
+         (fn [[x y]]
+           [(+ (round (- (+ x dx) ox) grid-size) ox)
+            (+ (round (- (+ y dy) oy) grid-size) oy)]))))
 
 (defn ^:private clockwise?
   "Returns true if the given polygon has a clockwise winding order, false

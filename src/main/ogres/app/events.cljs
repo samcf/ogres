@@ -405,17 +405,12 @@
            [ox oy] :scene/grid-origin} :camera/scene}
          :user/camera} result
         selected [:db/id :object/type :object/point :shape/points :token/size]
-        entities (ds/pull-many data selected idxs)
-        align-xf (comp (partition-all 2)
-                       (mapcat
-                        (fn [[x y]]
-                          [(+ (round (- (+ x dx) ox) grid-size) ox)
-                           (+ (round (- (+ y dy) oy) grid-size) oy)])))]
+        entities (ds/pull-many data selected idxs)]
     (into [[:db/retract [:db/ident :user] :user/dragging]]
           (for [{id :db/id :as entity} entities
                 :let [type (keyword (namespace (:object/type entity)))]]
             (if (and (= type :token) align?)
-              (let [[ax ay bx by] (sequence align-xf (geom/object-bounding-rect entity))]
+              (let [[ax ay bx by] (sequence (geom/alignment-xf dx dy ox oy) (geom/object-bounding-rect entity))]
                 {:db/id id :object/point [(/ (+ ax bx) 2) (/ (+ ay by) 2)]})
               (let [[ax ay] (:object/point entity)]
                 {:db/id id :object/point [(+ ax dx) (+ ay dy)]}))))))
@@ -838,6 +833,26 @@
          (into [] cat))))
 
 ;; -- Clipboard --
+(def ^:private clipboard-copy-attrs
+  [:object/point
+   :object/type
+   :shape/points
+   :shape/color
+   :shape/opacity
+   :shape/pattern
+   :token/label
+   :token/flags
+   :token/light
+   :token/size
+   :aura/radius
+   :token/image])
+
+(def ^:private clipboard-copy-select
+  [{:user/camera
+    [{:camera/selected
+      (into clipboard-copy-attrs
+            [:db/id {:token/image [:image/checksum]}])}]}])
+
 (defmethod
   ^{:doc "Copy the currently selected tokens to the clipboard. Optionally
           removes them from the current scene if cut? is passed as true.
@@ -850,17 +865,13 @@
   ([_ event]
    [[:db.fn/call event-tx-fn event false]])
   ([data _ cut?]
-   (let [attrs  [:db/id :token/label :token/flags :token/light :token/size :aura/radius :token/image :object/point]
-         select [{:user/camera [{:camera/selected (into attrs [:scene/_tokens {:token/image [:image/checksum]}])}]}]
-         result (ds/pull data select [:db/ident :user])
-         tokens (filter (comp-fn contains? identity :scene/_tokens) (:camera/selected (:user/camera result)))
-         copies (into [] (map (comp-fn select-keys identity attrs)) tokens)]
+   (let [result (ds/pull data clipboard-copy-select [:db/ident :user])
+         copied (:camera/selected (:user/camera result))
+         copies (into [] (map #(select-keys % clipboard-copy-attrs)) copied)]
      (cond-> []
-       (seq tokens)
-       (into [{:db/ident :user :user/clipboard copies}])
-       (and (seq tokens) cut?)
-       (into (for [{id :db/id} tokens]
-               [:db/retractEntity id]))))))
+       (seq copies) (conj {:db/ident :user :user/clipboard copies})
+       cut?         (into (for [{id :db/id} copied]
+                            [:db/retractEntity id]))))))
 
 (def ^:private clipboard-paste-select
   [{:root/user
@@ -891,30 +902,31 @@
            [cx cy] :camera/point
            {scene :db/id
             align? :scene/grid-align
-            [gx gy] :scene/grid-origin} :camera/scene} :user/camera} :root/user
+            [ox oy] :scene/grid-origin}
+           :camera/scene} :user/camera} :root/user
          images :root/token-images} result
         hashes (into #{} (map :image/checksum) images)
-        [ax ay bx by] (geom/bounding-rect (mapcat :object/point clipboard))
-        sx (+ (/ sw scale 2) cx)
-        sy (+ (/ sh scale 2) cy)
-        ox (/ (- ax bx) 2)
-        oy (/ (- ay by) 2)]
-    (for [[idx token] (sequence (indexed) clipboard)
-          :let [[tx ty] (:object/point token)
-                cs (:image/checksum (:token/image token))
-                sz (:token/size token)
-                rd (* (/ (or sz 5) 5) (/ grid-size 2))
-                ax (+ sx tx ox (- ax))
-                ay (+ sy ty oy (- ay))
-                tk (cond-> (merge token {:db/id idx})
-                     (hashes cs)  (assoc :token/image [:image/checksum (hashes cs)])
-                     (not align?) (assoc :object/point [ax ay])
-                     align?       (assoc :object/point
-                                         [(round-grid ax rd (mod gx grid-size))
-                                          (round-grid ay rd (mod gy grid-size))]))]]
+        [ax ay bx by] (geom/bounding-rect (mapcat geom/object-bounding-rect clipboard))
+        dx (- (+ cx (/ sw scale 2)) (+ ax (/ (- bx ax) 2)))
+        dy (- (+ cy (/ sh scale 2)) (+ ay (/ (- by ay) 2)))
+        xf (geom/alignment-xf dx dy ox oy)]
+    (for [[idx copy] (sequence (indexed) clipboard)
+          :let [{[tx ty] :object/point type :object/type} copy
+                hash (:image/checksum (:token/image copy))
+                type (keyword (namespace type))
+                data (cond-> (assoc copy :db/id idx :object/point [(+ tx dx) (+ ty dy)])
+                       (and (= type :token) (hashes hash))
+                       (assoc :token/image [:image/checksum (hashes hash)])
+                       (and (= type :token) align?)
+                       (assoc :object/point
+                              (let [[ax ay bx by] (sequence xf (geom/object-bounding-rect copy))]
+                                [(/ (+ ax bx) 2) (/ (+ ay by) 2)])))]]
       {:db/id camera
-       :camera/scene {:db/id scene :scene/tokens tk}
-       :camera/selected idx})))
+       :camera/selected idx
+       :camera/scene
+       (cond-> {:db/id scene}
+         (= type :shape) (assoc :scene/shapes data)
+         (= type :token) (assoc :scene/tokens data))})))
 
 ;; -- Shortcuts --
 (defmethod
