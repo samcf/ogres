@@ -1,0 +1,123 @@
+.scene-drawable {
+  cursor: crosshair;
+
+  line,
+  path,
+  polygon,
+  circle {
+    fill: transparent;
+    stroke: var(--scene-stroke);
+    stroke-dasharray: 6px 2px;
+  }
+
+  &.scene-drawable-grid path,
+  &.scene-drawable-rect path,
+  &.scene-drawable-select path {
+    shape-rendering: crispEdges;
+  }
+
+  &.scene-drawable-select {
+    cursor: auto;
+
+    path {
+      fill-opacity: 0.1;
+      fill: var(--scene-stroke);
+      stroke-dasharray: 0;
+      stroke-dashoffset: 0;
+      stroke-opacity: 0.25;
+      stroke-width: 1px;
+      stroke: var(--scene-stroke);
+    }
+  }
+}
+
+.grid-align path,
+.grid-align circle {
+  stroke-dasharray: 1px;
+  pointer-events: none;
+}
+
+.grid-align-form {
+  position: relative;
+  pointer-events: none;
+
+  button {
+    align-items: center;
+    background-color: var(--color-blues-900);
+    border-radius: 3px;
+    border: 1px solid var(--color-blues-500);
+    border: none;
+    color: var(--color-paper-500);
+    cursor: pointer;
+    display: flex;
+    font-size: 12px;
+    gap: 4px;
+    justify-content: center;
+    pointer-events: all;
+    text-transform: uppercase;
+  }
+}
+
+.grid-align-origin {
+  aspect-ratio: 1;
+  box-sizing: border-box;
+  inset: 50% auto auto 50%;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 128px;
+
+  button {
+    box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 0.35);
+    position: absolute;
+    aspect-ratio: 1;
+
+    &[data-name="up"] {
+      inset: 0 auto auto 50%;
+      transform: translate(-50%, 0);
+    }
+
+    &[data-name="right"] {
+      inset: 50% 0 auto auto;
+      transform: translate(0, -50%);
+    }
+
+    &[data-name="down"] {
+      inset: auto 50% 0 auto;
+      transform: translate(-50%, 0);
+    }
+
+    &[data-name="left"] {
+      inset: 50% auto auto 0;
+      transform: translate(0, -50%);
+    }
+
+    &[data-name="clear"] {
+      inset: 18% auto auto 18%;
+      transform: translate(-50%, -50%);
+    }
+  }
+}
+
+.grid-align-size {
+  align-items: stretch;
+  background-color: var(--color-blues-900);
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 0.35);
+  cursor: default;
+  display: flex;
+  gap: 4px;
+  inset: auto 0 0 auto;
+  margin: 4px;
+  padding: 4px;
+  pointer-events: all;
+  position: absolute;
+
+  button {
+    background-color: var(--color-blues-500);
+  }
+
+  input {
+    border-radius: 2px;
+    pointer-events: all;
+  }
+}

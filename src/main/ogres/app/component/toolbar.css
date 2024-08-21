@@ -1,0 +1,184 @@
+.toolbar {
+  pointer-events: all;
+  position: relative;
+
+  &:has(:focus-visible) {
+    border-radius: 2px;
+    outline-offset: 0px;
+    outline: 2px solid var(--outline-color);
+  }
+
+  code {
+    background-color: var(--color-blues-700);
+    min-width: 20px;
+    padding: 0 4px;
+    text-align: center;
+    border-radius: 2px;
+  }
+}
+
+.toolbar-tooltip {
+  background-color: var(--color-blues-900);
+  border-radius: 2px;
+  border: 1px solid var(--color-blues-700);
+  bottom: calc(100% + 4px);
+  color: var(--color-black-100);
+  display: flex;
+  font-size: 13px;
+  gap: 8px;
+  max-width: max-content;
+  min-width: calc(100% - 18px);
+  padding: 4px 8px;
+  position: absolute;
+  white-space: nowrap;
+}
+
+.toolbar-shortcut {
+  align-items: center;
+  display: flex;
+  gap: 2px;
+  text-transform: capitalize;
+}
+
+.toolbar-actions {
+  background-color: var(--color-blues-900);
+  border-radius: 3px;
+  border: 1px solid var(--color-blues-700);
+  box-shadow: 4px 4px 0 0 rgba(0, 0, 0, 0.15);
+  display: grid;
+  gap: 2px;
+  padding: 2px;
+
+  button {
+    align-items: center;
+    background-color: var(--color-blues-700);
+    border-color: transparent;
+    border-radius: 2px;
+    border-style: solid;
+    border-width: 1px;
+    box-sizing: border-box;
+    color: var(--color-black-300);
+    display: flex;
+    flex: 1;
+    height: 38px;
+    justify-content: center;
+    min-width: 38px;
+
+    &[aria-pressed="true"] {
+      background-color: var(--color-blues-500);
+      color: var(--color-danger-500);
+    }
+
+    &[aria-disabled="true"] {
+      color: var(--color-black-500);
+    }
+
+    &:not([aria-disabled="true"]) {
+      cursor: pointer;
+
+      &:active {
+        border-color: var(--color-blues-100);
+      }
+
+      &:hover {
+        background-color: var(--color-blues-500);
+      }
+    }
+
+    &:focus-visible {
+      outline-offset: -1px;
+      outline: 1px dotted var(--outline-color);
+      z-index: 1;
+    }
+  }
+
+  .icon {
+    pointer-events: none;
+  }
+}
+
+.toolbar {
+  [name="copy-copy"] {
+    grid-area: cop;
+  }
+
+  [name="copy-cut"] {
+    grid-area: cut;
+  }
+
+  [name="copy-paste"] {
+    grid-area: pst;
+  }
+
+  [name="draw-circle"] {
+    grid-area: crc;
+  }
+
+  [name="draw-cone"] {
+    grid-area: con;
+  }
+
+  [name="draw-line"] {
+    grid-area: lne;
+  }
+
+  [name="draw-poly"] {
+    grid-area: ply;
+  }
+
+  [name="draw-rect"] {
+    grid-area: rct;
+  }
+
+  [name="mask-create"] {
+    grid-area: msk;
+  }
+
+  [name="mask-hide"] {
+    grid-area: mhi;
+  }
+
+  [name="mask-remove"] {
+    grid-area: mrm;
+  }
+
+  [name="mask-show"] {
+    grid-area: msh;
+  }
+
+  [name="mask-toggle"] {
+    grid-area: mtg;
+  }
+
+  [name="scene-focus"] {
+    grid-area: fcs;
+  }
+
+  [name="scene-grid"] {
+    grid-area: grd;
+  }
+
+  [name="scene-ruler"] {
+    grid-area: rul;
+  }
+
+  [name="scene-select"] {
+    grid-area: sel;
+  }
+
+  [name="scene-window"] {
+    grid-area: plw;
+  }
+
+  [name="zoom-in"] {
+    grid-area: zin;
+  }
+
+  [name="zoom-out"] {
+    grid-area: zot;
+  }
+
+  [name="zoom-reset"] {
+    grid-area: zrt;
+  }
+}

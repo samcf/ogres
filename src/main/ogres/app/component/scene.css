@@ -1,0 +1,247 @@
+.scene {
+  background-color: var(--color-blues-900);
+  border-radius: 0 4px 4px 4px;
+  border: 1px solid var(--color-blues-900);
+  box-shadow: 4px 4px 0 0 rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
+  height: 100%;
+  pointer-events: all;
+  touch-action: none;
+  width: 100%;
+
+  &[data-user="host"][data-grid="true"] {
+    .scene-exterior,
+    .scene-foreground {
+      .scene-grid {
+        display: inherit;
+      }
+    }
+  }
+
+  &:not([data-user="host"])[data-grid="true"] {
+    .scene-grid {
+      display: inherit;
+    }
+  }
+
+  &[data-theme="light"] {
+    --scene-stroke: rgb(255, 255, 255);
+    --scene-text: rgb(255, 255, 255);
+    --scene-text-outline: rgba(0, 0, 0, 1);
+  }
+
+  &[data-theme="dark"] {
+    --scene-stroke: rgba(0, 0, 0, 1);
+    --scene-text: rgba(0, 0, 0, 1);
+    --scene-text-outline: rgba(255, 255, 255, 1);
+  }
+
+  &:has(.scene-handler:focus-visible) {
+    border-radius: 3px;
+    outline: 2px solid var(--outline-color);
+    outline-offset: -2px;
+    position: relative;
+    z-index: 1;
+  }
+
+  text,
+  .scene-grid,
+  .scene-image {
+    pointer-events: none;
+  }
+}
+
+.scene-text {
+  fill: var(--scene-text);
+  font-size: 12px;
+  paint-order: stroke;
+  stroke-width: 3px;
+  stroke: var(--scene-text-outline);
+}
+
+/* Scene Lighting */
+.scene[data-user="host"] {
+  .scene-mask {
+    pointer-events: none;
+  }
+
+  .scene-mask-polygon {
+    cursor: pointer;
+    fill: none;
+    stroke-width: 2px;
+    stroke: var(--scene-stroke);
+
+    &:hover {
+      stroke: var(--color-prime-500);
+    }
+  }
+
+  .scene-background {
+    display: none;
+  }
+
+  .scene-mask-primary {
+    mask: url(#mask-primary);
+  }
+
+  .scene-mask-secondary {
+    mask: url(#mask-secondary);
+  }
+
+  .scene-mask-primary,
+  .scene-mask-secondary {
+    display: none;
+  }
+
+  .scene-mask-fill {
+    fill-opacity: 0.4;
+  }
+
+  .scene-mask-pattern {
+    fill: url(#mask-pattern);
+    fill-opacity: 0.3;
+  }
+
+  &[data-light="dimmed"] {
+    .scene-mask-primary,
+    .scene-mask-secondary {
+      display: inherit;
+    }
+
+    &[data-masked="false"] .scene-mask-primary .scene-mask-pattern,
+    &[data-masked="true"] .scene-mask-secondary .scene-mask-pattern {
+      display: none;
+    }
+  }
+
+  &[data-light="revealed"],
+  &[data-light="hidden"] {
+    .scene-mask-primary {
+      display: inherit;
+    }
+  }
+}
+
+.scene:not([data-user="host"]) {
+  .scene-mask {
+    pointer-events: painted;
+  }
+
+  .scene-background {
+    display: none;
+
+    .scene-image {
+      filter: url(#scene-image-filter);
+    }
+  }
+
+  .scene-mask-primary {
+    clip-path: url(#mask-primary);
+  }
+
+  .scene-mask-secondary {
+    clip-path: url(#mask-primary);
+  }
+
+  .scene-mask-primary,
+  .scene-mask-secondary {
+    display: none;
+    fill: var(--color-blues-900);
+  }
+
+  &[data-light="revealed"][data-masked="true"] {
+    .scene-foreground,
+    .scene-background {
+      clip-path: url(#mask-primary);
+    }
+  }
+
+  &[data-light="revealed"][data-masked="false"] {
+    .scene-mask-primary {
+      display: inherit;
+    }
+  }
+
+  &[data-light="dimmed"][data-masked="true"] {
+    .scene-background {
+      display: inherit;
+    }
+
+    .scene-foreground {
+      clip-path: url(#mask-primary);
+    }
+
+    .scene-background,
+    .scene-interior {
+      clip-path: url(#mask-secondary);
+    }
+  }
+
+  &[data-light="dimmed"][data-masked="false"] {
+    .scene-background {
+      display: inherit;
+    }
+
+    .scene-foreground {
+      clip-path: url(#mask-primary);
+    }
+
+    .scene-mask-primary {
+      display: inherit;
+      clip-path: url(#mask-secondary);
+    }
+  }
+
+  &[data-light="hidden"][data-masked="true"] {
+    .scene-background,
+    .scene-foreground {
+      clip-path: url(#mask-primary);
+    }
+  }
+
+  &[data-light="hidden"][data-masked="false"] {
+    .scene-foreground {
+      clip-path: url(#mask-primary);
+    }
+
+    .scene-mask-primary {
+      display: inherit;
+      clip-path: url(#mask-secondary);
+    }
+  }
+}
+
+.scene-grid {
+  display: none;
+  clip-path: url(#scene-image-clip);
+}
+
+.scene-cursor {
+  color: var(--color-session);
+  pointer-events: none;
+  stroke-width: 1px;
+  stroke: black;
+  transition: transform 80ms linear;
+
+  svg use {
+    transform: rotate(270deg);
+    transform-origin: 50% 50%;
+  }
+}
+
+.scene-bounds rect {
+  fill: transparent;
+  pointer-events: none;
+  shape-rendering: crispEdges;
+  stroke-dasharray: 6px;
+  stroke-width: 1;
+  stroke: var(--scene-stroke);
+}
+
+.scene-grid-path {
+  fill: none;
+  stroke-dasharray: 2px;
+  stroke-width: 1px;
+  stroke: var(--scene-stroke);
+  opacity: 0.6;
+}

@@ -1,0 +1,100 @@
+:root {
+  --pattern-grid: url(pattern-grid.svg);
+  --pattern-fold: url(pattern-fold.svg);
+
+  --color-black-100: #f2f2f2;
+  --color-black-300: #cccccc;
+  --color-black-400: #aaaaaa;
+  --color-black-500: #666666;
+  --color-black-700: #333333;
+  --color-black-900: #000000;
+  --color-blues-100: hsl(208, 20%, 38%);
+  --color-blues-300: hsl(208, 20%, 34%);
+  --color-blues-500: hsl(208, 20%, 28%);
+  --color-blues-700: hsl(208, 26%, 22%);
+  --color-blues-800: hsl(200, 20%, 16%);
+  --color-blues-900: hsl(200, 20%, 12%);
+  --color-danger-100: hsl(6, 73%, 60%);
+  --color-danger-300: hsl(6, 73%, 60%);
+  --color-danger-500: hsl(6, 73%, 60%);
+  --color-danger-700: hsl(6, 73%, 60%);
+  --color-danger-900: hsl(6, 73%, 60%);
+  --color-paper-100: hsl(60, 30%, 98%);
+  --color-paper-300: hsl(60, 30%, 96%);
+  --color-paper-500: hsl(60, 21%, 94%);
+  --color-paper-700: hsl(60, 21%, 92%);
+  --color-paper-900: hsl(60, 21%, 86%);
+  --color-prime-100: hsl(141.8, 21.15%, 79.6%);
+  --color-prime-300: hsl(140, 21.5%, 64.5%);
+  --color-prime-500: hsl(140, 35%, 60%);
+  --color-prime-700: hsl(140.5, 21.6%, 34.5%);
+  --color-prime-900: hsl(140, 20.8%, 19.8%);
+
+  --color-session-red: #de324c;
+  --color-session-orange: #f4895f;
+  --color-session-yellow: #f8e16f;
+  --color-session-green: #95cf92;
+  --color-session-blue: #369acc;
+  --color-session-purple: #9656a2;
+
+  --outline-color: var(--color-prime-500);
+}
+
+@font-face {
+  font-family: Lora;
+  font-weight: 400;
+  src: local(Lora), url(Lora/static/Lora-Regular.ttf), format(woff2);
+}
+
+@font-face {
+  font-family: Lora;
+  font-weight: 500;
+  src: local(Lora), url(Lora/static/Lora-Medium.ttf), format(woff2);
+}
+
+@font-face {
+  font-family: Lora;
+  font-weight: 600;
+  src: local(Lora), url(Lora/static/Lora-SemiBold.ttf), format(woff2);
+}
+
+@keyframes ring-rotate {
+  0% {
+    stroke-dashoffset: 0;
+  }
+
+  100% {
+    stroke-dashoffset: 16px;
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--pattern-grid), var(--color-blues-500);
+  font-size: 16px;
+  line-height: 1.5;
+  overflow-y: hidden;
+  user-select: none;
+}
+
+body,
+button,
+input:is([type="text"], [type="number"]),
+input:is([type="text"], [type="number"])::placeholder {
+  font-family: Lora, serif;
+}
+
+strong {
+  font-weight: 600;
+}
+
+a:link,
+a:visited {
+  text-decoration: none;
+  color: inherit;
+}

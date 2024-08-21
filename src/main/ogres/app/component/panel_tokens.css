@@ -1,0 +1,106 @@
+.token-gallery {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(4, 1fr) min-content;
+  justify-content: space-between;
+
+  &:has(.token-gallery-item:focus-visible)
+    .token-gallery-item:not(:focus-visible) {
+    filter: opacity(0.3);
+  }
+
+  &[data-type="host"] {
+    &[data-scope="public"] {
+      grid-template-rows: repeat(2, 1fr) min-content;
+      nav {
+        grid-row: 3 / 3;
+      }
+    }
+
+    &[data-scope="private"] {
+      grid-template-rows: repeat(4, 1fr) min-content;
+      nav {
+        grid-row: 5 / 5;
+      }
+    }
+  }
+
+  &[data-type="conn"] {
+    &[data-scope="public"] {
+      grid-template-rows: repeat(5, 1fr) min-content;
+      nav {
+        grid-row: 7 / 7;
+      }
+    }
+  }
+
+  nav {
+    grid-column: 1 / 6;
+    justify-self: center;
+    margin-top: 6px;
+  }
+
+  .prompt {
+    grid-column: 1 / 6;
+  }
+}
+
+.token-gallery-item {
+  align-items: center;
+  aspect-ratio: 1;
+  border-color: var(--color-blues-900);
+  border-radius: 50%;
+  border-style: solid;
+  border-width: 1px;
+  display: flex;
+  justify-content: center;
+  padding: 0;
+
+  &:focus-visible {
+    box-shadow: none !important;
+    outline: 2px dotted var(--outline-color);
+    outline-offset: 1px;
+  }
+
+  &:is([data-type="default"], [data-type="image"]) {
+    cursor: grab;
+  }
+
+  &[data-type="default"] {
+    background-color: var(--color-blues-700);
+    border-width: 0;
+    box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 0.7);
+
+    svg {
+      color: white;
+      height: 75%;
+      width: 75%;
+    }
+  }
+
+  &[data-type="image"] {
+    background-color: var(--color-blues-900);
+    background-size: contain;
+    border-width: 0;
+    box-shadow: 1px 1px 0 0 rgba(0, 0, 0, 0.7);
+    opacity: 1;
+    transition: opacity 80ms ease-in-out;
+  }
+
+  &[data-type="placeholder"] {
+    border-style: dashed;
+  }
+
+  &[data-type="trash"] {
+    border-style: dashed;
+    svg {
+      color: var(--color-blues-900);
+    }
+  }
+
+  &[data-type="default"],
+  &[data-type="image"] {
+    touch-action: none;
+  }
+}

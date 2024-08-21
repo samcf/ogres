@@ -1,0 +1,188 @@
+.scene-objects-portal {
+  pointer-events: none;
+}
+
+.scene-objects-bounds {
+  fill: transparent;
+  pointer-events: none;
+  shape-rendering: crispEdges;
+  stroke-dasharray: 3px 1px;
+  stroke-opacity: 0.6;
+  stroke-width: 1px;
+  stroke: var(--scene-stroke);
+}
+
+.scene-objects-selected {
+  --token-base-stroke: var(--color-session, var(--scene-stroke));
+  --token-base-stroke-width: 1px;
+
+  .scene-shape .scene-shape-bounds {
+    display: inherit;
+  }
+
+  .scene-object {
+    transition: none;
+  }
+}
+
+.scene-object {
+  outline: none;
+  transition: transform 80ms linear;
+
+  &:focus-visible {
+    border-radius: 3px;
+    outline: 2px solid var(--outline-color);
+  }
+
+  &:is([data-drag-local="true"], [data-drag-remote="true"]) {
+    --token-base-stroke: var(--color-session, var(--scene-stroke));
+    --token-base-stroke-width: 2px;
+  }
+
+  &[data-drag-local="true"] {
+    transition: none;
+  }
+
+  &[data-drag-remote="true"] {
+    transition: transform 80ms linear;
+  }
+}
+
+.scene-object-align {
+  fill: rgba(255, 255, 255, 0.25);
+  pointer-events: none;
+}
+
+.scene-object-transition {
+  &.enter {
+    opacity: 0;
+    transform: translate(0, -12px);
+  }
+
+  &.enter-active {
+    opacity: 1;
+    transform: translate(0, 0);
+    transition: transform 256ms ease-in-out, opacity 256ms ease-in-out;
+  }
+
+  &.exit {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+
+  &.exit-active {
+    opacity: 0;
+    transform: translate(0, -12px);
+    transition: transform 256ms ease-in-out, opacity 256ms ease-in-out;
+  }
+}
+
+.scene-shape:hover {
+  cursor: pointer;
+}
+
+.scene-shape-path {
+  stroke-width: 1px;
+}
+
+.scene-shape-bounds {
+  animation: ring-rotate 640ms linear infinite;
+  display: none;
+  fill: transparent;
+  pointer-events: none;
+  shape-rendering: crispEdges;
+  stroke-dasharray: 6px 2px;
+  stroke-opacity: 0.8;
+  stroke-width: 1px;
+  stroke: var(--scene-stroke);
+}
+
+.scene-token {
+  & > g {
+    transition: transform 60ms ease-out;
+  }
+
+  &[data-flags*="hidden"] {
+    opacity: 0.5;
+  }
+
+  &[data-flags*="player"] .scene-token-shape {
+    stroke: url("#token-base-player");
+    stroke-width: 4px;
+  }
+
+  &[data-flags*="dead"] .scene-token-shape {
+    filter: url(#token-status-dead);
+  }
+
+  &[data-flags*="turn"] [data-flag="initiative"] circle {
+    fill: var(--color-danger-500);
+  }
+}
+
+.scene-token-label {
+  fill: var(--color-black-100);
+  font-size: 13px;
+  paint-order: stroke;
+  pointer-events: none;
+  stroke-width: 3px;
+  stroke: var(--color-blues-900);
+  text-anchor: middle;
+  text-rendering: optimizeLegibility;
+
+  span {
+    background-color: var(--color-blues-900);
+    border-radius: 1px;
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.9);
+    color: var(--color-black-100);
+    font-size: 12px;
+    line-height: 1.2;
+    padding: 0 4px;
+  }
+}
+
+.scene-token-shape {
+  cursor: pointer;
+  filter: drop-shadow(1px 1px 0.5px rgba(0, 0, 0, 0.9));
+
+  & + text {
+    text-anchor: middle;
+  }
+}
+
+.scene-token-flags {
+  color: white;
+  pointer-events: none;
+
+  circle {
+    fill: var(--color-blues-900);
+    filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.8));
+  }
+}
+
+.scene-token-base {
+  animation: ring-rotate 640ms linear infinite;
+  fill: none;
+  pointer-events: none;
+  stroke-dasharray: 6px 2px;
+  stroke-dashoffset: 0px;
+  stroke-width: var(--token-base-stroke-width);
+  stroke: var(--token-base-stroke);
+}
+
+.scene-token-ring {
+  fill: none;
+  pointer-events: none;
+  stroke-width: var(--token-outline-width, 0);
+  stroke: var(--color-prime-500);
+}
+
+.scene-token-aura {
+  fill: none;
+  pointer-events: none;
+  stroke-dasharray: 1px 3px;
+  stroke-opacity: 1;
+  stroke-width: 1px;
+  stroke: var(--scene-stroke);
+  transition: r 60ms ease-out;
+}

@@ -1,0 +1,61 @@
+[data-tooltip]:not(:disabled):is(:hover, :focus-visible):after {
+  background-color: var(--color-blues-900);
+  border-radius: 3px;
+  border: 1px solid var(--color-blues-700);
+  color: white;
+  content: attr(data-tooltip);
+  font-size: 11px;
+  inset: -20px auto auto auto;
+  line-height: 1;
+  padding: 2px 4px;
+  pointer-events: none;
+  position: absolute;
+  text-transform: uppercase;
+}
+
+.pagination {
+  align-items: center;
+  display: flex;
+  gap: 5px;
+
+  label,
+  button {
+    align-items: center;
+    aspect-ratio: 1;
+    border-color: var(--color-black-300);
+    border-radius: 3px;
+    border-style: solid;
+    border-width: 1px;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    position: relative;
+    width: 32px;
+  }
+
+  label:has(:focus-visible),
+  button:focus-visible {
+    outline: 1px dashed Highlight;
+    outline: 1px dashed -webkit-focus-ring-color;
+    outline-offset: 1px;
+  }
+
+  label:has(input:not(:checked)),
+  button:not([aria-disabled="true"]) {
+    border-color: var(--color-blues-500);
+    cursor: pointer;
+  }
+
+  label:has(input:checked) {
+    background-color: var(--color-blues-500);
+    border-color: transparent;
+    color: var(--color-paper-500);
+  }
+
+  input[type="radio"] {
+    z-index: -1;
+    position: absolute;
+  }
+}

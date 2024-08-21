@@ -4,10 +4,29 @@
             [ogres.app.component.panel-initiative :as initiative]
             [ogres.app.component.panel-lobby :as lobby]
             [ogres.app.component.panel-scene :as scene]
-            [ogres.app.component.panel-status :as status]
             [ogres.app.component.panel-tokens :as tokens]
             [ogres.app.hooks           :refer [use-dispatch use-query]]
             [uix.core                  :refer [defui $]]))
+
+(def ^:private status-query
+  [{:root/user [[:session/state :default :initial]]
+    :root/session [:session/conns :session/room]}])
+
+(def ^:private status-icon
+  ($ icon {:name "globe-americas" :size 16}))
+
+(defui status []
+  (let [dispatch (use-dispatch)
+        result   (use-query status-query [:db/ident :root])
+        {{state :session/state} :root/user
+         {code  :session/room
+          conns :session/conns} :root/session} result]
+    (case state
+      :initial      ($ :button.button {:on-click #(dispatch :session/request)} status-icon "Start online game")
+      :connecting   ($ :button.button {:disabled true} status-icon "Connecting...")
+      :connected    ($ :button.button {:disabled true} status-icon "Connected / " code " / [ " (inc (count conns)) " ]")
+      :disconnected ($ :button.button {:disabled true} status-icon "Disconnected")
+      ($ :button.button {:disabled true} status-icon "Status not known"))))
 
 (def ^:private panel-data
   {:data       {:icon "wrench-adjustable-circle" :label "Manage local data"}
@@ -42,15 +61,16 @@
     ($ :.panel
       {:data-expanded expanded}
       (if expanded
-        ($ :.panel-session
-          ($ status/button)))
+        ($ :.panel-status
+          ($ status)))
       ($ :ul.panel-tabs
         {:role "tablist"
          :aria-controls "form-panel"
          :aria-orientation "vertical"}
         (for [[key data] (map (juxt identity panel-data) forms)
               :let [selected (= selected key)]]
-          ($ :li {:key key :role "tab" :aria-selected (and expanded selected)}
+          ($ :li.panel-tabs-tab
+            {:key key :role "tab" :aria-selected (and expanded selected)}
             ($ :label {:aria-label (:label data)}
               ($ :input
                 {:type "radio"

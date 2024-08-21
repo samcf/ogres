@@ -1,0 +1,75 @@
+.session {
+  font-size: 13px;
+}
+
+.session-room {
+  align-items: stretch;
+  display: flex;
+  gap: 8px;
+
+  a:is(:link, :visited) {
+    color: var(--color-danger-500);
+  }
+}
+
+.session-code {
+  font-size: 2rem;
+  letter-spacing: 1px;
+  line-height: 1;
+  padding: 0;
+  text-align: center;
+  user-select: text;
+  width: 70%;
+}
+
+.session-url {
+  background-color: var(--color-paper-500);
+  border-color: var(--color-paper-900) !important;
+  border-radius: 2px;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.session-players {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.session-player {
+  display: flex;
+  gap: 6px;
+}
+
+.session-player-color {
+  aspect-ratio: 1;
+  background-color: var(--color-session);
+  border-radius: 20%;
+  box-sizing: border-box;
+  margin-left: 2px;
+  width: 22px;
+}
+
+[data-color="red"] {
+  --color-session: var(--color-session-red);
+}
+
+[data-color="orange"] {
+  --color-session: var(--color-session-orange);
+}
+
+[data-color="yellow"] {
+  --color-session: var(--color-session-yellow);
+}
+
+[data-color="green"] {
+  --color-session: var(--color-session-green);
+}
+
+[data-color="blue"] {
+  --color-session: var(--color-session-blue);
+}
+
+[data-color="purple"] {
+  --color-session: var(--color-session-purple);
+}
