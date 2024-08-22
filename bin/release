@@ -16,6 +16,7 @@ dst=$2
 url="wss://ogres.app/ws"
 
 npx shadow-cljs release app --config-merge "{:closure-defines {ogres.app.const/VERSION \"$vrs\" ogres.app.const/PATH \"/release/$vrs\" ogres.app.const/SOCKET-URL \"$url\"}}"
+npx esbuild src/main/ogres/app/resource/root.css --outfile=web/release/ogres.app.css --loader:.svg=dataurl --bundle --minify
 
 git clone --single-branch --branch gh-pages git@github.com:samcf/ogres.git "$tmp"
 mkdir -p "$tmp"/release/"$vrs"
