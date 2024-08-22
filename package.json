@@ -20,6 +20,6 @@
   "scripts": {
     "build": "npx shadow-cljs release app",
     "start": "npx shadow-cljs watch app test",
-    "style": "npx esbuild src/main/ogres/app/resource/root.css --outfile=web/release/ogres.app.css --loader:.ttf=dataurl --loader:.svg=dataurl --bundle --minify --watch"
+    "style": "npx esbuild src/main/ogres/app/resource/root.css --outfile=web/release/ogres.app.css --loader:.svg=dataurl --bundle --minify --watch"
   }
 }

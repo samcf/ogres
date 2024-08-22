@@ -40,24 +40,6 @@
   --outline-color: var(--color-prime-500);
 }
 
-@font-face {
-  font-family: Lora;
-  font-weight: 400;
-  src: local(Lora), url(Lora/static/Lora-Regular.ttf), format(woff2);
-}
-
-@font-face {
-  font-family: Lora;
-  font-weight: 500;
-  src: local(Lora), url(Lora/static/Lora-Medium.ttf), format(woff2);
-}
-
-@font-face {
-  font-family: Lora;
-  font-weight: 600;
-  src: local(Lora), url(Lora/static/Lora-SemiBold.ttf), format(woff2);
-}
-
 @keyframes ring-rotate {
   0% {
     stroke-dashoffset: 0;
