@@ -24,7 +24,11 @@
 
 (defui ^:private app []
   ($ uix/strict-mode
-    ($ :link {:rel "stylesheet" :href "https://fonts.googleapis.com/css2?family=Lora:wght@400..700&display=swap" :cross-origin "true"})
+    ($ :link
+      {:rel "stylesheet"
+       :href "https://fonts.googleapis.com/css2?family=Lora:wght@400..700&display=swap"
+       :cross-origin "true"
+       :precedence "high"})
     ($ :link {:rel "stylesheet" :href (str PATH "/ogres.app.css") :precedence "default"})
     ($ events/provider
       ($ state/provider {:type (user-type)}
