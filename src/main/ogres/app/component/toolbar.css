@@ -182,3 +182,66 @@
     grid-area: zrt;
   }
 }
+
+@media only screen and (max-width: 1199px) {
+  .toolbar-tooltip {
+    display: none;
+  }
+
+  .toolbar-actions {
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(1, 1fr);
+    grid-template-areas: "sel rul crc rct con lne";
+
+    &
+      > button:not(
+        [name="scene-select"],
+        [name="scene-ruler"],
+        [name="draw-circle"],
+        [name="draw-rect"],
+        [name="draw-cone"],
+        [name="draw-line"]
+      ) {
+      display: none;
+    }
+  }
+}
+
+@media only screen and (min-width: 1200px) {
+  .toolbar {
+    &[data-user="host"] .toolbar-actions {
+      grid-template-columns: repeat(12, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      grid-template-areas:
+        "sel cut cop pst rul crc rct con ply lne grd fcs"
+        "zot zrt zrt zrt zin msk mtg mrm msh mhi plw .";
+    }
+
+    &[data-user="conn"] .toolbar-actions {
+      grid-template-columns: repeat(7, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      grid-template-areas:
+        "sel cut cop pst rul crc rct"
+        "zot zrt zrt zin con ply lne";
+
+      &
+        > button:not(
+          [name="scene-select"],
+          [name="copy-cut"],
+          [name="copy-copy"],
+          [name="copy-paste"],
+          [name="scene-ruler"],
+          [name="draw-circle"],
+          [name="draw-rect"],
+          [name="draw-line"],
+          [name="zoom-out"],
+          [name="zoom-reset"],
+          [name="zoom-in"],
+          [name="draw-cone"],
+          [name="draw-poly"]
+        ) {
+        display: none;
+      }
+    }
+  }
+}

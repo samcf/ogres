@@ -105,3 +105,9 @@
     }
   }
 }
+
+@media only screen and (max-width: 600px) {
+  .scenes ul li {
+    max-width: none;
+  }
+}

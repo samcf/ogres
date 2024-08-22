@@ -54,3 +54,125 @@
   gap: 2vw;
   padding: 4vw;
 }
+
+@media /* Portrait */ (max-aspect-ratio: 1 / 1) {
+  .layout {
+    &[data-user="host"] {
+      grid-template-areas: "scenes" "canvas" "side";
+      grid-template-columns: 1fr;
+      grid-template-rows: 32px 1fr 1fr;
+
+      &[data-expanded="false"] {
+        grid-template-rows: 32px 1fr 40px;
+      }
+
+      .scenes-scene {
+        max-width: 100%;
+      }
+
+      .scene {
+        border-radius: 0 0 3px 3px;
+      }
+    }
+
+    &[data-user="conn"] {
+      grid-template-areas: "canvas" "side";
+      grid-template-columns: 1fr;
+      grid-template-rows: 1fr 1fr;
+
+      &[data-expanded="false"] {
+        grid-template-rows: 1fr 40px;
+      }
+
+      .scene {
+        border-radius: 3px;
+      }
+    }
+
+    .layout-scene .scene,
+    .layout-panel .panel,
+    .layout-panel .panel[data-expanded="false"] .panel-tabs {
+      box-shadow: none;
+    }
+
+    .layout-panel {
+      padding-top: 4px;
+      display: flex;
+      flex-direction: column;
+
+      .panel {
+        flex: 1;
+        display: flex;
+        flex-flow: column nowrap;
+
+        &[data-expanded="false"] .panel-tabs li label {
+          border-width: 1px 0 1px 1px;
+        }
+
+        .panel-status {
+          display: none;
+        }
+
+        .panel-tabs {
+          border-radius: 3px 3px 0 0;
+          flex-direction: row;
+          min-height: 36px;
+
+          li {
+            flex: 1;
+            label {
+              border-radius: 3px 3px 0 0;
+              border-width: 1px 0 0 1px;
+              padding: 2px;
+            }
+          }
+
+          .panel-tabs-control {
+            flex: 3;
+            svg use {
+              transform-origin: 50% 50%;
+              transform: rotate(90deg);
+            }
+          }
+        }
+      }
+
+      .form {
+        border-width: 0 1px;
+        border-radius: 0 0 3px 3px;
+        .form-footer {
+          border-radius: 0 0 3px 3px;
+        }
+      }
+    }
+  }
+}
+
+@media /* Landscape */ (min-aspect-ratio: 1 / 1) or (aspect-ratio: 1 / 1) {
+  .layout {
+    grid-template-columns: 1fr 420px;
+    grid-template-rows: 32px 1fr;
+    grid-template-areas:
+      "scenes side"
+      "canvas side";
+
+    &[data-expanded="false"] {
+      grid-template-columns: 1fr 40px;
+    }
+
+    &[data-user="conn"] {
+      grid-template-areas: "canvas side";
+      grid-template-rows: 1fr;
+
+      &[data-expanded="false"] .panel-tabs {
+        grid-area: 1 / 1 / 3 / 2;
+      }
+    }
+
+    &[data-user="view"] {
+      grid-template-areas: "canvas";
+      grid-template-rows: 1fr;
+      grid-template-columns: 1fr;
+    }
+  }
+}
