@@ -246,4 +246,23 @@
           "When set to " ($ :strong "Obscured") " or " ($ :strong "Hidden")
           ", the scene will be shrouded in darkness and tokens will emit a
            radius of light around themselves. The light radius of each token
-           can be customized.")))))
+           can be customized."))
+      ($ :fieldset.fieldset.scene-gallery-grid-align
+        ($ :legend "Grid alignment")
+        ($ :div.form-notice
+          ($ :button
+            {:on-click #(dispatch :camera/change-mode :grid)}
+            ($ icon {:name "compass" :size 22}))
+          "Use the grid alignment tool to manually pick a point that will serve
+           as the origin of the grid. Use this tool when the grid in your scene
+           image is offset from the edges or is unevenly distributed.")
+        ($ :details
+          ($ :summary "How To Use")
+          ($ :ol
+            ($ :li "Select the grid alignment tool.")
+            ($ :li "Select a corner of one of the tiles in the scene.")
+            ($ :li "Adjust its position carefully if necessary.")
+            ($ :li "Adjust the tile size until the grid lines match up with the lines on the scene."))
+          "Sometimes the widths of the tiles in the image are not whole
+           numbers; it may be necessary to use this tool again in another
+           part of the image as the adventure progresses there.")))))

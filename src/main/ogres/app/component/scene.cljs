@@ -541,7 +541,7 @@
     ($ :svg.scene
       {:key id
        :data-user   (name user)
-       :data-grid   (or (= mode :grid) (:scene/show-grid scene))
+       :data-grid   (and (not= mode :grid) (:scene/show-grid scene))
        :data-theme  (if (:scene/dark-mode scene) "dark" "light")
        :data-light  (name (:scene/lighting scene))
        :data-masked (:scene/masked scene)}

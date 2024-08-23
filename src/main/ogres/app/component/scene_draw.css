@@ -33,8 +33,9 @@
 
 .grid-align path,
 .grid-align circle {
-  stroke-dasharray: 1px;
   pointer-events: none;
+  stroke-dasharray: 1px 3px;
+  stroke-opacity: 0.7;
 }
 
 .grid-align-form {
@@ -47,7 +48,7 @@
     border-radius: 3px;
     border: 1px solid var(--color-blues-500);
     border: none;
-    color: var(--color-paper-500);
+    color: var(--color-black-400);
     cursor: pointer;
     display: flex;
     font-size: 12px;
@@ -55,6 +56,10 @@
     justify-content: center;
     pointer-events: all;
     text-transform: uppercase;
+
+    &:hover {
+      color: white;
+    }
   }
 }
 
@@ -67,9 +72,10 @@
   width: 128px;
 
   button {
+    aspect-ratio: 1;
+    border: 1px solid var(--color-blues-800);
     box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 0.35);
     position: absolute;
-    aspect-ratio: 1;
 
     &[data-name="up"] {
       inset: 0 auto auto 50%;
@@ -83,7 +89,7 @@
 
     &[data-name="down"] {
       inset: auto 50% 0 auto;
-      transform: translate(-50%, 0);
+      transform: translate(50%, 0);
     }
 
     &[data-name="left"] {
@@ -102,21 +108,30 @@
   align-items: stretch;
   background-color: var(--color-blues-900);
   border-radius: 2px;
+  border: 1px solid var(--color-blues-800);
   box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 0.35);
+  box-sizing: border-box;
   cursor: default;
   display: flex;
   gap: 4px;
-  inset: auto 0 0 auto;
+  height: 40px;
+  inset: auto 0 0 0;
   margin: 4px;
   padding: 4px;
   pointer-events: all;
   position: absolute;
 
-  button {
+  button[type="button"] {
+    aspect-ratio: 1;
+  }
+
+  button[type="submit"] {
     background-color: var(--color-blues-500);
+    padding: 0 4px;
   }
 
   input {
+    background-color: var(--color-blues-500);
     border-radius: 2px;
     pointer-events: all;
   }

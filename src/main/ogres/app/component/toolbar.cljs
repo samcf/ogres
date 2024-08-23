@@ -22,7 +22,7 @@
    "mask-show"    {:label "Reveal the entire scene." :args [:scene/reveal]}
    "mask-toggle"  {:label "Toggle a mask on and off." :args [:camera/change-mode :mask-toggle]}
    "scene-focus"  {:label "Focus the current view." :args [:session/focus]}
-   "scene-grid"   {:label "Set the grid origin." :args [:camera/change-mode :grid]}
+   "scene-grid"   {:label "Grid alignment tool." :args [:camera/change-mode :grid]}
    "scene-ruler"  {:label "Measure distance." :args [:camera/change-mode :ruler]}
    "scene-select" {:label "Hold shift to select multiple tokens." :args [:camera/change-mode :select]}
    "scene-window" {:label "Open the player window." :args [:share/initiate]}

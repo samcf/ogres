@@ -187,3 +187,31 @@
   background-color: var(--color-blues-700);
   padding: 16px;
 }
+
+.scene-gallery-grid-align {
+  button {
+    align-items: center;
+    background-color: var(--color-blues-700);
+    border-radius: 3px;
+    border: none;
+    color: var(--color-black-100);
+    cursor: pointer;
+    display: flex;
+    float: left;
+    justify-content: center;
+    margin: 0 4px 2px 0;
+    padding: 4px;
+    width: 28px;
+    height: 28px;
+    box-sizing: border-box;
+
+    &:hover {
+      background-color: var(--color-blues-500);
+    }
+  }
+
+  ol li {
+    list-style-type: decimal;
+    margin-left: 1rem;
+  }
+}

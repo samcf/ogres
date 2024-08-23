@@ -270,12 +270,7 @@
                 {:on-submit
                  (fn [event]
                    (.preventDefault event)
-                   (let [xf (comp (+' (- ox) (- oy))
-                                  (*' (/ scale))
-                                  (+' tx ty)
-                                  (*' (/ prev-size next-size))
-                                  round
-                                  cat)]
+                   (let [xf (comp (+' (- ox) (- oy)) (*' (/ scale)) (+' tx ty) (*' (/ prev-size next-size)) round cat)]
                      (dispatch :scene/apply-grid-options (convert next-origin xf) next-size)))}
                 ($ :fieldset.grid-align-origin
                   ($ :button
@@ -312,7 +307,7 @@
                          (if (number? n)
                            (set-size n))))})
                   ($ :button {:type "submit" :data-name "submit"}
-                    ($ icon {:name "check"}) "Submit"))))))))))
+                    ($ icon {:name "check"})))))))))))
 
 (defui draw [{:keys [mode] :as props}]
   ($ dnd-context
