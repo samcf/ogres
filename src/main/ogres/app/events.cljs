@@ -505,7 +505,7 @@
 (defmethod event-tx-fn :token/change-aura
   [_ _ idxs radius]
   (for [id idxs]
-    {:db/id id :aura/radius radius}))
+    {:db/id id :token/aura-radius radius}))
 
 (defmethod event-tx-fn :token/change-dead
   [_ _ idxs add?]
@@ -845,7 +845,7 @@
    :token/flags
    :token/light
    :token/size
-   :aura/radius
+   :token/aura-radius
    :token/image])
 
 (def ^:private clipboard-copy-select

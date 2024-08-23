@@ -287,7 +287,7 @@
                     :else                (str "token-face-default"))]
     ($ :g.scene-token
       {:ref node :id (str "token" (:db/id data)) :data-flags (token-flags-attr data)}
-      (let [radius (:aura/radius data)
+      (let [radius (:token/aura-radius data)
             radius (if (> radius 0) (+ (* grid-size (/ radius 5)) (* scale (/ grid-size 2))) 0)]
         ($ :circle.scene-token-aura {:cx 0 :cy 0 :style {:r radius}}))
       ($ :g {:style {:transform (str "scale(" scale ")")}}
@@ -319,7 +319,7 @@
          [:token/label :default ""]
          [:token/size :default 5]
          [:token/light :default 15]
-         [:aura/radius :default 0]
+         [:token/aura-radius :default 0]
          {:token/image [:image/checksum]}
          {:scene/_initiative [:db/id :initiative/turn]}]}]}]}])
 

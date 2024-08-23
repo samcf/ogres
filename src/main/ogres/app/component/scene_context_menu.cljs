@@ -147,7 +147,7 @@
              :on-click #(on-change :token/change-light (min (+ value 5) 120))
              :aria-label "Increase light radius by 5 feet"}
             "+")))
-      (let [value (value-fn :aura/radius)]
+      (let [value (value-fn :token/aura-radius)]
         ($ :<>
           ($ :label "Aura")
           ($ :button
