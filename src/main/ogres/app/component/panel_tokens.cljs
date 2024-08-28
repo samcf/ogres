@@ -181,8 +181,33 @@
       ($ tokens)
       ($ overlay))))
 
+(def modal-query
+  [])
+
+(defui modal [props]
+  (let [result (use-query modal-query [:db/ident :root])]
+    ($ :.scene-gallery-modal
+      ($ :.scene-gallery-modal-container
+        ($ :.scene-gallery-modal-body
+          ($ :.token-editor
+            ($ :.token-editor-preview)
+            ($ :.token-editor-browse
+              ($ :.token-editor-thumbnails
+                (for [i (range 20)]
+                  ($ :.token-editor-thumbnail {:key i})))
+              ($ :.token-editor-browse-pagination
+                ($ pagination
+                  {:name  "foo"
+                   :pages 10
+                   :value 1
+                   :on-change identity
+                   :class-name "dark"})))))
+        ($ :.scene-gallery-modal-footer
+          ($ :button.button.button-neutral "Close"))))))
+
 (defui footer []
-  (let [dispatch (use-dispatch)
+  (let [[editing set-editing] (use-state false)
+        dispatch (use-dispatch)
         result   (use-query query-footer [:db/ident :root])
         {{type :user/type} :root/user
          images :root/token-images} result
@@ -190,6 +215,10 @@
         upload   (use-image-uploader {:type :token})
         input    (use-ref)]
     ($ :<>
+      (if editing
+        (let [node (js/document.querySelector "#root")]
+          (create-portal
+           ($ modal {}) node)))
       ($ :button.button.button-neutral
         {:type     "button"
          :title    "Upload token image"
@@ -202,10 +231,17 @@
                (upload file))
              (set! (.. event -target -value) ""))})
         ($ icon {:name "camera-fill" :size 16}) "Upload images")
+      ($ :button.button.button-neutral
+        {:type "button"
+         :title "Crop"
+         :disabled (not (seq images))
+         :on-click (partial set-editing not)}
+        ($ icon {:name "crop" :size 18})
+        "Edit images")
       ($ :button.button.button-danger
         {:type "button"
          :title "Remove all tokens"
          :aria-label "Remove all tokens"
-         :disabled (or (= type :conn) (empty? images))
+         :disabled (or (= type :conn) (not (seq images)))
          :on-click #(dispatch :tokens/remove-all images)}
         ($ icon {:name "trash3-fill" :size 16})))))

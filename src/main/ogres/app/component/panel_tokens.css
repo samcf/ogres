@@ -104,3 +104,52 @@
     touch-action: none;
   }
 }
+
+.scene-gallery-modal-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.token-editor {
+  height: 100%;
+  display: flex;
+  gap: 4px;
+}
+
+.token-editor-preview {
+  background-color: var(--color-blues-700);
+  box-sizing: border-box;
+  flex: 2;
+  margin: 1rem;
+}
+
+.token-editor-browse {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 2rem;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.token-editor-thumbnails {
+  gap: 6px;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(64px, 100px));
+  align-content: start;
+}
+
+.token-editor-thumbnail {
+  aspect-ratio: 1;
+  background-color: var(--color-blues-700);
+  box-sizing: border-box;
+  border-radius: 50%;
+}
+
+@media /* Portrait */ (max-aspect-ratio: 1 / 1) {
+  .token-editor {
+    flex-direction: column;
+  }
+}

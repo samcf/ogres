@@ -45,10 +45,11 @@
       :value 1
       :on-change (fn [page] ...)})
    ```"
-  [{:keys [name pages value on-change]
+  [{:keys [class-name name pages value on-change]
     :or   {pages 10 value 1 on-change identity}}]
   ($ :nav {:role "navigation"}
     ($ :ol.pagination
+      {:class (if class-name (str "pagination-" class-name))}
       ($ :li
         ($ :button
           {:aria-disabled (= value 1)
