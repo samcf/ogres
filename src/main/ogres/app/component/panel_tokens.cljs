@@ -18,9 +18,13 @@
    {:root/token-images [:image/checksum]}])
 
 (def ^:private query-form
-  [{:root/token-images [:image/name :image/checksum :image/scope]}
-   {:root/user
-    [[:user/type :default :conn]]}])
+  [{:root/user [:user/type]}
+   {:root/token-images
+    [:image/checksum
+     :image/name
+     :image/scope
+     {:image/thumbnail
+      [:image/checksum]}]}])
 
 (def ^:private query-bounds
   [[:bounds/self :default [0 0 0 0]]])
@@ -31,10 +35,10 @@
     (children {:options options})))
 
 (defui ^:private token
-  [{:keys [checksum children]}]
-  (let [data-url (use-image checksum)
-        options  (use-draggable #js {"id" checksum})]
-    (children {:data-url data-url :options options})))
+  [{:keys [id checksum children]}]
+  (let [url (use-image checksum)
+        opt (use-draggable #js {"id" id})]
+    (children {:url url :options opt})))
 
 (defui ^:private overlay []
   (let [[active set-active] (use-state nil)]
@@ -49,8 +53,8 @@
            ($ icon {:name "dnd"}))
          (if (some? active)
            ($ image {:checksum active}
-             (fn [{:keys [data-url]}]
-               ($ :.token-gallery-item {:data-type "image" :style {:background-image (str "url(" data-url ")")}}))))))
+             (fn [url]
+               ($ :.token-gallery-item {:data-type "image" :style {:background-image (str "url(" url ")")}}))))))
      (.querySelector js/document "#root"))))
 
 (defui ^:private gallery [props]
@@ -58,13 +62,14 @@
     ($ :<>
       (for [[idx data] (sequence (map-indexed vector) (:data props))]
         (cond (map? data)
-              (let [checksum (:image/checksum data)]
-                ($ token {:key checksum :checksum checksum}
-                  (fn [{:keys [data-url ^js/object options]}]
+              (let [hash (:image/checksum data)
+                    thmb (:image/checksum (:image/thumbnail data))]
+                ($ token {:key hash :id hash :checksum thmb}
+                  (fn [{:keys [url ^js/object options]}]
                     ($ :button.token-gallery-item
                       {:ref (.-setNodeRef options)
                        :data-type "image"
-                       :style {:background-image (str "url(" data-url ")")}
+                       :style {:background-image (str "url(" url ")")}
                        :on-key-down (.. options -listeners -onKeyDown)
                        :on-pointer-down (.. options -listeners -onPointerDown)
                        :aria-label (:image/name data)
@@ -161,7 +166,7 @@
                  mx (- (+ tx dx (/ tw 2)) bx)
                  my (- (+ ty dy (/ th 2)) by)]
              (if (and (<= bx mx (+ bx bw)) (<= by my (+ by bh)))
-               (dispatch :token/create mx my (if (not= checksum "default") checksum nil)))))
+               (dispatch :token/create mx my (if (not= checksum "default") checksum)))))
          [dispatch bx by bw bh])]
     ($ dnd-context
       #js {"onDragEnd"
@@ -171,9 +176,9 @@
                     drop (getValueByKeys event #js ["over" "id"])]
                 (if (and (some? drop) (not= drag "default"))
                   (case drop
-                    "scope-pub" (dispatch :tokens/change-scope drag :public)
-                    "scope-prv" (dispatch :tokens/change-scope drag :private)
-                    "trash" (dispatch :tokens/remove drag))
+                    "scope-pub" (dispatch :token-images/change-scope drag :public)
+                    "scope-prv" (dispatch :token-images/change-scope drag :private)
+                    "trash" (dispatch :token-images/remove drag))
                   (let [target (.. event -activatorEvent -target)
                         delta  (.-delta event)]
                     (on-create drag target delta)))))
@@ -211,7 +216,6 @@
         result   (use-query query-footer [:db/ident :root])
         {{type :user/type} :root/user
          images :root/token-images} result
-        images   (sequence (map :image/checksum) images)
         upload   (use-image-uploader {:type :token})
         input    (use-ref)]
     ($ :<>
@@ -227,8 +231,7 @@
           {:type "file" :hidden true :accept "image/*" :multiple true :ref input
            :on-change
            (fn [event]
-             (doseq [file (.. event -target -files)]
-               (upload file))
+             (upload (.. event -target -files))
              (set! (.. event -target -value) ""))})
         ($ icon {:name "camera-fill" :size 16}) "Upload images")
       ($ :button.button.button-neutral
@@ -243,5 +246,5 @@
          :title "Remove all tokens"
          :aria-label "Remove all tokens"
          :disabled (or (= type :conn) (not (seq images)))
-         :on-click #(dispatch :tokens/remove-all images)}
+         :on-click #(dispatch :token-images/remove-all)}
         ($ icon {:name "trash3-fill" :size 16})))))

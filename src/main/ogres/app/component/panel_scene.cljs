@@ -30,7 +30,11 @@
 
 (def ^:private query
   [{:root/scene-images
-    [:image/checksum :image/name :image/size]}
+    [:image/checksum
+     :image/name
+     :image/size
+     {:image/thumbnail
+      [:image/checksum]}]}
    {:root/user
     [{:user/camera
       [:db/id
@@ -42,12 +46,15 @@
          [:scene/grid-align :default false]
          [:scene/dark-mode :default false]
          [:scene/lighting :default :revealed]
-         {:scene/image [:image/checksum :image/name]}]}]}]}])
+         {:scene/image
+          [:image/name
+           {:image/thumbnail
+            [:image/checksum]}]}]}]}]}])
 
 (defui form []
   (let [[preview set-preview] (use-state nil)
         dispatch (use-dispatch)
-        uploader (use-image-uploader {:type :scene})
+        upload   (use-image-uploader {:type :scene})
         input    (use-ref)
         data     (use-query query [:db/ident :root])
         {{{scene :camera/scene} :user/camera
@@ -81,18 +88,20 @@
         ($ :fieldset.fieldset
           ($ :legend "Background image")
           ($ :.scene-gallery
-            (for [[idx data] pag :let [selected (= (:image/checksum data) (:image/checksum (:scene/image scene)))]]
-              (if-let [checksum (:image/checksum data)]
-                ($ image {:key idx :checksum checksum}
-                  (fn [{:keys [data-url]}]
+            (for [[idx data] pag
+                  :let [hash (:image/checksum data)
+                        curr (:image/checksum (:scene/image data))]]
+              (if-let [thumbnail (:image/checksum (:image/thumbnail data))]
+                ($ image {:key idx :checksum thumbnail}
+                  (fn [url]
                     ($ :fieldset.scene-gallery-thumbnail
-                      {:data-type "image" :style {:background-image (str "url(" data-url ")")}}
+                      {:data-type "image" :style {:background-image (str "url(" url ")")}}
                       ($ :label {:aria-label (:image/name data)}
                         ($ :input
                           {:type "radio"
                            :name "background-image"
-                           :value checksum
-                           :checked selected
+                           :value hash
+                           :checked (= hash curr)
                            :on-change
                            (fn [event]
                              (let [value (.. event -target -value)]
@@ -104,7 +113,7 @@
                          :on-click
                          (fn [event]
                            (.stopPropagation event)
-                           (set-preview checksum))}
+                           (set-preview hash))}
                         ($ icon {:name "zoom-in" :size 18}))
                       ($ :button.button.button-danger
                         {:type "button"
@@ -113,7 +122,7 @@
                          :on-click
                          (fn [event]
                            (.stopPropagation event)
-                           (dispatch :scene-images/remove checksum))}
+                           (dispatch :scene-images/remove hash))}
                         ($ icon {:name "trash3-fill" :size 18}))
                       (if (> (:image/size data) filesize-limit)
                         ($ :button.button.button-warning
@@ -124,7 +133,7 @@
                            :on-click
                            (fn [event]
                              (.stopPropagation event)
-                             (set-preview checksum))}
+                             (set-preview hash))}
                           ($ icon {:name "exclamation-triangle-fill" :size 18}))))))
                 ($ :.scene-gallery-thumbnail {:key idx :data-type "placeholder"}))))
           ($ :fieldset.scene-gallery-form
@@ -138,8 +147,7 @@
                  :multiple true
                  :on-change
                  (fn [event]
-                   (doseq [file (.. event -target -files)]
-                     (uploader file))
+                   (upload (.. event -target -files))
                    (set! (.. event -target -value) ""))})
               ($ icon {:name "camera-fill" :size 16}) "Upload images")
             (if (> pgs 1)
@@ -155,9 +163,9 @@
                ($ :.scene-gallery-modal
                  ($ :.scene-gallery-modal-container
                    ($ image {:checksum preview}
-                     (fn [{:keys [data-url]}]
+                     (fn [url]
                        ($ :figure.scene-gallery-modal-preview
-                         {:style {:background-image (str "url(" data-url ")")}}
+                         {:style {:background-image (str "url(" url ")")}}
                          ($ :dl
                            ($ :dt "Filename")
                            ($ :dd (:image/name data))

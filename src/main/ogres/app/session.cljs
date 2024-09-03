@@ -3,10 +3,8 @@
             [cognitect.transit :as transit]
             [datascript.core :as ds]
             [datascript.transit :as dst]
-            [goog.object :as go]
             [ogres.app.const :refer [SOCKET-URL]]
             [ogres.app.hooks :refer [use-event-listener use-subscribe use-dispatch use-publish use-interval use-store]]
-            [ogres.app.provider.image :refer [create-checksum create-image-element]]
             [ogres.app.provider.state :as provider.state]
             [uix.core :refer [defui use-context use-state use-callback use-effect]]))
 
@@ -129,9 +127,9 @@
 
     :image/request
     (-> (.get (.table store "images") (:checksum data))
-        (.then (fn [record] (go/get record "data-url")))
-        (.then (fn [data-url]
-                 (on-send {:type :image :dst (:src message) :data data-url}))))
+        (.then (fn [record] (.-data record)))
+        (.then (fn [data]
+                 (on-send {:type :image :dst (:src message) :data data}))))
 
     :cursor/moved
     (let [{src :src {[x y] :coord} :data} message]
@@ -159,27 +157,11 @@
 ;; generally received from the host after sending a request for it via its
 ;; checksum.
 (defmethod handle-message :image
-  [{:keys [conn dispatch publish store]} message]
-  (let [data-url (:data message)
-        checksum (create-checksum data-url)
-        record   #js {:checksum checksum :data-url data-url :created-at (js/Date.now)}
-        entity   (ds/entity (ds/db conn) [:db/ident :user])]
-    (if (= (:user/type entity) :host)
-      ;; The host has received an image from another connection. This is
-      ;; inferred as another connection in the session uploading a token
-      ;; image. Put the image into local storage, update state, and publish
-      ;; the relevant event to trigger an update to the image cache.
-      (-> (.put (.table store "images") record)
-          (.then #(create-image-element data-url))
-          (.then (fn [image]
-                   (let [data {:checksum checksum :width (.-width image) :height (.-height image)}]
-                     (dispatch :tokens/create data :public)
-                     (publish {:topic :image/cache :args [checksum data-url]})))))
-      ;; This connection has received image data from the host - put it in
-      ;; local storage and publish the relevant event to trigger an update
-      ;; to the image cache.
-      (-> (.put (.table store "images") record)
-          (.then #(publish {:topic :image/cache :args [checksum data-url]}))))))
+  [{:keys [conn]} _]
+  (let [entity (ds/entity (ds/db conn) [:db/ident :user])]
+    (case (:user/type entity)
+      :host 1
+      :conn 2)))
 
 (defui handlers []
   (let [[socket set-socket] (use-state nil)
@@ -267,23 +249,6 @@
          (when (some? socket)
            (.close socket)
            (set-socket nil))) [socket]))
-
-    ;; Subscribe to image uploads, either handling them normally if the user is
-    ;; the host or sending the image data to the host if the user is a client.
-    ;; Sending image data to the host is interpretted as a request to share an
-    ;; image from their local computer to the rest of the connections in the
-    ;; session as a token.
-    (use-subscribe :image/create
-      (use-callback
-       (fn [{[type data] :args}]
-         (let [{{kind :user/type} :root/user
-                {host :session/host} :root/session}
-               (ds/entity (ds/db conn) [:db/ident :root])]
-           (case [kind type]
-             [:host :token] (dispatch :tokens/create data :private)
-             [:host :scene] (dispatch :scene-images/create data)
-             ([:conn :token] [:conn :scene])
-             (on-send {:type :image :dst (:user/uuid host) :data (:data-url data)})))) [conn dispatch on-send]))
 
     ;; Subscribe to requests for image data from other non-host connections
     ;; and reply with the appropriate image data in the form of a data URL.

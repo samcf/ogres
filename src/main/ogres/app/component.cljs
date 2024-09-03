@@ -79,14 +79,14 @@
           ($ icon {:name "chevron-right" :size 16}))))))
 
 (defui image
-  "Renders the image identified by the given checksum. Must be passed a
-   render function as its sole child which receives a map as its only
-   argument containing a `:data-url` string of the resource.
+  "Renders the image identified by the given checksum. Accepts a
+   render function as its children which is passed a URL that
+   references the image resource.
    ```
    ($ image {:checksum 'fa7b887b1ce364732beb9ac70892775a'}
-     (fn [{:keys [data-url]}]
-       ($ :img {:src data-url})))
+     (fn [url]
+       ($ :img {:src url})))
    ```"
   [{:keys [checksum children]}]
-  (let [data-url (use-image checksum)]
-    (children {:data-url data-url})))
+  (let [url (use-image checksum)]
+    (children url)))

@@ -107,9 +107,9 @@
           ($ :feFuncB {:type "linear" :slope 0.60})))
       (if (some? checksum)
         ($ image {:checksum checksum}
-          (fn [{:keys [data-url]}]
+          (fn [url]
             ($ :image
-              {:x 0 :y 0 :id "scene-image" :ref node :href data-url :width width :height height :transform transform}))))
+              {:x 0 :y 0 :id "scene-image" :ref node :href url :width width :height height :transform transform}))))
       ($ :rect {:id "scene-image-cover" :x 0 :y 0 :width width :height height :transform transform})
       ($ :clipPath {:id "scene-image-clip"}
         ($ :use {:href "#scene-image-cover"})))))
@@ -280,23 +280,24 @@
     (take 4 (filter (difference (token-flags data) exclu) order))))
 
 (defui ^:private token [{:keys [node data]}]
-  (let [radii (- (/ grid-size 2) 2)
-        scale (/ (:token/size data) 5)
-        hashs (:image/checksum (:token/image data))
-        pttrn (cond (string? hashs)      (str "token-face-" hashs)
-                    :else                (str "token-face-default"))]
+  (let [radius (- (/ grid-size 2) 2)
+        scale  (/ (:token/size data) 5)
+        hash   (:image/checksum (:token/image data))
+        fill   (if (some? hash)
+                 (str "token-face-" hash)
+                 (str "token-face-default"))]
     ($ :g.scene-token
       {:ref node :id (str "token" (:db/id data)) :data-flags (token-flags-attr data)}
       (let [radius (:token/aura-radius data)
             radius (if (> radius 0) (+ (* grid-size (/ radius 5)) (* scale (/ grid-size 2))) 0)]
         ($ :circle.scene-token-aura {:cx 0 :cy 0 :style {:r radius}}))
       ($ :g {:style {:transform (str "scale(" scale ")")}}
-        ($ :circle.scene-token-shape {:cx 0 :cy 0 :r radii :fill (str "url(#" pttrn ")")})
-        ($ :circle.scene-token-base {:cx 0 :cy 0 :r (+ radii 5)})
+        ($ :circle.scene-token-shape {:cx 0 :cy 0 :r radius :fill (str "url(#" fill ")")})
+        ($ :circle.scene-token-base {:cx 0 :cy 0 :r (+ radius 5)})
         (for [[deg flag] (mapv vector [-120 120 -65 65] (token-conditions data))
               :let [rn (* (/ js/Math.PI 180) deg)
-                    cx (* (js/Math.sin rn) radii)
-                    cy (* (js/Math.cos rn) radii)]]
+                    cx (* (js/Math.sin rn) radius)
+                    cy (* (js/Math.cos rn) radius)]]
           ($ :g.scene-token-flags {:key flag :data-flag flag :transform (str "translate(" cx ", " cy ")")}
             ($ :circle {:cx 0 :cy 0 :r 12})
             ($ :g {:transform (str "translate(" -8 ", " -8 ")")}
@@ -356,8 +357,8 @@
                :height "100%"
                :patternContentUnits "objectBoundingBox"}
               ($ image {:checksum checksum}
-                (fn [{:keys [data-url]}]
-                  ($ :image {:href data-url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"})))))))
+                (fn [url]
+                  ($ :image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"})))))))
       ($ TransitionGroup {:component nil}
         (for [{id :db/id :as data} tokens :let [node (create-ref)]]
           ($ Transition {:key id :nodeRef node :timeout 240}

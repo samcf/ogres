@@ -4,7 +4,7 @@
             [clojure.string :refer [trim]]
             [ogres.app.const :refer [grid-size]]
             [ogres.app.geom :as geom]
-            [ogres.app.util :refer [comp-fn round round-grid with-ns]]))
+            [ogres.app.util :refer [comp-fn round round-grid]]))
 
 (def ^:private suffix-max-xf
   (map (fn [[label tokens]] [label (apply max (map :initiative/suffix tokens))])))
@@ -295,25 +295,29 @@
        [:db/retractEntity (:db/id (:camera/scene camera))]])))
 
 ;; -- Scene Images --
-(defmethod
-  ^{:doc "Creates a new scene image with the given checksum, width, and height.
-          Relates this entity to the root scene collection."}
-  event-tx-fn :scene-images/create
-  [_ _ image-data]
-  (let [keys [:name :size :checksum :width :height]]
-    [{:db/ident :root :root/scene-images (with-ns (select-keys image-data keys) "image")}]))
+(defmethod event-tx-fn :scene-images/create-many
+  [_ _ images]
+  [{:db/ident :root
+    :root/scene-images
+    (for [[{:keys [checksum name size width height]} thumbnail] images]
+      {:image/checksum checksum
+       :image/name name
+       :image/size size
+       :image/width width
+       :image/height height
+       :image/thumbnail
+       (let [{:keys [checksum size width height]} thumbnail]
+         {:image/checksum checksum
+          :image/name name
+          :image/size size
+          :image/width width
+          :image/height height})})}])
 
 (defmethod
   ^{:doc "Removes the scene image by the given identifying checksum."}
-  event-tx-fn :scene-images/remove
+  event-tx-fn :scene-images/remove-impl
   [_ _ checksum]
   [[:db/retractEntity [:image/checksum checksum]]])
-
-(defmethod
-  ^{:doc "Removes all scene images."}
-  event-tx-fn :scene-images/remove-all
-  []
-  [[:db/retract [:db/ident :root] :root/scene-images]])
 
 ;; -- Scene --
 (defn ^:private assoc-scene
@@ -687,25 +691,40 @@
               [:db/retract id :initiative/health]
               [:db/retract id :initiative/suffix]]))))
 
-(defmethod event-tx-fn :tokens/create
-  [_ _ image-data scope]
-  (let [keys [:name :size :checksum :width :height]
-        data (-> image-data (select-keys keys) (assoc :scope scope))]
-    [{:db/ident :root :root/token-images (with-ns data "image")}]))
+;; --- Token Images ---
+(defmethod event-tx-fn :token-images/create-many
+  [_ _ images scope]
+  [{:db/ident :root
+    :root/token-images
+    (for [[{:keys [checksum name size width height]} thumbnail] images]
+      {:image/checksum checksum
+       :image/name name
+       :image/size size
+       :image/scope scope
+       :image/width width
+       :image/height height
+       :image/thumbnail
+       (let [{:keys [checksum size width height]} thumbnail]
+         {:image/checksum checksum
+          :image/name name
+          :image/size size
+          :image/width width
+          :image/height height
+          :image/scope scope})})}])
 
 (defmethod
   ^{:doc "Change the scope of the token image by the given checksum to the
           given scope, typically `:public` or `:private`."}
-  event-tx-fn :tokens/change-scope
+  event-tx-fn :token-images/change-scope
   [_ _ checksum scope]
   [[:db/add -1 :image/checksum checksum]
    [:db/add -1 :image/scope scope]])
 
-(defmethod event-tx-fn :tokens/remove
+(defmethod event-tx-fn :token-images/remove-impl
   [_ _ checksum]
   [[:db/retractEntity [:image/checksum checksum]]])
 
-(defmethod event-tx-fn :tokens/remove-all
+(defmethod event-tx-fn :token-images/remove-all-impl
   []
   [[:db/retract [:db/ident :root] :root/token-images]])
 

@@ -151,9 +151,9 @@
         (cond hidden \?
               (some? checksum)
               ($ image {:checksum checksum}
-                (fn [{:keys [data-url]}]
+                (fn [url]
                   ($ :.initiative-token-image
-                    {:style {:background-image (str "url(" data-url ")")}})))
+                    {:style {:background-image (str "url(" url ")")}})))
               :else
               ($ :.initiative-token-pattern
                 ($ icon {:name "dnd" :size 36}))))
