@@ -94,21 +94,23 @@
   (let [dispatch (use-dispatch)
         state (use-context state/context)
         store (use-store)]
+    (use-subscribe :images/remove
+      (use-callback
+       (fn [idxs] (.bulkDelete (.table store "images") (into-array idxs))) [store]))
     (use-subscribe :scene-images/remove
       (use-callback
        (fn [{[id] :args}]
          (let [result (ds/entity @state [:image/checksum id])
                hashes [(:image/checksum result) (:image/checksum (:image/thumbnail result))]]
-           (prn hashes)
-           (.then (.bulkDelete (.table store "images") (into-array hashes))
-                  #(dispatch :scene-images/remove-impl id)))) ^:lint/disable [store]))
+           (dispatch :scene-images/remove-impl id)
+           (dispatch :images/remove hashes))) ^:lint/disable []))
     (use-subscribe :token-images/remove
       (use-callback
        (fn [{[id] :args}]
          (let [result (ds/entity @state [:image/checksum id])
                hashes [(:image/checksum result) (:image/checksum (:image/thumbnail result))]]
-           (.then (.bulkDelete (.table store "images") (into-array hashes))
-                  #(dispatch :token-images/remove-impl id)))) ^:lint/disable [store]))
+           (dispatch :token-images/remove-impl id)
+           (dispatch :images/remove hashes))) ^:lint/disable []))
     (use-subscribe :token-images/remove-all
       (use-callback
        (fn []
@@ -116,8 +118,8 @@
                xf     (mapcat (juxt :image/checksum (comp :image/checksum :image/thumbnail)))
                result (ds/pull @state select [:db/ident :root])
                hashes (sequence xf (:root/token-images result))]
-           (.then (.bulkDelete (.table store "images") (into-array hashes))
-                  #(dispatch :token-images/remove-all-impl)))) ^:lint/disable [store]))))
+           (dispatch :token-images/remove-all-impl)
+           (dispatch :images/remove hashes))) ^:lint/disable []))))
 
 (defui ^:private backup-handler []
   (let [store (use-store)]
