@@ -299,19 +299,21 @@
   [_ _ images]
   [{:db/ident :root
     :root/scene-images
-    (for [[{:keys [checksum name size width height]} thumbnail] images]
-      {:image/checksum checksum
+    (for [[idx [{:keys [checksum name size width height]} thumbnail]] (sequence (indexed) images)]
+      {:db/id idx
+       :image/checksum checksum
        :image/name name
        :image/size size
        :image/width width
        :image/height height
        :image/thumbnail
-       (let [{:keys [checksum size width height]} thumbnail]
-         {:image/checksum checksum
-          :image/name name
-          :image/size size
-          :image/width width
-          :image/height height})})}])
+       (if (not= checksum (:image/checksum thumbnail))
+         (let [{:keys [checksum size width height]} thumbnail]
+           {:image/checksum checksum
+            :image/name name
+            :image/size size
+            :image/width width
+            :image/height height}) idx)})}])
 
 (defmethod
   ^{:doc "Removes the scene image by the given identifying checksum."}
@@ -696,21 +698,23 @@
   [_ _ images scope]
   [{:db/ident :root
     :root/token-images
-    (for [[{:keys [checksum name size width height]} thumbnail] images]
-      {:image/checksum checksum
+    (for [[idx [{:keys [checksum name size width height]} thumbnail]] (sequence (indexed) images)]
+      {:db/id idx
+       :image/checksum checksum
        :image/name name
        :image/size size
        :image/scope scope
        :image/width width
        :image/height height
        :image/thumbnail
-       (let [{:keys [checksum size width height]} thumbnail]
-         {:image/checksum checksum
-          :image/name name
-          :image/size size
-          :image/width width
-          :image/height height
-          :image/scope scope})})}])
+       (if (not= checksum (:image/checksum thumbnail))
+         (let [{:keys [checksum size width height]} thumbnail]
+           {:image/checksum checksum
+            :image/name name
+            :image/size size
+            :image/width width
+            :image/height height
+            :image/scope scope}) idx)})}])
 
 (defmethod
   ^{:doc "Change the scope of the token image by the given checksum to the
