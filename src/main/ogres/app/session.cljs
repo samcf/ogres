@@ -128,8 +128,12 @@
     :image/request
     (-> (.get (.table store "images") (:hash data))
         (.then (fn [record] (.-data record)))
+        (.then (fn [data] (.arrayBuffer data)))
         (.then (fn [data]
-                 (on-send {:type :image :dst (:src message) :data data}))))
+                 (on-send
+                  {:type :image
+                   :dst  (:src message)
+                   :data (js/Uint8Array. data)}))))
 
     :cursor/moved
     (let [{src :src {[x y] :coord} :data} message]
@@ -157,11 +161,12 @@
 ;; generally received from the host after sending a request for it via its
 ;; hash.
 (defmethod handle-message :image
-  [{:keys [conn]} _]
-  (let [entity (ds/entity (ds/db conn) [:db/ident :user])]
-    (case (:user/type entity)
+  [{:keys [conn publish]} message]
+  (let [data (js/Blob. #js [(:data message)] #js {"type" "image/jpeg"})
+        user (ds/entity (ds/db conn) [:db/ident :user])]
+    (case (:user/type user)
       :host 1
-      :conn 2)))
+      :conn (publish {:topic :image/cache :args [data]}))))
 
 (defui handlers []
   (let [[socket set-socket] (use-state nil)

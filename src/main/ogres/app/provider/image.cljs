@@ -1,18 +1,30 @@
 (ns ogres.app.provider.image
   (:require [ogres.app.provider.dispatch :refer [use-dispatch]]
-            [ogres.app.provider.events :refer [use-publish]]
+            [ogres.app.provider.events :refer [use-publish use-subscribe]]
             [ogres.app.provider.state :refer [use-query]]
             [ogres.app.provider.storage :refer [use-store]]
             [uix.core :refer [defui $ create-context use-callback use-state use-context use-effect]]))
 
+(def ^:private hash-fn "SHA-1")
+
 (def ^:private image
   (create-context {{} (constantly nil)}))
 
-(defn ^:private decode-hash
-  [hash]
-  (.. (js/Array.from hash)
+(defn ^:private decode-digest
+  "Returns a hash string of the given digest array."
+  [^js/Uint8Array digest]
+  (.. (js/Array.from digest)
       (map (fn [s] (.. s (toString 16) (padStart 2 "0"))))
       (join "")))
+
+(defn ^:private create-hash
+  "Returns a Promise which resolves with a hash string for the
+   image data given as a Blob object."
+  [^js/Blob image]
+  (-> (.arrayBuffer image)
+      (.then (fn [buf] (js/crypto.subtle.digest hash-fn buf)))
+      (.then (fn [dig] (js/Uint8Array. dig)))
+      (.then decode-digest)))
 
 (defn ^:private create-thumbnail
   "Returns a <canvas> element with the contents of the src <context> cropped
@@ -20,7 +32,7 @@
    and {Bx By} which define a square region of the source image to use as
    the crop. When no region is given, the crop is centered horizontally and
    to the top."
-  ([src len]
+  ([^js/HTMLCanvasElement src len]
    (let [cx (.-width src) cy (.-height src)]
      (cond (or (= cx cy) (and (<= cx len) (<= cy len)))
            (create-thumbnail src len 0 0 cx cy)
@@ -28,7 +40,7 @@
            (create-thumbnail src len (/ (- cx cy) 2) 0 (/ (+ cx cy) 2) cy)
            (> cy cx)
            (create-thumbnail src len 0 0 cx cx))))
-  ([src len ax ay bx by]
+  ([^js/HTMLCanvasElement src len ax ay bx by]
    (let [dst (js/document.createElement "canvas")
          dsx (.getContext dst "2d")]
      (set! (.-width dst) len)
@@ -40,7 +52,7 @@
 
 (defn ^:private create-canvas
   "Returns a <canvas> with the contents of the given image drawn on it."
-  [image]
+  [^js/ImageBitmap image]
   (let [cnv (js/document.createElement "canvas")
         ctx (.getContext cnv "2d")
         wdt (.-width image)
@@ -69,6 +81,13 @@
                                    (.then (fn [url] (update (fn [urls] (assoc urls hash url)))))
                                    (.catch (fn [] (publish {:topic :image/request :args [hash]})))))
                              url))) ^:lint/disable [])]
+    (use-subscribe :image/cache
+      (use-callback
+       (fn [{[image] :args}]
+         (-> (create-hash image)
+             (.then (fn [hash] (.put (.table store "images") #js {"checksum" hash "data" image})))
+             (.then (fn [hash] (update (fn [urls] (assoc urls hash (js/URL.createObjectURL image))))))))
+       [store]))
     ($ image {:value [urls on-request]}
       (:children props))))
 
@@ -76,32 +95,29 @@
   "Returns the image and metadata associated with the <canvas> element passed
    given an image type and quality ratio in the form of a map whose keys are
    'data', 'hash', 'width', and 'height'."
-  ([canvas]
+  ([^js/HTMLCanvasElement canvas]
    (extract-image canvas "image/jpeg" 0.80))
-  ([canvas type quality]
+  ([^js/HTMLCanvasElement canvas type quality]
    (js/Promise.
     (fn [resolve]
       (.toBlob
        canvas
        (fn [blob]
          (.then
-          (.arrayBuffer blob)
-          (fn [data]
-            (.then
-             (js/crypto.subtle.digest "SHA-1" data)
-             (fn [hash]
-               (resolve
-                {:data   blob
-                 :hash   (decode-hash (js/Uint8Array. hash))
-                 :width  (.-width canvas)
-                 :height (.-height canvas)})))))) type quality)))))
+          (create-hash blob)
+          (fn [hash]
+            (resolve
+             {:data   blob
+              :hash   hash
+              :width  (.-width canvas)
+              :height (.-height canvas)})))) type quality)))))
 
 (defn ^:private process-file
   "Returns a Promise.all which resolves with three elements:
      1. The filename
      2. The image extracted from the file
      3. The image, cropped and resized to be used as a thumbnail"
-  [file]
+  [^js/File file]
   (.then (js/createImageBitmap file)
          (fn [image]
            (let [canvas (create-canvas image)]
