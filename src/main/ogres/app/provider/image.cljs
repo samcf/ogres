@@ -1,6 +1,6 @@
 (ns ogres.app.provider.image
   (:require [ogres.app.provider.dispatch :refer [use-dispatch]]
-            [ogres.app.provider.events :refer [use-publish use-subscribe]]
+            [ogres.app.provider.events :refer [use-publish]]
             [ogres.app.provider.state :refer [use-query]]
             [ogres.app.provider.storage :refer [use-store]]
             [uix.core :refer [defui $ create-context use-callback use-state use-context use-effect]]))
