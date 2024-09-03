@@ -282,7 +282,7 @@
 (defui ^:private token [{:keys [node data]}]
   (let [radius (- (/ grid-size 2) 2)
         scale  (/ (:token/size data) 5)
-        hash   (:image/checksum (:token/image data))
+        hash   (:image/checksum (:image/thumbnail (:token/image data)))
         fill   (if (some? hash)
                  (str "token-face-" hash)
                  (str "token-face-default"))]
@@ -321,7 +321,7 @@
          [:token/size :default 5]
          [:token/light :default 15]
          [:token/aura-radius :default 0]
-         {:token/image [:image/checksum]}
+         {:token/image [{:image/thumbnail [:image/checksum]}]}
          {:scene/_initiative [:db/id :initiative/turn]}]}]}]}])
 
 (defui ^:private tokens-defs []
@@ -347,18 +347,19 @@
         ($ :rect {:x -2 :y -2 :width 16 :height 16 :fill "var(--color-blues-700)"})
         ($ icon {:name "dnd" :size 12}))
       ($ TransitionGroup {:component nil}
-        (for [checksum (into #{} (comp (map (comp :image/checksum :token/image)) (filter some?)) tokens)
-              :let [node (create-ref)]]
-          ($ Transition {:key checksum :nodeRef node :timeout 240}
-            ($ :pattern
-              {:id (str "token-face-" checksum)
-               :ref node
-               :width "100%"
-               :height "100%"
-               :patternContentUnits "objectBoundingBox"}
-              ($ image {:checksum checksum}
-                (fn [url]
-                  ($ :image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"})))))))
+        (let [xf (comp (map (comp :image/checksum :image/thumbnail :token/image)) (filter some?))]
+          (for [checksum (into #{} xf tokens)
+                :let [node (create-ref)]]
+            ($ Transition {:key checksum :nodeRef node :timeout 240}
+              ($ :pattern
+                {:id (str "token-face-" checksum)
+                 :ref node
+                 :width "100%"
+                 :height "100%"
+                 :patternContentUnits "objectBoundingBox"}
+                ($ image {:checksum checksum}
+                  (fn [url]
+                    ($ :image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"}))))))))
       ($ TransitionGroup {:component nil}
         (for [{id :db/id :as data} tokens :let [node (create-ref)]]
           ($ Transition {:key id :nodeRef node :timeout 240}

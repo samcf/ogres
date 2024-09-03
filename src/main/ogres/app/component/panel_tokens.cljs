@@ -31,19 +31,19 @@
 
 (defui ^:private draggable
   [{:keys [id children]}]
-  (let [options (use-draggable #js {"id" id})]
-    (children {:options options})))
+  (let [opt (use-draggable #js {"id" id "data" #js {"image" "default"}})]
+    (children {:options opt})))
 
 (defui ^:private token
   [{:keys [id checksum children]}]
   (let [url (use-image checksum)
-        opt (use-draggable #js {"id" id})]
+        opt (use-draggable #js {"id" id "data" #js {"image" checksum}})]
     (children {:url url :options opt})))
 
 (defui ^:private overlay []
   (let [[active set-active] (use-state nil)]
     (use-dnd-monitor
-     #js {"onDragStart" (fn [event] (set-active (.. event -active -id)))
+     #js {"onDragStart" (fn [event] (set-active (.. event -active -data -current -image)))
           "onDragEnd"   (fn [_]     (set-active nil))})
     (create-portal
      ($ drag-overlay {:drop-animation nil}
