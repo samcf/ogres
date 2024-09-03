@@ -58,16 +58,16 @@
         loading       (atom {})
         [urls update] (use-state {})
         on-request    (use-callback
-                       (fn [checksum]
-                         (let [url (get urls checksum)]
+                       (fn [hash]
+                         (let [url (get urls hash)]
                            (if (not url)
-                             (when (not (get @loading checksum))
-                               (swap! loading assoc checksum true)
+                             (when (not (get @loading hash))
+                               (swap! loading assoc hash true)
                                (-> (.table store "images")
-                                   (.get checksum)
+                                   (.get hash)
                                    (.then (fn [rec] (js/URL.createObjectURL (.-data rec))))
-                                   (.then (fn [url] (update (fn [urls] (assoc urls checksum url)))))
-                                   (.catch (fn [] (publish {:topic :image/request :args [checksum]})))))
+                                   (.then (fn [url] (update (fn [urls] (assoc urls hash url)))))
+                                   (.catch (fn [] (publish {:topic :image/request :args [hash]})))))
                              url))) ^:lint/disable [])]
     ($ image {:value [urls on-request]}
       (:children props))))
@@ -123,11 +123,11 @@
   "Returns a description of an image to be persisted to DataScript state,
    containing the digest, filename, size in kb, width, and height."
   [filename image]
-  {:checksum (:hash image)
-   :name     filename
-   :size     (.-size (:data image))
-   :width    (:width image)
-   :height   (:height image)})
+  {:hash   (:hash image)
+   :name   filename
+   :size   (.-size (:data image))
+   :width  (:width image)
+   :height (:height image)})
 
 (defn ^:private create-state-records
   "Returns a two-element vector containing descriptions of images to be
@@ -173,8 +173,8 @@
    (let [url (use-image 'ded8f539f84b9eb1bce78836aa017affae7661c3')]
      ($ :img {:src url}))
    ```"
-  [checksum]
+  [hash]
   (let [[urls on-request] (use-context image)]
     (use-effect
-     (fn [] (on-request checksum)) [on-request checksum])
-    (get urls checksum)))
+     (fn [] (on-request hash)) [on-request hash])
+    (get urls hash)))

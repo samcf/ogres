@@ -78,13 +78,13 @@
     [{:camera/scene
       [[:scene/grid-size :default 70]
        [:scene/lighting :default :revealed]
-       {:scene/image [:image/checksum :image/width :image/height]}]}]}])
+       {:scene/image [:image/hash :image/width :image/height]}]}]}])
 
 (defui ^:private image-defs []
   (let [result (use-query image-defs-query)
-        {{{{width    :image/width
-            height   :image/height
-            checksum :image/checksum} :scene/image
+        {{{{width  :image/width
+            height :image/height
+            hash :image/hash} :scene/image
            size :scene/grid-size} :camera/scene} :user/camera} result
         transform (str "scale(" (/ grid-size size) ")")
         node (uix/use-ref)]
@@ -105,8 +105,8 @@
           ($ :feFuncR {:type "linear" :slope 0.60})
           ($ :feFuncG {:type "linear" :slope 0.60})
           ($ :feFuncB {:type "linear" :slope 0.60})))
-      (if (some? checksum)
-        ($ image {:checksum checksum}
+      (if (some? hash)
+        ($ image {:hash hash}
           (fn [url]
             ($ :image
               {:x 0 :y 0 :id "scene-image" :ref node :href url :width width :height height :transform transform}))))
@@ -282,7 +282,7 @@
 (defui ^:private token [{:keys [node data]}]
   (let [radius (- (/ grid-size 2) 2)
         scale  (/ (:token/size data) 5)
-        hash   (:image/checksum (:image/thumbnail (:token/image data)))
+        hash   (:image/hash (:image/thumbnail (:token/image data)))
         fill   (if (some? hash)
                  (str "token-face-" hash)
                  (str "token-face-default"))]
@@ -321,7 +321,7 @@
          [:token/size :default 5]
          [:token/light :default 15]
          [:token/aura-radius :default 0]
-         {:token/image [{:image/thumbnail [:image/checksum]}]}
+         {:token/image [{:image/thumbnail [:image/hash]}]}
          {:scene/_initiative [:db/id :initiative/turn]}]}]}]}])
 
 (defui ^:private tokens-defs []
@@ -347,17 +347,17 @@
         ($ :rect {:x -2 :y -2 :width 16 :height 16 :fill "var(--color-blues-700)"})
         ($ icon {:name "dnd" :size 12}))
       ($ TransitionGroup {:component nil}
-        (let [xf (comp (map (comp :image/checksum :image/thumbnail :token/image)) (filter some?))]
-          (for [checksum (into #{} xf tokens)
+        (let [xf (comp (map (comp :image/hash :image/thumbnail :token/image)) (filter some?))]
+          (for [hash (into #{} xf tokens)
                 :let [node (create-ref)]]
-            ($ Transition {:key checksum :nodeRef node :timeout 240}
+            ($ Transition {:key hash :nodeRef node :timeout 240}
               ($ :pattern
-                {:id (str "token-face-" checksum)
+                {:id (str "token-face-" hash)
                  :ref node
                  :width "100%"
                  :height "100%"
                  :patternContentUnits "objectBoundingBox"}
-                ($ image {:checksum checksum}
+                ($ image {:hash hash}
                   (fn [url]
                     ($ :image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"}))))))))
       ($ TransitionGroup {:component nil}

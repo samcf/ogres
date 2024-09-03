@@ -30,11 +30,11 @@
 
 (def ^:private query
   [{:root/scene-images
-    [:image/checksum
+    [:image/hash
      :image/name
      :image/size
      {:image/thumbnail
-      [:image/checksum]}]}
+      [:image/hash]}]}
    {:root/user
     [{:user/camera
       [:db/id
@@ -49,7 +49,7 @@
          {:scene/image
           [:image/name
            {:image/thumbnail
-            [:image/checksum]}]}]}]}]}])
+            [:image/hash]}]}]}]}]}])
 
 (defui form []
   (let [[preview set-preview] (use-state nil)
@@ -89,10 +89,10 @@
           ($ :legend "Background image")
           ($ :.scene-gallery
             (for [[idx data] pag
-                  :let [hash (:image/checksum data)
-                        curr (:image/checksum (:scene/image data))]]
-              (if-let [thumbnail (:image/checksum (:image/thumbnail data))]
-                ($ image {:key idx :checksum thumbnail}
+                  :let [hash (:image/hash data)
+                        curr (:image/hash (:scene/image data))]]
+              (if-let [thumbnail (:image/hash (:image/thumbnail data))]
+                ($ image {:key idx :hash thumbnail}
                   (fn [url]
                     ($ :fieldset.scene-gallery-thumbnail
                       {:data-type "image" :style {:background-image (str "url(" url ")")}}
@@ -158,11 +158,11 @@
                  :on-change set-page})))
           (if (some? preview)
             (let [node (js/document.querySelector "#root")
-                  data (first (filter (comp #{preview} :image/checksum) (:root/scene-images data)))]
+                  data (first (filter (comp #{preview} :image/hash) (:root/scene-images data)))]
               (create-portal
                ($ :.scene-gallery-modal
                  ($ :.scene-gallery-modal-container
-                   ($ image {:checksum preview}
+                   ($ image {:hash preview}
                      (fn [url]
                        ($ :figure.scene-gallery-modal-preview
                          {:style {:background-image (str "url(" url ")")}}

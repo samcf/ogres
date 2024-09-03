@@ -79,14 +79,14 @@
           ($ icon {:name "chevron-right" :size 16}))))))
 
 (defui image
-  "Renders the image identified by the given checksum. Accepts a
+  "Renders the image identified by the given hash. Accepts a
    render function as its children which is passed a URL that
    references the image resource.
    ```
-   ($ image {:checksum 'fa7b887b1ce364732beb9ac70892775a'}
+   ($ image {:hash 'fa7b887b1ce364732beb9ac70892775a'}
      (fn [url]
        ($ :img {:src url})))
    ```"
-  [{:keys [checksum children]}]
-  (let [url (use-image checksum)]
+  [{:keys [hash children]}]
+  (let [url (use-image hash)]
     (children url)))

@@ -126,7 +126,7 @@
     (ds/transact! conn [[:db/retractEntity [:user/uuid (:uuid data)]]])
 
     :image/request
-    (-> (.get (.table store "images") (:checksum data))
+    (-> (.get (.table store "images") (:hash data))
         (.then (fn [record] (.-data record)))
         (.then (fn [data]
                  (on-send {:type :image :dst (:src message) :data data}))))
@@ -155,7 +155,7 @@
 
 ;; Handles messages that include image data as data URLs. These messages are
 ;; generally received from the host after sending a request for it via its
-;; checksum.
+;; hash.
 (defmethod handle-message :image
   [{:keys [conn]} _]
   (let [entity (ds/entity (ds/db conn) [:db/ident :user])]
@@ -254,10 +254,10 @@
     ;; and reply with the appropriate image data in the form of a data URL.
     (use-subscribe :image/request
       (use-callback
-       (fn [{[checksum] :args}]
+       (fn [{[hash] :args}]
          (let [session (ds/entity @conn [:db/ident :session])]
            (if-let [host (-> session :session/host :user/uuid)]
-             (let [data {:name :image/request :checksum checksum}]
+             (let [data {:name :image/request :hash hash}]
                (on-send {:type :event :dst host :data data}))))) [conn on-send]))
 
     ;; Subscribe to DataScript transactions and broadcast the transaction data

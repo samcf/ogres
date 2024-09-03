@@ -101,22 +101,22 @@
     (use-subscribe :scene-images/remove
       (use-callback
        (fn [{[hash] :args}]
-         (let [result (ds/entity @state [:image/checksum hash])
-               hashes [(:image/checksum result) (:image/checksum (:image/thumbnail result))]]
+         (let [result (ds/entity @state [:image/hash hash])
+               hashes [(:image/hash result) (:image/hash (:image/thumbnail result))]]
            (dispatch :scene-images/remove-impl hash)
            (dispatch :images/remove hashes))) ^:lint/disable []))
     (use-subscribe :token-images/remove
       (use-callback
        (fn [{[hash] :args}]
-         (let [result (ds/entity @state [:image/checksum hash])
-               hashes [(:image/checksum result) (:image/checksum (:image/thumbnail result))]]
+         (let [result (ds/entity @state [:image/hash hash])
+               hashes [(:image/hash result) (:image/hash (:image/thumbnail result))]]
            (dispatch :token-images/remove-impl hash)
            (dispatch :images/remove hashes))) ^:lint/disable []))
     (use-subscribe :token-images/remove-all
       (use-callback
        (fn []
-         (let [select [{:root/token-images [:image/checksum {:image/thumbnail [:image/checksum]}]}]
-               xf     (mapcat (juxt :image/checksum (comp :image/checksum :image/thumbnail)))
+         (let [select [{:root/token-images [:image/hash {:image/thumbnail [:image/hash]}]}]
+               xf     (mapcat (juxt :image/hash (comp :image/hash :image/thumbnail)))
                result (ds/pull @state select [:db/ident :root])
                hashes (sequence xf (:root/token-images result))]
            (dispatch :token-images/remove-all-impl)

@@ -12,7 +12,7 @@
    :root/token-images {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :session/conns     {:db/valueType :db.type/ref :db.cardinality :db.cardinality/many :db/isComponent true}
    :session/host      {:db/valueType :db.type/ref}
-   :image/checksum    {:db/unique :db.unique/identity}
+   :image/hash        {:db/unique :db.unique/identity}
    :image/thumbnail   {:db/valueType :db.type/ref :db/isComponent true}
    :user/uuid         {:db/unique :db.unique/identity}
    :user/camera       {:db/valueType :db.type/ref}

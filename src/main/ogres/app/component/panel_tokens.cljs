@@ -15,16 +15,16 @@
 
 (def ^:private query-footer
   [{:root/user [:user/type]}
-   {:root/token-images [:image/checksum]}])
+   {:root/token-images [:image/hash]}])
 
 (def ^:private query-form
   [{:root/user [:user/type]}
    {:root/token-images
-    [:image/checksum
+    [:image/hash
      :image/name
      :image/scope
      {:image/thumbnail
-      [:image/checksum]}]}])
+      [:image/hash]}]}])
 
 (def ^:private query-bounds
   [[:bounds/self :default [0 0 0 0]]])
@@ -35,9 +35,9 @@
     (children {:options opt})))
 
 (defui ^:private token
-  [{:keys [id checksum children]}]
-  (let [url (use-image checksum)
-        opt (use-draggable #js {"id" id "data" #js {"image" checksum}})]
+  [{:keys [id hash children]}]
+  (let [url (use-image hash)
+        opt (use-draggable #js {"id" id "data" #js {"image" hash}})]
     (children {:url url :options opt})))
 
 (defui ^:private overlay []
@@ -52,7 +52,7 @@
            {:data-type "default"}
            ($ icon {:name "dnd"}))
          (if (some? active)
-           ($ image {:checksum active}
+           ($ image {:hash active}
              (fn [url]
                ($ :.token-gallery-item {:data-type "image" :style {:background-image (str "url(" url ")")}}))))))
      (.querySelector js/document "#root"))))
@@ -62,9 +62,9 @@
     ($ :<>
       (for [[idx data] (sequence (map-indexed vector) (:data props))]
         (cond (map? data)
-              (let [hash (:image/checksum data)
-                    thmb (:image/checksum (:image/thumbnail data))]
-                ($ token {:key hash :id hash :checksum thmb}
+              (let [hash (:image/hash data)
+                    thmb (:image/hash (:image/thumbnail data))]
+                ($ token {:key hash :id hash :hash thmb}
                   (fn [{:keys [url ^js/object options]}]
                     ($ :button.token-gallery-item
                       {:ref (.-setNodeRef options)
@@ -155,7 +155,7 @@
         {[bx by bw bh] :bounds/self} results
         on-create
         (use-callback
-         (fn [checksum element delta]
+         (fn [hash element delta]
            (let [rect (.getBoundingClientRect element)
                  tw (.-width rect)
                  th (.-height rect)
@@ -166,7 +166,7 @@
                  mx (- (+ tx dx (/ tw 2)) bx)
                  my (- (+ ty dy (/ th 2)) by)]
              (if (and (<= bx mx (+ bx bw)) (<= by my (+ by bh)))
-               (dispatch :token/create mx my (if (not= checksum "default") checksum)))))
+               (dispatch :token/create mx my (if (not= hash "default") hash)))))
          [dispatch bx by bw bh])]
     ($ dnd-context
       #js {"onDragEnd"

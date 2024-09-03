@@ -40,12 +40,12 @@
   use-subscribe
   provider.events/use-subscribe)
 
-(def ^{:doc "Returns a URL for the image identified by the given checksum.
+(def ^{:doc "Returns a URL for the image identified by the given hash.
              The URL is only guaranteed to be usable for the window it
              was created for, and only guaranteed to last for the duration
              of the user session. Returns nil if the image is loading or
              cannot be found."
-       :arglists '([checksum])}
+       :arglists '([hash])}
   use-image
   provider.image/use-image)
 
