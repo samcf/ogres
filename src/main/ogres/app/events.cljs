@@ -296,29 +296,32 @@
 ;; -- Scene Images --
 (defmethod event-tx-fn :scene-images/create-many
   [_ _ images]
-  [{:db/ident :root
-    :root/scene-images
-    (for [[idx [{:keys [hash name size width height]} thumbnail]] (sequence (indexed) images)]
-      {:db/id idx
-       :image/hash hash
-       :image/name name
-       :image/size size
-       :image/width width
-       :image/height height
-       :image/thumbnail
-       (if (not= hash (:image/hash thumbnail))
-         (let [{:keys [hash size width height]} thumbnail]
-           {:image/hash hash
-            :image/name name
-            :image/size size
-            :image/width width
-            :image/height height}) idx)})}])
+  (into [{:db/ident :root
+          :root/scene-images
+          (for [[{:keys [hash name size width height]} _] images]
+            {:image/hash hash
+             :image/name name
+             :image/size size
+             :image/width width
+             :image/height height})}] cat
+        (for [[image thumbnail] images]
+          (if (= (:hash image) (:hash thumbnail))
+            [{:image/hash (:hash image) :image/thumbnail [:image/hash (:hash image)]}]
+            [{:image/hash (:hash thumbnail)
+              :image/name (:name thumbnail)
+              :image/size (:size thumbnail)
+              :image/width (:width thumbnail)
+              :image/height (:height thumbnail)}
+             {:image/hash (:hash image) :image/thumbnail [:image/hash (:hash thumbnail)]}]))))
 
 (defmethod
   ^{:doc "Removes the scene image by the given identifying hash."}
-  event-tx-fn :scene-images/remove-impl
-  [_ _ hash]
-  [[:db/retractEntity [:image/hash hash]]])
+  event-tx-fn :scene-images/remove
+  [_ _ image thumb]
+  (if (= image thumb)
+    [[:db/retractEntity [:image/hash image]]]
+    [[:db/retractEntity [:image/hash image]]
+     [:db/retractEntity [:image/hash thumb]]]))
 
 ;; -- Scene --
 (defn ^:private assoc-scene
@@ -695,24 +698,24 @@
 ;; --- Token Images ---
 (defmethod event-tx-fn :token-images/create-many
   [_ _ images scope]
-  [{:db/ident :root
-    :root/token-images
-    (for [[idx [{:keys [hash name size width height]} thumbnail]] (sequence (indexed) images)]
-      {:db/id idx
-       :image/hash hash
-       :image/name name
-       :image/size size
-       :image/scope scope
-       :image/width width
-       :image/height height
-       :image/thumbnail
-       (if (not= hash (:hash thumbnail))
-         (let [{:keys [hash size width height]} thumbnail]
-           {:image/hash hash
-            :image/name name
-            :image/size size
-            :image/width width
-            :image/height height}) idx)})}])
+  (into [{:db/ident :root
+          :root/token-images
+          (for [[{:keys [hash name size width height]} _] images]
+            {:image/hash hash
+             :image/name name
+             :image/size size
+             :image/scope scope
+             :image/width width
+             :image/height height})}] cat
+        (for [[image thumbnail] images]
+          (if (= (:hash image) (:hash thumbnail))
+            [{:image/hash (:hash image) :image/thumbnail [:image/hash (:hash image)]}]
+            [{:image/hash (:hash thumbnail)
+              :image/name (:name thumbnail)
+              :image/size (:size thumbnail)
+              :image/width (:width thumbnail)
+              :image/height (:height thumbnail)}
+             {:image/hash (:hash image) :image/thumbnail [:image/hash (:hash thumbnail)]}]))))
 
 (defmethod
   ^{:doc "Change the scope of the token image by the given hash to the
@@ -722,11 +725,14 @@
   [[:db/add -1 :image/hash hash]
    [:db/add -1 :image/scope scope]])
 
-(defmethod event-tx-fn :token-images/remove-impl
-  [_ _ hash]
-  [[:db/retractEntity [:image/hash hash]]])
+(defmethod event-tx-fn :token-images/remove
+  [_ _ image thumb]
+  (if (= image thumb)
+    [[:db/retractEntity [:image/hash image]]]
+    [[:db/retractEntity [:image/hash image]]
+     [:db/retractEntity [:image/hash thumb]]]))
 
-(defmethod event-tx-fn :token-images/remove-all-impl
+(defmethod event-tx-fn :token-images/remove-all
   []
   [[:db/retract [:db/ident :root] :root/token-images]])
 

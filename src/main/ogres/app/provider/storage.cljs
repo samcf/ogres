@@ -8,7 +8,6 @@
             [ogres.app.const :refer [VERSION]]
             [ogres.app.dom :refer [user-type]]
             [ogres.app.provider.events :refer [use-subscribe]]
-            [ogres.app.provider.dispatch :refer [use-dispatch]]
             [ogres.app.provider.state :as state :refer [use-query]]
             [ogres.app.util :refer [debounce]]
             [uix.core :refer [defui $ create-context use-callback use-context use-effect]]))
@@ -91,36 +90,18 @@
          (.reload (.-location js/window))) [store]))))
 
 (defui ^:private remove-handler []
-  (let [dispatch (use-dispatch)
-        state (use-context state/context)
-        store (use-store)]
-    (use-subscribe :images/remove
-      (use-callback
-       (fn [{[hashes] :args}]
-         (.bulkDelete (.table store "images") (into-array hashes))) [store]))
-    (use-subscribe :scene-images/remove
-      (use-callback
-       (fn [{[hash] :args}]
-         (let [result (ds/entity @state [:image/hash hash])
-               hashes [(:image/hash result) (:image/hash (:image/thumbnail result))]]
-           (dispatch :scene-images/remove-impl hash)
-           (dispatch :images/remove hashes))) ^:lint/disable []))
-    (use-subscribe :token-images/remove
-      (use-callback
-       (fn [{[hash] :args}]
-         (let [result (ds/entity @state [:image/hash hash])
-               hashes [(:image/hash result) (:image/hash (:image/thumbnail result))]]
-           (dispatch :token-images/remove-impl hash)
-           (dispatch :images/remove hashes))) ^:lint/disable []))
-    (use-subscribe :token-images/remove-all
-      (use-callback
-       (fn []
-         (let [select [{:root/token-images [:image/hash {:image/thumbnail [:image/hash]}]}]
-               xf     (mapcat (juxt :image/hash (comp :image/hash :image/thumbnail)))
-               result (ds/pull @state select [:db/ident :root])
-               hashes (sequence xf (:root/token-images result))]
-           (dispatch :token-images/remove-all-impl)
-           (dispatch :images/remove hashes))) ^:lint/disable []))))
+  (let [store (use-store)
+        on-remove
+        (use-callback
+         (fn [{[image thumb] :args}]
+           (.bulkDelete (.table store "images") #js [image thumb])) [store])
+        on-remove-all
+        (use-callback
+         (fn [{[hashes] :args}]
+           (.bulkDelete (.table store "images") (into-array hashes))) [store])]
+    (use-subscribe :scene-images/remove on-remove)
+    (use-subscribe :token-images/remove on-remove)
+    (use-subscribe :token-images/remove-all on-remove-all)))
 
 (defui ^:private backup-handler []
   (let [store (use-store)]

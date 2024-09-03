@@ -122,7 +122,7 @@
                          :on-click
                          (fn [event]
                            (.stopPropagation event)
-                           (dispatch :scene-images/remove hash))}
+                           (dispatch :scene-images/remove hash thumbnail))}
                         ($ icon {:name "trash3-fill" :size 18}))
                       (if (> (:image/size data) filesize-limit)
                         ($ :button.button.button-warning
@@ -182,7 +182,11 @@
                    ($ :.scene-gallery-modal-footer
                      ($ :button.button.button-danger
                        {:style {:margin-right "auto"}
-                        :on-click (fn [] (set-preview nil) (dispatch :scene-images/remove preview))}
+                        :on-click
+                        (fn []
+                          (let [thumbnail (:image/hash (:image/thumbnail data))]
+                            (set-preview nil)
+                            (dispatch :scene-images/remove preview thumbnail)))}
                        ($ icon {:name "trash3-fill" :size 16}))
                      ($ :button.button.button-neutral
                        {:on-click #(set-preview nil)}

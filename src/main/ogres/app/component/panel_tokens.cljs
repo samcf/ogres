@@ -15,7 +15,10 @@
 
 (def ^:private query-footer
   [{:root/user [:user/type]}
-   {:root/token-images [:image/hash]}])
+   {:root/token-images
+    [:image/hash
+     {:image/thumbnail
+      [:image/hash]}]}])
 
 (def ^:private query-form
   [{:root/user [:user/type]}
@@ -173,12 +176,13 @@
            (use-callback
             (fn [event]
               (let [drag (getValueByKeys event #js ["active" "id"])
-                    drop (getValueByKeys event #js ["over" "id"])]
+                    drop (getValueByKeys event #js ["over" "id"])
+                    nail (getValueByKeys event #js ["active" "data" "current" "image"])]
                 (if (and (some? drop) (not= drag "default"))
                   (case drop
                     "scope-pub" (dispatch :token-images/change-scope drag :public)
                     "scope-prv" (dispatch :token-images/change-scope drag :private)
-                    "trash" (dispatch :token-images/remove drag))
+                    "trash" (dispatch :token-images/remove drag nail))
                   (let [target (.. event -activatorEvent -target)
                         delta  (.-delta event)]
                     (on-create drag target delta)))))
@@ -246,5 +250,8 @@
          :title "Remove all tokens"
          :aria-label "Remove all tokens"
          :disabled (or (= type :conn) (not (seq images)))
-         :on-click #(dispatch :token-images/remove-all)}
+         :on-click
+         (fn []
+           (let [xf (mapcat (juxt :image/hash (comp :image/hash :image/thumbnail)))]
+             (dispatch :token-images/remove-all (into #{} xf images))))}
         ($ icon {:name "trash3-fill" :size 16})))))
