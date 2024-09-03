@@ -96,20 +96,21 @@
         store (use-store)]
     (use-subscribe :images/remove
       (use-callback
-       (fn [idxs] (.bulkDelete (.table store "images") (into-array idxs))) [store]))
+       (fn [{[hashes] :args}]
+         (.bulkDelete (.table store "images") (into-array hashes))) [store]))
     (use-subscribe :scene-images/remove
       (use-callback
-       (fn [{[id] :args}]
-         (let [result (ds/entity @state [:image/checksum id])
+       (fn [{[hash] :args}]
+         (let [result (ds/entity @state [:image/checksum hash])
                hashes [(:image/checksum result) (:image/checksum (:image/thumbnail result))]]
-           (dispatch :scene-images/remove-impl id)
+           (dispatch :scene-images/remove-impl hash)
            (dispatch :images/remove hashes))) ^:lint/disable []))
     (use-subscribe :token-images/remove
       (use-callback
-       (fn [{[id] :args}]
-         (let [result (ds/entity @state [:image/checksum id])
+       (fn [{[hash] :args}]
+         (let [result (ds/entity @state [:image/checksum hash])
                hashes [(:image/checksum result) (:image/checksum (:image/thumbnail result))]]
-           (dispatch :token-images/remove-impl id)
+           (dispatch :token-images/remove-impl hash)
            (dispatch :images/remove hashes))) ^:lint/disable []))
     (use-subscribe :token-images/remove-all
       (use-callback
