@@ -33,6 +33,9 @@ git clone git@github.com:samcf/ogres.git
 npm install --legacy-peer-deps
 npm start
 
+# run the process that bundles CSS files
+npm run style
+
 # optionally, start the application server necessary
 # for hosting online sessions
 clojure -X:server/dev
