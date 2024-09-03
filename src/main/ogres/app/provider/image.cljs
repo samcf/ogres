@@ -65,7 +65,8 @@
     cnv))
 
 (defui provider [props]
-  (let [publish       (use-publish)
+  (let [dispatch      (use-dispatch)
+        publish       (use-publish)
         store         (use-store)
         loading       (atom {})
         [urls update] (use-state {})
@@ -81,13 +82,21 @@
                                    (.then (fn [url] (update (fn [urls] (assoc urls hash url)))))
                                    (.catch (fn [] (publish {:topic :image/request :args [hash]})))))
                              url))) ^:lint/disable [])]
+    (use-subscribe :image/create-token
+      (use-callback
+       (fn [{[hash blob] :args}]
+         (.then
+          (js/createImageBitmap blob)
+          (fn [image]
+            (let [record {:hash hash :name "" :size (.-size blob) :width (.-width image) :height (.-height image)}]
+              (dispatch :token-images/create-many [[record record]] :public))))) [dispatch]))
     (use-subscribe :image/cache
       (use-callback
-       (fn [{[image] :args}]
+       (fn [{[image callback] :args}]
          (-> (create-hash image)
              (.then (fn [hash] (.put (.table store "images") #js {"checksum" hash "data" image})))
-             (.then (fn [hash] (update (fn [urls] (assoc urls hash (js/URL.createObjectURL image))))))))
-       [store]))
+             (.then (fn [hash] (update (fn [urls] (assoc urls hash (js/URL.createObjectURL image)))) hash))
+             (.then (fn [hash] (when (fn? callback) (callback hash)))))) [store]))
     ($ image {:value [urls on-request]}
       (:children props))))
 
@@ -159,26 +168,32 @@
    them to storage and state."
   [{:keys [type]}]
   (let [dispatch (use-dispatch)
-        result   (use-query [:user/type] [:db/ident :user])
-        store    (use-store)]
-    (case (:user/type result)
+        publish  (use-publish)
+        store    (use-store)
+        user     (use-query [:user/type] [:db/ident :user])]
+    (case (:user/type user)
       :host
       (use-callback
        (fn [files]
-         (-> (js/Promise.all (apply array (mapv process-file files)))
+         (-> (js/Promise.all (into-array (into [] (map process-file) files)))
              (.then
               (fn [files]
-                (let [records (apply array (mapcat create-store-records files))]
+                (let [records (into-array (into [] (mapcat create-store-records) files))]
                   (.then (.bulkPut (.table store "images") records)
                          (constantly files)))))
              (.then
               (fn [files]
-                (let [records (sequence (map create-state-records) files)]
+                (let [records (into [] (map create-state-records) files)]
                   (case type
                     :token (dispatch :token-images/create-many records :private)
                     :scene (dispatch :scene-images/create-many records :private))))))) [dispatch store type])
       :conn
-      (use-callback (fn [x] x) []))))
+      (use-callback
+       (fn [files]
+         (.then (js/Promise.all (into-array (into [] (map process-file) files)))
+                (fn [files]
+                  (doseq [[_ _ thumbnail] files]
+                    (publish {:topic :image/create :args [(:data thumbnail)]}))))) [publish]))))
 
 (defn use-image
   "React hook which accepts a string that uniquely identifies an image

@@ -163,9 +163,10 @@
 (defmethod handle-message :image
   [{:keys [conn publish]} message]
   (let [data (js/Blob. #js [(:data message)] #js {"type" "image/jpeg"})
-        user (ds/entity (ds/db conn) [:db/ident :user])]
+        user (ds/entity (ds/db conn) [:db/ident :user])
+        call (fn [hash] (publish {:topic :image/create-token :args [hash data]}))]
     (case (:user/type user)
-      :host 1
+      :host (publish {:topic :image/cache :args [data call]})
       :conn (publish {:topic :image/cache :args [data]}))))
 
 (defui handlers []
@@ -254,6 +255,18 @@
          (when (some? socket)
            (.close socket)
            (set-socket nil))) [socket]))
+
+    (use-subscribe :image/create
+      (use-callback
+       (fn [{[blob] :args}]
+         (let [{host :session/host} (ds/entity (ds/db conn) [:db/ident :session])]
+           (.then
+            (.arrayBuffer blob)
+            (fn [data]
+              (on-send
+               {:type :image
+                :dst  (:user/uuid host)
+                :data (js/Uint8Array. data)}))))) [conn on-send]))
 
     ;; Subscribe to requests for image data from other non-host connections
     ;; and reply with the appropriate image data in the form of a data URL.
