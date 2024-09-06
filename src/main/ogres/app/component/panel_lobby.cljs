@@ -43,8 +43,7 @@
          {share :user/share-cursor
           state :session/state
           type  :user/type
-          id    :db/id} :root/user
-         user :root/user} result]
+          id    :db/id} :root/user} result]
     (if (#{:connecting :connected :disconnected} state)
       ($ :.form-session.session
         ($ :header ($ :h2 "Lobby"))
@@ -110,7 +109,7 @@
           ($ :.session-players
             (if (seq conns)
               (let [xf (filter (comp-fn = :user/type :conn))]
-                (for [conn (->> (conj conns user) (sequence xf) (sort-by :db/id))]
+                (for [conn (->> conns (sequence xf) (sort-by :db/id))]
                   ($ :.session-player {:key (:db/id conn)}
                     ($ :.session-player-color {:data-color (:user/color conn)})
                     ($ :.session-player-label "Friend"
