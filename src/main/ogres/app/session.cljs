@@ -25,50 +25,15 @@
     (or (first (filter (complement taken) colors))
         (first (shuffle colors)))))
 
-(def ^:private merge-query
-  [{:root/session
-    [{:session/host
-      [:db/id
-       {:user/camera
-        [:camera/scene]}]}]}])
-
-(defn ^:private merge-initial-state
-  "Returns a new DataScript database with the current local state `prev` mixed
-   into the incoming initial state `next`."
-  [next prev]
-  (let [prev-user   (ds/entity prev [:db/ident :user])
-        next-user   (ds/entity next [:user/uuid (:user/uuid prev-user)])
-        prev-camera (:user/camera prev-user)
-
-        {{{host :db/id} :session/host} :root/session}
-        (ds/pull next merge-query [:db/ident :root])
-
-        tx-data
-        (into [[:db/retract host :db/ident]
-               {:db/ident :session}
-
-               ;; Selectively merge parts of the previous local entity into the
-               ;; next local entity.
-               {:db/id (:db/id next-user)
-                :db/ident :user
-                :bounds/self (or (:bounds/self prev-user) [0 0 0 0])}
-
-               ;; Replace host as the local user, swap places in session
-               ;; connections.
-               [:db/retract [:db/ident :session] :session/conns (:db/id next-user)]
-               {:db/ident :root
-                :root/user (:db/id next-user)
-                :root/session {:db/ident :session :session/conns host}}]
-
-              ;; Maintain local camera state when reconnecting and starting
-              ;; with a camera that references the same scene.
-              (if (= (:db/id (:camera/scene (:user/camera prev-user)))
-                     (:db/id (:camera/scene (:user/camera next-user))))
-                [{:db/id (:db/id (:user/camera next-user))
-                  :camera/point (or (:camera/point prev-camera) [0 0])
-                  :camera/scale (or (:camera/scale prev-camera) 1)}]
-                []))]
-    (ds/db-with next tx-data)))
+(defn ^:private initialize-player-state [data uuid]
+  (let [{{host :user/uuid} :session/host}
+        (ds/pull data [{:session/host [:user/uuid]}] [:db/ident :session])]
+    (ds/db-with
+     data
+     [[:db/retract [:user/uuid host] :db/ident]
+      [:db/add [:user/uuid uuid] :db/ident :user]
+      [:db/add [:db/ident :root] :root/user [:user/uuid uuid]]
+      [:db/add [:db/ident :session] :session/conns [:user/uuid host]]])))
 
 (defmulti ^:private handle-message
   (fn [_ {:keys [type]} _] type))
@@ -98,31 +63,30 @@
       [:db/add [:db/ident :user] :session/state :connected]])
 
     :session/join
-    (let [user (ds/entity @conn [:db/ident :user])
-          tx-data
-          [[:db/add -1 :user/uuid (:uuid data)]
-           [:db/add -1 :user/type :conn]
-           [:db/add -1 :panel/selected :tokens]
-           [:db/add [:db/ident :session] :session/conns -1]]
-
-          tx-data-addtl
-          (if (= (:user/type user) :host)
-            [[:db/add -1 :user/uuid (:uuid data)]
-             [:db/add -1 :user/type :conn]
-             [:db/add -1 :user/status :ready]
-             [:db/add -1 :user/color (next-color @conn color-options)]
-             [:db/add -1 :session/state :connected]
-             [:db/add -1 :user/camera -2]
-             [:db/add -1 :user/cameras -2]
-             [:db/add -2 :camera/scene (-> user :user/camera :camera/scene :db/id)]
-             [:db/add -2 :camera/point (or (-> user :user/camera :camera/point) [0 0])]
-             [:db/add -2 :camera/scale (or (-> user :user/camera :camera/scale) 1)]]
-            [])
-          report (ds/transact! conn (into tx-data tx-data-addtl))]
+    (let [user (ds/entity @conn [:db/ident :user])]
       (if (= (:user/type user) :host)
-        (let [datoms (ds/datoms (:db-after report) :eavt)]
+        (let [tx-data
+              [{:user/uuid     (:uuid data)
+                :user/type     :conn
+                :user/status   :ready
+                :user/color    (next-color @conn color-options)
+                :session/state :connected
+                :user/cameras  -1
+                :user/camera
+                (let [{{point :camera/point
+                        scale :camera/scale
+                        {scene :db/id} :camera/scene}
+                       :user/camera} user]
+                  {:db/id -1
+                   :camera/scene scene
+                   :camera/point (or point [0 0])
+                   :camera/scale (or scale 1)})}
+               [:db/add [:db/ident :session] :session/host [:db/ident :user]]
+               [:db/add [:db/ident :session] :session/conns [:user/uuid (:uuid data)]]]
+              report (ds/transact! conn tx-data)
+              datoms (ds/datoms (:db-after report) :eavt)]
           (on-send {:type :datoms :data (into [] datoms) :dst (:uuid data)})
-          (on-send {:type :tx :data tx-data-addtl}))))
+          (on-send {:type :tx :data (:tx-data report)}))))
 
     :session/leave
     (ds/transact! conn [[:db/retractEntity [:user/uuid (:uuid data)]]])
@@ -143,10 +107,9 @@
 ;; attempt to correct any divergences in state.
 (defmethod handle-message :datoms
   [{:keys [conn]} body]
-  (-> (:data body)
-      (ds/init-db provider.state/schema)
-      (merge-initial-state (ds/db conn))
-      (as-> db (ds/reset-conn! conn db))) [])
+  (let [db (ds/init-db (:data body) provider.state/schema)
+        db (initialize-player-state db (:dst body))]
+    (ds/reset-conn! conn db)))
 
 ;; Handles messages that include a DataScript transaction from another
 ;; connection within the session. These messages can be received at any time

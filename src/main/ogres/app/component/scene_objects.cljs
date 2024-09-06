@@ -38,7 +38,8 @@
              keys are the IDs of the objects currently being dragged
              and whose values are the user that is dragging that object."}
   user-drag-xf
-  (comp (filter (comp seq :user/dragging))
+  (comp (filter (comp nil? :db/ident))
+        (filter (comp seq :user/dragging))
         (mapcat (fn [user]
                   (map (juxt :db/id (constantly user))
                        (:user/dragging user))))))
@@ -233,7 +234,7 @@
            [:shape/pattern :default :solid]]}]}]}]
     :root/session
     [{:session/conns
-      [:user/uuid :user/color :user/dragging]}]}])
+      [:db/ident :user/uuid :user/color :user/dragging]}]}])
 
 (defui objects []
   (let [result (use-query query [:db/ident :root])
