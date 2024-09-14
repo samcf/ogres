@@ -3,7 +3,7 @@
             [ogres.app.component :refer [icon image pagination]]
             [ogres.app.hooks :refer [use-dispatch use-image use-image-uploader use-query]]
             [ogres.app.util :refer [separate comp-fn]]
-            [uix.core :as uix :refer [defui $ use-callback use-ref use-state]]
+            [uix.core :as uix :refer [defui $ use-callback use-ref use-state use-effect use-memo]]
             [uix.dom :refer [create-portal]]
             ["@dnd-kit/core"
              :refer  [DndContext DragOverlay useDndMonitor useDraggable useDroppable]
@@ -190,29 +190,202 @@
       ($ tokens)
       ($ overlay))))
 
-(def modal-query
-  [])
+(defn ^:private object-fit-scale
+  "Returns the amount the image given by its natural dimensions {Aw Ah} has
+   been scaled to fit into the container given by {Bw Bh} as a number in
+   the domain (0, 1]; 1 being that the image dimensions have not been
+   scaled at all."
+  [aw ah bw bh]
+  (min (/ bh ah) (/ bw aw) 1))
 
-(defui modal [props]
-  (let [result (use-query modal-query [:db/ident :root])]
+(defn ^:private default-region [x y]
+  (if (<= x y)
+    [0 0 x x]
+    [(/ (- x y) 2) 0
+     (/ (+ x y) 2) y]))
+
+(defn ^:private dnd-scale-fn
+  "Returns a modifier function which scales the transform delta to
+   the given ratio."
+  [scale]
+  (fn [data]
+    (let [dx (.. data -transform -x)
+          dy (.. data -transform -y)]
+      (js/Object.assign
+       #js {} (.-transform data)
+       #js {"x" (/ dx scale)
+            "y" (/ dy scale)}))))
+
+(defn ^:private dnd-integer-fn
+  "Returns a new transform delta whose terms are coerced to integers."
+  [data]
+  (let [dx (.. data -transform -x)
+        dy (.. data -transform -y)]
+    (js/Object.assign
+     #js {} (.-transform data)
+     #js {"x" (int dx)
+          "y" (int dy)})))
+
+(defn ^:private dnd-clamp-fn
+  "Returns a modifier function which clamps the transform delta to
+   the dimensions of the image given as {Wd Ht}."
+  [[ax ay bx by] wd ht _]
+  (fn [data]
+    (if (some? (.-active data))
+      (let [id (keyword (.. data -active -id))
+            dx (.. data -transform -x)
+            dy (.. data -transform -y)]
+        (js/Object.assign
+         #js {} (.-transform data)
+         #js {"x" (case id
+                    :rg (max (- ax)           (min dx (- wd bx)))
+                    :nw (max (- ay) (- ax)    (min dx (- bx ax)))
+                    :ne (max (- ax bx)        (min dx (- wd bx) ay))
+                    :se (max (- ax bx)        (min dx (- wd bx) (- ht by)))
+                    :sw (max (- by ht) (- ax) (min dx (- bx ax))))
+              "y" (case id
+                    :rg (max (- ay)           (min dy (- ht by)))
+                    :nw (max (- ay) (- ax)    (min dy (- by ay)))
+                    :ne (max (- ay)           (min dy (- by ay)))
+                    :se (max (- ay by)        (min dy (- ht by) (- wd bx)))
+                    :sw (max (- ay by)        (min dy (- ht by))))}))
+      (.-transform data))))
+
+(defui ^:private anchor [{:keys [id]}]
+  (let [drag (use-draggable #js {"id" (name id)})]
+    ($ :.token-editor-region-anchor
+      {:ref (.-setNodeRef drag)
+       :class (str "token-editor-region-anchor-" (name id))
+       :on-pointer-down (.. drag -listeners -onPointerDown)})))
+
+(defui ^:private region [{:keys [children x y width height]}]
+  (let [drag (use-draggable #js {"id" "rg"})]
+    ($ :.token-editor-region
+      ($ :.token-editor-region-drag
+        {:ref (.-setNodeRef drag)
+         :style {:left x :top y :width width :height height}
+         :on-pointer-down (.. drag -listeners -onPointerDown)}
+        children))))
+
+(defui ^:private editor [{:keys [hash width height]}]
+  (let [[delta set-delta] (use-state [0 0 0 0])
+        [bound set-bound] (use-state (default-region width height))
+        [scale set-scale] (use-state nil)
+        scale-fn (use-memo #(dnd-scale-fn scale) [scale])
+        clamp-fn (use-memo #(dnd-clamp-fn bound width height 256) [bound width height])
+        on-drag-move
+        (use-callback
+         (fn [data]
+           (let [id (.. data -active -id)
+                 dx (.. data -delta -x)
+                 dy (.. data -delta -y)
+                 si (js/Math.sign dx)
+                 mx (abs dx)]
+             (set-delta
+              (fn [[ax ay bx by]]
+                (case (keyword id)
+                  :rg [dx dy dx dy]
+                  :nw [(min dx dy) (min dx dy) bx by]
+                  :ne [ax (- (* si mx)) (* si mx) by]
+                  :se [ax ay (max dx dy) (max dx dy)]
+                  :sw [(* si mx) ay bx (- (* si mx))]))))) [])
+        on-drag-stop
+        (use-callback
+         (fn [data]
+           (let [id (.. data -active -id)
+                 dx (.. data -delta -x)
+                 dy (.. data -delta -y)
+                 si (js/Math.sign dx)
+                 mx (abs dx)]
+             (set-delta [0 0 0 0])
+             (set-bound
+              (fn [[ax ay bx by]]
+                (case (keyword id)
+                  :rg [(+ ax dx) (+ ay dy) (+ bx dx) (+ by dy)]
+                  :nw [(+ ax (min dx dy)) (+ ay (min dx dy)) bx by]
+                  :ne [ax (+ ay (- (* si mx))) (+ bx (* si mx)) by]
+                  :se [ax ay (+ bx (max dx dy)) (+ by (max dx dy))]
+                  :sw [(+ ax (* si mx)) ay bx (+ by (- (* si mx)))]))))) [])
+        ref (use-ref nil)
+        url (use-image hash)]
+    (use-effect
+     (fn []
+       (if-let [node (deref ref)]
+         (let [con-wid (.-width node) con-hei (.-height node)]
+           (set-scale (object-fit-scale width height con-wid con-hei))))) [width height])
+    ($ dnd-context
+      #js {"modifiers"  #js [scale-fn dnd-integer-fn clamp-fn]
+           "onDragMove" on-drag-move
+           "onDragEnd"  on-drag-stop}
+      ($ :img.token-editor-preview-image
+        {:ref ref
+         :src url
+         :width width
+         :height height
+         :style {:visibility (if url "visible" "hidden")}})
+      (if (some? url)
+        (let [[ax ay bx by] bound
+              [cx cy dx dy] delta]
+          ($ region
+            {:x (* (- (+ ax cx) (/ width 2)) scale)
+             :y (* (- (+ ay cy) (/ height 2)) scale)
+             :width  (* (+ (- bx ax cx) dx) scale)
+             :height (* (+ (- by ay cy) dy) scale)}
+            (for [id [:nw :ne :se :sw]]
+              ($ anchor {:key id :id id}))))))))
+
+(def ^:private modal-query
+  [{:root/token-images
+    [:image/hash
+     :image/name
+     :image/size
+     :image/width
+     :image/height
+     {:image/thumbnail
+      [:image/hash]}]}])
+
+(defui ^:private modal [props]
+  (let [result (use-query modal-query [:db/ident :root])
+        [selected set-selected] (use-state nil)
+        [page set-page] (use-state 1)
+        data  (vec (reverse (:root/token-images result)))
+        limit 20
+        pages (js/Math.ceil (/ (count data) limit))
+        start (max (* (dec (min page pages)) limit) 0)
+        end   (min (+ start limit) (count data))
+        part  (subvec data start end)]
     ($ :.scene-gallery-modal
       ($ :.scene-gallery-modal-container
         ($ :.scene-gallery-modal-body
           ($ :.token-editor
-            ($ :.token-editor-preview)
+            ($ :.token-editor-preview
+              (if-let [entity (first (filter (comp #{selected} :image/hash) data))]
+                ($ editor
+                  {:key (:image/hash entity)
+                   :hash (:image/hash entity)
+                   :width (:image/width entity)
+                   :height (:image/height entity)})))
             ($ :.token-editor-browse
               ($ :.token-editor-thumbnails
-                (for [i (range 20)]
-                  ($ :.token-editor-thumbnail {:key i})))
+                (for [{{hash :image/hash} :image/thumbnail key :image/hash} part]
+                  ($ image {:key key :hash hash}
+                    (fn [url]
+                      ($ :button.token-editor-thumbnail
+                        {:style {:background-image (str "url(" url ")")}
+                         :on-click
+                         (fn []
+                           (set-selected key))})))))
               ($ :.token-editor-browse-pagination
                 ($ pagination
-                  {:name  "foo"
-                   :pages 10
-                   :value 1
-                   :on-change identity
+                  {:name "token-editor-gallery"
+                   :pages pages
+                   :value page
+                   :on-change set-page
                    :class-name "dark"})))))
         ($ :.scene-gallery-modal-footer
-          ($ :button.button.button-neutral "Close"))))))
+          ($ :button.button.button-neutral
+            {:on-click (:on-close props)}
+            "Close"))))))
 
 (defui footer []
   (let [[editing set-editing] (use-state false)
@@ -226,7 +399,7 @@
       (if editing
         (let [node (js/document.querySelector "#root")]
           (create-portal
-           ($ modal {}) node)))
+           ($ modal {:on-close #(set-editing false)}) node)))
       ($ :button.button.button-neutral
         {:type     "button"
          :title    "Upload token image"

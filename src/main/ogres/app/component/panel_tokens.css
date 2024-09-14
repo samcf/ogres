@@ -117,10 +117,65 @@
 }
 
 .token-editor-preview {
-  background-color: var(--color-blues-700);
+  flex: 3;
+  margin: 2rem;
+  position: relative;
+}
+
+.token-editor-preview-image {
+  max-height: 100%;
+  max-width: 100%;
+  min-width: 100%;
+  object-fit: contain;
+  object-position: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.token-editor-region {
+  inset: 50% auto auto 50%;
+  position: absolute;
+  transform: translateX(-50%);
+}
+
+.token-editor-region-drag {
+  border: 1px dotted black;
   box-sizing: border-box;
-  flex: 2;
-  margin: 1rem;
+  color: white;
+  cursor: move;
+  outline: 1px dotted white;
+  padding: 1vh;
+  position: absolute;
+}
+
+.token-editor-region-anchor {
+  background-color: white;
+  border: 1px solid black;
+  box-sizing: border-box;
+  height: 10px;
+  position: absolute;
+  width: 10px;
+}
+
+.token-editor-region-anchor-nw {
+  cursor: nwse-resize;
+  inset: -5px auto auto -5px;
+}
+
+.token-editor-region-anchor-ne {
+  cursor: nesw-resize;
+  inset: -5px -5px auto auto;
+}
+
+.token-editor-region-anchor-se {
+  cursor: nwse-resize;
+  inset: auto -5px -5px auto;
+}
+
+.token-editor-region-anchor-sw {
+  cursor: nesw-resize;
+  inset: auto auto -5px -5px;
 }
 
 .token-editor-browse {
@@ -144,8 +199,11 @@
 .token-editor-thumbnail {
   aspect-ratio: 1;
   background-color: var(--color-blues-700);
-  box-sizing: border-box;
+  background-size: contain;
   border-radius: 50%;
+  border: 1px solid var(--color-blues-500);
+  box-sizing: border-box;
+  cursor: pointer;
 }
 
 @media /* Portrait */ (max-aspect-ratio: 1 / 1) {
