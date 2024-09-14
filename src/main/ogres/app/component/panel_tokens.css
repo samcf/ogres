@@ -153,29 +153,31 @@
   background-color: white;
   border: 1px solid black;
   box-sizing: border-box;
-  height: 10px;
+  height: 14px;
+  margin: 1px;
+  padding: 1px;
   position: absolute;
-  width: 10px;
+  width: 14px;
 }
 
 .token-editor-region-anchor-nw {
   cursor: nwse-resize;
-  inset: -5px auto auto -5px;
+  inset: 0 auto auto 0;
 }
 
 .token-editor-region-anchor-ne {
   cursor: nesw-resize;
-  inset: -5px -5px auto auto;
+  inset: 0 0 auto auto;
 }
 
 .token-editor-region-anchor-se {
   cursor: nwse-resize;
-  inset: auto -5px -5px auto;
+  inset: auto 0 0 auto;
 }
 
 .token-editor-region-anchor-sw {
   cursor: nesw-resize;
-  inset: auto auto -5px -5px;
+  inset: auto auto 0 0;
 }
 
 .token-editor-browse {
