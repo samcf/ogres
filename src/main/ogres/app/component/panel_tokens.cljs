@@ -1,7 +1,7 @@
 (ns ogres.app.component.panel-tokens
   (:require [goog.object :as object :refer [getValueByKeys]]
             [ogres.app.component :refer [icon image pagination]]
-            [ogres.app.hooks :refer [use-dispatch use-image use-image-uploader use-query]]
+            [ogres.app.hooks :refer [use-publish use-dispatch use-image use-image-uploader use-query use-shortcut]]
             [ogres.app.util :refer [separate comp-fn]]
             [uix.core :as uix :refer [defui $ use-callback use-ref use-state use-effect use-memo]]
             [uix.dom :refer [create-portal]]
@@ -229,7 +229,7 @@
 (defn ^:private dnd-clamp-fn
   "Returns a modifier function which clamps the transform delta to
    the dimensions of the image given as {Wd Ht}."
-  [[ax ay bx by] wd ht _]
+  [[ax ay bx by] wd ht]
   (fn [data]
     (if (some? (.-active data))
       (let [id (keyword (.. data -active -id))
@@ -267,12 +267,22 @@
          :on-pointer-down (.. drag -listeners -onPointerDown)}
         children))))
 
-(defui ^:private editor [{:keys [hash width height]}]
-  (let [[delta set-delta] (use-state [0 0 0 0])
-        [bound set-bound] (use-state (default-region width height))
+(defui ^:private editor [props]
+  (let [{{hash   :image/hash
+          width  :image/width
+          height :image/height} :image} props
+        publish (use-publish)
+        initial (default-region width height)
+        [delta set-delta] (use-state [0 0 0 0])
+        [bound set-bound] (use-state initial)
         [scale set-scale] (use-state nil)
         scale-fn (use-memo #(dnd-scale-fn scale) [scale])
-        clamp-fn (use-memo #(dnd-clamp-fn bound width height 256) [bound width height])
+        clamp-fn (use-memo #(dnd-clamp-fn bound width height) [bound width height])
+        on-change-thumbnail
+        (use-callback
+         (fn [event]
+           (.preventDefault event)
+           (publish {:topic :image/change-thumbnail :args [hash bound]})) [publish hash bound])
         on-drag-move
         (use-callback
          (fn [data]
@@ -317,22 +327,27 @@
       #js {"modifiers"  #js [scale-fn dnd-integer-fn clamp-fn]
            "onDragMove" on-drag-move
            "onDragEnd"  on-drag-stop}
-      ($ :img.token-editor-preview-image
-        {:ref ref
-         :src url
-         :width width
-         :height height
-         :style {:visibility (if url "visible" "hidden")}})
-      (if (some? url)
-        (let [[ax ay bx by] bound
-              [cx cy dx dy] delta]
-          ($ region
-            {:x (* (- (+ ax cx) (/ width 2)) scale)
-             :y (* (- (+ ay cy) (/ height 2)) scale)
-             :width  (* (+ (- bx ax cx) dx) scale)
-             :height (* (+ (- by ay cy) dy) scale)}
-            (for [id [:nw :ne :se :sw]]
-              ($ anchor {:key id :id id}))))))))
+      ($ :form
+        {:on-submit on-change-thumbnail}
+        ($ :img.token-editor-image
+          {:ref ref :src url
+           :width width :height height
+           :style {:visibility (if url "visible" "hidden")}})
+        (if url
+          (let [[ax ay bx by] bound
+                [cx cy dx dy] delta]
+            ($ region
+              {:x (* (- (+ ax cx) (/ width 2)) scale)
+               :y (* (- (+ ay cy) (/ height 2)) scale)
+               :width  (* (+ (- bx ax cx) dx) scale)
+               :height (* (+ (- by ay cy) dy) scale)}
+              ($ anchor {:key :nw :id :nw})
+              ($ anchor {:key :ne :id :ne})
+              ($ anchor {:key :se :id :se})
+              ($ anchor {:key :sw :id :sw}))))
+        ($ :button.token-editor-button {:type "submit"}
+          ($ icon {:name "crop" :size 16})
+          "Crop and Resize")))))
 
 (def ^:private modal-query
   [{:root/token-images
@@ -342,7 +357,7 @@
      :image/width
      :image/height
      {:image/thumbnail
-      [:image/hash]}]}])
+      [:image/hash :image/size]}]}])
 
 (defui ^:private modal [props]
   (let [result (use-query modal-query [:db/ident :root])
@@ -354,38 +369,44 @@
         start (max (* (dec (min page pages)) limit) 0)
         end   (min (+ start limit) (count data))
         part  (subvec data start end)]
+    (use-shortcut ["Escape"]
+      (:on-close props))
     ($ :.scene-gallery-modal
       ($ :.scene-gallery-modal-container
         ($ :.scene-gallery-modal-body
           ($ :.token-editor
-            ($ :.token-editor-preview
-              (if-let [entity (first (filter (comp #{selected} :image/hash) data))]
-                ($ editor
-                  {:key (:image/hash entity)
-                   :hash (:image/hash entity)
-                   :width (:image/width entity)
-                   :height (:image/height entity)})))
-            ($ :.token-editor-browse
-              ($ :.token-editor-thumbnails
-                (for [{{hash :image/hash} :image/thumbnail key :image/hash} part]
-                  ($ image {:key key :hash hash}
-                    (fn [url]
-                      ($ :button.token-editor-thumbnail
-                        {:style {:background-image (str "url(" url ")")}
-                         :on-click
-                         (fn []
-                           (set-selected key))})))))
-              ($ :.token-editor-browse-pagination
+            (if-let [entity (first (filter (comp #{selected} :image/hash) data))]
+              ($ :.token-editor-workspace
+                ($ editor {:key (:image/hash entity) :image entity}))
+              ($ :.token-editor-placeholder
+                ($ icon {:name "crop" :size 64})
+                "Select an image to crop and resize." ($ :br)
+                "The original image will always be preserved."))
+            ($ :.token-editor-gallery
+              ($ :.token-editor-gallery-paginated
+                ($ :.token-editor-gallery-thumbnails
+                  (for [{{hash :image/hash} :image/thumbnail key :image/hash} part]
+                    ($ image {:key key :hash hash}
+                      (fn [url]
+                        ($ :label.token-editor-gallery-thumbnail
+                          {:style {:background-image (str "url(" url ")")}}
+                          ($ :input
+                            {:type "radio"
+                             :name "token-editor-image"
+                             :checked (= selected key)
+                             :value key
+                             :on-change
+                             (fn []
+                               (set-selected key))}))))))
                 ($ pagination
                   {:name "token-editor-gallery"
                    :pages pages
                    :value page
                    :on-change set-page
-                   :class-name "dark"})))))
-        ($ :.scene-gallery-modal-footer
-          ($ :button.button.button-neutral
-            {:on-click (:on-close props)}
-            "Close"))))))
+                   :class-name "dark"}))
+              ($ :button.token-editor-button
+                {:on-click (:on-close props)}
+                "Exit"))))))))
 
 (defui footer []
   (let [[editing set-editing] (use-state false)

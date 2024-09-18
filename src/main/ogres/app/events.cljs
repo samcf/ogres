@@ -736,6 +736,15 @@
   []
   [[:db/retract [:db/ident :root] :root/token-images]])
 
+(defmethod event-tx-fn :token-images/change-thumbnail
+  [_ _ hash thumb]
+  [{:image/hash hash
+    :image/thumbnail
+    {:image/hash (:hash thumb)
+     :image/size (.-size (:data thumb))
+     :image/width (:width thumb)
+     :image/height (:height thumb)}}])
+
 ;; --- Masks ---
 (defmethod
   ^{:doc "Sets the current scene to be entirely masked by default. This is

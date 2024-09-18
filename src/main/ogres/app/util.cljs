@@ -43,3 +43,16 @@
    for the radius `r` of the object and scalar offset `o`."
   [x r o]
   (+ (round (- x r o) grid-size) r o))
+
+(defn display-size
+  "Returns the given size in bytes as a string using the most appropriate
+   unit affix.
+   ```
+   (display-size 12345)    ;; => \"12.06KB\"
+   (display-size 12345678) ;; => \"11.77MB\"
+   ```"
+  [bytes]
+  (let [idx (js/Math.floor (/ (js/Math.log bytes) (js/Math.log 1024)))
+        aff ["B" "KB" "MB" "GB" "TB" "PB" "EB" "ZB" "YB"]]
+    (str (.toFixed (/ bytes (js/Math.pow 1024, idx)) 2)
+         (aff idx))))

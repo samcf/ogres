@@ -30,14 +30,14 @@
   --focus-ring-color: -webkit-focus-ring-color;
 
   &.pagination-dark {
-    --background-color: var(--color-blues-700);
+    --background-color: var(--color-blues-900);
     --border-color: var(--color-blues-500);
     --text-color: var(--color-paper-500);
-    --checked-background-color: var(--color-blues-100);
-    --checked-border-color: var(--color-blues-100);
+    --checked-background-color: var(--color-blues-300);
+    --checked-border-color: var(--color-blues-700);
     --checked-text-color: var(--color-paper-500);
-    --disabled-background-color: var(--color-blues-900);
-    --disabled-border-color: var(--color-blues-700);
+    --disabled-background-color: var(--color-blues-700);
+    --disabled-border-color: var(--color-blues-500);
     --disabled-text-color: var(--color-blues-300);
     --focus-ring-color: var(--color-prime-500);
   }

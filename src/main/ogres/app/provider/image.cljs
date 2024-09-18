@@ -1,8 +1,9 @@
 (ns ogres.app.provider.image
   (:require [ogres.app.provider.dispatch :refer [use-dispatch]]
             [ogres.app.provider.events :refer [use-publish use-subscribe]]
-            [ogres.app.provider.state :refer [use-query]]
+            [ogres.app.provider.state :as state :refer [use-query]]
             [ogres.app.provider.storage :refer [use-store]]
+            [datascript.core :as ds]
             [uix.core :refer [defui $ create-context use-callback use-state use-context use-effect]]))
 
 (def ^:private hash-fn "SHA-1")
@@ -64,42 +65,6 @@
     (.drawImage ctx image 0 0 wdt hgt)
     cnv))
 
-(defui provider [props]
-  (let [dispatch      (use-dispatch)
-        publish       (use-publish)
-        store         (use-store)
-        loading       (atom {})
-        [urls update] (use-state {})
-        on-request    (use-callback
-                       (fn [hash]
-                         (let [url (get urls hash)]
-                           (if (not url)
-                             (when (not (get @loading hash))
-                               (swap! loading assoc hash true)
-                               (-> (.table store "images")
-                                   (.get hash)
-                                   (.then (fn [rec] (js/URL.createObjectURL (.-data rec))))
-                                   (.then (fn [url] (update (fn [urls] (assoc urls hash url)))))
-                                   (.catch (fn [] (publish {:topic :image/request :args [hash]})))))
-                             url))) ^:lint/disable [])]
-    (use-subscribe :image/create-token
-      (use-callback
-       (fn [{[hash blob] :args}]
-         (.then
-          (js/createImageBitmap blob)
-          (fn [image]
-            (let [record {:hash hash :name "" :size (.-size blob) :width (.-width image) :height (.-height image)}]
-              (dispatch :token-images/create-many [[record record]] :public))))) [dispatch]))
-    (use-subscribe :image/cache
-      (use-callback
-       (fn [{[image callback] :args}]
-         (-> (create-hash image)
-             (.then (fn [hash] (.put (.table store "images") #js {"checksum" hash "data" image})))
-             (.then (fn [hash] (update (fn [urls] (assoc urls hash (js/URL.createObjectURL image)))) hash))
-             (.then (fn [hash] (when (fn? callback) (callback hash)))))) [store]))
-    ($ image {:value [urls on-request]}
-      (:children props))))
-
 (defn ^:private extract-image
   "Returns the image and metadata associated with the <canvas> element passed
    given an image type and quality ratio in the form of a map whose keys are
@@ -120,6 +85,65 @@
               :hash   hash
               :width  (.-width canvas)
               :height (.-height canvas)})))) type quality)))))
+
+(defui provider [props]
+  (let [conn           (use-context state/context)
+        store          (use-store)
+        loading        (atom {})
+        publish        (use-publish)
+        dispatch       (use-dispatch)
+        [urls set-url] (use-state {})
+        on-request
+        (use-callback
+         (fn [hash]
+           (let [url (get urls hash)]
+             (if (not url)
+               (when (not (get @loading hash))
+                 (swap! loading assoc hash true)
+                 (-> (.table store "images")
+                     (.get hash)
+                     (.then (fn [rec] (js/URL.createObjectURL (.-data rec))))
+                     (.then (fn [url] (set-url (fn [urls] (assoc urls hash url)))))
+                     (.catch (fn [] (publish {:topic :image/request :args [hash]})))))
+               url))) ^:lint/disable [])]
+    (use-subscribe :image/create-token
+      (use-callback
+       (fn [{[hash blob] :args}]
+         (.then
+          (js/createImageBitmap blob)
+          (fn [image]
+            (let [record {:hash hash :name "" :size (.-size blob) :width (.-width image) :height (.-height image)}]
+              (dispatch :token-images/create-many [[record record]] :public))))) [dispatch]))
+    (use-subscribe :image/cache
+      (use-callback
+       (fn [{[image callback] :args}]
+         (-> (create-hash image)
+             (.then (fn [hash] (.put (.table store "images") #js {"checksum" hash "data" image})))
+             (.then (fn [hash] (set-url (fn [urls] (assoc urls hash (js/URL.createObjectURL image)))) hash))
+             (.then (fn [hash] (when (fn? callback) (callback hash)))))) [store]))
+    (use-subscribe :image/change-thumbnail
+      (use-callback
+       (fn [{[hash [ax ay bx by]] :args}]
+         (let [entity (ds/entity (ds/db conn) [:image/hash hash])
+               images (.table store "images")]
+           (-> (.get images hash)
+               (.then (fn [rec] (js/createImageBitmap (.-data rec))))
+               (.then
+                (fn [src]
+                  (-> (create-canvas src)
+                      (create-thumbnail 256 ax ay bx by)
+                      (extract-image))))
+               (.then
+                (fn [out]
+                  (js/Promise.all
+                   #js [(.put images #js {"checksum" (:hash out) "data" (:data out)})
+                        (.delete images (:image/hash (:image/thumbnail entity)))
+                        out])))
+               (.then
+                (fn [[_ _ data]]
+                  (dispatch :token-images/change-thumbnail hash data)))))) [dispatch conn store]))
+    ($ image {:value [urls on-request]}
+      (:children props))))
 
 (defn ^:private process-file
   "Returns a Promise.all which resolves with three elements:

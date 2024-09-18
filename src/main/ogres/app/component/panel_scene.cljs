@@ -2,6 +2,7 @@
   (:require [clojure.string :refer [replace]]
             [ogres.app.component :refer [icon pagination image]]
             [ogres.app.hooks :refer [use-dispatch use-image-uploader use-query]]
+            [ogres.app.util :refer [display-size]]
             [uix.core :as uix :refer [defui $ use-ref use-state]]
             [uix.dom :refer [create-portal]]))
 
@@ -15,11 +16,6 @@
 (def ^:private filesize-limit 8e6)
 
 (def ^:private filename-re #"\d+x\d+|[^\w ]|.[^.]+$")
-
-(defn ^:private render-filesize [bytes]
-  (let [i (js/Math.floor (/ (js/Math.log bytes) (js/Math.log 1024)))
-        s ["B" "KB" "MB" "GB" "TB" "PB" "EB" "ZB" "YB"]]
-    (str (* (.toFixed (/ bytes (js/Math.pow 1024, i)) 2) 1) (s i))))
 
 (defn ^:private render-scene-name [camera]
   (if-let [label (:camera/label camera)]
@@ -170,7 +166,7 @@
                            ($ :dt "Filename")
                            ($ :dd (:image/name data))
                            ($ :dt "Size")
-                           ($ :dd (render-filesize (:image/size data)))
+                           ($ :dd (display-size (:image/size data)))
                            (if (> (:image/size data) filesize-limit)
                              ($ :<>
                                ($ :dt ($ icon {:name "exclamation-triangle-fill" :size 12}) "Warning")
