@@ -272,6 +272,8 @@
           width  :image/width
           height :image/height} :image} props
         publish (use-publish)
+        element (use-ref nil)
+        obj-url (use-image hash)
         initial (default-region width height)
         [delta set-delta] (use-state [0 0 0 0])
         [bound set-bound] (use-state initial)
@@ -316,13 +318,22 @@
                   :ne [ax (+ ay (- (* si mx))) (+ bx (* si mx)) by]
                   :se [ax ay (+ bx (max dx dy)) (+ by (max dx dy))]
                   :sw [(+ ax (* si mx)) ay bx (+ by (- (* si mx)))]))))) [])
-        ref (use-ref nil)
-        url (use-image hash)]
+        on-resize-image
+        (use-callback
+         (fn [[entry]]
+           (let [con-rect (.-contentRect entry)
+                 con-wdth (js/Math.round (.-width con-rect))
+                 con-hght (js/Math.round (.-height con-rect))]
+             (set-scale (object-fit-scale width height con-wdth con-hght)))) [width height])]
+
+    ;; Observe changes to the size of the token image in order to recalculate
+    ;; the scale of the image relative to its natural dimensions.
     (use-effect
      (fn []
-       (if-let [node (deref ref)]
-         (let [con-wid (.-width node) con-hei (.-height node)]
-           (set-scale (object-fit-scale width height con-wid con-hei))))) [width height])
+       (let [resizes (js/ResizeObserver. on-resize-image)]
+         (if-let [node (deref element)] (.observe resizes node))
+         (fn [] (.disconnect resizes)))) [on-resize-image])
+
     ($ dnd-context
       #js {"modifiers"  #js [scale-fn dnd-integer-fn clamp-fn]
            "onDragMove" on-drag-move
@@ -332,11 +343,11 @@
         ($ :form
           {:on-submit on-change-thumbnail}
           ($ :img.token-editor-image
-            {:ref ref
-             :src url
+            {:ref element
+             :src obj-url
              :width width
              :height height
-             :data-loaded (some? url)})
+             :data-loaded (some? obj-url)})
           ($ region
             {:x      (* (- (+ ax cx) (/ width 2)) scale)
              :y      (* (- (+ ay cy) (/ height 2)) scale)
