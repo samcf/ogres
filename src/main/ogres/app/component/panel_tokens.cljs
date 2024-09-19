@@ -327,27 +327,28 @@
       #js {"modifiers"  #js [scale-fn dnd-integer-fn clamp-fn]
            "onDragMove" on-drag-move
            "onDragEnd"  on-drag-stop}
-      ($ :form
-        {:on-submit on-change-thumbnail}
-        ($ :img.token-editor-image
-          {:ref ref :src url
-           :width width :height height
-           :style {:visibility (if url "visible" "hidden")}})
-        (if url
-          (let [[ax ay bx by] bound
-                [cx cy dx dy] delta]
-            ($ region
-              {:x (* (- (+ ax cx) (/ width 2)) scale)
-               :y (* (- (+ ay cy) (/ height 2)) scale)
-               :width  (* (+ (- bx ax cx) dx) scale)
-               :height (* (+ (- by ay cy) dy) scale)}
-              ($ anchor {:key :nw :id :nw})
-              ($ anchor {:key :ne :id :ne})
-              ($ anchor {:key :se :id :se})
-              ($ anchor {:key :sw :id :sw}))))
-        ($ :button.token-editor-button {:type "submit"}
-          ($ icon {:name "crop" :size 16})
-          "Crop and Resize")))))
+      (let [[ax ay bx by] bound
+            [cx cy dx dy] delta]
+        ($ :form
+          {:on-submit on-change-thumbnail}
+          ($ :img.token-editor-image
+            {:ref ref
+             :src url
+             :width width
+             :height height
+             :data-loaded (some? url)})
+          ($ region
+            {:x      (* (- (+ ax cx) (/ width 2)) scale)
+             :y      (* (- (+ ay cy) (/ height 2)) scale)
+             :width  (* (+ (- bx ax cx) dx) scale)
+             :height (* (+ (- by ay cy) dy) scale)}
+            ($ anchor {:key :nw :id :nw})
+            ($ anchor {:key :ne :id :ne})
+            ($ anchor {:key :se :id :se})
+            ($ anchor {:key :sw :id :sw}))
+          ($ :button.token-editor-button {:type "submit"}
+            ($ icon {:name "crop" :size 16})
+            "Crop and Resize"))))))
 
 (def ^:private modal-query
   [{:root/token-images
