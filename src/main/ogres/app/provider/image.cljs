@@ -28,7 +28,7 @@
       (.then decode-digest)))
 
 (defn ^:private create-thumbnail
-  "Returns a <canvas> element with the contents of the src <context> cropped
+  "Returns a <canvas> element with the contents of the src <canvas> cropped
    and resized to the given dimensions. Accepts two points given as {Ax Ay}
    and {Bx By} which define a square region of the source image to use as
    the crop. When no region is given, the crop is centered horizontally and
