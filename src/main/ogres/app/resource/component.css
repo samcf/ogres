@@ -87,3 +87,30 @@
     position: absolute;
   }
 }
+
+.modal-fullscreen,
+.modal-fullscreen-dialog {
+  align-items: stretch;
+  contain: strict;
+  display: flex;
+}
+
+.modal-fullscreen {
+  backdrop-filter: blur(3px);
+  background-color: rgba(0, 0, 0, 0.45);
+  inset: 0 0 0 0;
+  padding: 3vw;
+  position: absolute;
+  z-index: 1;
+}
+
+.modal-fullscreen-dialog {
+  background-color: var(--color-blues-900);
+  border-radius: 4px;
+  border: 1px solid var(--color-blues-700);
+  flex: 1;
+}
+
+.modal-fullscreen-content {
+  flex: 1;
+}

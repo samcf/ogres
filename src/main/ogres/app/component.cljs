@@ -90,3 +90,9 @@
   [{:keys [hash children]}]
   (let [url (use-image hash)]
     (children url)))
+
+(defui modal-fullscreen [props]
+  ($ :.modal-fullscreen {:tab-index -1 :role "dialog"}
+    ($ :.modal-fullscreen-dialog {:role "document"}
+      ($ :.modal-fullscreen-content
+        (:children props)))))

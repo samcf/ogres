@@ -1,6 +1,6 @@
 (ns ogres.app.component.panel-tokens
   (:require [goog.object :as object :refer [getValueByKeys]]
-            [ogres.app.component :refer [icon image pagination]]
+            [ogres.app.component :refer [icon image pagination modal-fullscreen]]
             [ogres.app.hooks :refer [use-publish use-dispatch use-image use-image-uploader use-query use-shortcut]]
             [ogres.app.util :refer [separate comp-fn]]
             [uix.core :as uix :refer [defui $ use-callback use-ref use-state use-effect use-memo]]
@@ -372,42 +372,40 @@
         part  (subvec data start end)]
     (use-shortcut ["Escape"]
       (:on-close props))
-    ($ :.scene-gallery-modal
-      ($ :.scene-gallery-modal-container
-        ($ :.scene-gallery-modal-body
-          ($ :.token-editor
-            (if-let [entity (first (filter (comp #{selected} :image/hash) data))]
-              ($ :.token-editor-workspace
-                ($ editor {:key (:image/hash entity) :image entity}))
-              ($ :.token-editor-placeholder
-                ($ icon {:name "crop" :size 64})
-                "Select an image to crop and resize." ($ :br)
-                "The original image will always be preserved."))
-            ($ :.token-editor-gallery
-              ($ :.token-editor-gallery-paginated
-                ($ :.token-editor-gallery-thumbnails
-                  (for [{{hash :image/hash} :image/thumbnail key :image/hash} part]
-                    ($ image {:key key :hash hash}
-                      (fn [url]
-                        ($ :label.token-editor-gallery-thumbnail
-                          {:style {:background-image (str "url(" url ")")}}
-                          ($ :input
-                            {:type "radio"
-                             :name "token-editor-image"
-                             :checked (= selected key)
-                             :value key
-                             :on-change
-                             (fn []
-                               (set-selected key))}))))))
-                ($ pagination
-                  {:name "token-editor-gallery"
-                   :pages pages
-                   :value page
-                   :on-change set-page
-                   :class-name "dark"}))
-              ($ :button.token-editor-button
-                {:on-click (:on-close props)}
-                "Exit"))))))))
+    ($ modal-fullscreen
+      ($ :.token-editor
+        (if-let [entity (first (filter (comp #{selected} :image/hash) data))]
+          ($ :.token-editor-workspace
+            ($ editor {:key (:image/hash entity) :image entity}))
+          ($ :.token-editor-placeholder
+            ($ icon {:name "crop" :size 64})
+            "Select an image to crop and resize." ($ :br)
+            "The original image will always be preserved."))
+        ($ :.token-editor-gallery
+          ($ :.token-editor-gallery-paginated
+            ($ :.token-editor-gallery-thumbnails
+              (for [{{hash :image/hash} :image/thumbnail key :image/hash} part]
+                ($ image {:key key :hash hash}
+                  (fn [url]
+                    ($ :label.token-editor-gallery-thumbnail
+                      {:style {:background-image (str "url(" url ")")}}
+                      ($ :input
+                        {:type "radio"
+                         :name "token-editor-image"
+                         :checked (= selected key)
+                         :value key
+                         :on-change
+                         (fn []
+                           (set-selected key))}))))))
+            ($ pagination
+              {:name "token-editor-gallery"
+               :pages pages
+               :value page
+               :on-change set-page
+               :class-name "dark"}))
+          ($ :button.token-editor-button
+            {:on-click (:on-close props)}
+            "Exit"))))))
 
 (defui footer []
   (let [[editing set-editing] (use-state false)
@@ -436,7 +434,7 @@
       ($ :button.button.button-neutral
         {:type "button"
          :title "Crop"
-         :disabled (not (seq images))
+         :disabled (or (not= type :host) (not (seq images)))
          :on-click (partial set-editing not)}
         ($ icon {:name "crop" :size 18})
         "Edit images")

@@ -105,12 +105,6 @@
   }
 }
 
-.scene-gallery-modal-body {
-  flex: 1;
-  overflow-y: auto;
-  position: relative;
-}
-
 .token-editor {
   height: 100%;
   display: flex;
