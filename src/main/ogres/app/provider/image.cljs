@@ -123,7 +123,7 @@
              (.then (fn [hash] (when (fn? callback) (callback hash)))))) [store]))
     (use-subscribe :image/change-thumbnail
       (use-callback
-       (fn [{[hash [ax ay bx by]] :args}]
+       (fn [{[hash [ax ay bx by :as rect]] :args}]
          (let [entity (ds/entity (ds/db conn) [:image/hash hash])
                images (.table store "images")]
            (-> (.get images hash)
@@ -141,7 +141,7 @@
                         out])))
                (.then
                 (fn [[_ _ data]]
-                  (dispatch :token-images/change-thumbnail hash data)))))) [dispatch conn store]))
+                  (dispatch :token-images/change-thumbnail hash data rect)))))) [dispatch conn store]))
     ($ image {:value [urls on-request]}
       (:children props))))
 

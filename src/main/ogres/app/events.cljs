@@ -737,8 +737,9 @@
   [[:db/retract [:db/ident :root] :root/token-images]])
 
 (defmethod event-tx-fn :token-images/change-thumbnail
-  [_ _ hash thumb]
+  [_ _ hash thumb rect]
   [{:image/hash hash
+    :image/thumbnail-rect rect
     :image/thumbnail
     {:image/hash (:hash thumb)
      :image/size (.-size (:data thumb))

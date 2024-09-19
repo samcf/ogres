@@ -274,7 +274,7 @@
         publish (use-publish)
         element (use-ref nil)
         obj-url (use-image hash)
-        initial (default-region width height)
+        initial (or (:image/thumbnail-rect (:image props)) (default-region width height))
         [delta set-delta] (use-state [0 0 0 0])
         [bound set-bound] (use-state initial)
         [scale set-scale] (use-state nil)
@@ -368,6 +368,7 @@
      :image/size
      :image/width
      :image/height
+     :image/thumbnail-rect
      {:image/thumbnail
       [:image/hash :image/size]}]}])
 
