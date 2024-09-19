@@ -357,7 +357,8 @@
             ($ anchor {:key :ne :id :ne})
             ($ anchor {:key :se :id :se})
             ($ anchor {:key :sw :id :sw}))
-          ($ :button.token-editor-button {:type "submit"}
+          ($ :button.token-editor-button
+            {:type "submit" :disabled (= initial bound)}
             ($ icon {:name "crop" :size 16})
             "Crop and Resize"))))))
 

@@ -115,18 +115,26 @@
     border-radius: 3px;
     border: 1px solid var(--color-blues-500);
     color: var(--color-black-100);
-    cursor: pointer;
     display: flex;
     gap: 6px;
     justify-content: center;
     line-height: 1.5;
     padding: 4px 16px;
 
-    &:hover {
+    &:not(:disabled) {
+      cursor: pointer;
+    }
+
+    &:disabled {
+      color: var(--color-black-500);
+      border-color: var(--color-blues-100);
+    }
+
+    &:not(:disabled):hover {
       border-color: var(--color-prime-500);
     }
 
-    &:active {
+    &:not(:disabled):active {
       border-color: var(--color-prime-700);
     }
   }
