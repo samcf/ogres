@@ -135,10 +135,11 @@
                       (extract-image))))
                (.then
                 (fn [out]
-                  (js/Promise.all
-                   #js [(.put images #js {"checksum" (:hash out) "data" (:data out)})
-                        (.delete images (:image/hash (:image/thumbnail entity)))
-                        out])))
+                  (let [thumb (:image/hash (:image/thumbnail entity))]
+                    (js/Promise.all
+                     #js [(.put images #js {"checksum" (:hash out) "data" (:data out)})
+                          (if (not= hash thumb) (.delete images thumb))
+                          out]))))
                (.then
                 (fn [[_ _ data]]
                   (dispatch :token-images/change-thumbnail hash data rect)))))) [dispatch conn store]))
