@@ -93,16 +93,15 @@
   (let [store (use-store)
         on-remove
         (use-callback
-         (fn [{[id] :args}]
-           (.delete (.table store "images") id)) [store])
-        on-remove-bulk
+         (fn [{[image thumb] :args}]
+           (.bulkDelete (.table store "images") #js [image thumb])) [store])
+        on-remove-all
         (use-callback
-         (fn [{[ids] :args}]
-           (.bulkDelete (.table store "images") (clj->js ids))) [store])]
-    (use-subscribe :tokens/remove on-remove)
+         (fn [{[hashes] :args}]
+           (.bulkDelete (.table store "images") (into-array hashes))) [store])]
     (use-subscribe :scene-images/remove on-remove)
-    (use-subscribe :tokens/remove-all on-remove-bulk)
-    (use-subscribe :scene-images/remove-all on-remove-bulk)))
+    (use-subscribe :token-images/remove on-remove)
+    (use-subscribe :token-images/remove-all on-remove-all)))
 
 (defui ^:private backup-handler []
   (let [store (use-store)]

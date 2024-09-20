@@ -20,7 +20,9 @@
          :initiative/suffix
          :initiative/health
          :camera/_selected
-         {:token/image [:image/checksum]}]}]}]}])
+         {:token/image
+          [{:image/thumbnail
+            [:image/hash]}]}]}]}]}])
 
 (def ^:private query-footer
   [{:user/camera
@@ -116,11 +118,11 @@
            rnds :initiative/rounds
            went :initiative/played}
           :camera/scene} :user/camera} context
-        {id        :db/id
-         label     :token/label
-         flags     :token/flags
-         suffix    :initiative/suffix
-         {checksum :image/checksum} :token/image} entity
+        {id :db/id
+         label :token/label
+         flags :token/flags
+         suffix :initiative/suffix
+         {{hash :image/hash} :image/thumbnail} :token/image} entity
         playing (= (:db/id curr) (:db/id entity))
         played  (boolean (some #{{:db/id id}} went))
         hidden  (and (= type :conn)
@@ -149,11 +151,11 @@
          :data-player (contains? flags :player)
          :data-hidden hidden}
         (cond hidden \?
-              (some? checksum)
-              ($ image {:checksum checksum}
-                (fn [{:keys [data-url]}]
+              (some? hash)
+              ($ image {:hash hash}
+                (fn [url]
                   ($ :.initiative-token-image
-                    {:style {:background-image (str "url(" data-url ")")}})))
+                    {:style {:background-image (str "url(" url ")")}})))
               :else
               ($ :.initiative-token-pattern
                 ($ icon {:name "dnd" :size 36}))))

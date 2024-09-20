@@ -222,7 +222,7 @@
            [:token/size :default 5]
            [:token/light :default 15]
            [:token/aura-radius :default 0]
-           {:token/image [:image/checksum]}
+           {:token/image [:image/hash]}
            {:scene/_initiative [:db/id :initiative/turn]}]}
          {:scene/shapes
           [:db/id

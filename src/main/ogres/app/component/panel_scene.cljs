@@ -2,6 +2,7 @@
   (:require [clojure.string :refer [replace]]
             [ogres.app.component :refer [icon pagination image]]
             [ogres.app.hooks :refer [use-dispatch use-image-uploader use-query]]
+            [ogres.app.util :refer [display-size]]
             [uix.core :as uix :refer [defui $ use-ref use-state]]
             [uix.dom :refer [create-portal]]))
 
@@ -16,11 +17,6 @@
 
 (def ^:private filename-re #"\d+x\d+|[^\w ]|.[^.]+$")
 
-(defn ^:private render-filesize [bytes]
-  (let [i (js/Math.floor (/ (js/Math.log bytes) (js/Math.log 1024)))
-        s ["B" "KB" "MB" "GB" "TB" "PB" "EB" "ZB" "YB"]]
-    (str (* (.toFixed (/ bytes (js/Math.pow 1024, i)) 2) 1) (s i))))
-
 (defn ^:private render-scene-name [camera]
   (if-let [label (:camera/label camera)]
     label
@@ -30,7 +26,11 @@
 
 (def ^:private query
   [{:root/scene-images
-    [:image/checksum :image/name :image/size]}
+    [:image/hash
+     :image/name
+     :image/size
+     {:image/thumbnail
+      [:image/hash]}]}
    {:root/user
     [{:user/camera
       [:db/id
@@ -42,12 +42,16 @@
          [:scene/grid-align :default false]
          [:scene/dark-mode :default false]
          [:scene/lighting :default :revealed]
-         {:scene/image [:image/checksum :image/name]}]}]}]}])
+         {:scene/image
+          [:image/hash
+           :image/name
+           {:image/thumbnail
+            [:image/hash]}]}]}]}]}])
 
 (defui form []
   (let [[preview set-preview] (use-state nil)
         dispatch (use-dispatch)
-        uploader (use-image-uploader {:type :scene})
+        upload   (use-image-uploader {:type :scene})
         input    (use-ref)
         data     (use-query query [:db/ident :root])
         {{{scene :camera/scene} :user/camera
@@ -81,18 +85,20 @@
         ($ :fieldset.fieldset
           ($ :legend "Background image")
           ($ :.scene-gallery
-            (for [[idx data] pag :let [selected (= (:image/checksum data) (:image/checksum (:scene/image scene)))]]
-              (if-let [checksum (:image/checksum data)]
-                ($ image {:key idx :checksum checksum}
-                  (fn [{:keys [data-url]}]
+            (for [[idx data] pag
+                  :let [hash (:image/hash data)
+                        curr (:image/hash (:scene/image scene))]]
+              (if-let [thumbnail (:image/hash (:image/thumbnail data))]
+                ($ image {:key idx :hash thumbnail}
+                  (fn [url]
                     ($ :fieldset.scene-gallery-thumbnail
-                      {:data-type "image" :style {:background-image (str "url(" data-url ")")}}
+                      {:data-type "image" :style {:background-image (str "url(" url ")")}}
                       ($ :label {:aria-label (:image/name data)}
                         ($ :input
                           {:type "radio"
                            :name "background-image"
-                           :value checksum
-                           :checked selected
+                           :value hash
+                           :checked (= hash curr)
                            :on-change
                            (fn [event]
                              (let [value (.. event -target -value)]
@@ -104,7 +110,7 @@
                          :on-click
                          (fn [event]
                            (.stopPropagation event)
-                           (set-preview checksum))}
+                           (set-preview hash))}
                         ($ icon {:name "zoom-in" :size 18}))
                       ($ :button.button.button-danger
                         {:type "button"
@@ -113,7 +119,7 @@
                          :on-click
                          (fn [event]
                            (.stopPropagation event)
-                           (dispatch :scene-images/remove checksum))}
+                           (dispatch :scene-images/remove hash thumbnail))}
                         ($ icon {:name "trash3-fill" :size 18}))
                       (if (> (:image/size data) filesize-limit)
                         ($ :button.button.button-warning
@@ -124,7 +130,7 @@
                            :on-click
                            (fn [event]
                              (.stopPropagation event)
-                             (set-preview checksum))}
+                             (set-preview hash))}
                           ($ icon {:name "exclamation-triangle-fill" :size 18}))))))
                 ($ :.scene-gallery-thumbnail {:key idx :data-type "placeholder"}))))
           ($ :fieldset.scene-gallery-form
@@ -138,8 +144,7 @@
                  :multiple true
                  :on-change
                  (fn [event]
-                   (doseq [file (.. event -target -files)]
-                     (uploader file))
+                   (upload (.. event -target -files))
                    (set! (.. event -target -value) ""))})
               ($ icon {:name "camera-fill" :size 16}) "Upload images")
             (if (> pgs 1)
@@ -150,19 +155,19 @@
                  :on-change set-page})))
           (if (some? preview)
             (let [node (js/document.querySelector "#root")
-                  data (first (filter (comp #{preview} :image/checksum) (:root/scene-images data)))]
+                  data (first (filter (comp #{preview} :image/hash) (:root/scene-images data)))]
               (create-portal
                ($ :.scene-gallery-modal
                  ($ :.scene-gallery-modal-container
-                   ($ image {:checksum preview}
-                     (fn [{:keys [data-url]}]
+                   ($ image {:hash preview}
+                     (fn [url]
                        ($ :figure.scene-gallery-modal-preview
-                         {:style {:background-image (str "url(" data-url ")")}}
+                         {:style {:background-image (str "url(" url ")")}}
                          ($ :dl
                            ($ :dt "Filename")
                            ($ :dd (:image/name data))
                            ($ :dt "Size")
-                           ($ :dd (render-filesize (:image/size data)))
+                           ($ :dd (display-size (:image/size data)))
                            (if (> (:image/size data) filesize-limit)
                              ($ :<>
                                ($ :dt ($ icon {:name "exclamation-triangle-fill" :size 12}) "Warning")
@@ -174,7 +179,11 @@
                    ($ :.scene-gallery-modal-footer
                      ($ :button.button.button-danger
                        {:style {:margin-right "auto"}
-                        :on-click (fn [] (set-preview nil) (dispatch :scene-images/remove preview))}
+                        :on-click
+                        (fn []
+                          (let [thumbnail (:image/hash (:image/thumbnail data))]
+                            (set-preview nil)
+                            (dispatch :scene-images/remove preview thumbnail)))}
                        ($ icon {:name "trash3-fill" :size 16}))
                      ($ :button.button.button-neutral
                        {:on-click #(set-preview nil)}

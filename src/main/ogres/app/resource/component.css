@@ -18,15 +18,41 @@
   display: flex;
   gap: 5px;
 
+  --background-color: var(--color-paper-500);
+  --border-color: var(--color-blues-100);
+  --text-color: var(--color-blues-700);
+  --checked-background-color: var(--color-blues-700);
+  --checked-border-color: var(--color-blues-900);
+  --checked-text-color: var(--color-paper-500);
+  --disabled-background-color: var(--color-paper-300);
+  --disabled-border-color: var(--color-black-300);
+  --disabled-text-color: var(--color-blues-100);
+  --focus-ring-color: -webkit-focus-ring-color;
+
+  &.pagination-dark {
+    --background-color: var(--color-blues-900);
+    --border-color: var(--color-blues-500);
+    --text-color: var(--color-paper-500);
+    --checked-background-color: var(--color-blues-300);
+    --checked-border-color: var(--color-blues-700);
+    --checked-text-color: var(--color-paper-500);
+    --disabled-background-color: var(--color-blues-700);
+    --disabled-border-color: var(--color-blues-500);
+    --disabled-text-color: var(--color-blues-300);
+    --focus-ring-color: var(--color-prime-500);
+  }
+
   label,
   button {
     align-items: center;
     aspect-ratio: 1;
-    border-color: var(--color-black-300);
+    background-color: var(--disabled-background-color);
+    border-color: var(--disabled-border-color);
     border-radius: 3px;
     border-style: solid;
     border-width: 1px;
     box-sizing: border-box;
+    color: var(--disabled-text-color);
     display: flex;
     justify-content: center;
     margin: 0;
@@ -38,24 +64,53 @@
   label:has(:focus-visible),
   button:focus-visible {
     outline: 1px dashed Highlight;
-    outline: 1px dashed -webkit-focus-ring-color;
+    outline: 1px dashed var(--focus-ring-color);
     outline-offset: 1px;
   }
 
   label:has(input:not(:checked)),
   button:not([aria-disabled="true"]) {
-    border-color: var(--color-blues-500);
+    background-color: var(--background-color);
+    border-color: var(--border-color);
+    color: var(--text-color);
     cursor: pointer;
   }
 
   label:has(input:checked) {
-    background-color: var(--color-blues-500);
-    border-color: transparent;
-    color: var(--color-paper-500);
+    background-color: var(--checked-background-color);
+    border-color: var(--checked-border-color);
+    color: var(--checked-text-color);
   }
 
   input[type="radio"] {
     z-index: -1;
     position: absolute;
   }
+}
+
+.modal-fullscreen,
+.modal-fullscreen-dialog {
+  align-items: stretch;
+  contain: strict;
+  display: flex;
+}
+
+.modal-fullscreen {
+  backdrop-filter: blur(3px);
+  background-color: rgba(0, 0, 0, 0.45);
+  inset: 0 0 0 0;
+  padding: 3vw;
+  position: absolute;
+  z-index: 1;
+}
+
+.modal-fullscreen-dialog {
+  background-color: var(--color-blues-900);
+  border-radius: 4px;
+  border: 1px solid var(--color-blues-700);
+  flex: 1;
+}
+
+.modal-fullscreen-content {
+  flex: 1;
 }

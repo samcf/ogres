@@ -4,7 +4,7 @@
             [clojure.string :refer [trim]]
             [ogres.app.const :refer [grid-size]]
             [ogres.app.geom :as geom]
-            [ogres.app.util :refer [comp-fn round round-grid with-ns]]))
+            [ogres.app.util :refer [comp-fn round round-grid]]))
 
 (def ^:private suffix-max-xf
   (map (fn [[label tokens]] [label (apply max (map :initiative/suffix tokens))])))
@@ -31,9 +31,8 @@
   "Returns a grouping key for the given token that will match other similarly
    identifiable tokens."
   [token]
-  (let [{label :token/label
-         {checksum :image/checksum} :token/image} token]
-    [label checksum]))
+  (let [{label :token/label {hash :image/hash} :token/image} token]
+    [label hash]))
 
 (defn ^:private suffixes
   "Returns a map of `{entity key => suffix}` for the given token entities.
@@ -295,25 +294,34 @@
        [:db/retractEntity (:db/id (:camera/scene camera))]])))
 
 ;; -- Scene Images --
-(defmethod
-  ^{:doc "Creates a new scene image with the given checksum, width, and height.
-          Relates this entity to the root scene collection."}
-  event-tx-fn :scene-images/create
-  [_ _ image-data]
-  (let [keys [:name :size :checksum :width :height]]
-    [{:db/ident :root :root/scene-images (with-ns (select-keys image-data keys) "image")}]))
+(defmethod event-tx-fn :scene-images/create-many
+  [_ _ images]
+  (into [{:db/ident :root
+          :root/scene-images
+          (for [[{:keys [hash name size width height]} _] images]
+            {:image/hash hash
+             :image/name name
+             :image/size size
+             :image/width width
+             :image/height height})}] cat
+        (for [[image thumbnail] images]
+          (if (= (:hash image) (:hash thumbnail))
+            [{:image/hash (:hash image) :image/thumbnail [:image/hash (:hash image)]}]
+            [{:image/hash (:hash thumbnail)
+              :image/name (:name thumbnail)
+              :image/size (:size thumbnail)
+              :image/width (:width thumbnail)
+              :image/height (:height thumbnail)}
+             {:image/hash (:hash image) :image/thumbnail [:image/hash (:hash thumbnail)]}]))))
 
 (defmethod
-  ^{:doc "Removes the scene image by the given identifying checksum."}
+  ^{:doc "Removes the scene image by the given identifying hash."}
   event-tx-fn :scene-images/remove
-  [_ _ checksum]
-  [[:db/retractEntity [:image/checksum checksum]]])
-
-(defmethod
-  ^{:doc "Removes all scene images."}
-  event-tx-fn :scene-images/remove-all
-  []
-  [[:db/retract [:db/ident :root] :root/scene-images]])
+  [_ _ image thumb]
+  (if (= image thumb)
+    [[:db/retractEntity [:image/hash image]]]
+    [[:db/retractEntity [:image/hash image]]
+     [:db/retractEntity [:image/hash thumb]]]))
 
 ;; -- Scene --
 (defn ^:private assoc-scene
@@ -324,10 +332,10 @@
 
 (defmethod
   ^{:doc "Updates the image being used for the current scene by the given
-          identifying checksum."}
+          identifying hash."}
   event-tx-fn :scene/change-image
-  [_ _ checksum]
-  [[:db.fn/call assoc-scene :scene/image {:image/checksum checksum}]])
+  [_ _ hash]
+  [[:db.fn/call assoc-scene :scene/image {:image/hash hash}]])
 
 (defmethod
   ^{:doc "Updates the grid size for the current scene."}
@@ -459,7 +467,7 @@
           given by `sx` and `sy`. These coordinates are converted to the
           scene coordinate space."}
   event-tx-fn :token/create
-  [data _ sx sy checksum]
+  [data _ sx sy hash]
   (let [user (ds/entity data [:db/ident :user])
         {{[cx cy] :camera/point
           scale :camera/scale
@@ -469,11 +477,11 @@
         tx (+ (/ sx (or scale 1)) (or cx 0))
         ty (+ (/ sy (or scale 1)) (or cy 0))]
     [(cond-> {:db/id -1 :object/type :token/token}
-       (some? checksum) (assoc :token/image {:image/checksum checksum})
-       (not align?)     (assoc :object/point [(round tx) (round ty)])
-       align?           (assoc :object/point
-                               [(round-grid tx (/ grid-size 2) (mod ox grid-size))
-                                (round-grid ty (/ grid-size 2) (mod oy grid-size))]))
+       (some? hash) (assoc :token/image {:image/hash hash})
+       (not align?) (assoc :object/point [(round tx) (round ty)])
+       align?       (assoc :object/point
+                           [(round-grid tx (/ grid-size 2) (mod ox grid-size))
+                            (round-grid ty (/ grid-size 2) (mod oy grid-size))]))
      {:db/id (:db/id (:user/camera user))
       :camera/selected -1
       :camera/draw-mode :select
@@ -589,7 +597,7 @@
   [data _ idxs adding?]
   (let [user   (ds/entity data [:db/ident :user])
         scene  (:db/id (:camera/scene (:user/camera user)))
-        select [:db/id {:token/image [:image/checksum]} [:token/flags :default #{}] :initiative/suffix :token/label]
+        select [:db/id {:token/image [:image/hash]} [:token/flags :default #{}] :initiative/suffix :token/label]
         result (ds/pull data [{:scene/initiative select}] scene)
         change (into #{} (ds/pull-many data select idxs))
         exists (into #{} (:scene/initiative result))]
@@ -687,27 +695,56 @@
               [:db/retract id :initiative/health]
               [:db/retract id :initiative/suffix]]))))
 
-(defmethod event-tx-fn :tokens/create
-  [_ _ image-data scope]
-  (let [keys [:name :size :checksum :width :height]
-        data (-> image-data (select-keys keys) (assoc :scope scope))]
-    [{:db/ident :root :root/token-images (with-ns data "image")}]))
+;; --- Token Images ---
+(defmethod event-tx-fn :token-images/create-many
+  [_ _ images scope]
+  (into [{:db/ident :root
+          :root/token-images
+          (for [[{:keys [hash name size width height]} _] images]
+            {:image/hash hash
+             :image/name name
+             :image/size size
+             :image/scope scope
+             :image/width width
+             :image/height height})}] cat
+        (for [[image thumbnail] images]
+          (if (= (:hash image) (:hash thumbnail))
+            [{:image/hash (:hash image) :image/thumbnail [:image/hash (:hash image)]}]
+            [{:image/hash (:hash thumbnail)
+              :image/name (:name thumbnail)
+              :image/size (:size thumbnail)
+              :image/width (:width thumbnail)
+              :image/height (:height thumbnail)}
+             {:image/hash (:hash image) :image/thumbnail [:image/hash (:hash thumbnail)]}]))))
 
 (defmethod
-  ^{:doc "Change the scope of the token image by the given checksum to the
+  ^{:doc "Change the scope of the token image by the given hash to the
           given scope, typically `:public` or `:private`."}
-  event-tx-fn :tokens/change-scope
-  [_ _ checksum scope]
-  [[:db/add -1 :image/checksum checksum]
+  event-tx-fn :token-images/change-scope
+  [_ _ hash scope]
+  [[:db/add -1 :image/hash hash]
    [:db/add -1 :image/scope scope]])
 
-(defmethod event-tx-fn :tokens/remove
-  [_ _ checksum]
-  [[:db/retractEntity [:image/checksum checksum]]])
+(defmethod event-tx-fn :token-images/remove
+  [_ _ image thumb]
+  (if (= image thumb)
+    [[:db/retractEntity [:image/hash image]]]
+    [[:db/retractEntity [:image/hash image]]
+     [:db/retractEntity [:image/hash thumb]]]))
 
-(defmethod event-tx-fn :tokens/remove-all
+(defmethod event-tx-fn :token-images/remove-all
   []
   [[:db/retract [:db/ident :root] :root/token-images]])
+
+(defmethod event-tx-fn :token-images/change-thumbnail
+  [_ _ hash thumb rect]
+  [{:image/hash hash
+    :image/thumbnail-rect rect
+    :image/thumbnail
+    {:image/hash (:hash thumb)
+     :image/size (.-size (:data thumb))
+     :image/width (:width thumb)
+     :image/height (:height thumb)}}])
 
 ;; --- Masks ---
 (defmethod
@@ -852,7 +889,7 @@
   [{:user/camera
     [{:camera/selected
       (into clipboard-copy-attrs
-            [:db/id {:token/image [:image/checksum]}])}]}])
+            [:db/id {:token/image [:image/hash]}])}]}])
 
 (defmethod
   ^{:doc "Copy the currently selected tokens to the clipboard. Optionally
@@ -886,7 +923,7 @@
         [:db/id
          [:scene/grid-origin :default [0 0]]
          [:scene/grid-align :default false]]}]}]}
-   {:root/token-images [:image/checksum]}])
+   {:root/token-images [:image/hash]}])
 
 (defmethod
   ^{:doc "Creates tokens on the current scene from the data stored in the local
@@ -906,18 +943,18 @@
             [ox oy] :scene/grid-origin}
            :camera/scene} :user/camera} :root/user
          images :root/token-images} result
-        hashes (into #{} (map :image/checksum) images)
+        hashes (into #{} (map :image/hash) images)
         [ax ay bx by] (geom/bounding-rect (mapcat geom/object-bounding-rect clipboard))
         dx (- (+ cx (/ sw scale 2)) (+ ax (/ (- bx ax) 2)))
         dy (- (+ cy (/ sh scale 2)) (+ ay (/ (- by ay) 2)))
         xf (geom/alignment-xf dx dy ox oy)]
     (for [[idx copy] (sequence (indexed) clipboard)
           :let [{[tx ty] :object/point type :object/type} copy
-                hash (:image/checksum (:token/image copy))
+                hash (:image/hash (:token/image copy))
                 type (keyword (namespace type))
                 data (cond-> (assoc copy :db/id idx :object/point [(+ tx dx) (+ ty dy)])
                        (and (= type :token) (hashes hash))
-                       (assoc :token/image [:image/checksum (hashes hash)])
+                       (assoc :token/image [:image/hash (hashes hash)])
                        (and (= type :token) align?)
                        (assoc :object/point
                               (let [[ax ay bx by] (sequence xf (geom/object-bounding-rect copy))]

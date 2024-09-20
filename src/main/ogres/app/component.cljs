@@ -45,10 +45,11 @@
       :value 1
       :on-change (fn [page] ...)})
    ```"
-  [{:keys [name pages value on-change]
+  [{:keys [class-name name pages value on-change]
     :or   {pages 10 value 1 on-change identity}}]
   ($ :nav {:role "navigation"}
     ($ :ol.pagination
+      {:class (if class-name (str "pagination-" class-name))}
       ($ :li
         ($ :button
           {:aria-disabled (= value 1)
@@ -78,14 +79,20 @@
           ($ icon {:name "chevron-right" :size 16}))))))
 
 (defui image
-  "Renders the image identified by the given checksum. Must be passed a
-   render function as its sole child which receives a map as its only
-   argument containing a `:data-url` string of the resource.
+  "Renders the image identified by the given hash. Accepts a
+   render function as its children which is passed a URL that
+   references the image resource.
    ```
-   ($ image {:checksum 'fa7b887b1ce364732beb9ac70892775a'}
-     (fn [{:keys [data-url]}]
-       ($ :img {:src data-url})))
+   ($ image {:hash 'fa7b887b1ce364732beb9ac70892775a'}
+     (fn [url]
+       ($ :img {:src url})))
    ```"
-  [{:keys [checksum children]}]
-  (let [data-url (use-image checksum)]
-    (children {:data-url data-url})))
+  [{:keys [hash children]}]
+  (let [url (use-image hash)]
+    (children url)))
+
+(defui modal-fullscreen [props]
+  ($ :.modal-fullscreen {:tab-index -1 :role "dialog"}
+    ($ :.modal-fullscreen-dialog {:role "document"}
+      ($ :.modal-fullscreen-content
+        (:children props)))))
