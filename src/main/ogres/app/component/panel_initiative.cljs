@@ -20,7 +20,9 @@
          :initiative/suffix
          :initiative/health
          :camera/_selected
-         {:token/image [:image/hash]}]}]}]}])
+         {:token/image
+          [{:image/thumbnail
+            [:image/hash]}]}]}]}]}])
 
 (def ^:private query-footer
   [{:user/camera
@@ -120,7 +122,7 @@
          label :token/label
          flags :token/flags
          suffix :initiative/suffix
-         {hash :image/hash} :token/image} entity
+         {{hash :image/hash} :image/thumbnail} :token/image} entity
         playing (= (:db/id curr) (:db/id entity))
         played  (boolean (some #{{:db/id id}} went))
         hidden  (and (= type :conn)
