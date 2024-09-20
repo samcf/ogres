@@ -43,7 +43,8 @@
          [:scene/dark-mode :default false]
          [:scene/lighting :default :revealed]
          {:scene/image
-          [:image/name
+          [:image/hash
+           :image/name
            {:image/thumbnail
             [:image/hash]}]}]}]}]}])
 
@@ -86,7 +87,7 @@
           ($ :.scene-gallery
             (for [[idx data] pag
                   :let [hash (:image/hash data)
-                        curr (:image/hash (:scene/image data))]]
+                        curr (:image/hash (:scene/image scene))]]
               (if-let [thumbnail (:image/hash (:image/thumbnail data))]
                 ($ image {:key idx :hash thumbnail}
                   (fn [url]
