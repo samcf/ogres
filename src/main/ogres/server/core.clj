@@ -1,7 +1,10 @@
 (ns ogres.server.core
   (:gen-class)
   (:import [java.io ByteArrayOutputStream ByteArrayInputStream]
-           [java.time Instant])
+           [java.nio ByteBuffer]
+           [java.time Instant]
+           [java.util UUID]
+           [org.msgpack.core MessagePack])
   (:require [clojure.string :refer [upper-case]]
             [clojure.core.async :as async :refer [go <! >! >!! close! timeout]]
             [cognitect.transit :as transit]
@@ -43,6 +46,11 @@
         (not= conn host) (update-in [:rooms room :conns] disj conn))
       (update sessions :conns dissoc conn))))
 
+(defn uuid->room
+  [sessions uuid]
+  (let [room (get-in sessions [:conns uuid :room])]
+    (get-in sessions [:rooms room])))
+
 (defn marshall
   "Serializes the given value as JSON compressed EDN."
   [value]
@@ -55,9 +63,10 @@
   [uuid]
   (fn [session chan]
 
-    ;; Increase the max text message size to 10MB to allow for large files to
-    ;; be exchanged over the socket, such as image data URLs.
-    (.setMaxTextMessageSize (.getPolicy session) 1e7)
+    ;; Increase the max message size to allow for large messages such as
+    ;; image data.
+    (.setMaxBinaryMessageSize (.getPolicy session) 1e7)
+    (.setMaxTextMessageSize   (.getPolicy session) 1e7)
 
     (let [params (.. session (getUpgradeRequest) (getParameterMap))
           host   (some-> params (.get "host") (.get 0))
@@ -92,25 +101,37 @@
                        (marshall)
                        (>! chan))))))))
 
-(defn uuid->room
-  [sessions uuid]
-  (let [room (get-in sessions [:conns uuid :room])]
-    (get-in sessions [:rooms room])))
+(defn on-text [uuid]
+  (fn [data]
+    (let [sessions (deref sessions)
+          room     (uuid->room sessions uuid)]
+      (if (some? room)
+        (let [stream (ByteArrayInputStream. (.getBytes data))
+              reader (transit/reader stream :json {:handlers read-handlers})
+              decode (transit/read reader)
+              recips (if (uuid? (:dst decode)) #{(:dst decode)} (disj (:conns room) uuid))
+              xf     (comp (map (:conns sessions)) (map :chan) (filter identity))]
+          (doseq [chan (sequence xf recips)]
+            (>!! chan data)))
+        (close! (get-in sessions [:conns uuid :chan]))))))
 
-(defn on-text
-  [uuid]
-  (fn [body]
-    (let [state @sessions]
-      (if-let [room (uuid->room state uuid)]
-        (let [recip (-> (ByteArrayInputStream. (.getBytes body))
-                        (transit/reader :json {:handlers read-handlers})
-                        (transit/read)
-                        (:dst))
-              uuids (if (uuid? recip) #{recip} (disj (:conns room) uuid))
-              chans (sequence (comp (map (:conns state)) (map :chan) (filter identity)) uuids)]
-          (doseq [chan chans]
-            (>!! chan body)))
-        (close! (get-in state [:conns uuid :chan]))))))
+(defn on-binary [uuid]
+  (fn [data offset len]
+    (let [sessions (deref sessions)]
+      (if (uuid->room sessions uuid)
+        (let [unpacker (MessagePack/newDefaultUnpacker data offset len)
+              max-keys (.unpackMapHeader unpacker)]
+          (loop [idx 0]
+            (if (< idx max-keys)
+              (if (= (.unpackString unpacker) "dst")
+                (let [dest (UUID/fromString (.unpackString unpacker))
+                      chan (get-in sessions [:conns dest :chan])]
+                  (when (some? chan)
+                    (.close unpacker)
+                    (>!! chan (ByteBuffer/wrap data offset len))))
+                (do (.skipValue unpacker)
+                    (recur (inc idx))))))
+          (.close unpacker))))))
 
 (defn on-close
   [uuid]
@@ -152,6 +173,7 @@
 (defn actions [uuid]
   {:on-connect (ws/start-ws-connection (on-connect uuid))
    :on-text    (on-text uuid)
+   :on-binary  (on-binary uuid)
    :on-error   (on-error uuid)
    :on-close   (on-close uuid)})
 
@@ -177,19 +199,19 @@
 (defn create-server
   ([] (create-server {}))
   ([{:keys [port] :or {port 5000}}]
-   (->> {:env :prod
-         ::server/routes #{["/" :get `root-handler]}
-         ::server/type :jetty
-         ::server/host "0.0.0.0"
-         ::server/port port
-         ::server/container-options
-         {:context-configurator
-          (fn [context]
-            (ws/add-ws-endpoints
-             context
-             {"/ws" actions}
-             {:listener-fn create-listener}))}}
-        (server/default-interceptors))))
+   (server/default-interceptors
+    {:env :prod
+     ::server/routes #{["/" :get `root-handler]}
+     ::server/type :jetty
+     ::server/host "0.0.0.0"
+     ::server/port port
+     ::server/container-options
+     {:context-configurator
+      (fn [context]
+        (ws/add-ws-endpoints
+         context
+         {"/ws" actions}
+         {:listener-fn create-listener}))}})))
 
 (defn create-dev-server []
   (-> (create-server)

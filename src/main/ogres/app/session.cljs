@@ -6,7 +6,8 @@
             [ogres.app.const :refer [SOCKET-URL]]
             [ogres.app.hooks :refer [use-event-listener use-subscribe use-dispatch use-publish use-interval use-store]]
             [ogres.app.provider.state :as provider.state]
-            [uix.core :refer [defui use-context use-state use-callback use-effect]]))
+            [uix.core :refer [defui use-context use-state use-callback use-effect]]
+            ["@msgpack/msgpack" :as MessagePack]))
 
 (def ^:private reader (transit/reader :json {:handlers dst/read-handlers}))
 (def ^:private writer (transit/writer :json {:handlers dst/write-handlers}))
@@ -33,18 +34,18 @@
       [:db/add [:db/ident :root] :root/user [:user/uuid uuid]]
       [:db/add [:db/ident :session] :session/conns [:user/uuid host]]])))
 
-(defmulti ^:private handle-message
-  (fn [_ {:keys [type]} _] type))
+(defmulti ^:private on-receive-text
+  (fn [{:keys [type]}] type))
 
-(defmethod handle-message :default
-  [_ _ _])
+(defmethod on-receive-text :default
+  [_ _ _ _ _ _])
 
 ;; Handles messages that are sent by the server, some of which are responses to
 ;; creating or connecting to a session or to notify connections within a session
 ;; of important events. The embedded :data map will always contain a member
 ;; called :name to distinguish different kinds of events.
-(defmethod handle-message :event
-  [{:keys [conn store publish]} {:keys [data] :as message} on-send]
+(defmethod on-receive-text :event
+  [{:keys [data] :as message} conn publish store on-send on-send-binary]
   (case (:name data)
     :session/created
     (ds/transact!
@@ -91,13 +92,13 @@
 
     :image/request
     (-> (.get (.table store "images") (:hash data))
-        (.then (fn [record] (.-data record)))
+        (.then (fn [data] (.-data data)))
         (.then (fn [data] (.arrayBuffer data)))
-        (.then (fn [data]
-                 (on-send
-                  {:type :image
-                   :dst  (:src message)
-                   :data (js/Uint8Array. data)}))))
+        (.then
+         (fn [data]
+           (on-send-binary
+            #js {"data" (js/Uint8Array. data)
+                 "dst"  (str (:src message))}))))
 
     :cursor/moved
     (let [{src :src {[x y] :coord} :data} message]
@@ -107,11 +108,11 @@
 ;; a set of DataScript datoms. This message is generally received right after
 ;; connecting to the session, but it may also be received periodically in an
 ;; attempt to correct any divergences in state.
-(defmethod handle-message :datoms
-  [{:keys [conn]} body]
+(defmethod on-receive-text :datoms
+  [{:keys [data dst]} conn _ _ _ _]
   (let [user-data (ds/db conn)
         user-vers (:root/release (ds/entity user-data [:db/ident :root]))
-        host-data (ds/init-db (:data body) provider.state/schema)
+        host-data (ds/init-db data provider.state/schema)
         host-vers (:root/release (ds/entity host-data [:db/ident :root]))]
     (if (not= user-vers host-vers)
       (let [params (js/URLSearchParams. (.. js/window -location -search))
@@ -121,21 +122,18 @@
         (.replace
          (.-location js/window)
          (str origin path "?" (.toString params))))
-      (ds/reset-conn! conn (initialize-player-state host-data (:dst body))))))
+      (ds/reset-conn! conn (initialize-player-state host-data dst)))))
 
 ;; Handles messages that include a DataScript transaction from another
 ;; connection within the session. These messages can be received at any time
 ;; and from any connection besides its own.
-(defmethod handle-message :tx
-  [{:keys [conn]} message]
-  (ds/transact! conn (:data message)))
+(defmethod on-receive-text :tx
+  [{:keys [data]} conn _ _ _ _]
+  (ds/transact! conn data))
 
-;; Handles messages that include image data as data URLs. These messages are
-;; generally received from the host after sending a request for it via its
-;; hash.
-(defmethod handle-message :image
-  [{:keys [conn publish]} message]
-  (let [data (js/Blob. #js [(:data message)] #js {"type" "image/jpeg"})
+(defn ^:private on-receive-binary
+  [message conn publish]
+  (let [data (js/Blob. #js [(.-data message)] #js {"type" "image/jpeg"})
         user (ds/entity (ds/db conn) [:db/ident :user])
         call (fn [hash] (publish {:topic :image/create-token :args [hash data]}))]
     (case (:user/type user)
@@ -149,15 +147,22 @@
         publish  (use-publish)
         store    (use-store)
         conn     (use-context provider.state/context)
-        on-send  (use-callback
-                  (fn [message]
-                    (if (some? socket)
-                      (if (= (.-readyState socket) 1)
-                        (let [user (ds/entity @conn [:db/ident :user])
-                              defaults {:time (js/Date.now) :src (:user/uuid user)}]
-                          (->> (merge defaults message)
-                               (transit/write writer)
-                               (.send socket)))))) ^:lint/disable [socket])]
+        on-send-text
+        (use-callback
+         (fn [message]
+           (if (and (some? socket) (= (.-readyState socket) 1))
+             (let [user (ds/entity @conn [:db/ident :user])
+                   data (merge {:time (js/Date.now) :src (:user/uuid user)} message)]
+               (.send socket (transit/write writer data))))) [socket conn])
+        on-send-binary
+        (use-callback
+         (fn [message]
+           (let [user (ds/entity @conn [:db/ident :user])
+                 data (js/Object.assign
+                       #js {}
+                       #js {"time" (js/Date.now) "src" (str (:user/uuid user))}
+                       message)]
+             (.send socket (MessagePack/encode data)))) [socket conn])]
 
     ;; Establish a WebSocket connection to the room identified by the "join"
     ;; query parameter in the URL.
@@ -218,7 +223,7 @@
     (use-subscribe :session/heartbeat
       (use-callback
        (fn []
-         (on-send {:type :heartbeat})) [on-send]))
+         (on-send-text {:type :heartbeat})) [on-send-text]))
 
     ;; Subscribe to an intentional action to close the session, calling
     ;; `close` on the WebSocket object.
@@ -233,13 +238,11 @@
       (use-callback
        (fn [{[blob] :args}]
          (let [{host :session/host} (ds/entity (ds/db conn) [:db/ident :session])]
-           (.then
-            (.arrayBuffer blob)
-            (fn [data]
-              (on-send
-               {:type :image
-                :dst  (:user/uuid host)
-                :data (js/Uint8Array. data)}))))) [conn on-send]))
+           (.then (.arrayBuffer blob)
+                  (fn [data]
+                    (on-send-binary
+                     #js {"data" (js/Uint8Array. data)
+                          "dst"  (str (:user/uuid host))}))))) [conn on-send-binary]))
 
     ;; Subscribe to requests for image data from other non-host connections
     ;; and reply with the appropriate image data in the form of a data URL.
@@ -249,14 +252,14 @@
          (let [session (ds/entity @conn [:db/ident :session])]
            (if-let [host (-> session :session/host :user/uuid)]
              (let [data {:name :image/request :hash hash}]
-               (on-send {:type :event :dst host :data data}))))) [conn on-send]))
+               (on-send-text {:type :event :dst host :data data}))))) [conn on-send-text]))
 
     ;; Subscribe to DataScript transactions and broadcast the transaction data
     ;; to the other connections in the session.
     (use-subscribe :tx/commit
       (use-callback
        (fn [{[{tx-data :tx-data}] :args}]
-         (on-send {:type :tx :data tx-data})) [on-send]))
+         (on-send-text {:type :tx :data tx-data})) [on-send-text]))
 
     ;; Subscribe to changes to the user's cursor position on the scene and
     ;; broadcast these changes to the other connections in the session.
@@ -265,7 +268,7 @@
       (use-callback
        (fn [{[x y] :args}]
          (let [data {:name :cursor/moved :coord [x y]}]
-           (on-send {:type :event :data data}))) [on-send]))
+           (on-send-text {:type :event :data data}))) [on-send-text]))
 
     ;; Listen to the "close" event on the WebSocket object and dispatch the
     ;; appropriate event to communicate this change to state.
@@ -287,6 +290,10 @@
     (use-event-listener socket "message"
       (use-callback
        (fn [event]
-         (let [context {:conn conn :publish publish :dispatch dispatch :store store}
-               data (transit/read reader (.-data event))]
-           (handle-message context data on-send))) [conn publish dispatch store on-send]))))
+         (if (string? (.-data event))
+           (-> (transit/read reader (.-data event))
+               (on-receive-text conn publish store on-send-text on-send-binary))
+           (-> (.arrayBuffer (.-data event))
+               (.then (fn [data] (MessagePack/decode data)))
+               (.then (fn [data] (on-receive-binary data conn publish))))))
+       [conn publish store on-send-text on-send-binary]))))
