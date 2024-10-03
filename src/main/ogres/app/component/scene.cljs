@@ -390,10 +390,11 @@
         share  (:session/share-cursors (:root/session result))
         host   (:session/host (:root/session result))
         [points set-points] (use-state {})]
-    (use-subscribe :cursor/moved {:disabled (not share)}
+    (use-subscribe :cursor/moved
       (use-callback
-       (fn [{[uuid x y] :args}]
-         (set-points (fn [points] (assoc points uuid [x y])))) []))
+       (fn [uuid x y]
+         (if share
+           (set-points (fn [points] (assoc points uuid [x y]))))) [share]))
     (if share
       ($ :g.scene-cursors
         (for [[uuid [x y]] points

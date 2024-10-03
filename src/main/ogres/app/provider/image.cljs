@@ -104,11 +104,11 @@
                      (.get hash)
                      (.then (fn [rec] (js/URL.createObjectURL (.-data rec))))
                      (.then (fn [url] (set-url (fn [urls] (assoc urls hash url)))))
-                     (.catch (fn [] (publish {:topic :image/request :args [hash]})))))
+                     (.catch (fn [] (publish :image/request hash)))))
                url))) ^:lint/disable [])]
     (use-subscribe :image/create-token
       (use-callback
-       (fn [{[hash blob] :args}]
+       (fn [hash blob]
          (.then
           (js/createImageBitmap blob)
           (fn [image]
@@ -116,14 +116,14 @@
               (dispatch :token-images/create-many [[record record]] :public))))) [dispatch]))
     (use-subscribe :image/cache
       (use-callback
-       (fn [{[image callback] :args}]
+       (fn [image callback]
          (-> (create-hash image)
              (.then (fn [hash] (.put (.table store "images") #js {"checksum" hash "data" image})))
              (.then (fn [hash] (set-url (fn [urls] (assoc urls hash (js/URL.createObjectURL image)))) hash))
              (.then (fn [hash] (when (fn? callback) (callback hash)))))) [store]))
     (use-subscribe :image/change-thumbnail
       (use-callback
-       (fn [{[hash [ax ay bx by :as rect]] :args}]
+       (fn [hash [ax ay bx by :as rect]]
          (let [entity (ds/entity (ds/db conn) [:image/hash hash])
                images (.table store "images")]
            (-> (.get images hash)
@@ -218,7 +218,7 @@
          (.then (js/Promise.all (into-array (into [] (map process-file) files)))
                 (fn [files]
                   (doseq [[_ _ thumbnail] files]
-                    (publish {:topic :image/create :args [(:data thumbnail)]}))))) [publish]))))
+                    (publish :image/create (:data thumbnail)))))) [publish]))))
 
 (defn use-image
   "React hook which accepts a string that uniquely identifies an image

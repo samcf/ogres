@@ -63,9 +63,9 @@
      (fn []
        (if (nil? uuid)
          (set-point nil))) [uuid])
-    (use-subscribe :cursor/moved {:disabled (nil? uuid)}
+    (use-subscribe :cursor/moved
       (use-callback
-       (fn [{[id cx cy] :args}]
+       (fn [id cx cy]
          (if (= id uuid)
            (set-point
             (fn [[_ _ dx dy]]

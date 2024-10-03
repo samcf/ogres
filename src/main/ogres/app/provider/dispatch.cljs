@@ -16,11 +16,11 @@
         conn    (use-context state/context)]
     (use-callback
      (fn [topic & args]
-       (publish {:topic topic :args args})
+       (apply publish topic args)
        (let [tx-data [[:db.fn/call tx-fn topic args]]
              report  (ds/transact! conn tx-data)]
          (if (seq (:tx-data report))
-           (publish {:topic :tx/commit :args (list report)})))) ^:lint/disable [publish])))
+           (apply publish :tx/commit (list report))))) ^:lint/disable [publish])))
 
 (defn use-dispatch []
   (use-context context))

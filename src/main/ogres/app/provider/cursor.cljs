@@ -24,5 +24,5 @@
                      dy (.-clientY event)
                      mx (int (+ (/ (- dx sx) scale) cx))
                      my (int (+ (/ (- dy sy) scale) cy))]
-                 (publish {:topic :cursor/move :args [mx my]}))))))
+                 (publish :cursor/move mx my))))))
        [publish cx cy sx sy scale]))))

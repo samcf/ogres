@@ -2,10 +2,10 @@
   (:require [cognitect.transit :as t]
             [datascript.core :as ds]
             [datascript.transit :as dst]
+            [goog.functions :refer [throttle]]
             [ogres.app.hooks :refer [use-event-listener use-subscribe use-dispatch use-query]]
             [ogres.app.provider.state :as provider.state]
-            [ogres.app.util :refer [debounce]]
-            [uix.core :refer [defui $ create-context use-callback use-context use-state use-effect]]))
+            [uix.core :refer [defui $ create-context use-callback use-context use-memo use-state use-effect]]))
 
 (def ^:private context (create-context))
 
@@ -41,7 +41,7 @@
    host window to the view window." []
   (let [{:keys [view]} (use-context context)]
     (use-subscribe :tx/commit
-      (fn [{[{tx-data :tx-data}] :args}]
+      (fn [{tx-data :tx-data}]
         (->>
          #js {:detail (t/write writer tx-data)}
          (js/CustomEvent. "AppStateTx")
@@ -66,12 +66,13 @@
    of the form [x y width height]."
   [{:keys [target type]}]
   (let [dispatch (use-dispatch)
-        handler  (debounce
-                  (fn []
-                    (if-let [element (.. target -document (querySelector ".layout-scene"))]
-                      (->> (.getBoundingClientRect element)
-                           (bounds->vector)
-                           (dispatch :bounds/change type)))) 100)
+        handler  (use-memo
+                  #(throttle
+                    (fn []
+                      (if-let [element (.. target -document (querySelector ".layout-scene"))]
+                        (->> (.getBoundingClientRect element)
+                             (bounds->vector)
+                             (dispatch :bounds/change type)))) 100) [dispatch type target])
         [observer] (use-state (js/ResizeObserver. handler))
         [scene set-scene] (use-state nil)]
     (use-event-listener "resize" handler)

@@ -1,15 +1,5 @@
 (ns ogres.app.util
-  (:require [goog.async.Debouncer]
-            [ogres.app.const :refer [grid-size]]))
-
-(defn debounce
-  "Returns a debounced version of the given function f. Calls to this function
-   are delayed for interval (ms), during which time repeated calls reset the
-   timer. Only one call per interval will ever be executed."
-  [f interval]
-  (let [d (goog.async.Debouncer. f interval)]
-    (fn [& args]
-      (.apply (.-fire d) d (to-array args)))))
+  (:require [ogres.app.const :refer [grid-size]]))
 
 (defn key-by
   "Returns a map of the given `coll` whose keys are the result of calling `f`

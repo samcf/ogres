@@ -5,11 +5,11 @@
             [dexie-export-import
              :refer [exportDB importDB peakImportFile]
              :rename {exportDB export-db importDB import-db peakImportFile peek-import-file}]
+            [goog.functions :refer [throttle]]
             [ogres.app.const :refer [VERSION]]
             [ogres.app.dom :refer [user-type]]
             [ogres.app.provider.events :refer [use-subscribe]]
             [ogres.app.provider.state :as state :refer [use-query]]
-            [ogres.app.util :refer [debounce]]
             [uix.core :refer [defui $ create-context use-callback use-context use-effect]]))
 
 (def ^:private context (create-context))
@@ -43,7 +43,7 @@
     (use-effect
      (fn []
        (ds/listen! conn :marshaller
-                   (debounce
+                   (throttle
                     (fn [{:keys [db-after]}]
                       (if (= (:user/status (ds/entity db-after [:db/ident :user])) :ready)
                         (-> db-after
@@ -93,11 +93,11 @@
   (let [store (use-store)
         on-remove
         (use-callback
-         (fn [{[image thumb] :args}]
+         (fn [image thumb]
            (.bulkDelete (.table store "images") #js [image thumb])) [store])
         on-remove-all
         (use-callback
-         (fn [{[hashes] :args}]
+         (fn [hashes]
            (.bulkDelete (.table store "images") (into-array hashes))) [store])]
     (use-subscribe :scene-images/remove on-remove)
     (use-subscribe :token-images/remove on-remove)
@@ -124,7 +124,7 @@
   (let [store (use-store)]
     (use-subscribe :storage/restore
       (use-callback
-       (fn [{[file] :args}]
+       (fn [file]
          (-> (peek-import-file file)
              (.then
               (fn [metadata]

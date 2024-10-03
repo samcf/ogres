@@ -27,16 +27,23 @@
   use-query
   provider.state/use-query)
 
-(def ^{:doc "Returns a function which publishes the given event map
-             onto the global event publication."
+(def ^{:doc "Returns a function which, when called with a topic and
+             any relevant arguments, publishes a new event on the
+             bus. Events and their listeners are called synchronously
+             and in the order they are added.
+             ```
+             (let [publish (use-publish)]
+               (use-subscribe :foo/bar
+                 (fn [a b c]
+                   (prn a b c)))
+               (publish :foo/bar 1 2 3))
+             ```"
        :arglists '([])}
   use-publish
   provider.events/use-publish)
 
-(def ^{:doc "Creates a new subscription to `topic`, calling the given
-             handler `f` with the event map when an event with that
-             topic is published."
-       :arglists '([f] [topic f] [topic options f])}
+(def ^{:doc "Registers a new handler function to the given topic."
+       :arglists '([topic f])}
   use-subscribe
   provider.events/use-subscribe)
 

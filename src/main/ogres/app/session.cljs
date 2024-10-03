@@ -1,12 +1,12 @@
 (ns ogres.app.session
-  (:require [clojure.core.async :refer [chan sliding-buffer]]
-            [cognitect.transit :as transit]
+  (:require [cognitect.transit :as transit]
             [datascript.core :as ds]
             [datascript.transit :as dst]
+            [goog.functions :refer [throttle]]
             [ogres.app.const :refer [SOCKET-URL]]
             [ogres.app.hooks :refer [use-event-listener use-subscribe use-dispatch use-publish use-interval use-store]]
             [ogres.app.provider.state :as provider.state]
-            [uix.core :refer [defui use-context use-state use-callback use-effect]]
+            [uix.core :refer [defui use-context use-state use-callback use-effect use-memo]]
             ["@msgpack/msgpack" :as MessagePack]))
 
 (def ^:private reader (transit/reader :json {:handlers dst/read-handlers}))
@@ -102,7 +102,7 @@
 
     :cursor/moved
     (let [{src :src {[x y] :coord} :data} message]
-      (publish {:topic :cursor/moved :args [src x y]}))))
+      (publish :cursor/moved src x y))))
 
 ;; Handles messages that include a complete copy of the host's initial state as
 ;; a set of DataScript datoms. This message is generally received right after
@@ -135,14 +135,13 @@
   [message conn publish]
   (let [data (js/Blob. #js [(.-data message)] #js {"type" "image/jpeg"})
         user (ds/entity (ds/db conn) [:db/ident :user])
-        call (fn [hash] (publish {:topic :image/create-token :args [hash data]}))]
+        call (fn [hash] (publish :image/create-token hash data))]
     (case (:user/type user)
-      :host (publish {:topic :image/cache :args [data call]})
-      :conn (publish {:topic :image/cache :args [data]}))))
+      :host (publish :image/cache data call)
+      :conn (publish :image/cache data))))
 
 (defui handlers []
   (let [[socket set-socket] (use-state nil)
-        [cursor] (use-state (chan (sliding-buffer 1)))
         dispatch (use-dispatch)
         publish  (use-publish)
         store    (use-store)
@@ -163,16 +162,6 @@
                        #js {"time" (js/Date.now) "src" (str (:user/uuid user))}
                        message)]
              (.send socket (MessagePack/encode data)))) [socket conn])]
-
-    ;; Establish a WebSocket connection to the room identified by the "join"
-    ;; query parameter in the URL.
-    (use-effect
-     (fn []
-       (let [user (ds/entity @conn [:db/ident :user])
-             state (:session/state user)
-             type (:user/type user)]
-         (if (and (= type :conn) (or (nil? state) (= state :initial)))
-           (dispatch :session/join)))) [conn dispatch])
 
     ;; Periodically attempt to re-establish closed connections.
     (use-interval
@@ -236,7 +225,7 @@
 
     (use-subscribe :image/create
       (use-callback
-       (fn [{[blob] :args}]
+       (fn [blob]
          (let [{host :session/host} (ds/entity (ds/db conn) [:db/ident :session])]
            (.then (.arrayBuffer blob)
                   (fn [data]
@@ -248,7 +237,7 @@
     ;; and reply with the appropriate image data in the form of a data URL.
     (use-subscribe :image/request
       (use-callback
-       (fn [{[hash] :args}]
+       (fn [hash]
          (let [session (ds/entity @conn [:db/ident :session])]
            (if-let [host (-> session :session/host :user/uuid)]
              (let [data {:name :image/request :hash hash}]
@@ -258,17 +247,17 @@
     ;; to the other connections in the session.
     (use-subscribe :tx/commit
       (use-callback
-       (fn [{[{tx-data :tx-data}] :args}]
+       (fn [{tx-data :tx-data}]
          (on-send-text {:type :tx :data tx-data})) [on-send-text]))
 
     ;; Subscribe to changes to the user's cursor position on the scene and
     ;; broadcast these changes to the other connections in the session.
     (use-subscribe :cursor/move
-      {:chan cursor :rate-limit 60}
-      (use-callback
-       (fn [{[x y] :args}]
-         (let [data {:name :cursor/moved :coord [x y]}]
-           (on-send-text {:type :event :data data}))) [on-send-text]))
+      (use-memo
+       #(throttle
+         (fn [x y]
+           (let [data {:name :cursor/moved :coord [x y]}]
+             (on-send-text {:type :event :data data}))) 66) [on-send-text]))
 
     ;; Listen to the "close" event on the WebSocket object and dispatch the
     ;; appropriate event to communicate this change to state.
@@ -296,4 +285,14 @@
            (-> (.arrayBuffer (.-data event))
                (.then (fn [data] (MessagePack/decode data)))
                (.then (fn [data] (on-receive-binary data conn publish))))))
-       [conn publish store on-send-text on-send-binary]))))
+       [conn publish store on-send-text on-send-binary]))
+
+    ;; Establish a WebSocket connection to the room identified by the "join"
+    ;; query parameter in the URL.
+    (use-effect
+     (fn []
+       (let [user (ds/entity @conn [:db/ident :user])
+             state (:session/state user)
+             type (:user/type user)]
+         (if (and (= type :conn) (or (nil? state) (= state :initial)))
+           (dispatch :session/join)))) [conn dispatch])))

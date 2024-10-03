@@ -284,7 +284,7 @@
         (use-callback
          (fn [event]
            (.preventDefault event)
-           (publish {:topic :image/change-thumbnail :args [hash bound]})) [publish hash bound])
+           (publish :image/change-thumbnail hash bound)) [publish hash bound])
         on-drag-move
         (use-callback
          (fn [data]
