@@ -4,7 +4,7 @@
             [clojure.string :refer [trim]]
             [ogres.app.const :refer [grid-size]]
             [ogres.app.geom :as geom]
-            [ogres.app.util :refer [comp-fn round round-grid]]))
+            [ogres.app.util :refer [round]]))
 
 (def ^:private suffix-max-xf
   (map (fn [[label tokens]] [label (apply max (map :initiative/suffix tokens))])))
@@ -272,14 +272,14 @@
                 :camera/point [0 0]
                 :camera/scale 1}}))
       (= id (:db/id (:user/camera user)))
-      (let [host-cam (first (filter (comp-fn not= :db/id id) (:user/cameras user)))
+      (let [host-cam (first (filter (comp (complement #{id}) :db/id) (:user/cameras user)))
             host-scn (:db/id (:camera/scene host-cam))]
         (into [[:db/retractEntity (:db/id camera)]
                [:db/retractEntity (:db/id (:camera/scene camera))]
                {:db/ident :user :user/camera {:db/id (:db/id host-cam)}}]
               (for [[tmp conn] (sequence (indexed) (:session/conns session))
                     :let [cam (->> (:user/cameras conn)
-                                   (filter (comp-fn = (comp :db/id :camera/scene) host-scn))
+                                   (filter (comp #{host-scn} :db/id :camera/scene))
                                    (first))
                           idx (or (:db/id cam) tmp)]]
                 {:db/id (:db/id conn)
@@ -475,13 +475,16 @@
            [ox oy] :scene/grid-origin}
           :camera/scene} :user/camera} user
         tx (+ (/ sx (or scale 1)) (or cx 0))
-        ty (+ (/ sy (or scale 1)) (or cy 0))]
+        ty (+ (/ sy (or scale 1)) (or cy 0))
+        rd (/ grid-size 2)
+        mx (mod ox grid-size)
+        my (mod oy grid-size)]
     [(cond-> {:db/id -1 :object/type :token/token}
        (some? hash) (assoc :token/image {:image/hash hash})
        (not align?) (assoc :object/point [(round tx) (round ty)])
        align?       (assoc :object/point
-                           [(round-grid tx (/ grid-size 2) (mod ox grid-size))
-                            (round-grid ty (/ grid-size 2) (mod oy grid-size))]))
+                           [(+ (round (- tx rd mx) grid-size) rd mx)
+                            (+ (round (- ty rd my) grid-size) rd my)]))
      {:db/id (:db/id (:user/camera user))
       :camera/selected -1
       :camera/draw-mode :select

@@ -3,7 +3,6 @@
             [ogres.app.const :refer [VERSION]]
             [ogres.app.hooks :refer [use-dispatch use-query]]
             [ogres.app.provider.release :as release]
-            [ogres.app.util :refer [comp-fn]]
             [uix.core :refer [defui $ use-context]]))
 
 (def ^:private query-footer
@@ -108,7 +107,7 @@
           ($ :legend (str "Players"))
           ($ :.session-players
             (if (seq conns)
-              (let [xf (filter (comp-fn = :user/type :conn))]
+              (let [xf (filter (comp #{:conn} :user/type))]
                 (for [conn (->> conns (sequence xf) (sort-by :db/id))]
                   ($ :.session-player {:key (:db/id conn)}
                     ($ :.session-player-color {:data-color (:user/color conn)})

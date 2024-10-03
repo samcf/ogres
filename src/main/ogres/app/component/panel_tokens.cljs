@@ -2,7 +2,7 @@
   (:require [goog.object :as object :refer [getValueByKeys]]
             [ogres.app.component :refer [icon image pagination modal-fullscreen]]
             [ogres.app.hooks :refer [use-publish use-dispatch use-image use-image-uploader use-query use-shortcut]]
-            [ogres.app.util :refer [separate comp-fn]]
+            [ogres.app.util :refer [separate]]
             [uix.core :as uix :refer [defui $ use-callback use-ref use-state use-effect use-memo]]
             [uix.dom :refer [create-portal]]
             ["@dnd-kit/core"
@@ -124,7 +124,7 @@
   (let [result (use-query query-form [:db/ident :root])
         {data :root/token-images
          {type :user/type} :root/user} result
-        [pub prv] (separate (comp-fn = :image/scope :public) data)
+        [pub prv] (separate (comp #{:public} :image/scope) data)
         data-pub  (into [:default] (reverse pub))
         data-prv  (vec (reverse prv))
         drop-pub  (use-droppable #js {"id" "scope-pub"})
