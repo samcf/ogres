@@ -548,11 +548,8 @@
 (defmethod event-tx-fn :share/initiate [] [])
 
 (defmethod event-tx-fn :share/toggle
-  [data _ open?]
-  (let [user (ds/entity data [:db/ident :user])]
-    [{:db/ident :user
-      :user/sharing? open?
-      :user/privileged? (and (= (:user/type user) :host) open?)}]))
+  [_ _ open?]
+  [{:db/ident :user :user/sharing? open?}])
 
 (defmethod event-tx-fn :bounds/change
   [data _ w-type bounds]

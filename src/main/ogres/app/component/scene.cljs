@@ -513,7 +513,7 @@
 
 (def ^:private scene-query
   [:user/type
-   [:user/privileged? :default false]
+   :user/sharing?
    [:bounds/host :default [0 0 0 0]]
    [:bounds/view :default [0 0 0 0]]
    {:user/camera
@@ -569,4 +569,5 @@
       (if (contains? draw-modes mode)
         ($ :g.scene-drawable {:class (str "scene-drawable-" (name mode))}
           ($ draw {:key mode :mode mode :node nil})))
-      (if (:user/privileged? result) ($ player-window-bounds)))))
+      (if (and (= user :host) (:user/sharing? result))
+        ($ player-window-bounds)))))

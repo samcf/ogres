@@ -17,7 +17,6 @@
 (def ^:private ignored-attrs
   #{:user/type
     :user/status
-    :user/privileged?
     :user/sharing?
     :session/state})
 
