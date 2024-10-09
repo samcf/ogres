@@ -3,6 +3,7 @@
             [ogres.app.component.layout  :refer [layout]]
             [ogres.app.const             :refer [PATH]]
             [ogres.app.dom               :refer [user-type]]
+            [ogres.app.provider.idb      :as idb]
             [ogres.app.provider.cursor   :as cursor]
             [ogres.app.provider.dispatch :as dispatch]
             [ogres.app.provider.events   :as events]
@@ -33,7 +34,7 @@
     ($ events/provider
       ($ state/provider {:type (user-type)}
         ($ dispatch/provider
-          ($ storage/provider
+          ($ idb/provider
             ($ release/provider
               ($ image/provider
                 ($ portal/provider
