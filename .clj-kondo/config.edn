@@ -1,1 +1,2 @@
-{:linters {:missing-else-branch {:level :off}}}
+{:lint-as {shadow.cljs.modern/js-await clojure.core/let}
+ :linters {:missing-else-branch {:level :off}}}

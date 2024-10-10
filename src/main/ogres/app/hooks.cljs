@@ -4,7 +4,6 @@
             [ogres.app.provider.image    :as provider.image]
             [ogres.app.provider.portal   :as provider.portal]
             [ogres.app.provider.state    :as provider.state]
-            [ogres.app.provider.storage  :as provider.storage]
             [uix.core                    :refer [use-effect use-state use-ref use-callback]]
             ["@rwh/keystrokes"           :refer [bindKey unbindKey]]))
 
@@ -75,13 +74,6 @@
        :arglists '([props])}
   use-portal
   provider.portal/use)
-
-(def ^{:doc "Returns an instance of a Dexie object. This object is used to
-             query and write to the browser's IndexedDB. See
-             https://dexie.org/docs/Dexie/Dexie for more information."
-       :arglists '([])}
-  use-store
-  provider.storage/use-store)
 
 (defn use-event-listener
   "Creates a DOM event listener on the given DOM object `element` for `event`,

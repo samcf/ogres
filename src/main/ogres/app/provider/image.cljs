@@ -1,8 +1,8 @@
 (ns ogres.app.provider.image
   (:require [ogres.app.provider.dispatch :refer [use-dispatch]]
             [ogres.app.provider.events :refer [use-publish use-subscribe]]
+            [ogres.app.provider.idb :as idb]
             [ogres.app.provider.state :as state :refer [use-query]]
-            [ogres.app.provider.storage :refer [use-store]]
             [datascript.core :as ds]
             [uix.core :refer [defui $ create-context use-callback use-state use-context use-effect]]))
 
@@ -88,7 +88,8 @@
 
 (defui provider [props]
   (let [conn           (use-context state/context)
-        store          (use-store)
+        read           (idb/use-reader "images")
+        write          (idb/use-writer "images")
         loading        (atom {})
         publish        (use-publish)
         dispatch       (use-dispatch)
@@ -100,8 +101,7 @@
              (if (not url)
                (when (not (get @loading hash))
                  (swap! loading assoc hash true)
-                 (-> (.table store "images")
-                     (.get hash)
+                 (-> (read hash)
                      (.then (fn [rec] (js/URL.createObjectURL (.-data rec))))
                      (.then (fn [url] (set-url (fn [urls] (assoc urls hash url)))))
                      (.catch (fn [] (publish :image/request hash)))))
@@ -118,15 +118,14 @@
       (use-callback
        (fn [image callback]
          (-> (create-hash image)
-             (.then (fn [hash] (.put (.table store "images") #js {"checksum" hash "data" image})))
+             (.then (fn [hash] (write :put [#js {"checksum" hash "data" image}]) hash))
              (.then (fn [hash] (set-url (fn [urls] (assoc urls hash (js/URL.createObjectURL image)))) hash))
-             (.then (fn [hash] (when (fn? callback) (callback hash)))))) [store]))
+             (.then (fn [hash] (when (fn? callback) (callback hash)))))) [write]))
     (use-subscribe :image/change-thumbnail
       (use-callback
        (fn [hash [ax ay bx by :as rect]]
-         (let [entity (ds/entity (ds/db conn) [:image/hash hash])
-               images (.table store "images")]
-           (-> (.get images hash)
+         (let [entity (ds/entity (ds/db conn) [:image/hash hash])]
+           (-> (read hash)
                (.then (fn [rec] (js/createImageBitmap (.-data rec))))
                (.then
                 (fn [src]
@@ -137,12 +136,13 @@
                 (fn [out]
                   (let [thumb (:image/hash (:image/thumbnail entity))]
                     (js/Promise.all
-                     #js [(.put images #js {"checksum" (:hash out) "data" (:data out)})
-                          (if (not= hash thumb) (.delete images thumb))
+                     #js [(write :put [#js {"checksum" (:hash out) "data" (:data out)}])
+                          (if (not= hash thumb)
+                            (write :delete thumb))
                           out]))))
                (.then
                 (fn [[_ _ data]]
-                  (dispatch :token-images/change-thumbnail hash data rect)))))) [dispatch conn store]))
+                  (dispatch :token-images/change-thumbnail hash data rect)))))) [read dispatch conn write]))
     ($ image {:value [urls on-request]}
       (:children props))))
 
@@ -194,7 +194,7 @@
   [{:keys [type]}]
   (let [dispatch (use-dispatch)
         publish  (use-publish)
-        store    (use-store)
+        write    (idb/use-writer "images")
         user     (use-query [:user/type] [:db/ident :user])]
     (case (:user/type user)
       :host
@@ -203,15 +203,14 @@
          (-> (js/Promise.all (into-array (into [] (map process-file) files)))
              (.then
               (fn [files]
-                (let [records (into-array (into [] (mapcat create-store-records) files))]
-                  (.then (.bulkPut (.table store "images") records)
-                         (constantly files)))))
+                (let [records (sequence (mapcat create-store-records) files)]
+                  (.then (write :put records) (constantly files)))))
              (.then
               (fn [files]
                 (let [records (into [] (map create-state-records) files)]
                   (case type
                     :token (dispatch :token-images/create-many records :private)
-                    :scene (dispatch :scene-images/create-many records :private))))))) [dispatch store type])
+                    :scene (dispatch :scene-images/create-many records :private))))))) [dispatch write type])
       :conn
       (use-callback
        (fn [files]

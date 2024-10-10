@@ -60,14 +60,15 @@
                 // specified by it. When no record is found, initialize the
                 // "latest" release instead.
                 let req = window.indexedDB.open("ogres.app", 10);
-                req.onupgradeneeded = (event) => {
+
+                req.addEventListener("upgradeneeded", (event) => {
                     let db = event.target.result;
                     db.createObjectStore("app", {keyPath: "release"})
                       .createIndex("updated", "updated");
                     db.createObjectStore("images", {keyPath: "checksum"});
-                };
+                });
 
-                req.onsuccess = (event) => {
+                req.addEventListener("success", (event) => {
                     let db  = event.target.result;
                     let trx = db.transaction(["app"], "readonly");
                     let str = trx.objectStore("app");
@@ -79,8 +80,9 @@
                           ? "release/" + res.value.release
                           : "release/latest";
                         initialize(rls);
+                        db.close();
                     };
-                };
+                });
 
                 req.onerror = console.error;
             }

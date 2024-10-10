@@ -4,7 +4,8 @@
             [datascript.transit :as dst]
             [goog.functions :refer [throttle]]
             [ogres.app.const :refer [SOCKET-URL]]
-            [ogres.app.hooks :refer [use-event-listener use-subscribe use-dispatch use-publish use-interval use-store]]
+            [ogres.app.hooks :refer [use-event-listener use-subscribe use-dispatch use-publish use-interval]]
+            [ogres.app.provider.idb :as idb]
             [ogres.app.provider.state :as provider.state]
             [uix.core :refer [defui use-context use-state use-callback use-effect use-memo]]
             ["@msgpack/msgpack" :as MessagePack]))
@@ -45,7 +46,7 @@
 ;; of important events. The embedded :data map will always contain a member
 ;; called :name to distinguish different kinds of events.
 (defmethod on-receive-text :event
-  [{:keys [data] :as message} conn publish store on-send on-send-binary]
+  [{:keys [data] :as message} conn publish images on-send on-send-binary]
   (case (:name data)
     :session/created
     (ds/transact!
@@ -91,7 +92,7 @@
     (ds/transact! conn [[:db/retractEntity [:user/uuid (:uuid data)]]])
 
     :image/request
-    (-> (.get (.table store "images") (:hash data))
+    (-> (images (:hash data))
         (.then (fn [data] (.-data data)))
         (.then (fn [data] (.arrayBuffer data)))
         (.then
@@ -144,7 +145,7 @@
   (let [[socket set-socket] (use-state nil)
         dispatch (use-dispatch)
         publish  (use-publish)
-        store    (use-store)
+        images   (idb/use-reader "images")
         conn     (use-context provider.state/context)
         on-send-text
         (use-callback
@@ -281,11 +282,11 @@
        (fn [event]
          (if (string? (.-data event))
            (-> (transit/read reader (.-data event))
-               (on-receive-text conn publish store on-send-text on-send-binary))
+               (on-receive-text conn publish images on-send-text on-send-binary))
            (-> (.arrayBuffer (.-data event))
                (.then (fn [data] (MessagePack/decode data)))
                (.then (fn [data] (on-receive-binary data conn publish))))))
-       [conn publish store on-send-text on-send-binary]))
+       [conn publish images on-send-text on-send-binary]))
 
     ;; Establish a WebSocket connection to the room identified by the "join"
     ;; query parameter in the URL.
