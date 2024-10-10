@@ -12,7 +12,6 @@
             [ogres.app.provider.release  :as release]
             [ogres.app.provider.shortcut :as shortcut]
             [ogres.app.provider.state    :as state]
-            [ogres.app.provider.storage  :as storage]
             [ogres.app.provider.window   :as window]
             [ogres.app.session           :as session]
             [uix.core :as uix :refer [$ defui]]
@@ -32,14 +31,13 @@
        :precedence "high"})
     ($ :link {:rel "stylesheet" :href (str PATH "/ogres.app.css") :precedence "default"})
     ($ events/provider
-      ($ state/provider {:type (user-type)}
-        ($ dispatch/provider
-          ($ idb/provider
+      ($ idb/provider
+        ($ state/provider {:type (user-type)}
+          ($ dispatch/provider
             ($ release/provider
               ($ image/provider
                 ($ portal/provider
                   ($ :<>
-                    ($ storage/handlers)
                     ($ window/provider)
                     ($ shortcut/handlers)
                     ($ session/handlers)

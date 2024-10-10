@@ -38,7 +38,7 @@
                   {:on-click
                    (fn []
                      (if-let [_ (js/confirm confirm-upgrade)]
-                       (dispatch :storage/reset)))} "Upgrade to latest version [ " latest " ]"))
+                       (dispatch :store/reset)))} "Upgrade to latest version [ " latest " ]"))
               ($ :<>
                 ($ :p ($ :strong "You're on the latest version."))
                 ($ :p "Pressing this button will delete all your local data and
@@ -48,7 +48,7 @@
                   {:on-click
                    (fn []
                      (if-let [_ (js/confirm confirm-delete)]
-                       (dispatch :storage/reset)))} "Delete local data"))))))
+                       (dispatch :store/reset)))} "Delete local data"))))))
       ($ :fieldset.fieldset
         ($ :legend "Backup and Restore")
         ($ :div.form-notice
@@ -61,7 +61,7 @@
               {:on-click
                (fn []
                  (if-let [_ (js/confirm confirm-backup)]
-                   (dispatch :storage/backup)))} "Create Backup")
+                   (dispatch :store/create-backup)))} "Create Backup")
             ($ :br)
             ($ :p {:style {:margin-bottom 4}}
               "Select a backup file to restore your data and images. Note that "
@@ -75,7 +75,7 @@
                        file (first files)]
                    (if-not (nil? file)
                      (if-let [_ (js/confirm confirm-restore)]
-                       (dispatch :storage/restore file)))))}
+                       (dispatch :store/restore-backup file)))))}
               ($ :div
                 {:style
                  {:display "flex"
@@ -91,7 +91,7 @@
                    :name "restore-upload"
                    :id "restore-upload"
                    :style {:display "none"}
-                   :accept ".json"
+                   :accept ".backup"
                    :ref file-input
                    :on-change
                    (fn [event]

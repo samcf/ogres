@@ -1,5 +1,7 @@
 {:extra-indents
- {js-await           [[:inner 0]]
+ {.addEventListener  [[:inner 0]]
+  js-await           [[:inner 0]]
+  ds/listen!         [[:inner 0]]
   use-subscribe      [[:inner 0]]
   use-event-listener [[:inner 0]]
   use-shortcut       [[:inner 0]]
