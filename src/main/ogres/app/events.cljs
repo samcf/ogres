@@ -88,15 +88,6 @@
 
 ;; -- Local --
 (defmethod
-  ^{:doc "Change the rendering status of the given local user. This status
-          is used to decide what the top-level rendering mode is in order
-          to, for example, render an error page when a WebSocket connection
-          has failed."}
-  event-tx-fn :user/change-status
-  [_ _ status]
-  [{:db/ident :user :user/status status}])
-
-(defmethod
   ^{:doc "Change the selected panel to the keyword given by `panel`."}
   event-tx-fn :user/select-panel
   [_ _ panel]
@@ -793,31 +784,21 @@
   []
   [{:db/ident :root :root/session
     {:db/ident :session :session/host
-     {:db/ident :user :session/state :connecting :panel/selected :lobby}}}])
+     {:db/ident :user :session/status :connecting :panel/selected :lobby}}}])
 
 (defmethod
   ^{:doc "Attempts to join an existing online session through the server. This
           transaction only updates the connection status of the local user."}
   event-tx-fn :session/join
   []
-  [{:db/ident :user :session/state :connecting}])
+  [{:db/ident :user :session/status :connecting}])
 
 (defmethod
   ^{:doc "Destroys the existing online session, pruning it and all player
           user state."}
   event-tx-fn :session/close
   []
-  [{:db/ident :user :session/state :disconnected}
-   [:db/retract [:db/ident :session] :session/host]
-   [:db/retract [:db/ident :session] :session/conns]])
-
-(defmethod
-  ^{:doc "Updates the connection status for the local user to `disconnected`.
-          This is typically done in response to an unexpected closure of the
-          server connection."}
-  event-tx-fn :session/disconnected
-  []
-  [{:db/ident :user :session/state :disconnected}
+  [{:db/ident :user :session/status :disconnected}
    [:db/retract [:db/ident :session] :session/host]
    [:db/retract [:db/ident :session] :session/conns]])
 
@@ -827,6 +808,13 @@
   event-tx-fn :session/toggle-share-cursors
   [_ _ enabled]
   [{:db/ident :session :session/share-cursors enabled}])
+
+(defmethod event-tx-fn :session/change-status
+  ^{:doc "Updates the user's session status in response to changes to
+          the WebSocket's ready state."}
+  [_ _ status]
+  (let [statuses {0 :connecting 1 :connected 2 :disconnecting 3 :disconnected}]
+    [{:db/ident :user :session/status (statuses status)}]))
 
 (defmethod
   ^{:doc "Toggles whether or not the cursor of the local user is displayed

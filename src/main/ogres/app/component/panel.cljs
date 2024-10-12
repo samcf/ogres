@@ -9,7 +9,7 @@
             [uix.core                  :refer [defui $]]))
 
 (def ^:private status-query
-  [{:root/user [:user/type [:session/state :default :initial]]
+  [{:root/user [:user/type [:session/status :default :initial]]
     :root/session [:session/conns :session/room]}])
 
 (def ^:private status-icon
@@ -18,12 +18,11 @@
 (defui status []
   (let [dispatch (use-dispatch)
         result   (use-query status-query [:db/ident :root])
-        {{type  :user/type
-          state :session/state} :root/user
+        {{type :user/type status :session/status} :root/user
          {code  :session/room
           conns :session/conns} :root/session} result
         connected (cond-> (count conns) (= type :host) (inc))]
-    (case state
+    (case status
       :initial      ($ :button.button {:on-click #(dispatch :session/request)} status-icon "Start online game")
       :connecting   ($ :button.button {:disabled true} status-icon "Connecting...")
       :connected    ($ :button.button {:disabled true} status-icon "Connected / " code " / [ " connected " ]")

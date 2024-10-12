@@ -43,7 +43,7 @@
     [:db/add -1 :root/session -5]
     [:db/add -2 :db/empty true]
     [:db/add -3 :db/ident :user]
-    [:db/add -3 :user/status :none]
+    [:db/add -3 :user/ready false]
     [:db/add -3 :user/color "red"]
     [:db/add -3 :user/camera -4]
     [:db/add -3 :user/cameras -4]
@@ -75,7 +75,7 @@
        (fn [hashes] (write :delete hashes)) [write]))))
 
 (def ^:private ignored-attrs
-  #{:user/type :user/status :user/sharing? :session/state})
+  #{:user/type :user/ready :user/sharing? :session/status})
 
 (defui ^:private persistence [{:keys [type]}]
   (let [conn  (uix/use-context context)
@@ -88,7 +88,7 @@
        (ds/listen! conn :marshaller
          (throttle
           (fn [{:keys [db-after]}]
-            (if (= (:user/status (ds/entity db-after [:db/ident :user])) :ready)
+            (if (:user/ready (ds/entity db-after [:db/ident :user]))
               (-> db-after
                   (ds/db-with [[:db/retract [:db/ident :session] :session/host]
                                [:db/retract [:db/ident :session] :session/conns]])
@@ -105,7 +105,7 @@
     (uix/use-effect
      (fn []
        (let [tx-data
-             [[:db/add [:db/ident :user] :user/status :ready]
+             [[:db/add [:db/ident :user] :user/ready true]
               [:db/add [:db/ident :user] :user/type type]]]
          (.then (read VERSION)
                 (fn [record]

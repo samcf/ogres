@@ -8,7 +8,7 @@
 (def ^:private query-footer
   [{:root/user
     [[:user/type :default :conn]
-     [:session/state :default :initial]]}
+     [:session/status :default :initial]]}
    {:root/session [:session/room]}])
 
 (def ^:private query-form
@@ -17,7 +17,7 @@
      :user/uuid
      :user/type
      :user/color
-     [:session/state :default :initial]
+     [:session/status :default :initial]
      [:user/share-cursor :default true]]}
    {:root/session
     [:session/room
@@ -40,7 +40,7 @@
           conns   :session/conns
           cursors :session/share-cursors} :root/session
          {share :user/share-cursor
-          state :session/state
+          state :session/status
           type  :user/type
           id    :db/id} :root/user} result]
     (if (#{:connecting :connected :disconnected} state)
@@ -125,33 +125,30 @@
 (defui footer []
   (let [dispatch (use-dispatch)
         result   (use-query query-footer [:db/ident :root])
-        {{state :session/state type :user/type} :root/user
+        {{status :session/status type :user/type} :root/user
          {room-key :session/room} :root/session} result]
     ($ :<>
       ($ :button.button.button-primary
         {:type "button"
          :on-click #(dispatch :session/request)
-         :disabled (or (= state :connecting) (= state :connected) (not= type :host))}
+         :disabled (or (= status :connecting) (= status :connected) (not= type :host))}
         ($ icon {:name "globe-americas" :size 16})
-        (case [type state]
+        (case [type status]
           [:host :initial]      "Start online game"
           [:host :connected]    "Connected"
           [:host :disconnected] "Restart"
           [:host :connecting]   "Connecting"
-          [:conn :initial]      "No Such Room"
-          [:conn :connected]    "Connected"
-          [:conn :disconnected] "Reconnecting"
-          [:conn :connecting]   "Reconnecting"))
+          [:conn :connected]    "Connected"))
       ($ :button.button.button-neutral
         {:type "button"
          :title "Share room link"
-         :disabled (not= state :connected)
+         :disabled (not= status :connected)
          :on-click #(.. js/window -navigator -clipboard (writeText (session-url room-key)))}
         ($ icon {:name "share-fill" :size 14}) "Share")
       ($ :button.button.button-danger
         {:type "button"
          :title "Disconnect"
-         :disabled (or (not= state :connected) (not= type :host))
+         :disabled (or (not= status :connected) (not= type :host))
          :on-click #(dispatch :session/close)}
         ($ icon {:name "wifi-off" :size 16})
         "Quit"))))

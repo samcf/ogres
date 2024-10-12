@@ -52,7 +52,7 @@
     (ds/transact!
      conn
      [[:db/add [:db/ident :user] :user/uuid (:uuid data)]
-      [:db/add [:db/ident :user] :session/state :connected]
+      [:db/add [:db/ident :user] :session/status :connected]
       [:db/add [:db/ident :user] :session/last-room (:room data)]
       [:db/add [:db/ident :session] :session/room (:room data)]])
 
@@ -60,18 +60,18 @@
     (ds/transact!
      conn
      [[:db/add [:db/ident :user] :user/uuid (:uuid data)]
-      [:db/add [:db/ident :user] :session/state :connected]])
+      [:db/add [:db/ident :user] :session/status :connected]])
 
     :session/join
     (let [user (ds/entity @conn [:db/ident :user])]
       (if (= (:user/type user) :host)
         (let [tx-data
-              [{:user/uuid     (:uuid data)
-                :user/type     :conn
-                :user/status   :ready
-                :user/color    (next-color @conn color-options)
-                :session/state :connected
-                :user/cameras  -1
+              [{:user/uuid (:uuid data)
+                :user/type :conn
+                :user/ready true
+                :user/color (next-color @conn color-options)
+                :user/cameras -1
+                :session/status :connected
                 :user/camera
                 (let [{{point :camera/point
                         scale :camera/scale
@@ -162,7 +162,17 @@
                        #js {}
                        #js {"time" (js/Date.now) "src" (str (:user/uuid user))}
                        message)]
-             (.send socket (MessagePack/encode data)))) [socket conn])]
+             (.send socket (MessagePack/encode data)))) [socket conn])
+        on-status-change
+        (use-callback
+         (fn [event]
+           (let [state (.. event -target -readyState)]
+             (dispatch :session/change-status state))) [dispatch])]
+
+    ;; Listen to changes to the state of the WebSocket connection.
+    (use-event-listener socket "open"  on-status-change)
+    (use-event-listener socket "close" on-status-change)
+    (use-event-listener socket "error" on-status-change)
 
     ;; Periodically attempt to re-establish closed connections.
     (use-interval
@@ -170,7 +180,7 @@
       (fn []
         (let [user (ds/entity @conn [:db/ident :user])]
           (if (and (= (:user/type user) :conn)
-                   (= (:session/state user) :disconnected))
+                   (= (:session/status user) :disconnected))
             (dispatch :session/join)))) [conn dispatch]) interval-reconnect)
 
     ;; Periodically send heartbeat messages to keep the session connections
@@ -181,7 +191,7 @@
       (fn []
         (let [user (ds/entity @conn [:db/ident :user])]
           (if (and (= (:user/type user) :host)
-                   (= (:session/state user) :connected))
+                   (= (:session/status user) :connected))
             (dispatch :session/heartbeat)))) [conn dispatch]), interval-heartbeat)
 
     ;; Subscribe to requests to create a new session, creating a WebSocket
@@ -260,21 +270,6 @@
            (let [data {:name :cursor/moved :coord [x y]}]
              (on-send-text {:type :event :data data}))) 66) [on-send-text]))
 
-    ;; Listen to the "close" event on the WebSocket object and dispatch the
-    ;; appropriate event to communicate this change to state.
-    (use-event-listener socket "close"
-      (use-callback
-       (fn []
-         (dispatch :session/disconnected)) [dispatch]))
-
-    ;; Listen to the "error" event on the WebSocket object.
-    (use-event-listener socket "error"
-      (use-callback
-       (fn []
-         (let [user (ds/entity (ds/db conn) [:db/ident :user])]
-           (if (= (:user/type user) :conn)
-             (dispatch :user/change-status :disconnected)))) [conn dispatch]))
-
     ;; Listen to the "message" event on the WebSocket object and forward the
     ;; event details to the appropriate handler.
     (use-event-listener socket "message"
@@ -293,7 +288,7 @@
     (use-effect
      (fn []
        (let [user (ds/entity @conn [:db/ident :user])
-             state (:session/state user)
-             type (:user/type user)]
-         (if (and (= type :conn) (or (nil? state) (= state :initial)))
+             type (:user/type user)
+             status (:session/status user)]
+         (if (and (= type :conn) (or (nil? status) (= status :initial)))
            (dispatch :session/join)))) [conn dispatch])))
