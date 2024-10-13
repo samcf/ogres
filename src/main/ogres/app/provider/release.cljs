@@ -1,12 +1,12 @@
 (ns ogres.app.provider.release
   (:require [clojure.string :refer [split-lines]]
-            [uix.core :refer [$ defui create-context use-effect use-state]]))
+            [uix.core :as uix :refer [defui $]]))
 
-(def context (create-context))
+(def context (uix/create-context))
 
 (defui provider [{:keys [children]}]
-  (let [[releases set-releases] (use-state nil)]
-    (use-effect
+  (let [[releases set-releases] (uix/use-state nil)]
+    (uix/use-effect
      (fn []
        (-> (js/fetch "/releases.txt")
            (.then (fn [res] (.text res)))

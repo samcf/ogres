@@ -4,7 +4,7 @@
             [shadow.cljs.modern :refer (js-await)]
             ["@msgpack/msgpack" :as MessagePack]))
 
-(def ^:private context (uix/create-context (js/Promise.resolve)))
+(def ^:private context (uix/create-context))
 
 (defn ^:private download [data filename]
   (let [anchor (js/document.createElement "a")
@@ -155,7 +155,7 @@
   "Provides a React context whose value is a Promise which resolves
    with an instance of IDBDatabase, an IndexedDB database connection."
   [props]
-  (let [req (initialize "ogres.app" 10)]
+  (let [[req] (uix/use-state (initialize "ogres.app" 10))]
     ($ context {:value req}
       ($ listeners)
       (:children props))))

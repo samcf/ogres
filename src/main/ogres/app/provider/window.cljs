@@ -5,9 +5,9 @@
             [goog.functions :refer [throttle]]
             [ogres.app.hooks :refer [use-event-listener use-subscribe use-dispatch use-query]]
             [ogres.app.provider.state :as provider.state]
-            [uix.core :refer [defui $ create-context use-callback use-context use-memo use-state use-effect]]))
+            [uix.core :as uix :refer [defui $]]))
 
-(def ^:private context (create-context))
+(def ^:private context (uix/create-context))
 
 (def ^:private reader (t/reader :json {:handlers dst/read-handlers}))
 (def ^:private writer (t/writer :json {:handlers dst/write-handlers}))
@@ -23,7 +23,7 @@
   "Registers a DataScript listener in order to manage the view window, the
    player's view of the scene." []
   (let [dispatch             (use-dispatch)
-        {:keys [view reset]} (use-context context)]
+        {:keys [view reset]} (uix/use-context context)]
     (use-subscribe :share/initiate
       (fn []
         (if (nil? view)
@@ -39,7 +39,7 @@
 (defui ^:private dispatcher
   "Registers a DataScript listener in order to forward transactions from the
    host window to the view window." []
-  (let [{:keys [view]} (use-context context)]
+  (let [{:keys [view]} (uix/use-context context)]
     (use-subscribe :tx/commit
       (fn [{tx-data :tx-data}]
         (->>
@@ -51,9 +51,9 @@
   "Registers an event handler to listen for application state changes in the
    form of serialized EDN DataScript transactions. Unmarshals and transacts
    those against the local DataScript connection." []
-  (let [conn (use-context provider.state/context)]
+  (let [conn (uix/use-context provider.state/context)]
     (use-event-listener "AppStateTx"
-      (use-callback
+      (uix/use-callback
        (fn [event]
          (->>
           (.-detail event)
@@ -66,17 +66,17 @@
    of the form [x y width height]."
   [{:keys [target type]}]
   (let [dispatch (use-dispatch)
-        handler  (use-memo
+        handler  (uix/use-memo
                   #(throttle
                     (fn []
                       (if-let [element (.. target -document (querySelector ".layout-scene"))]
                         (->> (.getBoundingClientRect element)
                              (bounds->vector)
                              (dispatch :bounds/change type)))) 100) [dispatch type target])
-        [observer] (use-state (js/ResizeObserver. handler))
-        [scene set-scene] (use-state nil)]
+        [observer] (uix/use-state (js/ResizeObserver. handler))
+        [scene set-scene] (uix/use-state nil)]
     (use-event-listener "resize" handler)
-    (use-effect
+    (uix/use-effect
      (fn []
        (if (= type :host)
          (.dispatchEvent target (js/Event. "resize")))
@@ -86,7 +86,7 @@
               (set-scene element)
               (.requestAnimationFrame js/window f)))))))
 
-    (use-effect
+    (uix/use-effect
      (fn []
        (when scene
          (.observe observer scene)
@@ -96,9 +96,9 @@
   "Registers event handlers to listen for the host or view windows being
    closed."
   []
-  (let [{:keys [view reset]} (use-context context)]
+  (let [{:keys [view reset]} (uix/use-context context)]
     (use-event-listener view "visibilitychange"
-      (use-callback
+      (uix/use-callback
        (fn []
          (.. js/window (setTimeout #(when (.-closed view) (reset)) 200)))
        [view reset]))
@@ -109,10 +109,10 @@
   "Provides a reference to the view window, if any, and registers several
    event handlers needed for them."
   []
-  (let [[screen set-screen] (use-state nil)
+  (let [[screen set-screen] (uix/use-state nil)
         dispatch (use-dispatch)
         result   (use-query [:user/type :user/ready])
-        on-reset (use-callback
+        on-reset (uix/use-callback
                   (fn
                     ([] (when-let [element screen]
                           (.close element)

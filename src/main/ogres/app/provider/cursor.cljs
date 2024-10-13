@@ -1,6 +1,6 @@
 (ns ogres.app.provider.cursor
   (:require [ogres.app.hooks :refer [use-publish use-query use-event-listener]]
-            [uix.core :as uix :refer [use-callback defui]]))
+            [uix.core :as uix :refer [defui]]))
 
 (def ^:private handler-query
   [[:bounds/self :default [0 0 0 0]]
@@ -15,7 +15,7 @@
          {[cx cy] :camera/point
           scale :camera/scale} :user/camera} result]
     (use-event-listener js/window "pointermove"
-      (use-callback
+      (uix/use-callback
        (fn [event]
          (if-let [element (.. event -target (closest "#scene-drag"))]
            (let [data (.-dataset element)]

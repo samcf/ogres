@@ -52,7 +52,7 @@
     [:db/add -4 :camera/scene -2]
     [:db/add -5 :db/ident :session]]))
 
-(def context (uix/create-context (ds/conn-from-db (initial-data :host))))
+(def context (uix/create-context))
 
 (defui ^:private listeners []
   (let [write (idb/use-writer "images")]
@@ -122,7 +122,7 @@
   "Provides a DataScript in-memory database to the application and causes
    re-renders when transactions are performed."
   [{:keys [children type] :or {type :host}}]
-  (let [conn (ds/conn-from-db (initial-data type))]
+  (let [[conn] (uix/use-state (ds/conn-from-db (initial-data type)))]
     ($ context {:value conn}
       (if (or (= type :host) (= type :view))
         ($ persistence {:type type}))

@@ -8,8 +8,7 @@
 
 (def ^:private hash-fn "SHA-1")
 
-(def ^:private image
-  (create-context {{} (constantly nil)}))
+(def ^:private context (create-context))
 
 (defn ^:private decode-digest
   "Returns a hash string of the given digest array."
@@ -143,7 +142,7 @@
                (.then
                 (fn [[_ _ data]]
                   (dispatch :token-images/change-thumbnail hash data rect)))))) [read dispatch conn write]))
-    ($ image {:value [urls on-request]}
+    ($ context {:value [urls on-request]}
       (:children props))))
 
 (defn ^:private process-file
@@ -229,7 +228,7 @@
      ($ :img {:src url}))
    ```"
   [hash]
-  (let [[urls on-request] (use-context image)]
+  (let [[urls on-request] (use-context context)]
     (use-effect
      (fn [] (on-request hash)) [on-request hash])
     (get urls hash)))
