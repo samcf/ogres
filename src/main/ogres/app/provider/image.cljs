@@ -138,7 +138,7 @@
                     (js/Promise.all
                      #js [(write :put [#js {"checksum" (:hash out) "data" (:data out)}])
                           (if (not= hash thumb)
-                            (write :delete thumb))
+                            (write :delete [thumb]))
                           out]))))
                (.then
                 (fn [[_ _ data]]
