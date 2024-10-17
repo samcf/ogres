@@ -4,8 +4,8 @@
             [ogres.app.provider.image    :as provider.image]
             [ogres.app.provider.portal   :as provider.portal]
             [ogres.app.provider.state    :as provider.state]
-            [uix.core                    :refer [use-effect use-state use-ref use-callback]]
-            ["@rwh/keystrokes"           :refer [bindKey unbindKey]]))
+            [uix.core                    :as uix]
+            ["@rwh/keystrokes"           :as keystrokes]))
 
 (def ^{:doc "Returns a function which, when called with a topic and any number
              of additional arguments, will perform the following work:
@@ -81,7 +81,7 @@
   ([event f]
    (use-event-listener js/window event f))
   ([element event f]
-   (use-effect
+   (uix/use-effect
     (fn [] (if element (.addEventListener element event f #js {:passive false}))
       (fn [] (if element (.removeEventListener element event f #js {:passive false}))))
     [element event f])))
@@ -89,7 +89,7 @@
 (defn use-interval
   "Calls the given function `f` with no arguments every `delay` milliseconds."
   [f delay]
-  (use-effect
+  (uix/use-effect
    (fn []
      (let [id (js/window.setInterval f delay)]
        (fn [] (js/window.clearInterval id)))) [delay f]))
@@ -100,9 +100,9 @@
    `ref`. Pass `ref` to the element (or modal) you want to close when the user
    clicks outside of it."
   []
-  (let [[state set-state] (use-state false) ref (use-ref)]
+  (let [[state set-state] (uix/use-state false) ref (uix/use-ref)]
     (use-event-listener (if state js/document false) "click"
-      (use-callback
+      (uix/use-callback
        (fn [event]
          (if-let [node (deref ref)]
            (if (not (.contains node (.-target event)))
@@ -113,6 +113,6 @@
   "Binds one or more keyboard codes to the callback function given by f which
    receives a custom event as its only argument."
   [keys f]
-  (use-effect
-   (fn [] (doseq [key keys] (bindKey key f))
-     (fn [] (doseq [key keys] (unbindKey key f)))) [keys f]))
+  (uix/use-effect
+   (fn [] (doseq [key keys] (keystrokes/bindKey key f))
+     (fn [] (doseq [key keys] (keystrokes/unbindKey key f)))) [keys f]))

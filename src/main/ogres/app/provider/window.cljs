@@ -3,8 +3,8 @@
             [datascript.core :as ds]
             [datascript.transit :as dst]
             [goog.functions :refer [throttle]]
-            [ogres.app.hooks :refer [use-event-listener use-subscribe use-dispatch use-query]]
-            [ogres.app.provider.state :as provider.state]
+            [ogres.app.hooks :as hooks]
+            [ogres.app.provider.state :as state]
             [uix.core :as uix :refer [defui $]]))
 
 (def ^:private context (uix/create-context))
@@ -22,9 +22,9 @@
 (defui ^:private initialize
   "Registers a DataScript listener in order to manage the view window, the
    player's view of the scene." []
-  (let [dispatch             (use-dispatch)
+  (let [dispatch (hooks/use-dispatch)
         {:keys [view reset]} (uix/use-context context)]
-    (use-subscribe :share/initiate
+    (hooks/use-subscribe :share/initiate
       (fn []
         (if (nil? view)
           (let [params (js/URLSearchParams. #js {"share" true})
@@ -40,7 +40,7 @@
   "Registers a DataScript listener in order to forward transactions from the
    host window to the view window." []
   (let [{:keys [view]} (uix/use-context context)]
-    (use-subscribe :tx/commit
+    (hooks/use-subscribe :tx/commit
       (fn [{tx-data :tx-data}]
         (->>
          #js {:detail (t/write writer tx-data)}
@@ -51,8 +51,8 @@
   "Registers an event handler to listen for application state changes in the
    form of serialized EDN DataScript transactions. Unmarshals and transacts
    those against the local DataScript connection." []
-  (let [conn (uix/use-context provider.state/context)]
-    (use-event-listener "AppStateTx"
+  (let [conn (uix/use-context state/context)]
+    (hooks/use-event-listener "AppStateTx"
       (uix/use-callback
        (fn [event]
          (->>
@@ -65,7 +65,7 @@
    order to put those dimensions in the application state. Dimensions are
    of the form [x y width height]."
   [{:keys [target type]}]
-  (let [dispatch (use-dispatch)
+  (let [dispatch (hooks/use-dispatch)
         handler  (uix/use-memo
                   #(throttle
                     (fn []
@@ -75,7 +75,7 @@
                              (dispatch :bounds/change type)))) 100) [dispatch type target])
         [observer] (uix/use-state (js/ResizeObserver. handler))
         [scene set-scene] (uix/use-state nil)]
-    (use-event-listener "resize" handler)
+    (hooks/use-event-listener "resize" handler)
     (uix/use-effect
      (fn []
        (if (= type :host)
@@ -97,21 +97,21 @@
    closed."
   []
   (let [{:keys [view reset]} (uix/use-context context)]
-    (use-event-listener view "visibilitychange"
+    (hooks/use-event-listener view "visibilitychange"
       (uix/use-callback
        (fn []
          (.. js/window (setTimeout #(when (.-closed view) (reset)) 200)))
        [view reset]))
-    (use-event-listener "beforeunload"
+    (hooks/use-event-listener "beforeunload"
       (fn [] (reset)))))
 
-(defui provider
+(defui listeners
   "Provides a reference to the view window, if any, and registers several
    event handlers needed for them."
   []
   (let [[screen set-screen] (uix/use-state nil)
-        dispatch (use-dispatch)
-        result   (use-query [:user/type :user/ready])
+        dispatch (hooks/use-dispatch)
+        result   (hooks/use-query [:user/type :user/ready])
         on-reset (uix/use-callback
                   (fn
                     ([] (when-let [element screen]

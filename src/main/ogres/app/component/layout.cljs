@@ -1,5 +1,5 @@
 (ns ogres.app.component.layout
-  (:require [ogres.app.hooks :refer [use-query]]
+  (:require [ogres.app.hooks :as hooks]
             [ogres.app.component :refer [icon]]
             [ogres.app.component.panel :as panel]
             [ogres.app.component.scene :refer [scene]]
@@ -14,7 +14,7 @@
    [:session/status :default :none]])
 
 (defui layout []
-  (let [result (use-query query)
+  (let [result (hooks/use-query query)
         {type     :user/type
          ready    :user/ready
          status   :session/status

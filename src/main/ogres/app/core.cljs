@@ -3,19 +3,19 @@
             [ogres.app.component.layout  :refer [layout]]
             [ogres.app.const             :refer [PATH]]
             [ogres.app.dom               :refer [user-type]]
-            [ogres.app.provider.idb      :as idb]
-            [ogres.app.provider.cursor   :as cursor]
-            [ogres.app.provider.dispatch :as dispatch]
-            [ogres.app.provider.events   :as events]
-            [ogres.app.provider.image    :as image]
-            [ogres.app.provider.portal   :as portal]
-            [ogres.app.provider.release  :as release]
-            [ogres.app.provider.shortcut :as shortcut]
-            [ogres.app.provider.state    :as state]
-            [ogres.app.provider.window   :as window]
-            [ogres.app.session           :as session]
-            [uix.core :as uix :refer [$ defui]]
-            [uix.dom  :as dom]))
+            [ogres.app.provider.cursor   :as provider.cursor]
+            [ogres.app.provider.dispatch :as provider.dispatch]
+            [ogres.app.provider.events   :as provider.events]
+            [ogres.app.provider.idb      :as provider.idb]
+            [ogres.app.provider.image    :as provider.image]
+            [ogres.app.provider.portal   :as provider.portal]
+            [ogres.app.provider.release  :as provider.release]
+            [ogres.app.provider.shortcut :as provider.shortcut]
+            [ogres.app.provider.state    :as provider.state]
+            [ogres.app.provider.window   :as provider.window]
+            [ogres.app.session           :as provider.session]
+            [uix.core :as uix :refer [defui $]]
+            [uix.dom :as dom]))
 
 (def ^:private error-boundary
   (uix/create-error-boundary
@@ -30,20 +30,19 @@
        :cross-origin "true"
        :precedence "high"})
     ($ :link {:rel "stylesheet" :href (str PATH "/ogres.app.css") :precedence "default"})
-    ($ events/provider
-      ($ idb/provider
-        ($ state/provider {:type (user-type)}
-          ($ dispatch/provider
-            ($ release/provider
-              ($ image/provider
-                ($ portal/provider
-                  ($ :<>
-                    ($ window/provider)
-                    ($ shortcut/handlers)
-                    ($ session/handlers)
-                    ($ cursor/handlers)
-                    ($ error-boundary
-                      ($ layout))))))))))))
+    ($ provider.events/provider
+      ($ provider.idb/provider
+        ($ provider.state/provider {:type (user-type)}
+          ($ provider.dispatch/provider
+            ($ provider.release/provider
+              ($ provider.image/provider
+                ($ provider.portal/provider
+                  ($ provider.window/listeners)
+                  ($ provider.shortcut/listeners)
+                  ($ provider.session/listeners)
+                  ($ provider.cursor/listeners)
+                  ($ error-boundary
+                    ($ layout)))))))))))
 
 (defn ^:export main []
   (let [elem (.querySelector js/document "#root")

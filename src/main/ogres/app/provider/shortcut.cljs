@@ -1,5 +1,5 @@
 (ns ogres.app.provider.shortcut
-  (:require [ogres.app.hooks :refer [use-dispatch use-event-listener use-shortcut]]
+  (:require [ogres.app.hooks :as hooks]
             [uix.core :refer [defui]]))
 
 (defn ^:private allowed? [event]
@@ -46,11 +46,11 @@
    {:name "mask-toggle"   :keys [\t]            :desc "Mode: Reveal or obscure a fog shape"}
    {:name "mask-remove"   :keys [\x]            :desc "Mode: Remove a fog shape"}])
 
-(defui handlers []
-  (let [dispatch (use-dispatch)]
+(defui listeners []
+  (let [dispatch (hooks/use-dispatch)]
 
     ;; Zoom the camera in and out with the mousewheel or trackpad.
-    (use-event-listener "wheel"
+    (hooks/use-event-listener "wheel"
       (fn [event]
         (if (.closest (.-target event) ".scene")
           (let [ctrl (.-ctrlKey event)
@@ -61,7 +61,7 @@
             (dispatch :camera/zoom-delta posx posy delt ctrl)))))
 
     ;; Zoom the camera in and out with keyboard.
-    (use-shortcut [\= \-]
+    (hooks/use-shortcut [\= \-]
       (fn [data]
         (let [event (.-originalEvent data)]
           (if (and (allowed? event) (or (.-ctrlKey event) (.-metaKey event)))
@@ -71,14 +71,14 @@
                   \- (dispatch :camera/zoom-out)))))))
 
     ;; Change draw mode.
-    (use-shortcut [\1 \2 \3 \4 \5 \f \g \r \s \t \x]
+    (hooks/use-shortcut [\1 \2 \3 \4 \5 \f \g \r \s \t \x]
       (fn [data]
         (let [event (.-originalEvent data)]
           (if (and (allowed? event) (not (or (.-metaKey event) (.-ctrlKey event))))
             (dispatch :camera/change-mode (key->mode (.-key data)))))))
 
     ;; Select a focused token.
-    (use-shortcut [\ ]
+    (hooks/use-shortcut [\ ]
       (fn [data]
         (let [shift (.. data -originalEvent -shiftKey)
               data  (.. js/document -activeElement -dataset)
@@ -87,7 +87,7 @@
             (dispatch :objects/select (js/Number (.-id data)) shift)))))
 
     ;; Move tokens and pan camera around.
-    (use-shortcut ["arrowleft" "arrowup" "arrowright" "arrowdown"]
+    (hooks/use-shortcut ["arrowleft" "arrowup" "arrowright" "arrowdown"]
       (fn [data]
         (if (allowed? (.-originalEvent data))
           (let [[dx dy] (key->vector (.-key data))
@@ -104,7 +104,7 @@
                   (dispatch :objects/translate-selected (* dx 70) (* dy 70)))))))
 
     ;; Cut, copy, and paste tokens.
-    (use-shortcut [\c \x \v]
+    (hooks/use-shortcut [\c \x \v]
       (fn [data]
         (let [event (.-originalEvent data)]
           (if (and (allowed? event) (or (.-ctrlKey event) (.-metaKey event)))
@@ -114,13 +114,13 @@
               \v (dispatch :clipboard/paste))))))
 
     ;; Removes all token selections and revert the draw mode to select.
-    (use-shortcut ["escape"]
+    (hooks/use-shortcut ["escape"]
       (fn [data]
         (if (allowed? (.-originalEvent data))
           (dispatch :shortcut/escape))))
 
     ;; Removes selected or focused tokens.
-    (use-shortcut ["delete" "backspace"]
+    (hooks/use-shortcut ["delete" "backspace"]
       (fn [data]
         (if (allowed? (.-originalEvent data))
           (let [attr (.. js/document -activeElement -dataset)

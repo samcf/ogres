@@ -1,8 +1,8 @@
 (ns ogres.app.component.panel-initiative
   (:require [clojure.string :refer [join capitalize blank?]]
             [ogres.app.component :refer [icon image]]
-            [ogres.app.hooks :refer [use-dispatch use-modal use-query]]
-            [uix.core :as uix :refer [defui $ use-ref]]))
+            [ogres.app.hooks :as hooks]
+            [uix.core :as uix :refer [defui $]]))
 
 (def ^:private query-form
   [:user/type
@@ -43,8 +43,8 @@
 
 (defui ^:private form-dice
   [{:keys [value on-change]}]
-  (let [[editing set-editing form] (use-modal)
-        input (use-ref)]
+  (let [[editing set-editing form] (hooks/use-modal)
+        input (uix/use-ref)]
     ($ :.initiative-token-roll
       {:data-present (some? value)}
       ($ :button.initiative-token-roll-control
@@ -78,8 +78,8 @@
 
 (defui ^:private form-hp
   [{:keys [value on-change]}]
-  (let [[editing set-editing form] (use-modal)
-        input (use-ref)]
+  (let [[editing set-editing form] (hooks/use-modal)
+        input (uix/use-ref)]
     ($ :.initiative-token-health
       {:data-present (some? value)}
       ($ :.initiative-token-health-frame
@@ -112,7 +112,7 @@
 
 (defui ^:private token
   [{:keys [context entity]}]
-  (let [dispatch (use-dispatch)
+  (let [dispatch (hooks/use-dispatch)
         {type :user/type
          {{curr :initiative/turn
            rnds :initiative/rounds
@@ -189,8 +189,8 @@
       ($ :.initiative-token-health-label))))
 
 (defui form []
-  (let [dispatch (use-dispatch)
-        result (use-query query-form)
+  (let [dispatch (hooks/use-dispatch)
+        result   (hooks/use-query query-form)
         {{{tokens :scene/initiative
            rounds :initiative/rounds} :camera/scene}
          :user/camera} result]
@@ -221,8 +221,8 @@
                 ($ token {:key (:db/id entity) :entity entity :context result})))))))
 
 (defui footer []
-  (let [dispatch (use-dispatch)
-        result   (use-query query-footer)
+  (let [dispatch (hooks/use-dispatch)
+        result   (hooks/use-query query-footer)
         {{{rounds :initiative/rounds
            played :initiative/played
            tokens :scene/initiative}

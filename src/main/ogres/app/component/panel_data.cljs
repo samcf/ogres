@@ -1,8 +1,8 @@
 (ns ogres.app.component.panel-data
   (:require [ogres.app.const :refer [VERSION]]
-            [ogres.app.hooks :refer [use-dispatch]]
+            [ogres.app.hooks :as hooks]
             [ogres.app.provider.release :as release]
-            [uix.core :refer [defui $ use-context use-ref use-state]]))
+            [uix.core :as uix :refer [defui $]]))
 
 (def ^:private confirm-upgrade
   "Upgrading will delete all your local data and restore this application to its original state.")
@@ -17,10 +17,10 @@
   "Delete all your local data and restore this application using the provided backup?")
 
 (defui form []
-  (let [[file-name set-file-name] (use-state nil)
-        releases  (use-context release/context)
-        dispatch  (use-dispatch)
-        file-input (use-ref)]
+  (let [[file-name set-file-name] (uix/use-state nil)
+        releases (uix/use-context release/context)
+        dispatch (hooks/use-dispatch)
+        input (uix/use-ref)]
     ($ :.form-help
       ($ :header ($ :h2 "Data"))
       ($ :fieldset.fieldset
@@ -71,11 +71,9 @@
                :on-submit
                (fn [event]
                  (.preventDefault event)
-                 (let [files (.. file-input -current -files)
-                       file (first files)]
-                   (if-not (nil? file)
-                     (if-let [_ (js/confirm confirm-restore)]
-                       (dispatch :store/restore-backup file)))))}
+                 (let [file (first (.. input -current -files))]
+                   (if (and (some? file) (js/confirm confirm-restore))
+                     (dispatch :store/restore-backup file))))}
               ($ :div
                 {:style
                  {:display "flex"
@@ -92,7 +90,7 @@
                    :id "restore-upload"
                    :style {:display "none"}
                    :accept ".backup"
-                   :ref file-input
+                   :ref input
                    :on-change
                    (fn [event]
                      (let [files (.. event -target -files)

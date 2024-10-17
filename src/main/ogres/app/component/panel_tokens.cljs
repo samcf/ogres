@@ -1,9 +1,9 @@
 (ns ogres.app.component.panel-tokens
   (:require [goog.object :as object :refer [getValueByKeys]]
             [ogres.app.component :refer [icon image pagination modal-fullscreen]]
-            [ogres.app.hooks :refer [use-publish use-dispatch use-image use-image-uploader use-query use-shortcut]]
+            [ogres.app.hooks :as hooks]
             [ogres.app.util :refer [separate]]
-            [uix.core :as uix :refer [defui $ use-callback use-ref use-state use-effect use-memo]]
+            [uix.core :as uix :refer [defui $]]
             [uix.dom :refer [create-portal]]
             ["@dnd-kit/core"
              :refer  [DndContext DragOverlay useDndMonitor useDraggable useDroppable]
@@ -39,12 +39,12 @@
 
 (defui ^:private token
   [{:keys [id hash children]}]
-  (let [url (use-image hash)
+  (let [url (hooks/use-image hash)
         opt (use-draggable #js {"id" id "data" #js {"image" hash}})]
     (children {:url url :options opt})))
 
 (defui ^:private overlay []
-  (let [[active set-active] (use-state nil)]
+  (let [[active set-active] (uix/use-state nil)]
     (use-dnd-monitor
      #js {"onDragStart" (fn [event] (set-active (.. event -active -data -current -image)))
           "onDragEnd"   (fn [_]     (set-active nil))})
@@ -103,7 +103,7 @@
 (defui ^:private paginated
   [{:keys [name data limit]
     :or   {data [] limit 10}}]
-  (let [[page set-page] (use-state 1)
+  (let [[page set-page] (uix/use-state 1)
         limit (dec limit)
         pages (-> (count data) (/ limit) (js/Math.ceil))
         start (-> (min page pages) (dec) (* limit) (max 0))
@@ -121,7 +121,7 @@
            :on-change set-page})))))
 
 (defui tokens []
-  (let [result (use-query query-form [:db/ident :root])
+  (let [result (hooks/use-query query-form [:db/ident :root])
         {data :root/token-images
          {type :user/type} :root/user} result
         [pub prv] (separate (comp #{:public} :image/scope) data)
@@ -153,11 +153,11 @@
             ($ paginated {:name "tokens-public" :data data-pub :limit 30})))))))
 
 (defui form []
-  (let [dispatch (use-dispatch)
-        results  (use-query query-bounds [:db/ident :user])
+  (let [dispatch (hooks/use-dispatch)
+        results  (hooks/use-query query-bounds [:db/ident :user])
         {[bx by bw bh] :bounds/self} results
         on-create
-        (use-callback
+        (uix/use-callback
          (fn [hash element delta]
            (let [rect (.getBoundingClientRect element)
                  tw (.-width rect)
@@ -173,7 +173,7 @@
          [dispatch bx by bw bh])]
     ($ dnd-context
       #js {"onDragEnd"
-           (use-callback
+           (uix/use-callback
             (fn [event]
               (let [drag (getValueByKeys event #js ["active" "id"])
                     drop (getValueByKeys event #js ["over" "id"])
@@ -271,22 +271,22 @@
   (let [{{hash   :image/hash
           width  :image/width
           height :image/height} :image} props
-        publish (use-publish)
-        element (use-ref nil)
-        obj-url (use-image hash)
+        publish (hooks/use-publish)
+        element (uix/use-ref nil)
+        obj-url (hooks/use-image hash)
         initial (or (:image/thumbnail-rect (:image props)) (default-region width height))
-        [delta set-delta] (use-state [0 0 0 0])
-        [bound set-bound] (use-state initial)
-        [scale set-scale] (use-state nil)
-        scale-fn (use-memo #(dnd-scale-fn scale) [scale])
-        clamp-fn (use-memo #(dnd-clamp-fn bound width height) [bound width height])
+        [delta set-delta] (uix/use-state [0 0 0 0])
+        [bound set-bound] (uix/use-state initial)
+        [scale set-scale] (uix/use-state nil)
+        scale-fn (uix/use-memo #(dnd-scale-fn scale) [scale])
+        clamp-fn (uix/use-memo #(dnd-clamp-fn bound width height) [bound width height])
         on-change-thumbnail
-        (use-callback
+        (uix/use-callback
          (fn [event]
            (.preventDefault event)
            (publish :image/change-thumbnail hash bound)) [publish hash bound])
         on-drag-move
-        (use-callback
+        (uix/use-callback
          (fn [data]
            (let [id (.. data -active -id)
                  dx (.. data -delta -x)
@@ -302,7 +302,7 @@
                   :se [ax ay (max dx dy) (max dx dy)]
                   :sw [(* si mx) ay bx (- (* si mx))]))))) [])
         on-drag-stop
-        (use-callback
+        (uix/use-callback
          (fn [data]
            (let [id (.. data -active -id)
                  dx (.. data -delta -x)
@@ -319,7 +319,7 @@
                   :se [ax ay (+ bx (max dx dy)) (+ by (max dx dy))]
                   :sw [(+ ax (* si mx)) ay bx (+ by (- (* si mx)))]))))) [])
         on-resize-image
-        (use-callback
+        (uix/use-callback
          (fn [[entry]]
            (let [con-rect (.-contentRect entry)
                  con-wdth (js/Math.round (.-width con-rect))
@@ -328,7 +328,7 @@
 
     ;; Observe changes to the size of the token image in order to recalculate
     ;; the scale of the image relative to its natural dimensions.
-    (use-effect
+    (uix/use-effect
      (fn []
        (let [resizes (js/ResizeObserver. on-resize-image)]
          (if-let [node (deref element)] (.observe resizes node))
@@ -374,16 +374,16 @@
       [:image/hash :image/size]}]}])
 
 (defui ^:private modal [props]
-  (let [result (use-query modal-query [:db/ident :root])
-        [selected set-selected] (use-state nil)
-        [page set-page] (use-state 1)
+  (let [result (hooks/use-query modal-query [:db/ident :root])
+        [selected set-selected] (uix/use-state nil)
+        [page set-page] (uix/use-state 1)
         data  (vec (reverse (:root/token-images result)))
         limit 20
         pages (js/Math.ceil (/ (count data) limit))
         start (max (* (dec (min page pages)) limit) 0)
         end   (min (+ start limit) (count data))
         part  (subvec data start end)]
-    (use-shortcut ["Escape"]
+    (hooks/use-shortcut ["Escape"]
       (:on-close props))
     ($ modal-fullscreen
       ($ :.token-editor
@@ -421,13 +421,13 @@
             "Exit"))))))
 
 (defui footer []
-  (let [[editing set-editing] (use-state false)
-        dispatch (use-dispatch)
-        result   (use-query query-footer [:db/ident :root])
+  (let [[editing set-editing] (uix/use-state false)
+        dispatch (hooks/use-dispatch)
+        result   (hooks/use-query query-footer [:db/ident :root])
         {{type :user/type} :root/user
          images :root/token-images} result
-        upload   (use-image-uploader {:type :token})
-        input    (use-ref)]
+        upload   (hooks/use-image-uploader {:type :token})
+        input    (uix/use-ref)]
     ($ :<>
       (if editing
         (let [node (js/document.querySelector "#root")]

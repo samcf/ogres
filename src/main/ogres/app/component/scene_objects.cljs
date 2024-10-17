@@ -4,9 +4,9 @@
             [ogres.app.component.scene-context-menu :refer [context-menu]]
             [ogres.app.component.scene-pattern :refer [pattern]]
             [ogres.app.geom :as geom]
-            [ogres.app.hooks :refer [use-subscribe use-dispatch use-portal use-query]]
+            [ogres.app.hooks :as hooks]
             [react-transition-group :refer [TransitionGroup CSSTransition]]
-            [uix.core :as uix :refer [defui $ create-ref use-callback use-effect use-state]]
+            [uix.core :as uix :refer [defui $]]
             [uix.dom :as dom]
             ["@dnd-kit/core"
              :refer [useDndMonitor useDraggable]
@@ -58,13 +58,13 @@
   "Defines a React state hook which returns a point [Ax Ay] of the
    given user's current cursor position, if available."
   [uuid ox oy]
-  (let [[point set-point] (use-state nil)]
-    (use-effect
+  (let [[point set-point] (uix/use-state nil)]
+    (uix/use-effect
      (fn []
        (if (nil? uuid)
          (set-point nil))) [uuid])
-    (use-subscribe :cursor/moved
-      (use-callback
+    (hooks/use-subscribe :cursor/moved
+      (uix/use-callback
        (fn [id cx cy]
          (if (= id uuid)
            (set-point
@@ -171,21 +171,21 @@
     :token ($ object-token props)))
 
 (defn ^:private use-drag-listener []
-  (let [dispatch (use-dispatch)]
+  (let [dispatch (hooks/use-dispatch)]
     (use-dnd-monitor
      #js {"onDragStart"
-          (use-callback
+          (uix/use-callback
            (fn [data]
              (let [id (.. data -active -id)]
                (if (= id "selected")
                  (dispatch :drag/start-selected)
                  (dispatch :drag/start id)))) [dispatch])
           "onDragCancel"
-          (use-callback
+          (uix/use-callback
            (fn []
              (dispatch :drag/end)) [dispatch])
           "onDragEnd"
-          (use-callback
+          (uix/use-callback
            (fn [data]
              (let [event (.-activatorEvent data)
                    id (.. data -active -id)
@@ -237,7 +237,7 @@
       [:db/ident :user/uuid :user/color :user/dragging]}]}])
 
 (defui objects []
-  (let [result (use-query query [:db/ident :root])
+  (let [result (hooks/use-query query [:db/ident :root])
         {{[_ _ bw bh] :bounds/self
           type :user/type
           {[cx cy]  :camera/point
@@ -265,7 +265,7 @@
       ($ TransitionGroup {:component nil}
         (for [entity entities
               :let [{id :db/id [ax ay] :object/point type :object/type} entity
-                    node (create-ref)
+                    node (uix/create-ref)
                     user (dragging id)
                     rect (geom/object-bounding-rect entity)
                     seen (geom/rect-intersects-rect rect bounds)]]
@@ -297,7 +297,7 @@
                               {:entity entity
                                :portal portal
                                :aligned-to to}))))))))))))
-      ($ use-portal {:name :selected}
+      ($ hooks/use-portal {:name :selected}
         (let [[ax ay bx by] (geom/bounding-rect (sequence boundsxf entities))]
           ($ drag-local-fn {:id "selected" :disabled (some dragging selected)}
             (fn [drag]
@@ -318,7 +318,7 @@
                   ($ TransitionGroup {:component nil}
                     (for [entity entities
                           :let [{id :db/id [ax ay] :object/point} entity
-                                node (create-ref)
+                                node (uix/create-ref)
                                 user (dragging id)
                                 rect (geom/object-bounding-rect entity)
                                 rect (if (and align? (.-isDragging drag) (or (not= dx 0) (not= dy 0)))

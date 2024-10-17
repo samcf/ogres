@@ -1,7 +1,7 @@
 (ns ogres.app.component
   (:require [ogres.app.const :refer [PATH]]
-            [ogres.app.hooks :refer [use-image]]
-            [uix.core :refer [$ defui]]))
+            [ogres.app.hooks :as hooks]
+            [uix.core :refer [defui $]]))
 
 (defn ^:private create-range
   "Returns a vector of page indexes or spacing sentinels suitable for use
@@ -88,7 +88,7 @@
        ($ :img {:src url})))
    ```"
   [{:keys [hash children]}]
-  (let [url (use-image hash)]
+  (let [url (hooks/use-image hash)]
     (children url)))
 
 (defui modal-fullscreen [props]

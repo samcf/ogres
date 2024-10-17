@@ -1,8 +1,8 @@
 (ns ogres.app.component.toolbar
   (:require [ogres.app.component :refer [icon]]
-            [ogres.app.hooks :refer [use-dispatch use-query]]
+            [ogres.app.hooks :as hooks]
             [ogres.app.provider.shortcut :refer [shortcuts]]
-            [uix.core :as uix :refer [defui $ use-callback use-state]]))
+            [uix.core :as uix :refer [defui $]]))
 
 (def ^:private shortcut-keys
   (into {} (map (juxt :name :keys)) shortcuts))
@@ -49,19 +49,19 @@
      [:camera/scale :default 1]]}])
 
 (defui toolbar []
-  (let [[focused set-focused] (use-state nil)
-        dispatch  (use-dispatch)
-        result    (use-query query)
+  (let [[focused set-focused] (uix/use-state nil)
+        dispatch  (hooks/use-dispatch)
+        result    (hooks/use-query query)
         {type      :user/type
          share?    :user/sharing?
          {scale    :camera/scale
           mode     :camera/draw-mode
           selected :camera/selected} :user/camera} result
-        on-focus (use-callback
+        on-focus (uix/use-callback
                   (fn [event]
                     (if-let [node (.. event -target (closest "button"))]
                       (set-focused (.-name node)))) [])
-        on-click (use-callback
+        on-click (uix/use-callback
                   (fn [event]
                     (let [node (.. event -target (closest "button"))]
                       (if (and (some? node) (not= (.getAttribute node "aria-disabled") "true"))

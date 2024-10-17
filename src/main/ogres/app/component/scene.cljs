@@ -7,11 +7,11 @@
             [ogres.app.component.scene-objects :refer [objects]]
             [ogres.app.component.scene-pattern :refer [pattern]]
             [ogres.app.const :refer [grid-size]]
-            [ogres.app.hooks :refer [create-portal use-subscribe use-dispatch use-portal use-query]]
+            [ogres.app.hooks :as hooks]
             [ogres.app.svg :refer [circle->path poly->path]]
             [ogres.app.util :refer [key-by]]
             [react-transition-group :refer [TransitionGroup Transition]]
-            [uix.core :as uix :refer [defui $ create-ref use-callback use-memo use-state]]
+            [uix.core :as uix :refer [defui $]]
             ["@rwh/react-keystrokes" :refer [useKey] :rename {useKey use-key}]
             ["@dnd-kit/core"
              :refer [DndContext useDraggable]
@@ -81,7 +81,7 @@
        {:scene/image [:image/hash :image/width :image/height]}]}]}])
 
 (defui ^:private image-defs []
-  (let [result (use-query image-defs-query)
+  (let [result (hooks/use-query image-defs-query)
         {{{{width  :image/width
             height :image/height
             hash :image/hash} :scene/image
@@ -131,7 +131,7 @@
          [:object/point :default [0 0]]]}]}]}])
 
 (defui ^:private mask-defs []
-  (let [result (use-query mask-defs-query)
+  (let [result (hooks/use-query mask-defs-query)
         {user :user/type
          {{tokens :scene/tokens
            masks  :scene/masks
@@ -217,8 +217,8 @@
          [:mask/enabled? :default true]]}]}]}])
 
 (defui ^:private mask-polys []
-  (let [dispatch (use-dispatch)
-        result   (use-query mask-polys-query)
+  (let [dispatch (hooks/use-dispatch)
+        result   (hooks/use-query mask-polys-query)
         {user :user/type
          {{masks :scene/masks} :camera/scene
           draw-mode :camera/draw-mode} :user/camera} result
@@ -246,7 +246,7 @@
       [[:scene/grid-origin :default [0 0]]]}]}])
 
 (defui ^:private grid-defs []
-  (let [data (use-query grid-defs-query)
+  (let [data (hooks/use-query grid-defs-query)
         {[_ _ w h] :bounds/self
          {[cx cy] :camera/point
           scale   :camera/scale
@@ -325,7 +325,7 @@
          {:scene/_initiative [:db/id :initiative/turn]}]}]}]}])
 
 (defui ^:private tokens-defs []
-  (let [result (use-query tokens-defs-query)
+  (let [result (hooks/use-query tokens-defs-query)
         tokens (-> result :user/camera :camera/scene :scene/tokens)]
     ($ :defs
       ($ :filter {:id "token-status-dead" :filterRes 1 :color-interpolation-filters "sRGB"}
@@ -349,7 +349,7 @@
       ($ TransitionGroup {:component nil}
         (let [xf (comp (map (comp :image/hash :image/thumbnail :token/image)) (filter some?))]
           (for [hash (into #{} xf tokens)
-                :let [node (create-ref)]]
+                :let [node (uix/create-ref)]]
             ($ Transition {:key hash :nodeRef node :timeout 240}
               ($ :pattern
                 {:id (str "token-face-" hash)
@@ -361,12 +361,12 @@
                   (fn [url]
                     ($ :image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"}))))))))
       ($ TransitionGroup {:component nil}
-        (for [{id :db/id :as data} tokens :let [node (create-ref)]]
+        (for [{id :db/id :as data} tokens :let [node (uix/create-ref)]]
           ($ Transition {:key id :nodeRef node :timeout 240}
             ($ token {:node node :data data})))))))
 
 (defui ^:private player-window-bounds []
-  (let [result (use-query [:bounds/host :bounds/view])
+  (let [result (hooks/use-query [:bounds/host :bounds/view])
         {[_ _ hw hh] :bounds/host
          [_ _ vw vh] :bounds/view} result
         [ox oy] [(/ (- hw vw) 2) (/ (- hh vh) 2)]]
@@ -385,13 +385,13 @@
        {:user/camera [:camera/scene]}]}]}])
 
 (defui ^:private player-cursors []
-  (let [result (use-query player-cursors-query [:db/ident :root])
+  (let [result (hooks/use-query player-cursors-query [:db/ident :root])
         conns  (key-by :user/uuid (:session/conns (:root/session result)))
         share  (:session/share-cursors (:root/session result))
         host   (:session/host (:root/session result))
-        [points set-points] (use-state {})]
-    (use-subscribe :cursor/moved
-      (use-callback
+        [points set-points] (uix/use-state {})]
+    (hooks/use-subscribe :cursor/moved
+      (uix/use-callback
        (fn [uuid x y]
          (if share
            (set-points (fn [points] (assoc points uuid [x y]))))) [share]))
@@ -403,7 +403,7 @@
                          (:user/share-cursor conn)
                          (= (:camera/scene (:user/camera conn))
                             (:camera/scene (:user/camera (:root/user result)))))]
-          ($ use-portal {:key uuid :name (if (= (:user/uuid host) (:user/uuid conn)) :host-cursor)}
+          ($ hooks/use-portal {:key uuid :name (if (= (:user/uuid host) (:user/uuid conn)) :host-cursor)}
             ($ :g.scene-cursor
               {:transform (str "translate(" (- x 3) ", " (- y 3) ")") :data-color (:user/color conn)}
               ($ icon {:name "cursor-fill" :size 28}))))))))
@@ -426,11 +426,11 @@
 (defui ^:private scene-camera
   [{:keys [scale on-translate children]
     :or   {on-translate identity}}]
-  (let [scale-fn (use-memo (fn [] (dnd-modifier-scale scale)) [scale])]
+  (let [scale-fn (uix/use-memo (fn [] (dnd-modifier-scale scale)) [scale])]
     ($ dnd-context
       #js {"modifiers" #js [dnd-modifier-int]
            "onDragEnd"
-           (use-callback
+           (uix/use-callback
             (fn [data]
               (on-translate
                (.. data -delta -x)
@@ -482,7 +482,7 @@
          ;; Portal target for the host's cursor which must remain obscured
          ;; by visibility controls so that nosey players don't get any
          ;; clues about what the host may be doing on the scene.
-         ($ create-portal {:name :host-cursor}
+         ($ hooks/create-portal {:name :host-cursor}
            (fn [{:keys [ref]}]
              ($ :g {:ref ref :style {:outline "none"} :tab-index -1}))))
 
@@ -500,7 +500,7 @@
        ;; Portal target for selected tokens and shapes. This brings
        ;; selected objects to the foreground so they are not obscured
        ;; by visibility.
-       ($ create-portal {:name :selected}
+       ($ hooks/create-portal {:name :selected}
          (fn [{:keys [ref]}]
            ($ :g {:ref ref :style {:outline "none"} :tab-index -1})))
 
@@ -528,8 +528,8 @@
        [:scene/masked :default false]]}]}])
 
 (defui scene []
-  (let [dispatch (use-dispatch)
-        result   (use-query scene-query)
+  (let [dispatch (hooks/use-dispatch)
+        result   (hooks/use-query scene-query)
         {user        :user/type
          [_ _ hw hh] :bounds/host
          [_ _ vw vh] :bounds/view
@@ -552,7 +552,7 @@
       ($ scene-camera
         {:scale scale
          :on-translate
-         (use-callback
+         (uix/use-callback
           (fn [dx dy]
             (if (and (= dx 0) (= dy 0))
               (dispatch :selection/clear)
@@ -562,7 +562,7 @@
           ($ draw {:mode :select}))
         ($ :g {:transform (str "scale(" scale ") translate(" (- cx) ", " (- cy) ")")}
           ($ scene-elements)))
-      ($ create-portal {:name :multiselect}
+      ($ hooks/create-portal {:name :multiselect}
         (fn [{:keys [ref]}]
           ($ :g.scene-drawable.scene-drawable-select
             {:ref ref :style {:outline "none"} :tab-index -1})))

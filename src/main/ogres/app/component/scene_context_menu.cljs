@@ -2,8 +2,8 @@
   (:require [clojure.string :refer [capitalize]]
             [ogres.app.component :refer [icon]]
             [ogres.app.component.scene-pattern :refer [pattern]]
-            [ogres.app.hooks :refer [use-dispatch]]
-            [uix.core :as uix :refer [defui $ use-effect use-ref use-state]]))
+            [ogres.app.hooks :as hooks]
+            [uix.core :as uix :refer [defui $]]))
 
 (defn ^:private token-size [x]
   (cond (<= x 3)  "Tiny"
@@ -58,7 +58,7 @@
   [{:keys [render-toolbar render-aside children]
     :or   {render-toolbar (constantly nil)
            render-aside   (constantly nil)}}]
-  (let [[selected set-selected] (use-state nil)
+  (let [[selected set-selected] (uix/use-state nil)
         props {:selected  selected
                :on-change (fn [form]
                             (if (= selected form)
@@ -78,9 +78,9 @@
 
 (defui ^:private checkbox
   [{:keys [checked children]}]
-  (let [input (use-ref)
+  (let [input (uix/use-ref)
         indtr (= checked :indeterminate)]
-    (use-effect
+    (uix/use-effect
      (fn [] (set! (.-indeterminate @input) indtr)) [indtr])
     (children input)))
 
@@ -89,13 +89,13 @@
     :or   {values    (constantly (list))
            on-change identity
            on-close  identity}}]
-  (let [input-ref (use-ref)
+  (let [input-ref (uix/use-ref)
         [input-val set-input-val]
-        (use-state
+        (uix/use-state
          (fn []
            (let [vs (values :token/label)]
              (if (= (count vs) 1) (first vs) ""))))]
-    (use-effect #(.select @input-ref) [])
+    (uix/use-effect #(.select @input-ref) [])
     ($ :form
       {:on-submit
        (fn [event]
@@ -188,7 +188,7 @@
             ($ icon {:name icon-name})))))))
 
 (defui ^:private context-menu-token [{:keys [data type]}]
-  (let [dispatch (use-dispatch)
+  (let [dispatch (hooks/use-dispatch)
         idxs (map :db/id data)]
     ($ context-menu-fn
       {:render-toolbar
@@ -301,7 +301,7 @@
           ($ :rect {:x 0 :y 0 :width "100%" :height "100%" :fill (str "url(#" id ")")}))))))
 
 (defui ^:private context-menu-shape [{:keys [data]}]
-  (let [dispatch (use-dispatch)]
+  (let [dispatch (hooks/use-dispatch)]
     ($ context-menu-fn
       {:render-toolbar
        (fn [{:keys [selected on-change]}]

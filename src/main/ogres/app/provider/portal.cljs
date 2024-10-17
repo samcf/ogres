@@ -1,7 +1,7 @@
 (ns ogres.app.provider.portal
   (:refer-clojure :exclude [use])
   (:require [uix.core :as uix :refer [defui $]]
-            [uix.dom :refer [create-portal]]))
+            [uix.dom :as dom]))
 
 (def ^:private context (uix/create-context))
 
@@ -36,5 +36,5 @@
   (let [[portals _] (uix/use-context context)
         node        (get portals name)]
     (if (some? node)
-      (create-portal children node)
+      (dom/create-portal children node)
       children)))

@@ -1,6 +1,6 @@
 (ns ogres.app.provider.idb
   (:require [ogres.app.provider.events :as events]
-            [uix.core :as uix :refer [$ defui]]
+            [uix.core :as uix :refer [defui $]]
             [shadow.cljs.modern :refer (js-await)]
             ["@msgpack/msgpack" :as MessagePack]))
 

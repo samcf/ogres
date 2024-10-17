@@ -3,8 +3,8 @@
             [ogres.app.component :refer [icon]]
             [ogres.app.const :refer [grid-size]]
             [ogres.app.geom :refer [chebyshev-distance euclidean-distance cone-points reorient]]
-            [ogres.app.hooks :refer [use-dispatch use-portal use-query]]
-            [uix.core :as uix :refer [defui $ use-state]]
+            [ogres.app.hooks :as hooks]
+            [uix.core :as uix :refer [defui $]]
             ["@dnd-kit/core"
              :refer  [DndContext useDraggable useDndMonitor]
              :rename {DndContext    dnd-context
@@ -31,7 +31,7 @@
 
 (defui ^:private drawable
   [{:keys [on-release children]}]
-  (let [[points set-points] (use-state [])
+  (let [[points set-points] (uix/use-state [])
         drag (use-draggable #js {"id" "drawable"})]
     (use-dnd-monitor
      #js {"onDragMove"
@@ -71,12 +71,12 @@
 
 (defui ^:private polygon
   [{:keys [on-create]}]
-  (let [result (use-query query)
+  (let [result (hooks/use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
           scale :camera/scale} :user/camera} result
-        [pairs set-pairs] (use-state [])
-        [mouse set-mouse] (use-state [])
+        [pairs set-pairs] (uix/use-state [])
+        [mouse set-mouse] (uix/use-state [])
         [ax ay] pairs
         [mx my] mouse
         closed? (< (euclidean-distance ax ay mx my) 32)]
@@ -111,8 +111,8 @@
          :style  {:pointer-events "none"}}))))
 
 (defui ^:private draw-select []
-  (let [dispatch (use-dispatch)
-        result   (use-query query)
+  (let [dispatch (hooks/use-dispatch)
+        result   (hooks/use-query query)
         {[ox oy]  :bounds/self
          {[tx ty] :camera/point
           scale   :camera/scale} :user/camera} result]
@@ -123,11 +123,11 @@
            (dispatch :selection/from-rect points)))}
       (fn [points]
         (let [[ax ay bx by] (convert points (+' (- ox) (- oy)) cat)]
-          ($ use-portal {:name :multiselect}
+          ($ hooks/use-portal {:name :multiselect}
             ($ :path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])})))))))
 
 (defui ^:private draw-ruler []
-  (let [result (use-query query)
+  (let [result (hooks/use-query query)
         {[ox oy] :bounds/self
          {scale  :camera/scale} :user/camera} result]
     ($ drawable
@@ -142,8 +142,8 @@
                   (str "ft.")))))))))
 
 (defui ^:private draw-circle []
-  (let [dispatch (use-dispatch)
-        result   (use-query query)
+  (let [dispatch (hooks/use-dispatch)
+        result   (hooks/use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
           scale :camera/scale} :user/camera} result]
@@ -161,8 +161,8 @@
               (-> radius (px->ft (* grid-size scale)) (str "ft. radius")))))))))
 
 (defui ^:private draw-rect []
-  (let [dispatch (use-dispatch)
-        result   (use-query query)
+  (let [dispatch (hooks/use-dispatch)
+        result   (hooks/use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
           scale   :camera/scale}
@@ -182,8 +182,8 @@
                 (str w "ft. x " h "ft.")))))))))
 
 (defui ^:private draw-line []
-  (let [dispatch (use-dispatch)
-        result   (use-query query)
+  (let [dispatch (hooks/use-dispatch)
+        result   (hooks/use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
           scale   :camera/scale} :user/camera} result]
@@ -202,8 +202,8 @@
                   (str "ft.")))))))))
 
 (defui ^:private draw-cone []
-  (let [dispatch (use-dispatch)
-        result   (use-query query)
+  (let [dispatch (hooks/use-dispatch)
+        result   (hooks/use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
           scale   :camera/scale} :user/camera} result]
@@ -222,29 +222,29 @@
                   (str "ft.")))))))))
 
 (defui ^:private draw-poly []
-  (let [dispatch (use-dispatch)]
+  (let [dispatch (hooks/use-dispatch)]
     ($ polygon
       {:on-create
        (fn [_ xs]
          (dispatch :shape/create :poly xs))})))
 
 (defui ^:private draw-mask []
-  (let [dispatch (use-dispatch)]
+  (let [dispatch (hooks/use-dispatch)]
     ($ polygon
       {:on-create
        (fn [_ points]
          (dispatch :mask/create points))})))
 
 (defui ^:private draw-grid []
-  (let [dispatch (use-dispatch)
+  (let [dispatch (hooks/use-dispatch)
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
           scale   :camera/scale
           {prev-size :scene/grid-size
            prev-origin :scene/grid-origin}
-          :camera/scene} :user/camera} (use-query query)
-        [next-origin set-origin] (use-state nil)
-        [next-size     set-size] (use-state prev-size)]
+          :camera/scene} :user/camera} (hooks/use-query query)
+        [next-origin set-origin] (uix/use-state nil)
+        [next-size     set-size] (uix/use-state prev-size)]
     ($ :g.grid-align
       ($ :rect
         {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"

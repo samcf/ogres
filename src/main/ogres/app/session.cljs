@@ -4,10 +4,10 @@
             [datascript.transit :as dst]
             [goog.functions :refer [throttle]]
             [ogres.app.const :refer [SOCKET-URL]]
-            [ogres.app.hooks :refer [use-event-listener use-subscribe use-dispatch use-publish use-interval]]
+            [ogres.app.hooks :as hooks]
             [ogres.app.provider.idb :as idb]
-            [ogres.app.provider.state :as provider.state]
-            [uix.core :refer [defui use-context use-state use-callback use-effect use-memo]]
+            [ogres.app.provider.state :as state]
+            [uix.core :as uix :refer [defui]]
             ["@msgpack/msgpack" :as MessagePack]))
 
 (def ^:private reader (transit/reader :json {:handlers dst/read-handlers}))
@@ -113,7 +113,7 @@
   [{:keys [data dst]} conn _ _ _ _]
   (let [user-data (ds/db conn)
         user-vers (:root/release (ds/entity user-data [:db/ident :root]))
-        host-data (ds/init-db data provider.state/schema)
+        host-data (ds/init-db data state/schema)
         host-vers (:root/release (ds/entity host-data [:db/ident :root]))]
     (if (not= user-vers host-vers)
       (let [params (js/URLSearchParams. (.. js/window -location -search))
@@ -141,21 +141,21 @@
       :host (publish :image/cache data call)
       :conn (publish :image/cache data))))
 
-(defui handlers []
-  (let [[socket set-socket] (use-state nil)
-        dispatch (use-dispatch)
-        publish  (use-publish)
+(defui listeners []
+  (let [[socket set-socket] (uix/use-state nil)
+        dispatch (hooks/use-dispatch)
+        publish  (hooks/use-publish)
         images   (idb/use-reader "images")
-        conn     (use-context provider.state/context)
+        conn     (uix/use-context state/context)
         on-send-text
-        (use-callback
+        (uix/use-callback
          (fn [message]
            (if (and (some? socket) (= (.-readyState socket) 1))
              (let [user (ds/entity @conn [:db/ident :user])
                    data (merge {:time (js/Date.now) :src (:user/uuid user)} message)]
                (.send socket (transit/write writer data))))) [socket conn])
         on-send-binary
-        (use-callback
+        (uix/use-callback
          (fn [message]
            (let [user (ds/entity @conn [:db/ident :user])
                  data (js/Object.assign
@@ -164,19 +164,19 @@
                        message)]
              (.send socket (MessagePack/encode data)))) [socket conn])
         on-status-change
-        (use-callback
+        (uix/use-callback
          (fn [event]
            (let [state (.. event -target -readyState)]
              (dispatch :session/change-status state))) [dispatch])]
 
     ;; Listen to changes to the state of the WebSocket connection.
-    (use-event-listener socket "open"  on-status-change)
-    (use-event-listener socket "close" on-status-change)
-    (use-event-listener socket "error" on-status-change)
+    (hooks/use-event-listener socket "open"  on-status-change)
+    (hooks/use-event-listener socket "close" on-status-change)
+    (hooks/use-event-listener socket "error" on-status-change)
 
     ;; Periodically attempt to re-establish closed connections.
-    (use-interval
-     (use-callback
+    (hooks/use-interval
+     (uix/use-callback
       (fn []
         (let [user (ds/entity @conn [:db/ident :user])]
           (if (and (= (:user/type user) :conn)
@@ -186,8 +186,8 @@
     ;; Periodically send heartbeat messages to keep the session connections
     ;; alive. This heartbeat will be sent to the server and then distributed
     ;; to the other connections in the room.
-    (use-interval
-     (use-callback
+    (hooks/use-interval
+     (uix/use-callback
       (fn []
         (let [user (ds/entity @conn [:db/ident :user])]
           (if (and (= (:user/type user) :host)
@@ -196,8 +196,8 @@
 
     ;; Subscribe to requests to create a new session, creating a WebSocket
     ;; connection object.
-    (use-subscribe :session/request
-      (use-callback
+    (hooks/use-subscribe :session/request
+      (uix/use-callback
        (fn []
          (let [host (ds/entity @conn [:db/ident :user])
                conn (js/WebSocket.
@@ -208,8 +208,8 @@
 
     ;; Subscribe to requests to join the session, creating a WebSocket
     ;; connection object.
-    (use-subscribe :session/join
-      (use-callback
+    (hooks/use-subscribe :session/join
+      (uix/use-callback
        (fn []
          (let [search (.. js/window -location -search)
                params (js/URLSearchParams. search)
@@ -220,22 +220,22 @@
 
     ;; Subscribe to regular heartbeat events, rebroadcasting it to the other
     ;; connections in the server.
-    (use-subscribe :session/heartbeat
-      (use-callback
+    (hooks/use-subscribe :session/heartbeat
+      (uix/use-callback
        (fn []
          (on-send-text {:type :heartbeat})) [on-send-text]))
 
     ;; Subscribe to an intentional action to close the session, calling
     ;; `close` on the WebSocket object.
-    (use-subscribe :session/close
-      (use-callback
+    (hooks/use-subscribe :session/close
+      (uix/use-callback
        (fn []
          (when (some? socket)
            (.close socket)
            (set-socket nil))) [socket]))
 
-    (use-subscribe :image/create
-      (use-callback
+    (hooks/use-subscribe :image/create
+      (uix/use-callback
        (fn [blob]
          (let [{host :session/host} (ds/entity (ds/db conn) [:db/ident :session])]
            (.then (.arrayBuffer blob)
@@ -246,8 +246,8 @@
 
     ;; Subscribe to requests for image data from other non-host connections
     ;; and reply with the appropriate image data in the form of a data URL.
-    (use-subscribe :image/request
-      (use-callback
+    (hooks/use-subscribe :image/request
+      (uix/use-callback
        (fn [hash]
          (let [session (ds/entity @conn [:db/ident :session])]
            (if-let [host (-> session :session/host :user/uuid)]
@@ -256,15 +256,15 @@
 
     ;; Subscribe to DataScript transactions and broadcast the transaction data
     ;; to the other connections in the session.
-    (use-subscribe :tx/commit
-      (use-callback
+    (hooks/use-subscribe :tx/commit
+      (uix/use-callback
        (fn [{tx-data :tx-data}]
          (on-send-text {:type :tx :data tx-data})) [on-send-text]))
 
     ;; Subscribe to changes to the user's cursor position on the scene and
     ;; broadcast these changes to the other connections in the session.
-    (use-subscribe :cursor/move
-      (use-memo
+    (hooks/use-subscribe :cursor/move
+      (uix/use-memo
        #(throttle
          (fn [x y]
            (let [data {:name :cursor/moved :coord [x y]}]
@@ -272,8 +272,8 @@
 
     ;; Listen to the "message" event on the WebSocket object and forward the
     ;; event details to the appropriate handler.
-    (use-event-listener socket "message"
-      (use-callback
+    (hooks/use-event-listener socket "message"
+      (uix/use-callback
        (fn [event]
          (if (string? (.-data event))
            (-> (transit/read reader (.-data event))
@@ -285,7 +285,7 @@
 
     ;; Establish a WebSocket connection to the room identified by the "join"
     ;; query parameter in the URL.
-    (use-effect
+    (uix/use-effect
      (fn []
        (let [user (ds/entity @conn [:db/ident :user])
              type (:user/type user)

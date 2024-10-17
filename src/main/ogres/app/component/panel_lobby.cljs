@@ -1,9 +1,9 @@
 (ns ogres.app.component.panel-lobby
   (:require [ogres.app.component :refer [icon]]
             [ogres.app.const :refer [VERSION]]
-            [ogres.app.hooks :refer [use-dispatch use-query]]
+            [ogres.app.hooks :as hooks]
             [ogres.app.provider.release :as release]
-            [uix.core :refer [defui $ use-context]]))
+            [uix.core :as uix :refer [defui $]]))
 
 (def ^:private query-footer
   [{:root/user
@@ -32,9 +32,9 @@
     (str origin path "?" (.toString params))))
 
 (defui form []
-  (let [releases (use-context release/context)
-        dispatch (use-dispatch)
-        result   (use-query query-form [:db/ident :root])
+  (let [releases (uix/use-context release/context)
+        dispatch (hooks/use-dispatch)
+        result   (hooks/use-query query-form [:db/ident :root])
         {{code    :session/room
           host    :session/host
           conns   :session/conns
@@ -123,8 +123,8 @@
            or URL with them.")))))
 
 (defui footer []
-  (let [dispatch (use-dispatch)
-        result   (use-query query-footer [:db/ident :root])
+  (let [dispatch (hooks/use-dispatch)
+        result   (hooks/use-query query-footer [:db/ident :root])
         {{status :session/status type :user/type} :root/user
          {room-key :session/room} :root/session} result]
     ($ :<>

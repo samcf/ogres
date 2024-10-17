@@ -1,8 +1,8 @@
 (ns ogres.app.component.scenes
   (:require [clojure.string :refer [replace]]
             [ogres.app.component :refer [icon]]
-            [ogres.app.hooks :refer [use-dispatch use-query use-shortcut]]
-            [uix.core :refer [defui $ use-callback]]))
+            [ogres.app.hooks :as hooks]
+            [uix.core :as uix :refer [defui $]]))
 
 (def ^:private filename-re #"\d+x\d+|[^\w ]|.[^.]+$")
 
@@ -25,11 +25,11 @@
       [{:scene/image [:image/name]}]}]}])
 
 (defui scenes []
-  (let [dispatch (use-dispatch)
+  (let [dispatch (hooks/use-dispatch)
         {current :user/camera
-         cameras :user/cameras} (use-query query)]
-    (use-shortcut ["delete" "backspace"]
-      (use-callback
+         cameras :user/cameras} (hooks/use-query query)]
+    (hooks/use-shortcut ["delete" "backspace"]
+      (uix/use-callback
        (fn [event]
          (if (= (.-name (.-activeElement js/document)) "scene")
            (let [id (js/Number (.. event -originalEvent -target -value))

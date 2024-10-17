@@ -1,9 +1,9 @@
 (ns ogres.app.component.panel-scene
   (:require [clojure.string :refer [replace]]
             [ogres.app.component :refer [icon pagination image]]
-            [ogres.app.hooks :refer [use-dispatch use-image-uploader use-query]]
+            [ogres.app.hooks :as hooks]
             [ogres.app.util :refer [display-size]]
-            [uix.core :as uix :refer [defui $ use-ref use-state]]
+            [uix.core :as uix :refer [defui $]]
             [uix.dom :refer [create-portal]]))
 
 (def ^:private options-vis
@@ -49,14 +49,14 @@
             [:image/hash]}]}]}]}]}])
 
 (defui form []
-  (let [[preview set-preview] (use-state nil)
-        dispatch (use-dispatch)
-        upload   (use-image-uploader {:type :scene})
-        input    (use-ref)
-        data     (use-query query [:db/ident :root])
+  (let [[preview set-preview] (uix/use-state nil)
+        dispatch (hooks/use-dispatch)
+        upload   (hooks/use-image-uploader {:type :scene})
+        input    (uix/use-ref)
+        data     (hooks/use-query query [:db/ident :root])
         {{{scene :camera/scene} :user/camera
           camera :user/camera} :root/user} data
-        [page set-page] (use-state 1)]
+        [page set-page] (uix/use-state 1)]
     ($ :form.form-scenes
       {:on-submit (fn [event] (.preventDefault event))}
       ($ :header ($ :h2 "Scene"))

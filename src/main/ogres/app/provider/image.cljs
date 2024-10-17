@@ -1,14 +1,14 @@
 (ns ogres.app.provider.image
-  (:require [ogres.app.provider.dispatch :refer [use-dispatch]]
-            [ogres.app.provider.events :refer [use-publish use-subscribe]]
+  (:require [datascript.core :as ds]
+            [ogres.app.provider.dispatch :refer [use-dispatch]]
+            [ogres.app.provider.events :as events]
             [ogres.app.provider.idb :as idb]
-            [ogres.app.provider.state :as state :refer [use-query]]
-            [datascript.core :as ds]
-            [uix.core :refer [defui $ create-context use-callback use-state use-context use-effect]]))
+            [ogres.app.provider.state :as state]
+            [uix.core :as uix :refer [defui $]]))
 
 (def ^:private hash-fn "SHA-1")
 
-(def ^:private context (create-context))
+(def ^:private context (uix/create-context))
 
 (defn ^:private decode-digest
   "Returns a hash string of the given digest array."
@@ -86,15 +86,15 @@
               :height (.-height canvas)})))) type quality)))))
 
 (defui provider [props]
-  (let [conn           (use-context state/context)
+  (let [conn           (uix/use-context state/context)
         read           (idb/use-reader "images")
         write          (idb/use-writer "images")
         loading        (atom {})
-        publish        (use-publish)
+        publish        (events/use-publish)
         dispatch       (use-dispatch)
-        [urls set-url] (use-state {})
+        [urls set-url] (uix/use-state {})
         on-request
-        (use-callback
+        (uix/use-callback
          (fn [hash]
            (let [url (get urls hash)]
              (if (not url)
@@ -105,23 +105,23 @@
                      (.then (fn [url] (set-url (fn [urls] (assoc urls hash url)))))
                      (.catch (fn [] (publish :image/request hash)))))
                url))) ^:lint/disable [])]
-    (use-subscribe :image/create-token
-      (use-callback
+    (events/use-subscribe :image/create-token
+      (uix/use-callback
        (fn [hash blob]
          (.then
           (js/createImageBitmap blob)
           (fn [image]
             (let [record {:hash hash :name "" :size (.-size blob) :width (.-width image) :height (.-height image)}]
               (dispatch :token-images/create-many [[record record]] :public))))) [dispatch]))
-    (use-subscribe :image/cache
-      (use-callback
+    (events/use-subscribe :image/cache
+      (uix/use-callback
        (fn [image callback]
          (-> (create-hash image)
              (.then (fn [hash] (write :put [#js {"checksum" hash "data" image}]) hash))
              (.then (fn [hash] (set-url (fn [urls] (assoc urls hash (js/URL.createObjectURL image)))) hash))
              (.then (fn [hash] (when (fn? callback) (callback hash)))))) [write]))
-    (use-subscribe :image/change-thumbnail
-      (use-callback
+    (events/use-subscribe :image/change-thumbnail
+      (uix/use-callback
        (fn [hash [ax ay bx by :as rect]]
          (let [entity (ds/entity (ds/db conn) [:image/hash hash])]
            (-> (read hash)
@@ -192,12 +192,12 @@
    them to storage and state."
   [{:keys [type]}]
   (let [dispatch (use-dispatch)
-        publish  (use-publish)
+        publish  (events/use-publish)
         write    (idb/use-writer "images")
-        user     (use-query [:user/type] [:db/ident :user])]
+        user     (state/use-query [:user/type] [:db/ident :user])]
     (case (:user/type user)
       :host
-      (use-callback
+      (uix/use-callback
        (fn [files]
          (-> (js/Promise.all (into-array (into [] (map process-file) files)))
              (.then
@@ -211,7 +211,7 @@
                     :token (dispatch :token-images/create-many records :private)
                     :scene (dispatch :scene-images/create-many records :private))))))) [dispatch write type])
       :conn
-      (use-callback
+      (uix/use-callback
        (fn [files]
          (.then (js/Promise.all (into-array (into [] (map process-file) files)))
                 (fn [files]
@@ -228,7 +228,7 @@
      ($ :img {:src url}))
    ```"
   [hash]
-  (let [[urls on-request] (use-context context)]
-    (use-effect
+  (let [[urls on-request] (uix/use-context context)]
+    (uix/use-effect
      (fn [] (on-request hash)) [on-request hash])
     (get urls hash)))

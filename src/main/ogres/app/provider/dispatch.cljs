@@ -19,7 +19,7 @@
        (let [tx-data [[:db.fn/call tx-fn topic args]]
              report  (ds/transact! conn tx-data)]
          (if (seq (:tx-data report))
-           (apply publish :tx/commit (list report))))) ^:lint/disable [publish])))
+           (publish :tx/commit report)))) [conn publish])))
 
 (defn use-dispatch []
   (uix/use-context context))

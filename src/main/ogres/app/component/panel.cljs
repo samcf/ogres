@@ -5,8 +5,8 @@
             [ogres.app.component.panel-lobby :as lobby]
             [ogres.app.component.panel-scene :as scene]
             [ogres.app.component.panel-tokens :as tokens]
-            [ogres.app.hooks           :refer [use-dispatch use-query]]
-            [uix.core                  :refer [defui $]]))
+            [ogres.app.hooks :as hooks]
+            [uix.core :refer [defui $]]))
 
 (def ^:private status-query
   [{:root/user [:user/type [:session/status :default :initial]]
@@ -16,8 +16,8 @@
   ($ icon {:name "globe-americas" :size 16}))
 
 (defui status []
-  (let [dispatch (use-dispatch)
-        result   (use-query status-query [:db/ident :root])
+  (let [dispatch (hooks/use-dispatch)
+        result (hooks/use-query status-query [:db/ident :root])
         {{type :user/type status :session/status} :root/user
          {code  :session/room
           conns :session/conns} :root/session} result
@@ -53,8 +53,8 @@
    [:panel/expanded :default true]])
 
 (defui container []
-  (let [dispatch (use-dispatch)
-        result   (use-query query)
+  (let [dispatch (hooks/use-dispatch)
+        result   (hooks/use-query query)
         {type :user/type
          selected :panel/selected
          expanded :panel/expanded} result
