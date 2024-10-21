@@ -108,11 +108,9 @@
        (.addEventListener tx "complete" resolve)
        (.addEventListener rq "success"
          (fn []
-           (loop [[x & xs] records]
-             (.put st x)
-             (if (seq xs)
-               (recur xs)
-               (.commit tx)))))))))
+           (doseq [record records]
+             (.put st record))
+           (.commit tx)))))))
 
 (defui ^:private listeners []
   (let [req (uix/use-context context)]
@@ -200,7 +198,7 @@
   [table]
   (let [req (uix/use-context context)]
     (uix/use-callback
-     (fn [op data]
+     (fn [op records]
        (js-await [idb req]
          (js/Promise.
           (fn [resolve]
@@ -208,8 +206,6 @@
                   st (.objectStore tx table)
                   op (aget st (name op))]
               (.addEventListener tx "complete" resolve)
-              (loop [[x & xs] data]
-                (.call op st x)
-                (if (seq xs)
-                  (recur xs)
-                  (.commit tx)))))))) [table req])))
+              (doseq [record records]
+                (.call op st record))
+              (.commit tx)))))) [table req])))
