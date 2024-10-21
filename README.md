@@ -1,12 +1,8 @@
-## Ogres Tabletop
-
-[ogres.app](https://ogres.app) is a free and open-source virtual tabletop that you can run in your browser and use to play with your friends.
-
 ![Screenshot of the Ogres app](site/web/media/ogres-media-collection.webp)
 
 ## Features
 
-Ogres aims to be a very lightweight alternative to some of the more comprehensive tools available today. Its limited core feature-set is intended to help dungeon masters quickly setup encounters and adventures with only the most important necessities.
+[ogres.app](https://ogres.app) is a free and open-source virtual tabletop that you can run in your browser and use to play with your friends. It aims to be a very lightweight alternative to some of the more comprehensive tools available today. Its limited core feature-set is intended to help dungeon masters quickly setup encounters and adventures with only the most important necessities.
 
 - Instantly start preparing your game; no sign-ups or ads
 - Start an online collaborative session for your friends
@@ -20,7 +16,8 @@ Ogres aims to be a very lightweight alternative to some of the more comprehensiv
 
 Interested in helping fix bugs or extending features? Look for issues labeled as **beginner friendly** and comment that you'd like to work on it. The following are instructions to start a local development environment (for developers only).
 
-You'll need to have `node`, `npm`, and `clojure` installed.
+> [!IMPORTANT]
+> You'll need to have `node`, `npm`, and `clojure` installed.
 
 ```sh
 #!/bin/sh
