@@ -880,13 +880,12 @@
             [:db/id {:token/image [:image/hash]}])}]}])
 
 (defmethod
-  ^{:doc "Copy the currently selected tokens to the clipboard. Optionally
+  ^{:doc "Copy the currently selected objects to the clipboard. Optionally
           removes them from the current scene if cut? is passed as true.
-          The clipboard contains a template for the token data, and not
-          references to the tokens themselves since those references
-          don't exist after they are pruned from the scene. Only some token
-          data is copied; transient state like that related to initiative is
-          not preserved."}
+          The clipboard contains a template for the object data and not
+          references to the objects themselves since those references
+          don't exist after they are pruned from the scene. Only some object
+          data is copied; transient state is not preserved."}
   event-tx-fn :clipboard/copy
   ([_ event]
    [[:db.fn/call event-tx-fn event false]])
@@ -914,9 +913,9 @@
    {:root/token-images [:image/hash]}])
 
 (defmethod
-  ^{:doc "Creates tokens on the current scene from the data stored in the local
-          user's clipboard. Attempts to preserve the relative position of
-          the tokens when they were copied but in the center of the user's
+  ^{:doc "Creates objects on the current scene from the data stored in the
+          local user's clipboard. Attempts to preserve the relative position
+          of the objects when they were copied but in the center of the user's
           viewport. Clipboard data is not pruned after pasting."}
   event-tx-fn :clipboard/paste
   [data]

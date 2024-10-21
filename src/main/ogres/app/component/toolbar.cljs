@@ -8,9 +8,9 @@
   (into {} (map (juxt :name :keys)) shortcuts))
 
 (def ^:private action-data
-  {"copy-copy"    {:label "Copy the selected tokens." :args [:clipboard/copy false]}
-   "copy-cut"     {:label "Copy and remove the selected tokens." :args [:clipboard/copy true]}
-   "copy-paste"   {:label "Paste copied tokens onto the scene." :args [:clipboard/paste]}
+  {"copy-copy"    {:label "Copy the selected objects." :args [:clipboard/copy false]}
+   "copy-cut"     {:label "Copy and remove the selected objects." :args [:clipboard/copy true]}
+   "copy-paste"   {:label "Paste copied objects onto the scene." :args [:clipboard/paste]}
    "draw-circle"  {:label "Draw a circle." :args [:camera/change-mode :circle]}
    "draw-cone"    {:label "Draw a cone." :args [:camera/change-mode :cone]}
    "draw-line"    {:label "Draw a line." :args [:camera/change-mode :line]}

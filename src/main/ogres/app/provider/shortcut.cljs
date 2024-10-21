@@ -26,25 +26,25 @@
    \x :mask-remove})
 
 (def shortcuts
-  [{:name "scene-select"  :keys [\s]            :desc "Select: Pan, select, and move tokens"}
-   {:name "select-many"   :keys [\s "Shift"]    :desc "Select: Hold to select multiple tokens"}
-   {:name "select-clear"  :keys ["Escape"]      :desc "Select: Clear selection"}
-   {:name "select-remove" :keys ["Delete"]      :desc "Select: Remove selected tokens"}
-   {:name "copy-cut"      :keys [\⌘ \x]         :desc "Copy: Copy and remove the selected tokens"}
-   {:name "copy-copy"     :keys [\⌘ \c]         :desc "Copy: Copy the selected tokens"}
-   {:name "copy-paste"    :keys [\⌘ \v]         :desc "Copy: Paste the copied tokens onto the scene"}
-   {:name "zoom-in"       :keys ["Mouse wheel"] :desc "Zoom: Zoom in"}
-   {:name "zoom-out"      :keys ["Mouse wheel"] :desc "Zoom: Zoom out"}
-   {:name "scene-ruler"   :keys [\r]            :desc "Mode: Ruler tool"}
-   {:name "scene-grid"    :keys [\g]            :desc "Mode: Grid alignment tool"}
-   {:name "draw-circle"   :keys [\1]            :desc "Mode: Draw a circle"}
-   {:name "draw-rect"     :keys [\2]            :desc "Mode: Draw a rectangle"}
-   {:name "draw-cone"     :keys [\3]            :desc "Mode: Draw a cone"}
-   {:name "draw-poly"     :keys [\4]            :desc "Mode: Draw a polygon"}
-   {:name "draw-line"     :keys [\5]            :desc "Mode: Draw a line"}
-   {:name "mask-create"   :keys [\f]            :desc "Mode: Draw a fog shape"}
-   {:name "mask-toggle"   :keys [\t]            :desc "Mode: Reveal or obscure a fog shape"}
-   {:name "mask-remove"   :keys [\x]            :desc "Mode: Remove a fog shape"}])
+  [{:name "scene-select"  :keys [\s]}
+   {:name "select-many"   :keys [\s "Shift"]}
+   {:name "select-clear"  :keys ["Escape"]}
+   {:name "select-remove" :keys ["Delete"]}
+   {:name "copy-cut"      :keys [\⌘ \x]}
+   {:name "copy-copy"     :keys [\⌘ \c]}
+   {:name "copy-paste"    :keys [\⌘ \v]}
+   {:name "zoom-in"       :keys ["Mouse wheel"]}
+   {:name "zoom-out"      :keys ["Mouse wheel"]}
+   {:name "scene-ruler"   :keys [\r]}
+   {:name "scene-grid"    :keys [\g]}
+   {:name "draw-circle"   :keys [\1]}
+   {:name "draw-rect"     :keys [\2]}
+   {:name "draw-cone"     :keys [\3]}
+   {:name "draw-poly"     :keys [\4]}
+   {:name "draw-line"     :keys [\5]}
+   {:name "mask-create"   :keys [\f]}
+   {:name "mask-toggle"   :keys [\t]}
+   {:name "mask-remove"   :keys [\x]}])
 
 (defui listeners []
   (let [dispatch (hooks/use-dispatch)]
@@ -77,7 +77,7 @@
           (if (and (allowed? event) (not (or (.-metaKey event) (.-ctrlKey event))))
             (dispatch :camera/change-mode (key->mode (.-key data)))))))
 
-    ;; Select a focused token.
+    ;; Select a focused object.
     (hooks/use-shortcut [\ ]
       (fn [data]
         (let [shift (.. data -originalEvent -shiftKey)
@@ -103,7 +103,7 @@
                   (= (.-activeElement js/document) (.-body js/document))
                   (dispatch :objects/translate-selected (* dx 70) (* dy 70)))))))
 
-    ;; Cut, copy, and paste tokens.
+    ;; Cut, copy, and paste objects.
     (hooks/use-shortcut [\c \x \v]
       (fn [data]
         (let [event (.-originalEvent data)]
@@ -113,13 +113,13 @@
               \x (dispatch :clipboard/copy true)
               \v (dispatch :clipboard/paste))))))
 
-    ;; Removes all token selections and revert the draw mode to select.
+    ;; Removes all object selections and reverts the draw mode to select.
     (hooks/use-shortcut ["escape"]
       (fn [data]
         (if (allowed? (.-originalEvent data))
           (dispatch :shortcut/escape))))
 
-    ;; Removes selected or focused tokens.
+    ;; Removes selected or focused objects.
     (hooks/use-shortcut ["delete" "backspace"]
       (fn [data]
         (if (allowed? (.-originalEvent data))
