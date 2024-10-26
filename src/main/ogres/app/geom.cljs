@@ -122,3 +122,8 @@
 (defmethod object-bounding-rect :shape/line
   [{[ax ay] :object/point [bx by] :shape/points}]
   (bounding-rect [ax ay (+ ax bx) (+ ay by)]))
+
+;; Notes are defined by the point {A} and is fixed square bound.
+(defmethod object-bounding-rect :note/note
+  [{[ax ay] :object/point}]
+  (bounding-rect [ax ay (+ ax 42) (+ ay 42)]))

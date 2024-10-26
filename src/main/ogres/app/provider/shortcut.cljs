@@ -4,7 +4,8 @@
 
 (defn ^:private allowed? [event]
   (let [element (.-target event)]
-    (not (instance? js/HTMLInputElement element))))
+    (and (not (instance? js/HTMLInputElement element))
+         (not (instance? js/HTMLTextAreaElement element)))))
 
 (def ^:private key->vector
   {"arrowleft"  [-1 0]
@@ -18,6 +19,7 @@
    \3 :cone
    \4 :poly
    \5 :line
+   \a :note
    \f :mask
    \g :grid
    \r :ruler
@@ -44,7 +46,8 @@
    {:name "draw-line"     :keys [\5]}
    {:name "mask-create"   :keys [\f]}
    {:name "mask-toggle"   :keys [\t]}
-   {:name "mask-remove"   :keys [\x]}])
+   {:name "mask-remove"   :keys [\x]}
+   {:name "note"          :keys [\a]}])
 
 (defui listeners []
   (let [dispatch (hooks/use-dispatch)]
@@ -52,7 +55,7 @@
     ;; Zoom the camera in and out with the mousewheel or trackpad.
     (hooks/use-event-listener "wheel"
       (fn [event]
-        (if (.closest (.-target event) ".scene")
+        (if (and (allowed? event) (.closest (.-target event) ".scene"))
           (let [ctrl (.-ctrlKey event)
                 posx (.-clientX event)
                 posy (.-clientY event)
@@ -71,7 +74,7 @@
                   \- (dispatch :camera/zoom-out)))))))
 
     ;; Change draw mode.
-    (hooks/use-shortcut [\1 \2 \3 \4 \5 \f \g \r \s \t \x]
+    (hooks/use-shortcut [\1 \2 \3 \4 \5 \a \f \g \r \s \t \x]
       (fn [data]
         (let [event (.-originalEvent data)]
           (if (and (allowed? event) (not (or (.-metaKey event) (.-ctrlKey event))))
@@ -92,13 +95,12 @@
         (if (allowed? (.-originalEvent data))
           (let [[dx dy] (key->vector (.-key data))
                 attrs (.. js/document -activeElement -dataset)]
-            (cond (.. data -originalEvent -altKey)
+            (cond (or (.. data -originalEvent -altKey)
+                      (= (.-type attrs) "scene"))
                   (dispatch :camera/translate (* dx 140) (* dy 140))
-                  (= (.-type attrs) "scene")
-                  (dispatch :camera/translate (* dx 140) (* dy 140))
-                  (= (.-type attrs) "token")
-                  (dispatch :objects/translate (js/Number (.-id attrs)) (* dx 70) (* dy 70))
-                  (= (.-type attrs) "shape")
+                  (or (= (.-type attrs) "token")
+                      (= (.-type attrs) "shape")
+                      (= (.-type attrs) "note"))
                   (dispatch :objects/translate (js/Number (.-id attrs)) (* dx 70) (* dy 70))
                   (= (.-activeElement js/document) (.-body js/document))
                   (dispatch :objects/translate-selected (* dx 70) (* dy 70)))))))

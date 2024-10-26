@@ -66,6 +66,8 @@ body {
 
 body,
 button,
+textarea,
+textarea::placeholder,
 input:is([type="text"], [type="number"]),
 input:is([type="text"], [type="number"])::placeholder {
   font-family: Lora, serif;

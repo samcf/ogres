@@ -27,7 +27,7 @@
   (comp (filter :mask/enabled?) (map :mask/vecs)))
 
 (def ^:private draw-modes
-  #{:grid :ruler :circle :rect :cone :line :poly :mask})
+  #{:grid :ruler :circle :rect :cone :line :poly :mask :note})
 
 (def ^:private condition->icon
   {:blinded       "eye-slash-fill"

@@ -1,6 +1,7 @@
 (ns ogres.app.component.scene-objects
   (:require [clojure.string :refer [join]]
             [goog.object :refer [getValueByKeys]]
+            [ogres.app.component :refer [icon]]
             [ogres.app.component.scene-context-menu :refer [context-menu]]
             [ogres.app.component.scene-pattern :refer [pattern]]
             [ogres.app.geom :as geom]
@@ -12,6 +13,9 @@
              :refer [useDndMonitor useDraggable]
              :rename {useDndMonitor use-dnd-monitor
                       useDraggable use-draggable}]))
+
+(def ^:private note-icons
+  ["journal-bookmark-fill" "dice-5" "door-open" "geo-alt" "fire" "skull" "question-circle"])
 
 (defn ^:private stop-propagation
   "Defines an event handler that ceases event propagation."
@@ -165,10 +169,75 @@
                 :width (- bx ax 1)
                 :height (- by ay 1)})) portal))))))
 
+(defui ^:private object-note [{note :entity}]
+  (let [dispatch (hooks/use-dispatch)
+        id (:db/id note)]
+    ($ :foreignObject.scene-object-note
+      {:x -8 :y -8 :width 362 :height 334}
+      ($ :.scene-note
+        ($ :.scene-note-header
+          ($ :.scene-note-anchor
+            ($ :.scene-note-control
+              ($ icon {:name (:note/icon note) :size 26})))
+          ($ :.scene-note-nav
+            ($ :.scene-note-navinner
+              ($ :.scene-note-label (:note/label note))
+              ($ :.scene-note-control
+                ($ icon {:name "eye-slash-fill" :size 22}))
+              ($ :.scene-note-control
+                ($ icon {:name "trash3-fill" :size 22})))))
+        (if (contains? note :camera/_selected)
+          ($ :.scene-note-body {:on-pointer-down stop-propagation}
+            ($ :ul.scene-note-icons
+              (for [icon-name note-icons]
+                ($ :li {:key icon-name}
+                  ($ :label
+                    ($ :input
+                      {:type "radio"
+                       :name "note-icon"
+                       :value icon-name
+                       :checked (= (:note/icon note) icon-name)
+                       :on-change
+                       (fn [event]
+                         (dispatch :note/change-icon (:db/id note) (.. event -target -value)))})
+                    ($ icon {:name icon-name})))))
+            ($ :form.scene-note-form
+              {:on-blur
+               (fn [event]
+                 (let [name  (.. event -target -name)
+                       value (.. event -target -value)]
+                   (cond (and (= name "label") (not= (:note/label note) value))
+                         (dispatch :note/change-label id value)
+                         (and (= name "description") (not= (:note/description note) value))
+                         (dispatch :note/change-description id value))))
+               :on-submit
+               (fn [event]
+                 (.preventDefault event)
+                 (let [input (.. event -target -elements)
+                       label (.. input -label -value)
+                       descr (.. input -description -value)]
+                   (dispatch :note/change-details id label descr)))}
+              ($ :fieldset.fieldset
+                ($ :legend "Label")
+                ($ :input.text.text-ghost
+                  {:type "text"
+                   :name "label"
+                   :auto-complete "off"
+                   :default-value (:note/label note)
+                   :placeholder "Spider's Ballroom"}))
+              ($ :fieldset.fieldset
+                ($ :legend "Description")
+                ($ :textarea
+                  {:name "description"
+                   :auto-complete "off"
+                   :default-value (:note/description note)}))
+              ($ :input {:type "submit" :hidden true}))))))))
+
 (defui ^:private object [props]
   (case (keyword (namespace (:object/type (:entity props))))
     :shape ($ object-shape props)
-    :token ($ object-token props)))
+    :token ($ object-token props)
+    :note  ($ object-note props)))
 
 (defn ^:private use-drag-listener []
   (let [dispatch (hooks/use-dispatch)]
@@ -231,7 +300,18 @@
            [:shape/points :default [0 0]]
            [:shape/color :default "#f44336"]
            [:shape/opacity :default 0.25]
-           [:shape/pattern :default :solid]]}]}]}]
+           [:shape/pattern :default :solid]]}
+         {:scene/notes
+          [:db/id
+           [:object/type :default :note/note]
+           [:object/point :default [0 0]]
+           [:note/icon :default "journal-bookmark-fill"]
+           [:note/label :default ""]
+           [:note/description :default ""]
+           {:camera/_selected
+            [{:user/_camera
+              [{:root/_user
+                [[:user/type :default :host]]}]}]}]}]}]}]
     :root/session
     [{:session/conns
       [:db/ident :user/uuid :user/color :user/dragging]}]}])
@@ -246,7 +326,8 @@
            {[ox oy] :scene/grid-origin
             align? :scene/grid-align
             tokens :scene/tokens
-            shapes :scene/shapes}
+            shapes :scene/shapes
+            notes  :scene/notes}
            :camera/scene}
           :user/camera} :root/user
          {conns :session/conns} :root/session} result
@@ -254,7 +335,7 @@
         bounds [cx cy (+ (/ bw scale) cx) (+ (/ bh scale) cy)]
         shapes (sort shapes-comparator shapes)
         tokens (sort tokens-comparator (sequence (tokens-xf type) tokens))
-        entities (concat shapes tokens)
+        entities (concat shapes tokens notes)
         selected (into #{} (map :db/id) selected)
         dragging (into {} user-drag-xf conns)
         boundsxf (comp (filter (comp selected :db/id)) (mapcat geom/object-bounding-rect))]

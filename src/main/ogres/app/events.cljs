@@ -554,7 +554,8 @@
   [data _ rect]
   (let [result (ds/entity data [:db/ident :root])
         {{{{tokens :scene/tokens
-            shapes :scene/shapes} :camera/scene
+            shapes :scene/shapes
+            notes  :scene/notes} :camera/scene
            camera :db/id} :user/camera
           type :user/type} :root/user
          {conns :session/conns} :root/session} result
@@ -563,7 +564,7 @@
     [{:db/id            camera
       :camera/draw-mode :select
       :camera/selected
-      (for [entity (concat shapes tokens)
+      (for [entity (concat shapes tokens notes)
             :let   [{id :db/id flags :token/flags} entity]
             :let   [[ax ay bx by] (geom/object-bounding-rect entity)]
             :when  (and (geom/point-within-rect [ax ay] bounds)
@@ -984,3 +985,49 @@
   event-tx-fn :drag/end
   []
   [[:db/retract [:db/ident :user] :user/dragging]])
+
+;; -- Notes --
+(defmethod
+  ^{:doc "Create a new note object at the given point."}
+  event-tx-fn :note/create
+  [data _ mx my]
+  (let [user (ds/entity data [:db/ident :user])
+        {[bx by] :bounds/self
+         {camera :db/id
+          {scene :db/id} :camera/scene
+          [cx cy] :camera/point
+          scale :camera/scale} :user/camera} user
+        ox (int (- (+ cx (/ (- mx bx) (or scale 1))) 16))
+        oy (int (- (+ cy (/ (- my by) (or scale 1))) 16))]
+    [{:db/id -1 :object/type :note/note :object/point [ox oy] :note/label "Note"}
+     {:db/id scene :scene/notes -1}
+     {:db/id camera :camera/selected -1 :camera/draw-mode :select}]))
+
+(defmethod
+  ^{:doc "Change the selected icon for the given note. icon-name is a
+          string that corresponds to a unique icon name."}
+  event-tx-fn :note/change-icon
+  [_ _ id icon-name]
+  [[:db/add id :note/icon icon-name]])
+
+(defmethod
+  ^{:doc "Change the label for the given note."}
+  event-tx-fn :note/change-label
+  [_ _ id value]
+  [[:db/add id :note/label value]])
+
+(defmethod
+  ^{:doc "Change the description for the given note."}
+  event-tx-fn :note/change-description
+  [_ _ id value]
+  [[:db/add id :note/description value]])
+
+(defmethod
+  ^{:doc "Change both the label and description for the given note
+          and close the form for editing."}
+  event-tx-fn :note/change-details
+  [data _ id label desc]
+  (let [user (ds/entity data [:db/ident :user])]
+    [[:db/add id :note/label label]
+     [:db/add id :note/description desc]
+     [:db/retract (:db/id (:user/camera user)) :camera/selected id]]))

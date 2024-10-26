@@ -28,7 +28,8 @@
    "scene-window" {:label "Open the player window." :args [:share/initiate]}
    "zoom-in"      {:label "Zoom in." :args [:camera/zoom-in]}
    "zoom-out"     {:label "Zoom out." :args [:camera/zoom-out]}
-   "zoom-reset"   {:label "Reset to 100% zoom." :args [:camera/zoom-reset]}})
+   "zoom-reset"   {:label "Reset to 100% zoom." :args [:camera/zoom-reset]}
+   "note"         {:label "Create a note." :args [:camera/change-mode :note]}})
 
 (defui ^:private action [props]
   ($ :button
@@ -121,4 +122,6 @@
         ($ action {:name "mask-hide"}
           ($ icon {:name "eye-slash-fill"}))
         ($ action {:name "scene-window" :aria-pressed share?}
-          ($ icon {:name "pip" :size 22}))))))
+          ($ icon {:name "pip" :size 22}))
+        ($ action {:name "note" :aria-pressed (= mode :note)}
+          ($ icon {:name "journal-bookmark-fill"}))))))
