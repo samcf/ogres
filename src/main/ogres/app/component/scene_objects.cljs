@@ -22,14 +22,14 @@
   [event]
   (.stopPropagation event))
 
-(defn ^:private shapes-comparator
+(defn ^:private compare-objects
   "Defines a comparator function for shapes."
   [a b]
   (let [{[ax ay] :object/point} a
         {[bx by] :object/point} b]
     (compare [ax ay] [bx by])))
 
-(defn ^:private tokens-comparator
+(defn ^:private compare-tokens
   "Defines a comparator function for tokens."
   [a b]
   (let [{size-a :token/size [ax ay] :object/point} a
@@ -57,6 +57,9 @@
    (fn [token]
      (or (= user :host)
          (not (contains? (:token/flags token) :hidden))))))
+
+(defn ^:private objects-xf [user]
+  (filter (fn [entity] (or (= user :host) (not (:object/hidden entity))))))
 
 (defn ^:private use-cursor-point
   "Defines a React state hook which returns a point [Ax Ay] of the
@@ -171,20 +174,24 @@
 
 (defui ^:private object-note [{note :entity}]
   (let [dispatch (hooks/use-dispatch)
+        {hidden :object/hidden} note
         id (:db/id note)]
     ($ :foreignObject.scene-object-note
       {:x -8 :y -8 :width 362 :height 334}
-      ($ :.scene-note
+      ($ :.scene-note {:data-hidden hidden}
         ($ :.scene-note-header
           ($ :.scene-note-anchor
-            ($ :.scene-note-control
-              ($ icon {:name (:note/icon note) :size 26})))
+            ($ icon {:name (:note/icon note) :size 26}))
           ($ :.scene-note-nav
             ($ :.scene-note-navinner
               ($ :.scene-note-label (:note/label note))
               ($ :.scene-note-control
-                ($ icon {:name "eye-slash-fill" :size 22}))
+                {:on-pointer-down stop-propagation
+                 :on-click (fn [] (dispatch :objects/toggle-hidden id))}
+                ($ icon {:name (if hidden "eye-slash-fill" "eye-fill") :size 22}))
               ($ :.scene-note-control
+                {:on-pointer-down stop-propagation
+                 :on-click (fn [] (dispatch :objects/remove [id]))}
                 ($ icon {:name "trash3-fill" :size 22})))))
         (if (contains? note :camera/_selected)
           ($ :.scene-note-body {:on-pointer-down stop-propagation}
@@ -305,6 +312,7 @@
           [:db/id
            [:object/type :default :note/note]
            [:object/point :default [0 0]]
+           [:object/hidden :default true]
            [:note/icon :default "journal-bookmark-fill"]
            [:note/label :default ""]
            [:note/description :default ""]
@@ -325,17 +333,18 @@
            selected :camera/selected
            {[ox oy] :scene/grid-origin
             align? :scene/grid-align
-            tokens :scene/tokens
+            notes  :scene/notes
             shapes :scene/shapes
-            notes  :scene/notes}
+            tokens :scene/tokens}
            :camera/scene}
           :user/camera} :root/user
          {conns :session/conns} :root/session} result
         portal (uix/use-ref)
         bounds [cx cy (+ (/ bw scale) cx) (+ (/ bh scale) cy)]
-        shapes (sort shapes-comparator shapes)
-        tokens (sort tokens-comparator (sequence (tokens-xf type) tokens))
-        entities (concat shapes tokens notes)
+        notes  (sort compare-objects notes)
+        shapes (sort compare-objects shapes)
+        tokens (sort compare-tokens (sequence (tokens-xf type) tokens))
+        entities (into [] (objects-xf type) (into tokens (into shapes notes)))
         selected (into #{} (map :db/id) selected)
         dragging (into {} user-drag-xf conns)
         boundsxf (comp (filter (comp selected :db/id)) (mapcat geom/object-bounding-rect))]

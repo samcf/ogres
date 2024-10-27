@@ -438,6 +438,13 @@
        {:db/id camera :camera/selected {:db/id id}})]))
 
 (defmethod
+  ^{:doc "Toggle the visibility of the given object."}
+  event-tx-fn :objects/toggle-hidden
+  [data _ id]
+  (let [entity (ds/entity data id)]
+    [[:db/add id :object/hidden (not (:object/hidden entity))]]))
+
+(defmethod
   ^{:doc "Removes the objects given by idxs."}
   event-tx-fn :objects/remove
   [_ _ idxs]
@@ -999,7 +1006,11 @@
           scale :camera/scale} :user/camera} user
         ox (int (- (+ cx (/ (- mx bx) (or scale 1))) 16))
         oy (int (- (+ cy (/ (- my by) (or scale 1))) 16))]
-    [{:db/id -1 :object/type :note/note :object/point [ox oy] :note/label "Note"}
+    [{:db/id -1
+      :object/type :note/note
+      :object/point [ox oy]
+      :object/hidden true
+      :note/label "Note"}
      {:db/id scene :scene/notes -1}
      {:db/id camera :camera/selected -1 :camera/draw-mode :select}]))
 

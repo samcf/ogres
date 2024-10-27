@@ -192,11 +192,18 @@
   pointer-events: none;
 }
 
+.scene-note-anchor,
 .scene-note-control,
 .scene-note-icons {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.scene-note-control {
+  &:hover {
+    color: var(--color-danger-500);
+  }
 }
 
 .scene-note {
@@ -220,6 +227,7 @@
   cursor: pointer;
   padding: 8px;
   pointer-events: all;
+  z-index: 1;
 }
 
 .scene-note-nav {
@@ -239,7 +247,7 @@
   display: flex;
   flex: 1;
   gap: 16px;
-  padding: 0 12px 0 8px;
+  padding: 0 12px;
   pointer-events: all;
   transform: translate(-100%, 0);
   transition: transform 100ms linear;
@@ -268,7 +276,7 @@
   border-bottom-left-radius: 3px;
   flex-direction: column;
   gap: 12px;
-  padding: 8px;
+  padding: 8px 10px;
 
   &:has(:focus-visible) {
     outline: 2px solid var(--outline-color);
@@ -334,6 +342,11 @@
     resize: none;
     width: 100%;
   }
+}
+
+.scene-note[data-hidden="false"] .scene-note-anchor {
+  background: goldenrod;
+  color: var(--color-blues-900);
 }
 
 .scene-objects-selected {
