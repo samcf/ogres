@@ -313,6 +313,7 @@
            [:object/type :default :note/note]
            [:object/point :default [0 0]]
            [:object/hidden :default true]
+           [:object/locked :default true]
            [:note/icon :default "journal-bookmark-fill"]
            [:note/label :default ""]
            [:note/description :default ""]
@@ -354,7 +355,8 @@
         {:ref portal :tab-index -1})
       ($ TransitionGroup {:component nil}
         (for [entity entities
-              :let [{id :db/id [ax ay] :object/point type :object/type} entity
+              :let [{id :db/id [ax ay] :object/point} entity
+                    lock (and (= type :conn) (:object/locked entity))
                     node (uix/create-ref)
                     user (dragging id)
                     rect (geom/object-bounding-rect entity)
@@ -364,7 +366,7 @@
               (if (not (selected id))
                 ($ drag-remote-fn {:user (:user/uuid user) :x ax :y ay}
                   (fn [[rx ry]]
-                    ($ drag-local-fn {:id id :disabled (some? user)}
+                    ($ drag-local-fn {:id id :disabled (or user lock)}
                       (fn [drag]
                         (let [handler (getValueByKeys drag "listeners" "onPointerDown")
                               dx (or (getValueByKeys drag "transform" "x") 0)
@@ -381,7 +383,7 @@
                              :data-drag-remote (some? user)
                              :data-drag-local (.-isDragging drag)
                              :data-color (:user/color user)
-                             :data-type (namespace type)
+                             :data-type (namespace (:object/type entity))
                              :data-id id}
                             ($ object
                               {:entity entity

@@ -1010,6 +1010,7 @@
       :object/type :note/note
       :object/point [ox oy]
       :object/hidden true
+      :object/locked true
       :note/label "Note"}
      {:db/id scene :scene/notes -1}
      {:db/id camera :camera/selected -1 :camera/draw-mode :select}]))
