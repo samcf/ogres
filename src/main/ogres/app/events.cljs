@@ -870,6 +870,11 @@
 (def ^:private clipboard-copy-attrs
   [:object/point
    :object/type
+   :object/hidden
+   :object/locked
+   :note/icon
+   :note/label
+   :note/description
    :shape/points
    :shape/color
    :shape/opacity
@@ -958,6 +963,7 @@
        :camera/selected idx
        :camera/scene
        (cond-> {:db/id scene}
+         (= type :note)  (assoc :scene/notes data)
          (= type :shape) (assoc :scene/shapes data)
          (= type :token) (assoc :scene/tokens data))})))
 
