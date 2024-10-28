@@ -174,10 +174,10 @@
 
 (defui ^:private object-note [{note :entity}]
   (let [dispatch (hooks/use-dispatch)
-        {hidden :object/hidden} note
-        id (:db/id note)]
+        selected (contains? note :camera/_selected)
+        {id :db/id hidden :object/hidden} note]
     ($ :foreignObject.scene-object-note
-      {:x -8 :y -8 :width 362 :height 334}
+      {:x -8 :y -8 :width 362 :height (if selected 334 58)}
       ($ :.scene-note {:data-hidden hidden}
         ($ :.scene-note-header
           ($ :.scene-note-anchor
@@ -193,7 +193,7 @@
                 {:on-pointer-down stop-propagation
                  :on-click (fn [] (dispatch :objects/remove [id]))}
                 ($ icon {:name "trash3-fill" :size 22})))))
-        (if (contains? note :camera/_selected)
+        (if selected
           ($ :.scene-note-body {:on-pointer-down stop-propagation}
             ($ :ul.scene-note-icons
               (for [icon-name note-icons]
