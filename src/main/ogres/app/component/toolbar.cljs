@@ -91,6 +91,8 @@
           ($ icon {:name "clipboard2-plus"}))
         ($ action {:name "scene-ruler" :aria-pressed (= mode :ruler)}
           ($ icon {:name "rulers"}))
+        ($ action {:name "note" :aria-pressed (= mode :note)}
+          ($ icon {:name "journal-bookmark-fill"}))
         ($ action {:name "draw-circle" :aria-pressed (= mode :circle)}
           ($ icon {:name "circle"}))
         ($ action {:name "draw-rect" :aria-pressed (= mode :rect)}
@@ -122,6 +124,4 @@
         ($ action {:name "mask-hide"}
           ($ icon {:name "eye-slash-fill"}))
         ($ action {:name "scene-window" :aria-pressed share?}
-          ($ icon {:name "pip" :size 22}))
-        ($ action {:name "note" :aria-pressed (= mode :note)}
-          ($ icon {:name "journal-bookmark-fill"}))))))
+          ($ icon {:name "pip" :size 22}))))))

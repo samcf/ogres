@@ -181,6 +181,10 @@
   [name="zoom-reset"] {
     grid-area: zrt;
   }
+
+  [name="note"] {
+    grid-area: not;
+  }
 }
 
 @media only screen and (max-width: 1199px) {
@@ -213,8 +217,8 @@
       grid-template-columns: repeat(12, 1fr);
       grid-template-rows: repeat(2, 1fr);
       grid-template-areas:
-        "sel cut cop pst rul crc rct con ply lne grd fcs"
-        "zot zrt zrt zrt zin msk mtg mrm msh mhi plw .";
+        "sel cut cop pst rul not fcs crc rct con ply lne"
+        "zot zrt zrt zrt zin msk mtg mrm msh mhi plw grd";
     }
 
     &[data-user="conn"] .toolbar-actions {
