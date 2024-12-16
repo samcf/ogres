@@ -27,7 +27,7 @@ git clone git@github.com:samcf/ogres.git
 
 # install dependencies and start the local web server
 # by default opens at http://localhost:8080
-npm install --legacy-peer-deps
+npm install
 npm start
 
 # run the process that bundles CSS files

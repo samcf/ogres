@@ -12,8 +12,8 @@
     "@msgpack/msgpack": "^3.0.0-beta2",
     "@rwh/keystrokes": "^1.5.4",
     "@rwh/react-keystrokes": "^1.5.4",
-    "react": "^19.0.0-rc-512b09b2-20240718",
-    "react-dom": "^19.0.0-rc-512b09b2-20240718",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "react-transition-group": "^4.4.5"
   },
   "scripts": {
