@@ -5,6 +5,7 @@
             [ogres.app.util :refer [separate]]
             [uix.core :as uix :refer [defui $]]
             [uix.dom :refer [create-portal]]
+            [clojure.string :as str]
             ["@dnd-kit/core"
              :refer  [DndContext DragOverlay useDndMonitor useDraggable useDroppable]
              :rename {DndContext    dnd-context
@@ -61,7 +62,9 @@
      (.querySelector js/document "#root"))))
 
 (defui ^:private gallery [props]
-  (let [option (use-droppable #js {"id" "trash"})]
+  (let [name (:name props)
+        dynamic-id (str name "-" "trash")
+        option (use-droppable #js {"id" dynamic-id})]
     ($ :<>
       (for [[idx data] (sequence (map-indexed vector) (:data props))]
         (cond (map? data)
@@ -112,7 +115,7 @@
                    (concat (subvec data start stop))
                    (take limit))]
     ($ :<>
-      ($ gallery {:data data})
+      ($ gallery {:name name :data data})
       (if (> pages 1)
         ($ pagination
           {:name  name
@@ -179,10 +182,13 @@
                     drop (getValueByKeys event #js ["over" "id"])
                     nail (getValueByKeys event #js ["active" "data" "current" "image"])]
                 (if (and (some? drop) (not= drag "default"))
-                  (case drop
-                    "scope-pub" (dispatch :token-images/change-scope drag :public)
-                    "scope-prv" (dispatch :token-images/change-scope drag :private)
-                    "trash" (dispatch :token-images/remove drag nail))
+                  (cond
+                    (= drop "scope-pub")
+                    (dispatch :token-images/change-scope drag :public)
+                    (= drop "scope-prv")
+                    (dispatch :token-images/change-scope drag :private)
+                    (str/includes? drop "trash")
+                    (dispatch :token-images/remove drag nail))
                   (let [target (.. event -activatorEvent -target)
                         delta  (.-delta event)]
                     (on-create drag target delta)))))
