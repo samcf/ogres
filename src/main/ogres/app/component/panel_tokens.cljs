@@ -182,13 +182,13 @@
                     drop (getValueByKeys event #js ["over" "id"])
                     nail (getValueByKeys event #js ["active" "data" "current" "image"])]
                 (if (and (some? drop) (not= drag "default"))
-                  (do
-                    (if (= drop "scope-pub")
-                      (dispatch :token-images/change-scope drag :public))
-                    (if (= drop "scope-prv")
-                      (dispatch :token-images/change-scope drag :private))
-                    (if (str/includes? drop "trash")
-                      (dispatch :token-images/remove drag nail)))
+                  (cond
+                    (= drop "scope-pub")
+                    (dispatch :token-images/change-scope drag :public)
+                    (= drop "scope-prv")
+                    (dispatch :token-images/change-scope drag :private)
+                    (str/includes? drop "trash")
+                    (dispatch :token-images/remove drag nail))
                   (let [target (.. event -activatorEvent -target)
                         delta  (.-delta event)]
                     (on-create drag target delta)))))
