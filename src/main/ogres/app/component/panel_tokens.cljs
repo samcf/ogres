@@ -64,8 +64,7 @@
 (defui ^:private gallery [props]
   (let [name (:name props)
         dynamic-id (str name "-" "trash")
-        option (use-droppable #js {"id" dynamic-id})
-        ]
+        option (use-droppable #js {"id" dynamic-id})]
     ($ :<>
       (for [[idx data] (sequence (map-indexed vector) (:data props))]
         (cond (map? data)
