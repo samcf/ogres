@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "devDependencies": {
-    "esbuild": "0.23.1",
+    "esbuild": "^0.25.0",
     "react-refresh": "^0.14.0",
     "shadow-cljs": "^2.23.3"
   },
