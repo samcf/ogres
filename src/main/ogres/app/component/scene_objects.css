@@ -349,7 +349,7 @@
   color: var(--color-blues-900);
 }
 
-.scene-objects-selected {
+.scene-object-note[data-selected="true"] {
   .scene-note-header {
     width: auto;
   }
@@ -370,7 +370,7 @@
 .scene-object-transition
   [data-type="note"][data-drag-local="true"]
   .scene-note-navinner,
-.scene-objects-selected .scene-note-navinner,
+.scene-object-note[data-selected="true"] .scene-note-navinner,
 .scene-note-anchor:hover + .scene-note-nav > .scene-note-navinner {
   transform: translate(0);
 }

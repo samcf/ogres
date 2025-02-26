@@ -172,19 +172,22 @@
                 :width (- bx ax 1)
                 :height (- by ay 1)})) portal))))))
 
-(defui ^:private object-note [{note :entity}]
-  (let [dispatch (hooks/use-dispatch)
-        selected (contains? note :camera/_selected)
-        {id :db/id hidden :object/hidden} note]
+(defui ^:private object-note [props]
+  (let [dispatch  (hooks/use-dispatch)
+        entity    (:entity props)
+        id        (:db/id entity)
+        hidden    (:object/hidden entity)
+        selected  (into #{} (map :db/id) (:camera/selected (first (:camera/_selected entity))))
+        selected? (= selected #{id})]
     ($ :foreignObject.scene-object-note
-      {:x -8 :y -8 :width 362 :height (if selected 334 58)}
+      {:x -8 :y -8 :width 362 :height (if selected? 334 58) :data-selected selected?}
       ($ :.scene-note {:data-hidden hidden}
         ($ :.scene-note-header
           ($ :.scene-note-anchor
-            ($ icon {:name (:note/icon note) :size 26}))
+            ($ icon {:name (:note/icon entity) :size 26}))
           ($ :.scene-note-nav
             ($ :.scene-note-navinner
-              ($ :.scene-note-label (:note/label note))
+              ($ :.scene-note-label (:note/label entity))
               ($ :.scene-note-control
                 {:on-pointer-down stop-propagation
                  :on-click (fn [] (dispatch :objects/toggle-hidden id))}
@@ -193,7 +196,7 @@
                 {:on-pointer-down stop-propagation
                  :on-click (fn [] (dispatch :objects/remove [id]))}
                 ($ icon {:name "trash3-fill" :size 22})))))
-        (if selected
+        (if selected?
           ($ :.scene-note-body {:on-pointer-down stop-propagation}
             ($ :ul.scene-note-icons
               (for [icon-name note-icons]
@@ -203,19 +206,19 @@
                       {:type "radio"
                        :name "note-icon"
                        :value icon-name
-                       :checked (= (:note/icon note) icon-name)
+                       :checked (= (:note/icon entity) icon-name)
                        :on-change
                        (fn [event]
-                         (dispatch :note/change-icon (:db/id note) (.. event -target -value)))})
+                         (dispatch :note/change-icon (:db/id entity) (.. event -target -value)))})
                     ($ icon {:name icon-name})))))
             ($ :form.scene-note-form
               {:on-blur
                (fn [event]
                  (let [name  (.. event -target -name)
                        value (.. event -target -value)]
-                   (cond (and (= name "label") (not= (:note/label note) value))
+                   (cond (and (= name "label") (not= (:note/label entity) value))
                          (dispatch :note/change-label id value)
-                         (and (= name "description") (not= (:note/description note) value))
+                         (and (= name "description") (not= (:note/description entity) value))
                          (dispatch :note/change-description id value))))
                :on-submit
                (fn [event]
@@ -230,14 +233,14 @@
                   {:type "text"
                    :name "label"
                    :auto-complete "off"
-                   :default-value (:note/label note)
+                   :default-value (:note/label entity)
                    :placeholder "Spider's Ballroom"}))
               ($ :fieldset.fieldset
                 ($ :legend "Description")
                 ($ :textarea
                   {:name "description"
                    :auto-complete "off"
-                   :default-value (:note/description note)}))
+                   :default-value (:note/description entity)}))
               ($ :input {:type "submit" :hidden true}))))))))
 
 (defui ^:private object [props]
@@ -318,7 +321,8 @@
            [:note/label :default ""]
            [:note/description :default ""]
            {:camera/_selected
-            [{:user/_camera
+            [:camera/selected
+             {:user/_camera
               [{:root/_user
                 [[:user/type :default :host]]}]}]}]}]}]}]
     :root/session
