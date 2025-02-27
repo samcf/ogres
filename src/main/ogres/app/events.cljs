@@ -438,6 +438,13 @@
        {:db/id camera :camera/selected {:db/id id}})]))
 
 (defmethod
+  ^{:doc "Toggle the visibility of the given object."}
+  event-tx-fn :objects/toggle-hidden
+  [data _ id]
+  (let [entity (ds/entity data id)]
+    [[:db/add id :object/hidden (not (:object/hidden entity))]]))
+
+(defmethod
   ^{:doc "Removes the objects given by idxs."}
   event-tx-fn :objects/remove
   [_ _ idxs]
@@ -554,7 +561,8 @@
   [data _ rect]
   (let [result (ds/entity data [:db/ident :root])
         {{{{tokens :scene/tokens
-            shapes :scene/shapes} :camera/scene
+            shapes :scene/shapes
+            notes  :scene/notes} :camera/scene
            camera :db/id} :user/camera
           type :user/type} :root/user
          {conns :session/conns} :root/session} result
@@ -563,14 +571,14 @@
     [{:db/id            camera
       :camera/draw-mode :select
       :camera/selected
-      (for [entity (concat shapes tokens)
+      (for [entity (concat shapes tokens notes)
             :let   [{id :db/id flags :token/flags} entity]
             :let   [[ax ay bx by] (geom/object-bounding-rect entity)]
             :when  (and (geom/point-within-rect [ax ay] bounds)
                         (geom/point-within-rect [bx by] bounds)
                         (not (restri id))
-                        (or (= type :host)
-                            (not (contains? flags :hidden))))]
+                        (or (= type :host) (not (:object/locked entity)))
+                        (or (= type :host) (not (contains? flags :hidden))))]
         {:db/id id})}]))
 
 (defmethod event-tx-fn :selection/clear
@@ -862,6 +870,11 @@
 (def ^:private clipboard-copy-attrs
   [:object/point
    :object/type
+   :object/hidden
+   :object/locked
+   :note/icon
+   :note/label
+   :note/description
    :shape/points
    :shape/color
    :shape/opacity
@@ -880,13 +893,12 @@
             [:db/id {:token/image [:image/hash]}])}]}])
 
 (defmethod
-  ^{:doc "Copy the currently selected tokens to the clipboard. Optionally
+  ^{:doc "Copy the currently selected objects to the clipboard. Optionally
           removes them from the current scene if cut? is passed as true.
-          The clipboard contains a template for the token data, and not
-          references to the tokens themselves since those references
-          don't exist after they are pruned from the scene. Only some token
-          data is copied; transient state like that related to initiative is
-          not preserved."}
+          The clipboard contains a template for the object data and not
+          references to the objects themselves since those references
+          don't exist after they are pruned from the scene. Only some object
+          data is copied; transient state is not preserved."}
   event-tx-fn :clipboard/copy
   ([_ event]
    [[:db.fn/call event-tx-fn event false]])
@@ -914,9 +926,9 @@
    {:root/token-images [:image/hash]}])
 
 (defmethod
-  ^{:doc "Creates tokens on the current scene from the data stored in the local
-          user's clipboard. Attempts to preserve the relative position of
-          the tokens when they were copied but in the center of the user's
+  ^{:doc "Creates objects on the current scene from the data stored in the
+          local user's clipboard. Attempts to preserve the relative position
+          of the objects when they were copied but in the center of the user's
           viewport. Clipboard data is not pruned after pasting."}
   event-tx-fn :clipboard/paste
   [data]
@@ -951,6 +963,7 @@
        :camera/selected idx
        :camera/scene
        (cond-> {:db/id scene}
+         (= type :note)  (assoc :scene/notes data)
          (= type :shape) (assoc :scene/shapes data)
          (= type :token) (assoc :scene/tokens data))})))
 
@@ -985,3 +998,54 @@
   event-tx-fn :drag/end
   []
   [[:db/retract [:db/ident :user] :user/dragging]])
+
+;; -- Notes --
+(defmethod
+  ^{:doc "Create a new note object at the given point."}
+  event-tx-fn :note/create
+  [data _ mx my]
+  (let [user (ds/entity data [:db/ident :user])
+        {[bx by] :bounds/self
+         {camera :db/id
+          {scene :db/id} :camera/scene
+          [cx cy] :camera/point
+          scale :camera/scale} :user/camera} user
+        ox (int (- (+ cx (/ (- mx bx) (or scale 1))) 16))
+        oy (int (- (+ cy (/ (- my by) (or scale 1))) 16))]
+    [{:db/id -1
+      :object/type :note/note
+      :object/point [ox oy]
+      :object/hidden true
+      :object/locked true
+      :note/label "Note"}
+     {:db/id scene :scene/notes -1}
+     {:db/id camera :camera/selected -1 :camera/draw-mode :select}]))
+
+(defmethod
+  ^{:doc "Change the selected icon for the given note. icon-name is a
+          string that corresponds to a unique icon name."}
+  event-tx-fn :note/change-icon
+  [_ _ id icon-name]
+  [[:db/add id :note/icon icon-name]])
+
+(defmethod
+  ^{:doc "Change the label for the given note."}
+  event-tx-fn :note/change-label
+  [_ _ id value]
+  [[:db/add id :note/label value]])
+
+(defmethod
+  ^{:doc "Change the description for the given note."}
+  event-tx-fn :note/change-description
+  [_ _ id value]
+  [[:db/add id :note/description value]])
+
+(defmethod
+  ^{:doc "Change both the label and description for the given note
+          and close the form for editing."}
+  event-tx-fn :note/change-details
+  [data _ id label desc]
+  (let [user (ds/entity data [:db/ident :user])]
+    [[:db/add id :note/label label]
+     [:db/add id :note/description desc]
+     [:db/retract (:db/id (:user/camera user)) :camera/selected id]]))

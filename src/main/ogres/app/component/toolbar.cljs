@@ -8,9 +8,9 @@
   (into {} (map (juxt :name :keys)) shortcuts))
 
 (def ^:private action-data
-  {"copy-copy"    {:label "Copy the selected tokens." :args [:clipboard/copy false]}
-   "copy-cut"     {:label "Copy and remove the selected tokens." :args [:clipboard/copy true]}
-   "copy-paste"   {:label "Paste copied tokens onto the scene." :args [:clipboard/paste]}
+  {"copy-copy"    {:label "Copy the selected objects." :args [:clipboard/copy false]}
+   "copy-cut"     {:label "Copy and remove the selected objects." :args [:clipboard/copy true]}
+   "copy-paste"   {:label "Paste copied objects onto the scene." :args [:clipboard/paste]}
    "draw-circle"  {:label "Draw a circle." :args [:camera/change-mode :circle]}
    "draw-cone"    {:label "Draw a cone." :args [:camera/change-mode :cone]}
    "draw-line"    {:label "Draw a line." :args [:camera/change-mode :line]}
@@ -28,7 +28,8 @@
    "scene-window" {:label "Open the player window." :args [:share/initiate]}
    "zoom-in"      {:label "Zoom in." :args [:camera/zoom-in]}
    "zoom-out"     {:label "Zoom out." :args [:camera/zoom-out]}
-   "zoom-reset"   {:label "Reset to 100% zoom." :args [:camera/zoom-reset]}})
+   "zoom-reset"   {:label "Reset to 100% zoom." :args [:camera/zoom-reset]}
+   "note"         {:label "Create a note." :args [:camera/change-mode :note]}})
 
 (defui ^:private action [props]
   ($ :button
@@ -90,6 +91,8 @@
           ($ icon {:name "clipboard2-plus"}))
         ($ action {:name "scene-ruler" :aria-pressed (= mode :ruler)}
           ($ icon {:name "rulers"}))
+        ($ action {:name "note" :aria-pressed (= mode :note)}
+          ($ icon {:name "journal-bookmark-fill"}))
         ($ action {:name "draw-circle" :aria-pressed (= mode :circle)}
           ($ icon {:name "circle"}))
         ($ action {:name "draw-rect" :aria-pressed (= mode :rect)}

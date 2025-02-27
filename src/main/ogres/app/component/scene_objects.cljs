@@ -1,6 +1,7 @@
 (ns ogres.app.component.scene-objects
   (:require [clojure.string :refer [join]]
             [goog.object :refer [getValueByKeys]]
+            [ogres.app.component :refer [icon]]
             [ogres.app.component.scene-context-menu :refer [context-menu]]
             [ogres.app.component.scene-pattern :refer [pattern]]
             [ogres.app.geom :as geom]
@@ -13,19 +14,22 @@
              :rename {useDndMonitor use-dnd-monitor
                       useDraggable use-draggable}]))
 
+(def ^:private note-icons
+  ["journal-bookmark-fill" "dice-5" "door-open" "geo-alt" "fire" "skull" "question-circle"])
+
 (defn ^:private stop-propagation
   "Defines an event handler that ceases event propagation."
   [event]
   (.stopPropagation event))
 
-(defn ^:private shapes-comparator
+(defn ^:private compare-objects
   "Defines a comparator function for shapes."
   [a b]
   (let [{[ax ay] :object/point} a
         {[bx by] :object/point} b]
     (compare [ax ay] [bx by])))
 
-(defn ^:private tokens-comparator
+(defn ^:private compare-tokens
   "Defines a comparator function for tokens."
   [a b]
   (let [{size-a :token/size [ax ay] :object/point} a
@@ -53,6 +57,9 @@
    (fn [token]
      (or (= user :host)
          (not (contains? (:token/flags token) :hidden))))))
+
+(defn ^:private objects-xf [user]
+  (filter (fn [entity] (or (= user :host) (not (:object/hidden entity))))))
 
 (defn ^:private use-cursor-point
   "Defines a React state hook which returns a point [Ax Ay] of the
@@ -165,10 +172,83 @@
                 :width (- bx ax 1)
                 :height (- by ay 1)})) portal))))))
 
+(defui ^:private object-note [props]
+  (let [dispatch  (hooks/use-dispatch)
+        entity    (:entity props)
+        id        (:db/id entity)
+        hidden    (:object/hidden entity)
+        camera    (first (:camera/_selected entity))
+        selected  (into #{} (map :db/id) (:camera/selected camera))
+        selected? (and (contains? camera :user/_camera) (= selected #{id}))]
+    ($ :foreignObject.scene-object-note
+      {:x -8 :y -8 :width 362 :height (if selected? 334 58) :data-selected selected?}
+      ($ :.scene-note {:data-hidden hidden}
+        ($ :.scene-note-header
+          ($ :.scene-note-anchor
+            ($ icon {:name (:note/icon entity) :size 26}))
+          ($ :.scene-note-nav
+            ($ :.scene-note-navinner
+              ($ :.scene-note-label (:note/label entity))
+              ($ :.scene-note-control
+                {:on-pointer-down stop-propagation
+                 :on-click (fn [] (dispatch :objects/toggle-hidden id))}
+                ($ icon {:name (if hidden "eye-slash-fill" "eye-fill") :size 22}))
+              ($ :.scene-note-control
+                {:on-pointer-down stop-propagation
+                 :on-click (fn [] (dispatch :objects/remove [id]))}
+                ($ icon {:name "trash3-fill" :size 22})))))
+        (if selected?
+          ($ :.scene-note-body {:on-pointer-down stop-propagation}
+            ($ :ul.scene-note-icons
+              (for [icon-name note-icons]
+                ($ :li {:key icon-name}
+                  ($ :label
+                    ($ :input
+                      {:type "radio"
+                       :name "note-icon"
+                       :value icon-name
+                       :checked (= (:note/icon entity) icon-name)
+                       :on-change
+                       (fn [event]
+                         (dispatch :note/change-icon (:db/id entity) (.. event -target -value)))})
+                    ($ icon {:name icon-name})))))
+            ($ :form.scene-note-form
+              {:on-blur
+               (fn [event]
+                 (let [name  (.. event -target -name)
+                       value (.. event -target -value)]
+                   (cond (and (= name "label") (not= (:note/label entity) value))
+                         (dispatch :note/change-label id value)
+                         (and (= name "description") (not= (:note/description entity) value))
+                         (dispatch :note/change-description id value))))
+               :on-submit
+               (fn [event]
+                 (.preventDefault event)
+                 (let [input (.. event -target -elements)
+                       label (.. input -label -value)
+                       descr (.. input -description -value)]
+                   (dispatch :note/change-details id label descr)))}
+              ($ :fieldset.fieldset
+                ($ :legend "Label")
+                ($ :input.text.text-ghost
+                  {:type "text"
+                   :name "label"
+                   :auto-complete "off"
+                   :default-value (:note/label entity)
+                   :placeholder "Spider's Ballroom"}))
+              ($ :fieldset.fieldset
+                ($ :legend "Description")
+                ($ :textarea
+                  {:name "description"
+                   :auto-complete "off"
+                   :default-value (:note/description entity)}))
+              ($ :input {:type "submit" :hidden true}))))))))
+
 (defui ^:private object [props]
   (case (keyword (namespace (:object/type (:entity props))))
     :shape ($ object-shape props)
-    :token ($ object-token props)))
+    :token ($ object-token props)
+    :note  ($ object-note props)))
 
 (defn ^:private use-drag-listener []
   (let [dispatch (hooks/use-dispatch)]
@@ -231,7 +311,21 @@
            [:shape/points :default [0 0]]
            [:shape/color :default "#f44336"]
            [:shape/opacity :default 0.25]
-           [:shape/pattern :default :solid]]}]}]}]
+           [:shape/pattern :default :solid]]}
+         {:scene/notes
+          [:db/id
+           [:object/type :default :note/note]
+           [:object/point :default [0 0]]
+           [:object/hidden :default true]
+           [:object/locked :default true]
+           [:note/icon :default "journal-bookmark-fill"]
+           [:note/label :default ""]
+           [:note/description :default ""]
+           {:camera/_selected
+            [:camera/selected
+             {:user/_camera
+              [{:root/_user
+                [[:user/type :default :host]]}]}]}]}]}]}]
     :root/session
     [{:session/conns
       [:db/ident :user/uuid :user/color :user/dragging]}]}])
@@ -245,16 +339,18 @@
            selected :camera/selected
            {[ox oy] :scene/grid-origin
             align? :scene/grid-align
-            tokens :scene/tokens
-            shapes :scene/shapes}
+            notes  :scene/notes
+            shapes :scene/shapes
+            tokens :scene/tokens}
            :camera/scene}
           :user/camera} :root/user
          {conns :session/conns} :root/session} result
         portal (uix/use-ref)
         bounds [cx cy (+ (/ bw scale) cx) (+ (/ bh scale) cy)]
-        shapes (sort shapes-comparator shapes)
-        tokens (sort tokens-comparator (sequence (tokens-xf type) tokens))
-        entities (concat shapes tokens)
+        notes  (sort compare-objects notes)
+        shapes (sort compare-objects shapes)
+        tokens (sort compare-tokens (sequence (tokens-xf type) tokens))
+        entities (into [] (objects-xf type) (into tokens (into shapes notes)))
         selected (into #{} (map :db/id) selected)
         dragging (into {} user-drag-xf conns)
         boundsxf (comp (filter (comp selected :db/id)) (mapcat geom/object-bounding-rect))]
@@ -264,7 +360,8 @@
         {:ref portal :tab-index -1})
       ($ TransitionGroup {:component nil}
         (for [entity entities
-              :let [{id :db/id [ax ay] :object/point type :object/type} entity
+              :let [{id :db/id [ax ay] :object/point} entity
+                    lock (and (= type :conn) (:object/locked entity))
                     node (uix/create-ref)
                     user (dragging id)
                     rect (geom/object-bounding-rect entity)
@@ -274,7 +371,7 @@
               (if (not (selected id))
                 ($ drag-remote-fn {:user (:user/uuid user) :x ax :y ay}
                   (fn [[rx ry]]
-                    ($ drag-local-fn {:id id :disabled (some? user)}
+                    ($ drag-local-fn {:id id :disabled (or user lock)}
                       (fn [drag]
                         (let [handler (getValueByKeys drag "listeners" "onPointerDown")
                               dx (or (getValueByKeys drag "transform" "x") 0)
@@ -286,12 +383,12 @@
                           ($ :g.scene-object
                             {:ref (.-setNodeRef drag)
                              :transform (str "translate(" tx ", " ty ")")
-                             :tab-index (if seen 0 -1)
+                             :tab-index (if (and (not lock) seen) 0 -1)
                              :on-pointer-down (or handler stop-propagation)
                              :data-drag-remote (some? user)
                              :data-drag-local (.-isDragging drag)
                              :data-color (:user/color user)
-                             :data-type (namespace type)
+                             :data-type (namespace (:object/type entity))
                              :data-id id}
                             ($ object
                               {:entity entity

@@ -309,6 +309,20 @@
                   ($ :button {:type "submit" :data-name "submit"}
                     ($ icon {:name "check"})))))))))))
 
+(defui draw-note []
+  (let [dispatch (hooks/use-dispatch)]
+    ($ :rect
+      {:x 0
+       :y 0
+       :width "100%"
+       :height "100%"
+       :fill "transparent"
+       :on-click
+       (fn [event]
+         (let [x (.-clientX event)
+               y (.-clientY event)]
+           (dispatch :note/create x y)))})))
+
 (defui draw [{:keys [mode] :as props}]
   ($ dnd-context
     (case mode
@@ -317,6 +331,7 @@
       :grid   ($ draw-grid props)
       :line   ($ draw-line props)
       :mask   ($ draw-mask props)
+      :note   ($ draw-note props)
       :poly   ($ draw-poly props)
       :rect   ($ draw-rect props)
       :ruler  ($ draw-ruler props)

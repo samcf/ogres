@@ -341,4 +341,5 @@
     (if (= (count types) 1)
       (case (first types)
         :shape ($ context-menu-shape props)
-        :token ($ context-menu-token props)))))
+        :token ($ context-menu-token props)
+        nil))))
