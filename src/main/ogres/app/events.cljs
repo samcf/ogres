@@ -577,8 +577,8 @@
             :when  (and (geom/point-within-rect [ax ay] bounds)
                         (geom/point-within-rect [bx by] bounds)
                         (not (restri id))
-                        (or (= type :host)
-                            (not (contains? flags :hidden))))]
+                        (or (= type :host) (not (:object/locked entity)))
+                        (or (= type :host) (not (contains? flags :hidden))))]
         {:db/id id})}]))
 
 (defmethod event-tx-fn :selection/clear

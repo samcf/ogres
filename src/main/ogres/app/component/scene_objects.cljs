@@ -177,8 +177,9 @@
         entity    (:entity props)
         id        (:db/id entity)
         hidden    (:object/hidden entity)
-        selected  (into #{} (map :db/id) (:camera/selected (first (:camera/_selected entity))))
-        selected? (= selected #{id})]
+        camera    (first (:camera/_selected entity))
+        selected  (into #{} (map :db/id) (:camera/selected camera))
+        selected? (and (contains? camera :user/_camera) (= selected #{id}))]
     ($ :foreignObject.scene-object-note
       {:x -8 :y -8 :width 362 :height (if selected? 334 58) :data-selected selected?}
       ($ :.scene-note {:data-hidden hidden}
@@ -382,7 +383,7 @@
                           ($ :g.scene-object
                             {:ref (.-setNodeRef drag)
                              :transform (str "translate(" tx ", " ty ")")
-                             :tab-index (if seen 0 -1)
+                             :tab-index (if (and (not lock) seen) 0 -1)
                              :on-pointer-down (or handler stop-propagation)
                              :data-drag-remote (some? user)
                              :data-drag-local (.-isDragging drag)
