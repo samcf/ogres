@@ -230,5 +230,5 @@
   [hash]
   (let [[urls on-request] (uix/use-context context)]
     (uix/use-effect
-     (fn [] (on-request hash)) [on-request hash])
+     (fn [] (when (some? hash) (on-request hash))) [on-request hash])
     (get urls hash)))

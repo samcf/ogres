@@ -1,8 +1,5 @@
 .scene {
   background-color: var(--color-blues-900);
-  border-radius: 0 4px 4px 4px;
-  border: 1px solid var(--color-blues-900);
-  box-shadow: 4px 4px 0 0 rgba(0, 0, 0, 0.15);
   box-sizing: border-box;
   height: 100%;
   pointer-events: all;
@@ -244,4 +241,45 @@
   stroke-width: 1px;
   stroke: var(--scene-stroke);
   opacity: 0.6;
+}
+
+.scene {
+  &.appear {
+    opacity: 0;
+  }
+
+  &.appear-active {
+    opacity: 1;
+    transition: opacity 250ms ease-in;
+  }
+
+  &.appear-done {
+    opacity: 1;
+  }
+
+  &.enter {
+    opacity: 0;
+  }
+
+  &.enter-active {
+    opacity: 1;
+    transition: opacity 250ms ease-in;
+  }
+
+  &.enter-done {
+    opacity: 1;
+  }
+
+  &.exit {
+    opacity: 1;
+  }
+
+  &.exit-active {
+    opacity: 0;
+    transition: opacity 250ms ease-in;
+  }
+
+  &.exit-done {
+    opacity: 0;
+  }
 }

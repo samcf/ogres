@@ -13,7 +13,7 @@
    [:panel/expanded :default true]
    [:session/status :default :none]])
 
-(defui layout []
+(defui ^:memo layout []
   (let [result (hooks/use-query query)
         {type     :user/type
          ready    :user/ready
