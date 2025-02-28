@@ -10,7 +10,7 @@
             [ogres.app.hooks :as hooks]
             [ogres.app.svg :refer [circle->path poly->path]]
             [ogres.app.util :refer [key-by]]
-            [react-transition-group :refer [TransitionGroup Transition]]
+            [react-transition-group :refer [TransitionGroup Transition CSSTransition]]
             [uix.core :as uix :refer [defui $]]
             ["@rwh/react-keystrokes" :refer [useKey] :rename {useKey use-key}]
             ["@dnd-kit/core"
@@ -359,7 +359,9 @@
                  :patternContentUnits "objectBoundingBox"}
                 ($ image {:hash hash}
                   (fn [url]
-                    ($ :image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"}))))))))
+                    (if (some? url)
+                      ($ :image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"})
+                      ($ :rect {:x 0 :y 0 :width 256 :height 256 :fill "var(--color-blues-900)"})))))))))
       ($ TransitionGroup {:component nil}
         (for [{id :db/id :as data} tokens :let [node (uix/create-ref)]]
           ($ Transition {:key id :nodeRef node :timeout 240}
@@ -440,76 +442,74 @@
           #js {"modifiers" #js [scale-fn dnd-modifier-int]}
           children)))))
 
-(def ^:private scene-elements
-  (uix/memo
-   (uix/fn []
-     ($ :<>
-       ;; Defines the standard square grid pattern for the scene.
-       ($ grid-defs)
+(defui ^:private ^:memo scene-elements []
+  ($ :<>
+    ;; Defines the standard square grid pattern for the scene.
+    ($ grid-defs)
 
-       ;; Defines clip paths and masks for tokens which emit
-       ;; radial lighting.
-       ($ mask-defs)
+    ;; Defines clip paths and masks for tokens which emit
+    ;; radial lighting.
+    ($ mask-defs)
 
-       ;; Defines the scene <image> element as well as a <rect>
-       ;; which has the same dimensions as the image.
-       ($ image-defs)
+    ;; Defines the scene <image> element as well as a <rect>
+    ;; which has the same dimensions as the image.
+    ($ image-defs)
 
-       ;; Defines token patterns, images, and the tokens themselves.
-       ($ tokens-defs)
+    ;; Defines token patterns, images, and the tokens themselves.
+    ($ tokens-defs)
 
-       ($ :g.scene-exterior
-         ($ :use.scene-grid {:href "#scene-grid" :style {:clip-path "unset"}}))
+    ($ :g.scene-exterior
+      ($ :use.scene-grid {:href "#scene-grid" :style {:clip-path "unset"}}))
 
-       ;; When the scene is using the "Obscured" lighting option,
-       ;; this element becomes visible for players. It renders a
-       ;; darkened and desaturated version of the scene image
-       ;; that is drawn underneath the foreground scene.
-       ($ :g.scene-background
-         ($ :use.scene-image {:href "#scene-image"})
-         ($ :use.scene-grid {:href "#scene-grid"}))
+    ;; When the scene is using the "Obscured" lighting option,
+    ;; this element becomes visible for players. It renders a
+    ;; darkened and desaturated version of the scene image
+    ;; that is drawn underneath the foreground scene.
+    ($ :g.scene-background
+      ($ :use.scene-image {:href "#scene-image"})
+      ($ :use.scene-grid {:href "#scene-grid"}))
 
-       ;; The primary scene object contains all interactable objects.
-       ;; This element is clipped twice: first by tokens which emit
-       ;; light around them, and then second by user-created mask
-       ;; areas.
-       ($ :g.scene-foreground
-         ($ :g.scene-interior
-           ($ :use.scene-image {:href "#scene-image"})
-           ($ :use.scene-grid {:href "#scene-grid"})
-           ($ objects))
+    ;; The primary scene object contains all interactable objects.
+    ;; This element is clipped twice: first by tokens which emit
+    ;; light around them, and then second by user-created mask
+    ;; areas.
+    ($ :g.scene-foreground
+      ($ :g.scene-interior
+        ($ :use.scene-image {:href "#scene-image"})
+        ($ :use.scene-grid {:href "#scene-grid"})
+        ($ objects))
 
-         ;; Portal target for the host's cursor which must remain obscured
-         ;; by visibility controls so that nosey players don't get any
-         ;; clues about what the host may be doing on the scene.
-         ($ hooks/create-portal {:name :host-cursor}
-           (fn [{:keys [ref]}]
-             ($ :g {:ref ref :style {:outline "none"} :tab-index -1}))))
+      ;; Portal target for the host's cursor which must remain obscured
+      ;; by visibility controls so that nosey players don't get any
+      ;; clues about what the host may be doing on the scene.
+      ($ hooks/create-portal {:name :host-cursor}
+        (fn [{:keys [ref]}]
+          ($ :g {:ref ref :style {:outline "none"} :tab-index -1}))))
 
-       ;; Masking elements that fully or partially obscure the scene.
-       ($ :g.scene-mask
-         ($ :g.scene-mask-primary
-           ($ :use.scene-mask-fill {:href "#scene-image-cover"})
-           ($ :use.scene-mask-pattern {:href "#scene-image-cover"})
-           ($ :use.scene-grid {:href "#scene-grid"}))
-         ($ :g.scene-mask-secondary
-           ($ :use.scene-mask-fill {:href "#scene-image-cover"})
-           ($ :use.scene-mask-pattern {:href "#scene-image-cover"})
-           ($ :use.scene-grid {:href "#scene-grid"})))
+    ;; Masking elements that fully or partially obscure the scene.
+    ($ :g.scene-mask
+      ($ :g.scene-mask-primary
+        ($ :use.scene-mask-fill {:href "#scene-image-cover"})
+        ($ :use.scene-mask-pattern {:href "#scene-image-cover"})
+        ($ :use.scene-grid {:href "#scene-grid"}))
+      ($ :g.scene-mask-secondary
+        ($ :use.scene-mask-fill {:href "#scene-image-cover"})
+        ($ :use.scene-mask-pattern {:href "#scene-image-cover"})
+        ($ :use.scene-grid {:href "#scene-grid"})))
 
-       ;; Portal target for selected tokens and shapes. This brings
-       ;; selected objects to the foreground so they are not obscured
-       ;; by visibility.
-       ($ hooks/create-portal {:name :selected}
-         (fn [{:keys [ref]}]
-           ($ :g {:ref ref :style {:outline "none"} :tab-index -1})))
+    ;; Portal target for selected tokens and shapes. This brings
+    ;; selected objects to the foreground so they are not obscured
+    ;; by visibility.
+    ($ hooks/create-portal {:name :selected}
+      (fn [{:keys [ref]}]
+        ($ :g {:ref ref :style {:outline "none"} :tab-index -1})))
 
-       ;; Player cursors are rendered on top of everything else.
-       ($ player-cursors)
+    ;; Player cursors are rendered on top of everything else.
+    ($ player-cursors)
 
-       ;; Renders mask area boundaries, allowing the host to interact
-       ;; with them individually.
-       ($ mask-polys)))))
+    ;; Renders mask area boundaries, allowing the host to interact
+    ;; with them individually.
+    ($ mask-polys)))
 
 (def ^:private scene-query
   [:user/type
@@ -522,27 +522,27 @@
      [:camera/scale :default 1]
      [:camera/draw-mode :default :select]
      {:camera/scene
-      [[:scene/dark-mode :default false]
+      [:db/id
+       [:scene/dark-mode :default false]
        [:scene/show-grid :default true]
        [:scene/lighting :default :revealed]
-       [:scene/masked :default false]]}]}])
+       [:scene/masked :default false]
+       {:scene/image [:image/hash]}]}]}])
 
-(defui scene []
+(defui ^:private scene-content [props]
   (let [dispatch (hooks/use-dispatch)
-        result   (hooks/use-query scene-query)
         {user        :user/type
          [_ _ hw hh] :bounds/host
          [_ _ vw vh] :bounds/view
-         {id      :db/id
-          scene   :camera/scene
+         {scene   :camera/scene
           scale   :camera/scale
           mode    :camera/draw-mode
-          [cx cy] :camera/point} :user/camera} result
+          [cx cy] :camera/point} :user/camera} (:data props)
         cx (if (= user :view) (->> (- hw vw) (max 0) (* (/ -1 2 scale)) (- cx)) cx)
         cy (if (= user :view) (->> (- hh vh) (max 0) (* (/ -1 2 scale)) (- cy)) cy)
         multi-select? (use-key "shift")]
     ($ :svg.scene
-      {:key id
+      {:ref (:ref props)
        :data-user   (name user)
        :data-grid   (and (not= mode :grid) (:scene/show-grid scene))
        :data-theme  (if (:scene/dark-mode scene) "dark" "light")
@@ -561,7 +561,7 @@
         (if (and (= mode :select) multi-select?)
           ($ draw {:mode :select}))
         ($ :g {:transform (str "scale(" scale ") translate(" (- cx) ", " (- cy) ")")}
-          ($ scene-elements)))
+          (:children props)))
       ($ hooks/create-portal {:name :multiselect}
         (fn [{:keys [ref]}]
           ($ :g.scene-drawable.scene-drawable-select
@@ -569,5 +569,26 @@
       (if (contains? draw-modes mode)
         ($ :g.scene-drawable {:class (str "scene-drawable-" (name mode))}
           ($ draw {:key mode :mode mode :node nil})))
-      (if (and (= user :host) (:user/sharing? result))
+      (if (and (= user :host) (:user/sharing? (:data props)))
         ($ player-window-bounds)))))
+
+(defui ^:private scene-transition [props]
+  (let [id   (-> props :data :user/camera :camera/scene :db/id)
+        hash (-> props :data :user/camera :camera/scene :scene/image :image/hash)
+        url  (hooks/use-image hash)]
+    ($ CSSTransition
+      {:key id
+       :nodeRef (:ref props)
+       :in (or (nil? hash) (and (some? hash) (some? url)))
+       :timeout 250
+       :unmountOnExit true
+       :mountOnEnter true
+       :appear true}
+      (:children props))))
+
+(defui ^:memo scene []
+  (let [res (hooks/use-query scene-query)
+        ref (uix/use-ref)]
+    ($ scene-transition {:ref ref :data res}
+      ($ scene-content {:ref ref :data res}
+        ($ scene-elements)))))
