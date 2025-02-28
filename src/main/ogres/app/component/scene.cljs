@@ -577,7 +577,7 @@
         hash (-> props :data :user/camera :camera/scene :scene/image :image/hash)
         url  (hooks/use-image hash)]
     ($ CSSTransition
-      {:key id
+      {:key (str "id:" id "/" "hash:" hash)
        :nodeRef (:ref props)
        :in (or (nil? hash) (and (some? hash) (some? url)))
        :timeout 250
