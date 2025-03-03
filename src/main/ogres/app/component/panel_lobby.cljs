@@ -104,7 +104,7 @@
                     ($ :span " ( You )"))))
               ($ :.prompt "Not connected."))))
         ($ :fieldset.fieldset
-          ($ :legend (str "Players"))
+          ($ :legend "Players")
           ($ :.session-players
             (if (seq conns)
               (let [xf (filter (comp #{:conn} :user/type))]

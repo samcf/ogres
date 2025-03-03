@@ -285,7 +285,7 @@
         hash   (:image/hash (:image/thumbnail (:token/image data)))
         fill   (if (some? hash)
                  (str "token-face-" hash)
-                 (str "token-face-default"))]
+                 "token-face-default")]
     ($ :g.scene-token
       {:ref node :id (str "token" (:db/id data)) :data-flags (token-flags-attr data)}
       (let [radius (:token/aura-radius data)
