@@ -17,6 +17,9 @@
      :user/uuid
      :user/type
      :user/color
+     [:user/label :default ""]
+     [:user/description :default ""]
+     {:user/image [{:image/thumbnail [:image/hash]}]}
      [:session/status :default :initial]
      [:user/share-cursor :default true]]}
    {:root/session
@@ -34,19 +37,14 @@
 (defui form []
   (let [releases (uix/use-context release/context)
         dispatch (hooks/use-dispatch)
-        result   (hooks/use-query query-form [:db/ident :root])
-        {{code    :session/room
-          host    :session/host
-          conns   :session/conns
-          cursors :session/share-cursors} :root/session
-         {share :user/share-cursor
-          state :session/status
-          type  :user/type
-          id    :db/id} :root/user} result]
-    (if (#{:connecting :connected :disconnected} state)
+        {{:session/keys [room share-cursors]}                  :root/session
+         {:user/keys    [type share-cursor label description]} :root/user
+         {status :session/status} :root/user}
+        (hooks/use-query query-form [:db/ident :root])]
+    (if (#{:connecting :connected :disconnected} status)
       ($ :.form-session.session
         ($ :header ($ :h2 "Lobby"))
-        (if (and (= type :host) (some? code) (seq releases) (not= VERSION (last releases)))
+        (if (and (= type :host) (some? room) (seq releases) (not= VERSION (last releases)))
           ($ :div
             ($ :.form-notice {:style {:margin-bottom 16}}
               ($ :p ($ :strong "Warning: ")
@@ -55,13 +53,13 @@
                  players connect using the fully qualified URL below."))
             ($ :fieldset.fieldset
               ($ :legend "Fully qualified URL")
-              ($ :input.text.text-ghost.session-url {:type "text" :value (session-url code) :readOnly true}))))
-        (if code
+              ($ :input.text.text-ghost.session-url {:type "text" :value (session-url room) :readOnly true}))))
+        (if room
           ($ :fieldset.fieldset
             ($ :legend "Room Code")
             ($ :.session-room
               ($ :input.text-ghost.session-code
-                {:type "text" :value code :readOnly true})
+                {:type "text" :value room :readOnly true})
               (let [url (.. js/window -location -origin)]
                 ($ :.form-notice
                   "Players can join your room by going to "
@@ -74,7 +72,7 @@
               ($ :label.checkbox
                 ($ :input
                   {:type "checkbox"
-                   :checked cursors
+                   :checked share-cursors
                    :aria-disabled (not= type :host)
                    :on-change
                    (fn [event]
@@ -86,35 +84,47 @@
               ($ :label.checkbox
                 ($ :input
                   {:type "checkbox"
-                   :checked share
+                   :checked share-cursor
                    :on-change
                    (fn [event]
                      (let [checked (.. event -target -checked)]
                        (dispatch :session/toggle-share-my-cursor checked)))})
                 ($ icon {:name "check" :size 20})
                 "Share my cursor"))))
-        ($ :fieldset.fieldset
-          ($ :legend "Host")
-          ($ :.session-players
-            (if host
-              ($ :.session-player
-                ($ :.session-player-color {:data-color (:user/color host)})
-                ($ :.session-player-label "Host"
-                  (if (= (:db/id host) id)
-                    ($ :span " ( You )"))))
-              ($ :.prompt "Not connected."))))
-        ($ :fieldset.fieldset
-          ($ :legend "Players")
-          ($ :.session-players
-            (if (seq conns)
-              (let [xf (filter (comp #{:conn} :user/type))]
-                (for [conn (->> conns (sequence xf) (sort-by :db/id))]
-                  ($ :.session-player {:key (:db/id conn)}
-                    ($ :.session-player-color {:data-color (:user/color conn)})
-                    ($ :.session-player-label "Friend"
-                      (if (= (:db/id conn) id)
-                        ($ :span " ( You )"))))))
-              ($ :.prompt "No one else is here.")))))
+        (if (= type :conn)
+          ($ :form
+            {:on-submit
+             (fn [event]
+               (.preventDefault event)
+               (let [input (.. event -target -elements)
+                     label (.. input -label -value)
+                     descr (.. input -description -value)]
+                 (dispatch :user/change-details label descr)))
+             :on-blur
+             (fn [event]
+               (let [name  (.. event -target -name)
+                     value (.. event -target -value)]
+                 (cond (= name "label")       (dispatch :user/change-label value)
+                       (= name "description") (dispatch :user/change-description value))))}
+            ($ :fieldset.fieldset
+              ($ :legend "Your character")
+              ($ :.session-players-player
+                ($ :.session-players-player-image
+                  ($ :.session-players-player-image-content)
+                  ($ :.session-players-player-image-placeholder "Select image"))
+                ($ :.session-players-player-label
+                  ($ :input.text.text-ghost
+                    {:type "text"
+                     :name "label"
+                     :default-value label
+                     :placeholder "Shadowheart"}))
+                ($ :.session-players-player-description
+                  ($ :input.text.text-ghost
+                    {:type "text"
+                     :name "description"
+                     :default-value description
+                     :placeholder "Half-Elf Trickster Cleric"}))
+                ($ :input {:type "submit" :hidden true}))))))
       ($ :<>
         ($ :header ($ :h2 "Lobby"))
         ($ :.prompt

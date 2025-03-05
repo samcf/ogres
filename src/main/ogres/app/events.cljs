@@ -100,6 +100,30 @@
   (let [user (ds/entity data [:db/ident :user])]
     [{:db/ident :user :panel/expanded (not (get user :panel/expanded true))}]))
 
+(defmethod
+  ^{:doc "Changes the character label for the local user."}
+  event-tx-fn :user/change-label
+  [_ _ value]
+  [{:db/ident :user :user/label value}])
+
+(defmethod
+  ^{:doc "Changes the character description for the local user."}
+  event-tx-fn :user/change-description
+  [_ _ value]
+  [{:db/ident :user :user/description value}])
+
+(defmethod
+  ^{:doc "Changes the character image for the local user."}
+  event-tx-fn :user/change-image
+  [_ _ hash]
+  [{:db/ident :user :user/image hash}])
+
+(defmethod
+  ^{:doc "Changes the character label and description for the local user."}
+  event-tx-fn :user/change-details
+  [_ _ label description]
+  [{:db/ident :user :user/label label :user/description description}])
+
 ;; -- Camera --
 (defn ^:private assoc-camera
   [data & kvs]
