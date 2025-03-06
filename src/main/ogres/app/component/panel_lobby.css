@@ -108,10 +108,6 @@
   font-family: Lora, serif;
 }
 
-.session-tokens {
-  padding: 8px 0;
-}
-
 .session-tokens-gallery {
   display: grid;
   gap: 8px;
@@ -154,6 +150,13 @@
   .session-tokens-placeholder {
     border: 1px dashed var(--color-blues-900);
   }
+}
+
+.session-tokens-hint {
+  display: flex;
+  font-style: italic;
+  justify-content: center;
+  margin: 16px 0 8px 0;
 }
 
 .session-tokens-pagination {

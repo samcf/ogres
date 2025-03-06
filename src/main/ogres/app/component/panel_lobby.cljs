@@ -38,6 +38,8 @@
     (if (> (count public) 0)
       ($ :.session-tokens
         {:data-paginated (> pages 1)}
+        ($ :.session-tokens-hint
+          "Select a token below to use as your character portrait.")
         ($ :.session-tokens-gallery
           (for [idx (range limit)]
             (if-let [image (get images idx)]
