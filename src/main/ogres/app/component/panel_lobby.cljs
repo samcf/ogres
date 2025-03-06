@@ -35,7 +35,8 @@
     (str origin path "?" (.toString params))))
 
 (def ^:private tokens-query
-  [{:root/token-images
+  [{:root/user [{:user/image [:image/hash]}]}
+   {:root/token-images
     [:image/hash
      :image/scope
      {:image/thumbnail
@@ -43,6 +44,7 @@
 
 (defui tokens [{:keys [on-change]}]
   (let [result (hooks/use-query tokens-query [:db/ident :root])
+        select (:image/hash (:user/image (:root/user result)))
         images (into [] (filter (comp #{:public} :image/scope)) (:root/token-images result))
         limit  10
         [curr _] (uix/use-state 0)
@@ -54,12 +56,14 @@
       {:data-paginated (> pages 1)}
       ($ :.session-tokens-gallery
         (for [idx (range limit)]
-          (if-let [{hash :image/hash {display :image/hash} :image/thumbnail} (get page idx)]
-            ($ component/image {:key display :hash display}
-              (fn [url]
-                ($ :button.session-tokens-image
-                  {:style {:background-image (str "url(" url ")")}
-                   :on-click (fn [] (on-change hash))})))
+          (if-let [image (get page idx)]
+            (let [{hash :image/hash {display :image/hash} :image/thumbnail} image]
+              ($ component/image {:key display :hash display}
+                (fn [url]
+                  ($ :button.session-tokens-image
+                    {:style {:background-image (str "url(" url ")")}
+                     :on-click (fn [] (on-change hash))
+                     :data-selected (= select hash)}))))
             ($ :button.session-tokens-placeholder {:key idx})))))))
 
 (defui form []
