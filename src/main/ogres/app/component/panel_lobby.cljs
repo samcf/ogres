@@ -11,23 +11,6 @@
      [:session/status :default :initial]]}
    {:root/session [:session/room]}])
 
-(def ^:private query-form
-  [{:root/user
-    [:db/id
-     :user/uuid
-     :user/type
-     :user/color
-     [:user/label :default ""]
-     [:user/description :default ""]
-     {:user/image [{:image/thumbnail [:image/hash]}]}
-     [:session/status :default :initial]
-     [:user/share-cursor :default true]]}
-   {:root/session
-    [:session/room
-     {:session/conns [:db/id :user/uuid :user/color :user/type]}
-     {:session/host [:db/id :user/uuid :user/color]}
-     [:session/share-cursors :default true]]}])
-
 (defn ^:private session-url [room-key]
   (let [params (js/URLSearchParams. #js {"r" VERSION "join" room-key})
         origin (.. js/window -location -origin)
@@ -77,13 +60,84 @@
                (fn [page]
                  (set-page page))})))))))
 
+(def character-form-query
+  [:db/id
+   :user/uuid
+   :user/color
+   [:user/label :default ""]
+   [:user/description :default ""]
+   {:user/image [{:image/thumbnail [:image/hash]}]}])
+
+(defui character-form []
+  (let [dispatch (hooks/use-dispatch)
+        user     (hooks/use-query character-form-query)]
+    ($ :form
+      {:on-submit
+       (fn [event]
+         (.preventDefault event)
+         (let [input (.. event -target -elements)
+               label (.. input -label -value)
+               descr (.. input -description -value)]
+           (dispatch :user/change-details label descr)))
+       :on-blur
+       (fn [event]
+         (let [name  (.. event -target -name)
+               value (.. event -target -value)]
+           (cond (= name "label")       (dispatch :user/change-label value)
+                 (= name "description") (dispatch :user/change-description value))))}
+      ($ :fieldset.fieldset
+        ($ :legend "Your character")
+        ($ :.session-player
+          (if (not (nil? (:user/image user)))
+            ($ :.session-player-image
+              ($ :.session-player-image-frame)
+              ($ component/image {:hash (:image/hash (:image/thumbnail (:user/image user)))}
+                (fn [url]
+                  ($ :.session-player-image-content
+                    {:style {:background-image (str "url(" url ")")}}))))
+            ($ :.session-player-image
+              ($ :.session-player-image-frame)
+              ($ :.session-player-image-placeholder
+                "Upload image")))
+          ($ :.session-player-label
+            ($ :input.text.text-ghost
+              {:type "text"
+               :name "label"
+               :default-value (:user/label user)
+               :auto-complete "off"
+               :placeholder "Name"}))
+          ($ :.session-player-description
+            ($ :input.text.text-ghost
+              {:type "text"
+               :name "description"
+               :default-value (:user/description user)
+               :auto-complete "off"
+               :placeholder "Description"}))
+          ($ :input {:type "submit" :hidden true}))
+        ($ tokens
+          {:on-change
+           (fn [hash]
+             (dispatch :user/change-image hash))})))))
+
+(def ^:private form-query
+  [{:root/user
+    [:db/id
+     :user/type
+     [:session/status :default :initial]
+     [:user/share-cursor :default true]]}
+   {:root/session
+    [:session/room
+     {:session/conns [:db/id :user/uuid :user/color :user/type]}
+     {:session/host [:db/id :user/uuid :user/color]}
+     [:session/share-cursors :default true]]}])
+
 (defui form []
   (let [releases (uix/use-context release/context)
         dispatch (hooks/use-dispatch)
         {{:session/keys [room share-cursors]} :root/session
-         {:user/keys [type share-cursor] :as user} :root/user
+         {:user/keys [type share-cursor]} :root/user
          {status :session/status} :root/user}
-        (hooks/use-query query-form [:db/ident :root])]
+        (hooks/use-query form-query [:db/ident :root])]
     (if (#{:connecting :connected :disconnected} status)
       ($ :.form-session.session
         ($ :header ($ :h2 "Lobby"))
@@ -135,54 +189,7 @@
                 ($ icon {:name "check" :size 20})
                 "Share my cursor"))))
         (if (= type :conn)
-          (let [{:user/keys [label description image]} user]
-            ($ :form
-              {:on-submit
-               (fn [event]
-                 (.preventDefault event)
-                 (let [input (.. event -target -elements)
-                       label (.. input -label -value)
-                       descr (.. input -description -value)]
-                   (dispatch :user/change-details label descr)))
-               :on-blur
-               (fn [event]
-                 (let [name  (.. event -target -name)
-                       value (.. event -target -value)]
-                   (cond (= name "label")       (dispatch :user/change-label value)
-                         (= name "description") (dispatch :user/change-description value))))}
-              ($ :fieldset.fieldset
-                ($ :legend "Your character")
-                ($ :.session-player
-                  (if (not (nil? image))
-                    ($ :.session-player-image
-                      ($ :.session-player-image-frame)
-                      ($ component/image {:hash (:image/hash (:image/thumbnail image))}
-                        (fn [url]
-                          ($ :.session-player-image-content
-                            {:style {:background-image (str "url(" url ")")}}))))
-                    ($ :.session-player-image
-                      ($ :.session-player-image-frame)
-                      ($ :.session-player-image-placeholder
-                        "Upload image")))
-                  ($ :.session-player-label
-                    ($ :input.text.text-ghost
-                      {:type "text"
-                       :name "label"
-                       :default-value label
-                       :auto-complete "off"
-                       :placeholder "Name"}))
-                  ($ :.session-player-description
-                    ($ :input.text.text-ghost
-                      {:type "text"
-                       :name "description"
-                       :default-value description
-                       :auto-complete "off"
-                       :placeholder "Description"}))
-                  ($ :input {:type "submit" :hidden true}))
-                ($ tokens
-                  {:on-change
-                   (fn [hash]
-                     (dispatch :user/change-image hash))}))))))
+          ($ character-form {})))
       ($ :<>
         ($ :header ($ :h2 "Lobby"))
         ($ :.prompt
