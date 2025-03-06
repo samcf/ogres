@@ -121,6 +121,7 @@
             ($ :input.text.text-ghost
               {:type "text"
                :name "label"
+               :auto-focus (= (:user/label result) "")
                :default-value (:user/label result)
                :auto-complete "off"
                :placeholder "Name"}))

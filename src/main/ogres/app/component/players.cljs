@@ -19,7 +19,8 @@
    {:root/session [:session/room {:session/conns query-user}]}])
 
 (defui players []
-  (let [{{self-uuid :user/uuid self-type :user/type} :root/user {conns :session/conns} :root/session} (hooks/use-query query [:db/ident :root])
+  (let [dispatch (hooks/use-dispatch)
+        {{self-uuid :user/uuid self-type :user/type} :root/user {conns :session/conns} :root/session} (hooks/use-query query [:db/ident :root])
         users (filter (comp #{:conn} :user/type) conns)
         [[user] users] (separate (comp #{self-uuid} :user/uuid) users)]
     ($ :.players
@@ -30,6 +31,7 @@
               ($ :.player-image {:data-editable true}
                 ($ :.player-image-frame)
                 ($ :.player-image-edit
+                  {:on-click (fn [] (dispatch :user/select-panel :lobby))}
                   ($ component/icon {:name "wrench-adjustable-circle" :size 30}))
                 (if (not (nil? image))
                   ($ component/image {:hash (:image/hash (:image/thumbnail image))}
