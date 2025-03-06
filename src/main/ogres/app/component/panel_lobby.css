@@ -156,6 +156,13 @@
   }
 }
 
+.session-tokens-pagination {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
 [data-color="red"] {
   --color-session: var(--color-session-red);
 }

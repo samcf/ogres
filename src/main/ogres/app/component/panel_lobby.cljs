@@ -43,29 +43,39 @@
       [:image/hash]}]}])
 
 (defui tokens [{:keys [on-change]}]
-  (let [result (hooks/use-query tokens-query [:db/ident :root])
+  (let [[page set-page] (uix/use-state 1)
+        result (hooks/use-query tokens-query [:db/ident :root])
         select (:image/hash (:user/image (:root/user result)))
-        images (into [] (filter (comp #{:public} :image/scope)) (:root/token-images result))
+        public (into [] (filter (comp #{:public} :image/scope)) (:root/token-images result))
         limit  10
-        [curr _] (uix/use-state 0)
-        pages (js/Math.ceil (/ (count images) limit))
-        start (max (* (min curr pages) limit) 0)
-        stop  (min (+ start limit) (count images))
-        page  (subvec images start stop)]
-    ($ :.session-tokens
-      {:data-paginated (> pages 1)}
-      ($ :.session-tokens-gallery
-        (for [idx (range limit)]
-          (if-let [image (get page idx)]
-            (let [{hash :image/hash {display :image/hash} :image/thumbnail} image]
-              ($ component/image {:key display :hash display}
-                (fn [url]
-                  ($ :button.session-tokens-image
-                    {:style {:background-image (str "url(" url ")")}
-                     :on-click (fn [] (on-change hash))
-                     :data-selected (= select hash)}))))
-            ($ :button.session-tokens-placeholder
-              {:key idx :disabled true})))))))
+        pages  (js/Math.ceil (/ (count public) limit))
+        start  (max (* (min (dec page) pages) limit) 0)
+        stop   (min (+ start limit) (count public))
+        images (subvec public start stop)]
+    (if (> (count public) 0)
+      ($ :.session-tokens
+        {:data-paginated (> pages 1)}
+        ($ :.session-tokens-gallery
+          (for [idx (range limit)]
+            (if-let [image (get images idx)]
+              (let [{hash :image/hash {display :image/hash} :image/thumbnail} image]
+                ($ component/image {:key display :hash display}
+                  (fn [url]
+                    ($ :button.session-tokens-image
+                      {:style {:background-image (str "url(" url ")")}
+                       :on-click (fn [] (on-change hash))
+                       :data-selected (= select hash)}))))
+              ($ :button.session-tokens-placeholder
+                {:key idx :disabled true}))))
+        (if (> pages 1)
+          ($ :.session-tokens-pagination
+            ($ component/pagination
+              {:name "tokens-user-image"
+               :pages pages
+               :value page
+               :on-change
+               (fn [page]
+                 (set-page page))})))))))
 
 (defui form []
   (let [releases (uix/use-context release/context)
