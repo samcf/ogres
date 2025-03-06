@@ -39,7 +39,9 @@
       ($ :.session-tokens
         {:data-paginated (> pages 1)}
         ($ :.session-tokens-hint
-          "Select a token below to use as your character portrait.")
+          "Select an existing token below or upload
+           an image from your computer to use as your
+           character portrait.")
         ($ :.session-tokens-gallery
           (for [idx (range limit)]
             (if-let [image (get images idx)]
@@ -72,7 +74,9 @@
 
 (defui character-form []
   (let [dispatch (hooks/use-dispatch)
-        user     (hooks/use-query character-form-query)]
+        upload   (hooks/use-image-uploader {:type :token})
+        input    (uix/use-ref nil)
+        result   (hooks/use-query character-form-query)]
     ($ :form
       {:on-submit
        (fn [event]
@@ -90,29 +94,41 @@
       ($ :fieldset.fieldset
         ($ :legend "Your character")
         ($ :.session-player
-          (if (not (nil? (:user/image user)))
-            ($ :.session-player-image
-              ($ :.session-player-image-frame)
-              ($ component/image {:hash (:image/hash (:image/thumbnail (:user/image user)))}
+          ($ :button.session-player-image
+            {:type "button"
+             :title "Upload token image"
+             :on-click (fn [] (.click (deref input)))}
+            ($ :input
+              {:type "file"
+               :accept "image/*"
+               :ref input
+               :hidden true
+               :multiple false
+               :on-change
+               (fn [event]
+                 (upload (.. event -target -files))
+                 (set! (.. event -target -value) ""))})
+            ($ :.session-player-image-frame)
+            (if (not (nil? (:user/image result)))
+              ($ component/image {:hash (:image/hash (:image/thumbnail (:user/image result)))}
                 (fn [url]
                   ($ :.session-player-image-content
-                    {:style {:background-image (str "url(" url ")")}}))))
-            ($ :.session-player-image
-              ($ :.session-player-image-frame)
+                    {:style {:background-image (str "url(" url ")")}})))
               ($ :.session-player-image-placeholder
+                ($ component/icon {:name "camera-fill" :size 18})
                 "Upload image")))
           ($ :.session-player-label
             ($ :input.text.text-ghost
               {:type "text"
                :name "label"
-               :default-value (:user/label user)
+               :default-value (:user/label result)
                :auto-complete "off"
                :placeholder "Name"}))
           ($ :.session-player-description
             ($ :input.text.text-ghost
               {:type "text"
                :name "description"
-               :default-value (:user/description user)
+               :default-value (:user/description result)
                :auto-complete "off"
                :placeholder "Description"}))
           ($ :input {:type "submit" :hidden true}))
