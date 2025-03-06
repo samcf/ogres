@@ -1,5 +1,5 @@
 (ns ogres.app.component.panel-lobby
-  (:require [ogres.app.component :refer [icon]]
+  (:require [ogres.app.component :as component :refer [icon]]
             [ogres.app.const :refer [VERSION]]
             [ogres.app.hooks :as hooks]
             [ogres.app.provider.release :as release]
@@ -34,11 +34,39 @@
         path   (.. js/window -location -pathname)]
     (str origin path "?" (.toString params))))
 
+(def ^:private tokens-query
+  [{:root/token-images
+    [:image/hash
+     :image/scope
+     {:image/thumbnail
+      [:image/hash]}]}])
+
+(defui tokens [{:keys [on-change]}]
+  (let [result (hooks/use-query tokens-query [:db/ident :root])
+        images (into [] (filter (comp #{:public} :image/scope)) (:root/token-images result))
+        limit  10
+        [curr _] (uix/use-state 0)
+        pages (js/Math.ceil (/ (count images) limit))
+        start (max (* (min curr pages) limit) 0)
+        stop  (min (+ start limit) (count images))
+        page  (subvec images start stop)]
+    ($ :.session-tokens
+      {:data-paginated (> pages 1)}
+      ($ :.session-tokens-gallery
+        (for [idx (range limit)]
+          (if-let [{hash :image/hash {display :image/hash} :image/thumbnail} (get page idx)]
+            ($ component/image {:key display :hash display}
+              (fn [url]
+                ($ :button.session-tokens-image
+                  {:style {:background-image (str "url(" url ")")}
+                   :on-click (fn [] (on-change hash))})))
+            ($ :button.session-tokens-placeholder {:key idx})))))))
+
 (defui form []
   (let [releases (uix/use-context release/context)
         dispatch (hooks/use-dispatch)
-        {{:session/keys [room share-cursors]}                  :root/session
-         {:user/keys    [type share-cursor label description]} :root/user
+        {{:session/keys [room share-cursors]} :root/session
+         {:user/keys [type share-cursor] :as user} :root/user
          {status :session/status} :root/user}
         (hooks/use-query query-form [:db/ident :root])]
     (if (#{:connecting :connected :disconnected} status)
@@ -92,39 +120,54 @@
                 ($ icon {:name "check" :size 20})
                 "Share my cursor"))))
         (if (= type :conn)
-          ($ :form
-            {:on-submit
-             (fn [event]
-               (.preventDefault event)
-               (let [input (.. event -target -elements)
-                     label (.. input -label -value)
-                     descr (.. input -description -value)]
-                 (dispatch :user/change-details label descr)))
-             :on-blur
-             (fn [event]
-               (let [name  (.. event -target -name)
-                     value (.. event -target -value)]
-                 (cond (= name "label")       (dispatch :user/change-label value)
-                       (= name "description") (dispatch :user/change-description value))))}
-            ($ :fieldset.fieldset
-              ($ :legend "Your character")
-              ($ :.session-players-player
-                ($ :.session-players-player-image
-                  ($ :.session-players-player-image-content)
-                  ($ :.session-players-player-image-placeholder "Select image"))
-                ($ :.session-players-player-label
-                  ($ :input.text.text-ghost
-                    {:type "text"
-                     :name "label"
-                     :default-value label
-                     :placeholder "Shadowheart"}))
-                ($ :.session-players-player-description
-                  ($ :input.text.text-ghost
-                    {:type "text"
-                     :name "description"
-                     :default-value description
-                     :placeholder "Half-Elf Trickster Cleric"}))
-                ($ :input {:type "submit" :hidden true}))))))
+          (let [{:user/keys [label description image]} user]
+            ($ :form
+              {:on-submit
+               (fn [event]
+                 (.preventDefault event)
+                 (let [input (.. event -target -elements)
+                       label (.. input -label -value)
+                       descr (.. input -description -value)]
+                   (dispatch :user/change-details label descr)))
+               :on-blur
+               (fn [event]
+                 (let [name  (.. event -target -name)
+                       value (.. event -target -value)]
+                   (cond (= name "label")       (dispatch :user/change-label value)
+                         (= name "description") (dispatch :user/change-description value))))}
+              ($ :fieldset.fieldset
+                ($ :legend "Your character")
+                ($ :.session-player
+                  (if (not (nil? image))
+                    ($ :.session-player-image
+                      ($ :.session-player-image-frame)
+                      ($ component/image {:hash (:image/hash (:image/thumbnail image))}
+                        (fn [url]
+                          ($ :.session-player-image-content
+                            {:style {:background-image (str "url(" url ")")}}))))
+                    ($ :.session-player-image
+                      ($ :.session-player-image-frame)
+                      ($ :.session-player-image-placeholder
+                        "Upload image")))
+                  ($ :.session-player-label
+                    ($ :input.text.text-ghost
+                      {:type "text"
+                       :name "label"
+                       :default-value label
+                       :auto-complete "off"
+                       :placeholder "Name"}))
+                  ($ :.session-player-description
+                    ($ :input.text.text-ghost
+                      {:type "text"
+                       :name "description"
+                       :default-value description
+                       :auto-complete "off"
+                       :placeholder "Description"}))
+                  ($ :input {:type "submit" :hidden true}))
+                ($ tokens
+                  {:on-change
+                   (fn [hash]
+                     (dispatch :user/change-image hash))}))))))
       ($ :<>
         ($ :header ($ :h2 "Lobby"))
         ($ :.prompt

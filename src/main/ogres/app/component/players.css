@@ -4,7 +4,7 @@
   gap: 4px;
 }
 
-.players-player {
+.player {
   border-radius: 4px;
   box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 0.25);
   color: var(--color-black-100);
@@ -14,7 +14,7 @@
   position: relative;
 }
 
-.players-player-image {
+.player-image {
   aspect-ratio: 1;
   flex-basis: 46px;
   position: relative;
@@ -22,46 +22,50 @@
 
   &[data-editable="true"] {
     pointer-events: all;
-    &:hover .players-player-image-edit {
+    &:hover .player-image-edit {
       cursor: pointer;
       visibility: visible;
     }
   }
 }
 
-.players-player-image-frame {
-  background: linear-gradient(125deg, #fcd34d, #b45309);
-  border-radius: 4px 0 0 4px;
-  inset: 0px;
+.player-image-frame,
+.player-image-edit,
+.player-image-content {
+  border-radius: 4px;
+  inset: 0;
   position: absolute;
 }
 
-.players-player-image-edit {
+.player-image-frame {
+  background: linear-gradient(125deg, #fcd34d, #b45309);
+  border-radius: 4px 0 0 4px;
+}
+
+.player-image-edit {
   align-items: center;
   background-color: var(--color-blues-700);
   display: flex;
   inset: 3px;
   justify-content: center;
-  position: absolute;
   visibility: hidden;
   z-index: 1;
 }
 
-.players-player-image-content {
+.player-image-content {
   align-items: center;
   background-color: var(--color-blues-700);
-  border-radius: 4px;
+  background-size: contain;
   display: flex;
   inset: 3px;
   justify-content: center;
-  position: absolute;
 
   svg {
     color: var(--color-paper-500);
   }
 }
 
-.players-player-color {
+.player-color {
   aspect-ratio: 1;
   border-radius: 50%;
   inset: 8px 12px auto auto;
@@ -70,7 +74,7 @@
   z-index: 1;
 }
 
-.players-player-tile {
+.player-tile {
   background-color: var(--color-blues-900);
   border-color: var(--color-blues-700);
   border-radius: 0 3px 3px 0;
@@ -85,8 +89,8 @@
   padding-right: 12px;
 }
 
-.players-player-label,
-.players-player-description {
+.player-label,
+.player-description {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -98,15 +102,12 @@
   }
 }
 
-.players-player-label {
+.player-label {
   font-size: 14px;
   line-height: 1;
 }
 
-.players-player-description {
-  font-size: 10px;
-
-  &:empty::after {
-    color: var(--color-black-400);
-  }
+.player-description {
+  color: var(--color-black-400);
+  font-size: 11px;
 }

@@ -116,7 +116,7 @@
   ^{:doc "Changes the character image for the local user."}
   event-tx-fn :user/change-image
   [_ _ hash]
-  [{:db/ident :user :user/image hash}])
+  [{:db/ident :user :user/image [:image/hash hash]}])
 
 (defmethod
   ^{:doc "Changes the character label and description for the local user."}

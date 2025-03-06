@@ -30,17 +30,6 @@
   font-size: 12px;
 }
 
-.session-players {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.session-player {
-  display: flex;
-  gap: 6px;
-}
-
 .session-player-color {
   aspect-ratio: 1;
   background-color: var(--color-session);
@@ -50,55 +39,55 @@
   width: 22px;
 }
 
-.session-players-player {
+.session-player {
   display: grid;
   grid-template-areas:
     "image label"
     "image description";
   grid-template-columns: 64px 1fr;
   grid-template-rows: repeat(2, 1fr);
-  gap: 2px;
+  gap: 6px;
 }
 
-.session-players-player-image {
+.session-player-image {
   aspect-ratio: 1;
   grid-area: image;
   position: relative;
 }
 
-.session-players-player-image-placeholder {
+.session-player-image-frame,
+.session-player-image-content,
+.session-player-image-placeholder {
+  position: absolute;
+  border-radius: 3px;
+  inset: 0;
+}
+
+.session-player-image-frame {
+  background: linear-gradient(125deg, #fcd34d, #b45309);
+}
+
+.session-player-image-content {
+  background-size: contain;
+  inset: 4px;
+}
+
+.session-player-image-placeholder {
   align-items: center;
   aspect-ratio: 1;
-  border-radius: 50%;
-  border: 1px dashed var(--color-black-400);
-  color: var(--color-black-400);
+  background-color: var(--color-paper-100);
   display: flex;
   font-family: system-ui;
-  font-size: 11px;
-  inset: 6px;
+  font-size: 10px;
+  inset: 4px;
   justify-content: center;
   line-height: 1;
-  position: absolute;
   text-align: center;
+  text-transform: uppercase;
 }
 
-.session-players-player-image-frame {
-  background: linear-gradient(125deg, #fcd34d, #b45309);
-  border-radius: 3px;
-  inset: 0px;
-  position: absolute;
-}
-
-.session-players-player-image-content {
-  background-color: var(--color-paper-100);
-  border-radius: 3px;
-  border: 1px solid var(--color-paper-900);
-  inset: 0px;
-  position: absolute;
-}
-
-.session-players-player-label,
-.session-players-player-description {
+.session-player-label,
+.session-player-description {
   align-items: stretch;
   background-color: var(--color-paper-100);
   border-radius: 3px;
@@ -106,17 +95,46 @@
   display: flex;
 }
 
-.session-players-player-label {
+.session-player-label {
   grid-area: label;
 }
 
-.session-players-player-description {
+.session-player-description {
   grid-area: description;
 }
 
-.session-players-player input[type="text"] {
+.session-player input[type="text"] {
   flex: 1;
   font-family: Lora, serif;
+}
+
+.session-tokens {
+  padding: 8px 0;
+}
+
+.session-tokens-gallery {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+
+  button {
+    aspect-ratio: 1;
+    background-color: var(--color-paper-500);
+    border-radius: 50%;
+    border: none;
+    outline: none;
+  }
+
+  .session-tokens-image {
+    background-repeat: no-repeat;
+    background-size: cover;
+    box-shadow: 1px 1px 0 0 rgba(0, 0, 0, 0.5);
+  }
+
+  .session-tokens-placeholder {
+    border: 1px dashed var(--color-blues-900);
+  }
 }
 
 [data-color="red"] {

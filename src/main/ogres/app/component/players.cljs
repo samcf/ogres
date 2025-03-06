@@ -11,7 +11,8 @@
    :user/type
    :user/label
    :user/description
-   {:user/image [:image/hash]}])
+   {:user/image
+    [{:image/thumbnail [:image/hash]}]}])
 
 (def ^:private query
   [{:root/user [:user/uuid :user/type]}
@@ -24,36 +25,33 @@
     ($ :.players
       ($ :<>
         (if (= self-type :conn)
-          (let [{:user/keys [uuid color label description image]} user]
-            ($ :.players-player {:key uuid}
-              ($ :.players-player-image {:data-editable true}
-                ($ :.players-player-image-frame)
-                (if (some? image)
-                  ($ component/image {:hash (:image/hash image)}
+          (let [{:user/keys [color label description image]} user]
+            ($ :.player
+              ($ :.player-image {:data-editable true}
+                ($ :.player-image-frame)
+                ($ :.player-image-edit
+                  ($ component/icon {:name "wrench-adjustable-circle" :size 30}))
+                (if (not (nil? image))
+                  ($ component/image {:hash (:image/hash (:image/thumbnail image))}
                     (fn [url]
-                      (if (some? url)
-                        ($ :.players-player-image-content {:style {:background-image (str "url(" url ")")}})
-                        ($ :.players-player-image-content))))
-                  ($ :<>
-                    ($ :.players-player-image-edit
-                      ($ component/icon {:name "wrench-adjustable-circle" :size 30}))
-                    ($ :.players-player-image-content
-                      ($ component/icon {:name "dnd" :size 30})))))
-              ($ :.players-player-tile {:style {:border-bottom-color color}}
-                ($ :.players-player-label {:data-placeholder "Player character (You)"} label)
-                ($ :.players-player-description {:data-placeholder "Click on portrait to edit"} description)))))
+                      ($ :.player-image-content
+                        {:style {:background-image (str "url(" url ")")}})))
+                  ($ :.player-image-content
+                    ($ component/icon {:name "dnd" :size 30}))))
+              ($ :.player-tile {:style {:border-bottom-color color}}
+                ($ :.player-label {:data-placeholder "Player character (You)"} label)
+                ($ :.player-description {:data-placeholder "Click on portrait to edit"} description)))))
         (for [{:user/keys [uuid color label description image]} users]
-          ($ :.players-player {:key uuid}
-            ($ :.players-player-image
-              ($ :.players-player-image-frame)
-              (if (some? image)
-                ($ image {:hash (:image/hash image)}
+          ($ :.player {:key uuid}
+            ($ :.player-image
+              ($ :.player-image-frame)
+              (if (not (nil? image))
+                ($ component/image {:hash (:image/hash (:image/thumbnail image))}
                   (fn [url]
-                    (if (some? url)
-                      ($ :.players-player-image-content {:style {:background-image (str "url(" url ")")}})
-                      ($ :.players-player-image-content))))
-                ($ :.players-player-image-content
+                    ($ :.player-image-content
+                      {:style {:background-image (str "url(" url ")")}})))
+                ($ :.player-image-content
                   ($ component/icon {:name "dnd" :size 30}))))
-            ($ :.players-player-tile {:style {:border-bottom-color color}}
-              ($ :.players-player-label {:data-placeholder "Player character"} label)
-              ($ :.players-player-description {:data-placeholder ""} description))))))))
+            ($ :.player-tile {:style {:border-bottom-color color}}
+              ($ :.player-label {:data-placeholder "Player character"} label)
+              ($ :.player-description {:data-placeholder ""} description))))))))
