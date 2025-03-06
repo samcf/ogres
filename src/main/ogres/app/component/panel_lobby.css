@@ -126,6 +126,11 @@
     outline: none;
   }
 
+  &:has(.session-tokens-image:focus-visible)
+    .session-tokens-image:not(:focus-visible) {
+    filter: opacity(0.3);
+  }
+
   .session-tokens-image {
     background-repeat: no-repeat;
     background-size: cover;
@@ -137,6 +142,12 @@
 
     &[data-selected="false"] {
       cursor: pointer;
+    }
+
+    &:focus-visible {
+      box-shadow: none;
+      outline: 2px dotted var(--outline-color);
+      outline-offset: 1px;
     }
   }
 

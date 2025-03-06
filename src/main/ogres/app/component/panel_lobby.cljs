@@ -64,7 +64,8 @@
                     {:style {:background-image (str "url(" url ")")}
                      :on-click (fn [] (on-change hash))
                      :data-selected (= select hash)}))))
-            ($ :button.session-tokens-placeholder {:key idx})))))))
+            ($ :button.session-tokens-placeholder
+              {:key idx :disabled true})))))))
 
 (defui form []
   (let [releases (uix/use-context release/context)
