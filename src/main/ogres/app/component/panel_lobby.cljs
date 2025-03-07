@@ -95,13 +95,18 @@
             (let [{hash :image/hash {display :image/hash} :image/thumbnail} image]
               ($ component/image {:key display :hash display}
                 (fn [url]
-                  ($ :button.player-tokens-image
-                    {:type "button"
-                     :style {:background-image (str "url(" url ")")}
-                     :on-click (fn [] (on-change hash))
-                     :data-selected (= selected hash)}))))
-            ($ :button.player-tokens-placeholder
-              {:key idx :disabled true}))))
+                  ($ :label.player-tokens-item.player-tokens-image
+                    {:style {:background-image (str "url(" url ")")}}
+                    ($ :input
+                      {:type "radio"
+                       :name "player-token"
+                       :value hash
+                       :checked (= selected hash)
+                       :on-change
+                       (fn [event]
+                         (on-change (.. event -target -value)))})))))
+            ($ :.player-tokens-item.player-tokens-placeholder
+              {:key idx}))))
       ($ :.player-tokens-actions
         ($ upload-button {})
         ($ component/pagination
