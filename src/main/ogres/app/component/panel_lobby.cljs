@@ -146,8 +146,7 @@
             {:selected (:image/hash (:user/image user))
              :on-change
              (fn [hash]
-               (dispatch :user/change-image hash)
-               (set-display-tokens false))}))))))
+               (dispatch :user/change-image hash))}))))))
 
 (defui ^:private players-form
   [{:keys [users editable]}]
@@ -182,8 +181,7 @@
                 {:selected (:image/hash (:user/image user))
                  :on-change
                  (fn [hash]
-                   (dispatch :user/change-image uuid hash)
-                   (set-display-tokens nil))}))))))))
+                   (dispatch :user/change-image uuid hash))}))))))))
 
 (def ^:private user-query
   [:user/uuid
