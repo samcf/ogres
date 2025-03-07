@@ -224,32 +224,33 @@
                   "Players can join your room by going to "
                   ($ :a {:href url :target "_blank"} url)
                   " and entering this code.")))))
-        ($ :fieldset.fieldset
-          ($ :legend "Options")
-          ($ :fieldset.session-options
-            ($ :.input-group
-              ($ :label.checkbox
-                ($ :input
-                  {:type "checkbox"
-                   :checked share-cursors
-                   :aria-disabled (not= type :host)
-                   :on-change
-                   (fn [event]
-                     (if (= type :host)
+        (if (= type :host)
+          ($ :fieldset.fieldset
+            ($ :legend "Options")
+            ($ :fieldset.session-options
+              ($ :.input-group
+                ($ :label.checkbox
+                  ($ :input
+                    {:type "checkbox"
+                     :checked share-cursors
+                     :aria-disabled (not= type :host)
+                     :on-change
+                     (fn [event]
+                       (if (= type :host)
+                         (let [checked (.. event -target -checked)]
+                           (dispatch :session/toggle-share-cursors checked))))})
+                  ($ icon {:name "check" :size 20})
+                  "Share cursors")
+                ($ :label.checkbox
+                  ($ :input
+                    {:type "checkbox"
+                     :checked share-cursor
+                     :on-change
+                     (fn [event]
                        (let [checked (.. event -target -checked)]
-                         (dispatch :session/toggle-share-cursors checked))))})
-                ($ icon {:name "check" :size 20})
-                "Share cursors")
-              ($ :label.checkbox
-                ($ :input
-                  {:type "checkbox"
-                   :checked share-cursor
-                   :on-change
-                   (fn [event]
-                     (let [checked (.. event -target -checked)]
-                       (dispatch :session/toggle-share-my-cursor checked)))})
-                ($ icon {:name "check" :size 20})
-                "Share my cursor"))))
+                         (dispatch :session/toggle-share-my-cursor checked)))})
+                  ($ icon {:name "check" :size 20})
+                  "Share my cursor")))))
         (if (= type :conn)
           ($ :fieldset.fieldset
             ($ :legend "Your character")
