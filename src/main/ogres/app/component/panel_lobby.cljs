@@ -5,11 +5,9 @@
             [ogres.app.provider.release :as release]
             [uix.core :as uix :refer [defui $]]))
 
-(def ^:private query-footer
-  [{:root/user
-    [[:user/type :default :conn]
-     [:session/status :default :initial]]}
-   {:root/session [:session/room]}])
+(defn ^:private players-xf [uuid]
+  (comp (filter (comp (complement #{uuid}) :user/uuid))
+        (filter (comp #{:conn} :user/type))))
 
 (defn ^:private session-url [room-key]
   (let [params (js/URLSearchParams. #js {"r" VERSION "join" room-key})
@@ -19,9 +17,7 @@
 
 (defui ^:private player-tile
   [{:keys [user editable auto-focus on-click-portrait]
-    :or   {editable false
-           auto-focus false
-           on-click-portrait (fn [])}}]
+    :or {editable false auto-focus false on-click-portrait (fn [])}}]
   ($ :.player-tile
     {:data-color (:user/color user)
      :data-editable editable}
@@ -32,8 +28,8 @@
        :on-click (fn [] (if editable (on-click-portrait)))
        :disabled (not editable)}
       ($ :.player-tile-image-frame)
-      (if (not (nil? (:user/image user)))
-        ($ component/image {:hash (:image/hash (:image/thumbnail (:user/image user)))}
+      (if-let [hash (-> user :user/image :image/thumbnail :image/hash)]
+        ($ component/image {:hash hash}
           (fn [url]
             ($ :.player-tile-image-content
               {:style {:background-image (str "url(" url ")")}})))
@@ -106,7 +102,7 @@
                      :data-selected (= selected hash)}))))
             ($ :button.player-tokens-placeholder
               {:key idx :disabled true}))))
-      ($ :.player-tokens-pagination
+      ($ :.player-tokens-actions
         ($ upload-button {})
         ($ component/pagination
           {:name "tokens-user-image"
@@ -152,29 +148,31 @@
   [{:keys [users editable]}]
   (let [[display-tokens set-display-tokens] (uix/use-state nil)
         dispatch (hooks/use-dispatch)]
-    ($ :form.session-player-form
+    ($ :form.session-players-form
       {:on-submit
        (fn [event]
          (.preventDefault event))}
-      (for [user users]
-        ($ :.session-player-form-player
-          {:key (:user/uuid user)}
+      (for [{:keys [user/uuid] :as user} users]
+        ($ :.session-player-form {:key uuid}
           ($ player-tile
             {:user user
              :editable editable
-             :on-click-portrait (fn [] (set-display-tokens (fn [uuid] (if (= uuid (:user/uuid user)) nil (:user/uuid user)))))})
-          (if (= display-tokens (:user/uuid user))
+             :on-click-portrait
+             (fn []
+               (set-display-tokens
+                (fn [current]
+                  (if (= current uuid) nil uuid))))})
+          (if (= display-tokens uuid)
             ($ :.session-player-form-tokens
               ($ tokens
                 {:selected (:image/hash (:user/image user))
                  :on-change
                  (fn [hash]
-                   (dispatch :user/change-image (:user/uuid user) hash)
+                   (dispatch :user/change-image uuid hash)
                    (set-display-tokens nil))}))))))))
 
 (def ^:private user-query
-  [:db/id
-   :user/uuid
+  [:user/uuid
    [:user/type :default :conn]
    [:user/color :default "red"]
    [:user/label :default ""]
@@ -189,7 +187,7 @@
   [{:root/user user-query}
    {:root/session
     [:session/room
-     {:session/host [:db/id :user/uuid :user/color]}
+     {:session/host [:user/uuid :user/color]}
      [:session/share-cursors :default true]
      {:session/conns user-query}]}])
 
@@ -197,13 +195,14 @@
   (let [releases (uix/use-context release/context)
         dispatch (hooks/use-dispatch)
         result   (hooks/use-query form-query [:db/ident :root])
-        {{:session/keys [room share-cursors]} :root/session
-         {:user/keys [uuid type share-cursor]} :root/user
-         {status :session/status} :root/user} result]
-    (if (#{:connecting :connected :disconnected} status)
+        user     (:root/user result)
+        {{room-code :session/room} :root/session
+         {user-type :user/type
+          user-status :session/status} :root/user} result]
+    (if (or (= user-status :connecting) (= user-status :connected) (= user-status :disconnected))
       ($ :.form-session.session
         ($ :header ($ :h2 "Lobby"))
-        (if (and (= type :host) (some? room) (seq releases) (not= VERSION (last releases)))
+        (if (and (= user-type :host) (some? room-code) (seq releases) (not= VERSION (last releases)))
           ($ :div
             ($ :.form-notice {:style {:margin-bottom 16}}
               ($ :p ($ :strong "Warning: ")
@@ -212,19 +211,22 @@
                  players connect using the fully qualified URL below."))
             ($ :fieldset.fieldset
               ($ :legend "Fully qualified URL")
-              ($ :input.text.text-ghost.session-url {:type "text" :value (session-url room) :readOnly true}))))
-        (if room
+              ($ :input.text.text-ghost.session-url
+                {:type "text"
+                 :value (session-url room-code)
+                 :readOnly true}))))
+        (if (some? room-code)
           ($ :fieldset.fieldset
             ($ :legend "Room Code")
             ($ :.session-room
               ($ :input.text-ghost.session-code
-                {:type "text" :value room :readOnly true})
+                {:type "text" :value room-code :readOnly true})
               (let [url (.. js/window -location -origin)]
                 ($ :.form-notice
                   "Players can join your room by going to "
                   ($ :a {:href url :target "_blank"} url)
                   " and entering this code.")))))
-        (if (= type :host)
+        (if (= user-type :host)
           ($ :fieldset.fieldset
             ($ :legend "Options")
             ($ :fieldset.session-options
@@ -232,11 +234,11 @@
                 ($ :label.checkbox
                   ($ :input
                     {:type "checkbox"
-                     :checked share-cursors
-                     :aria-disabled (not= type :host)
+                     :checked (:session/share-cursors (:root/session result))
+                     :aria-disabled (not= user-type :host)
                      :on-change
                      (fn [event]
-                       (if (= type :host)
+                       (if (= user-type :host)
                          (let [checked (.. event -target -checked)]
                            (dispatch :session/toggle-share-cursors checked))))})
                   ($ icon {:name "check" :size 20})
@@ -244,22 +246,22 @@
                 ($ :label.checkbox
                   ($ :input
                     {:type "checkbox"
-                     :checked share-cursor
+                     :checked (:user/share-cursor user)
                      :on-change
                      (fn [event]
                        (let [checked (.. event -target -checked)]
                          (dispatch :session/toggle-share-my-cursor checked)))})
                   ($ icon {:name "check" :size 20})
                   "Share my cursor")))))
-        (if (= type :conn)
+        (if (= user-type :conn)
           ($ :fieldset.fieldset
             ($ :legend "Your character")
-            ($ player-form {:user (:root/user result)})))
-        ($ :section.session-players
-          (let [xf (comp (filter (comp (complement #{uuid}) :user/uuid)) (filter (comp #{:conn} :user/type)))]
+            ($ player-form {:user user})))
+        (let [conns (:session/conns (:root/session result))]
+          ($ :section.session-players
             ($ players-form
-              {:users (into [] xf (:session/conns (:root/session result)))
-               :editable (= type :host)}))))
+              {:users (sequence (players-xf (:user/uuid user)) conns)
+               :editable (= user-type :host)}))))
       ($ :<>
         ($ :header ($ :h2 "Lobby"))
         ($ :.prompt
@@ -267,9 +269,15 @@
            the 'Start online game' button and sharing the room code
            or URL with them.")))))
 
+(def ^:private footer-query
+  [{:root/user
+    [[:user/type :default :conn]
+     [:session/status :default :initial]]}
+   {:root/session [:session/room]}])
+
 (defui footer []
   (let [dispatch (hooks/use-dispatch)
-        result   (hooks/use-query query-footer [:db/ident :root])
+        result   (hooks/use-query footer-query [:db/ident :root])
         {{status :session/status type :user/type} :root/user
          {room-key :session/room} :root/session} result]
     ($ :<>

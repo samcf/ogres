@@ -36,6 +36,12 @@
   gap: 8px;
 }
 
+.session-players-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .session-player-form {
   position: relative;
 
@@ -96,7 +102,7 @@
   }
 }
 
-.player-tokens-pagination {
+.player-tokens-actions {
   align-items: center;
   display: flex;
   justify-content: center;
