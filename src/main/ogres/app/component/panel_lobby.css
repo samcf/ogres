@@ -36,29 +36,45 @@
   gap: 8px;
 }
 
-.session-tokens-gallery {
+.session-player-form {
+  position: relative;
+
+  .player-tile {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+.session-player-form-tokens {
+  background-color: var(--color-paper-900);
+  border-radius: 0 0 3px 3px;
+  padding: 16px 8px 8px 8px;
+  transform: translate(0, -4px);
+}
+
+.player-tokens-gallery {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   grid-template-columns: repeat(5, 1fr);
   grid-template-rows: repeat(2, 1fr);
 
   button {
     aspect-ratio: 1;
-    background-color: var(--color-paper-500);
     border-radius: 50%;
     border: none;
     outline: none;
   }
 
-  &:has(.session-tokens-image:focus-visible)
-    .session-tokens-image:not(:focus-visible) {
+  &:has(.player-tokens-image:focus-visible)
+    .player-tokens-image:not(:focus-visible) {
     filter: opacity(0.3);
   }
 
-  .session-tokens-image {
+  .player-tokens-image {
+    background-color: var(--color-blues-900);
     background-repeat: no-repeat;
     background-size: cover;
-    box-shadow: 1px 1px 0 0 rgba(0, 0, 0, 0.5);
+    outline: 1px solid var(--color-blues-900);
 
     &[data-selected="true"] {
       outline: 3px solid var(--color-prime-500);
@@ -75,16 +91,21 @@
     }
   }
 
-  .session-tokens-placeholder {
+  .player-tokens-placeholder {
     border: 1px dashed var(--color-blues-900);
   }
 }
 
-.session-tokens-pagination {
+.player-tokens-pagination {
   align-items: center;
   display: flex;
   justify-content: center;
   margin-top: 16px;
+  gap: 8px;
+
+  & > button {
+    flex: 1;
+  }
 }
 
 .player-tile {
@@ -99,6 +120,10 @@
 
       &:is(:hover, :focus-visible) .player-tile-image-edit {
         visibility: visible;
+      }
+
+      &:is(:hover, :focus-visible) .player-tile-image-default {
+        visibility: hidden;
       }
     }
   }
@@ -139,12 +164,6 @@
   position: absolute;
 }
 
-.player-tile-image-edit,
-.player-tile-image-content,
-.player-tile-image-default {
-  box-shadow: inset 0px 0px 4px 3px rgba(0, 0, 0, 0.25);
-}
-
 .player-tile-image-frame {
   background: linear-gradient(125deg, #fcd34d, #b45309);
   border-radius: 3px 0 0 3px;
@@ -154,19 +173,24 @@
 .player-tile-image-edit {
   align-items: center;
   border: none;
-  visibility: hidden;
+  display: flex;
   font-size: 11px;
   justify-content: center;
   line-height: 1;
+  opacity: 0.7;
   pointer-events: none;
   text-align: center;
-  display: flex;
+  visibility: hidden;
 }
 
 .player-tile-image-default {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.player-tile-image-content {
+  background-size: contain;
 }
 
 .player-tile-content {
