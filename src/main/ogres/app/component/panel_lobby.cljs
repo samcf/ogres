@@ -17,6 +17,38 @@
         path   (.. js/window -location -pathname)]
     (str origin path "?" (.toString params))))
 
+(defui ^:private player-tile [props]
+  (let [{:keys [user editable]} props]
+    ($ :.player-tile
+      {:data-color (:user/color user)
+       :data-editable editable}
+      ($ :input {:type "hidden" :name "id" :value (:user/uuid user)})
+      ($ :.player-tile-color)
+      ($ :button.player-tile-image
+        {:disabled (not editable)}
+        ($ :.player-tile-image-frame)
+        (if (not (nil? (:user/image user)))
+          ($ :.player-tile-image-content)
+          ($ :.player-tile-image-default
+            ($ component/icon {:name "dnd" :size 46})))
+        ($ :.player-tile-image-edit "Change portrait"))
+      ($ :.player-tile-content
+        ($ :input.player-tile-input
+          {:type "text"
+           :name "label"
+           :disabled (not editable)
+           :default-value (:user/label user)
+           :placeholder (if editable "Name" "")
+           :auto-focus (= (:user/label user) "")
+           :auto-complete "off"})
+        ($ :input.player-tile-input
+          {:type "text"
+           :name "description"
+           :disabled (not editable)
+           :default-value (:user/description user)
+           :placeholder (if editable "Description" "")
+           :auto-complete "off"})))))
+
 (def ^:private tokens-query
   [{:root/user [{:user/image [:image/hash]}]}
    {:root/token-images
@@ -25,7 +57,7 @@
      {:image/thumbnail
       [:image/hash]}]}])
 
-(defui tokens [{:keys [on-change]}]
+(defui ^:private tokens [{:keys [on-change]}]
   (let [[page set-page] (uix/use-state 1)
         result (hooks/use-query tokens-query [:db/ident :root])
         select (:image/hash (:user/image (:root/user result)))
@@ -36,12 +68,7 @@
         stop   (min (+ start limit) (count public))
         images (subvec public start stop)]
     (if (> (count public) 0)
-      ($ :.session-tokens
-        {:data-paginated (> pages 1)}
-        ($ :.session-tokens-hint
-          "Select an existing token below or upload
-           an image from your computer to use as your
-           character portrait.")
+      ($ :.session-tokens {:data-paginated (> pages 1)}
         ($ :.session-tokens-gallery
           (for [idx (range limit)]
             (if-let [image (get images idx)]
@@ -64,7 +91,7 @@
                (fn [page]
                  (set-page page))})))))))
 
-(def character-form-query
+(def ^:private character-form-query
   [:db/id
    :user/uuid
    :user/color
@@ -72,11 +99,9 @@
    [:user/description :default ""]
    {:user/image [{:image/thumbnail [:image/hash]}]}])
 
-(defui character-form []
+(defui ^:private character-form []
   (let [dispatch (hooks/use-dispatch)
-        upload   (hooks/use-image-uploader {:type :token})
-        input    (uix/use-ref nil)
-        result   (hooks/use-query character-form-query)]
+        user (hooks/use-query character-form-query)]
     ($ :form
       {:on-submit
        (fn [event]
@@ -93,70 +118,38 @@
                  (= name "description") (dispatch :user/change-description value))))}
       ($ :fieldset.fieldset
         ($ :legend "Your character")
-        ($ :.session-player
-          ($ :button.session-player-image
-            {:type "button"
-             :title "Upload token image"
-             :on-click (fn [] (.click (deref input)))}
-            ($ :input
-              {:type "file"
-               :accept "image/*"
-               :ref input
-               :hidden true
-               :multiple false
-               :on-change
-               (fn [event]
-                 (upload (.. event -target -files))
-                 (set! (.. event -target -value) ""))})
-            ($ :.session-player-image-frame)
-            (if (not (nil? (:user/image result)))
-              ($ component/image {:hash (:image/hash (:image/thumbnail (:user/image result)))}
-                (fn [url]
-                  ($ :.session-player-image-content
-                    {:style {:background-image (str "url(" url ")")}})))
-              ($ :.session-player-image-placeholder
-                ($ component/icon {:name "camera-fill" :size 18})
-                "Upload image")))
-          ($ :.session-player-label
-            ($ :input.text.text-ghost
-              {:type "text"
-               :name "label"
-               :auto-focus (= (:user/label result) "")
-               :default-value (:user/label result)
-               :auto-complete "off"
-               :placeholder "Name"}))
-          ($ :.session-player-description
-            ($ :input.text.text-ghost
-              {:type "text"
-               :name "description"
-               :default-value (:user/description result)
-               :auto-complete "off"
-               :placeholder "Description"}))
-          ($ :input {:type "submit" :hidden true}))
-        ($ tokens
-          {:on-change
-           (fn [hash]
-             (dispatch :user/change-image hash))})))))
+        ($ player-tile {:user user :editable true})))))
 
 (def ^:private form-query
   [{:root/user
     [:db/id
+     :user/uuid
      :user/type
      [:session/status :default :initial]
      [:user/share-cursor :default true]]}
    {:root/session
     [:session/room
-     {:session/conns [:db/id :user/uuid :user/color :user/type]}
      {:session/host [:db/id :user/uuid :user/color]}
-     [:session/share-cursors :default true]]}])
+     [:session/share-cursors :default true]
+     {:session/conns
+      [:db/id
+       :user/uuid
+       :user/color
+       [:user/type :default :conn]
+       [:user/label :default ""]
+       [:user/description :default ""]
+       {:user/image
+        [:image/hash
+         {:image/thumbnail
+          [:image/hash]}]}]}]}])
 
 (defui form []
   (let [releases (uix/use-context release/context)
         dispatch (hooks/use-dispatch)
+        result   (hooks/use-query form-query [:db/ident :root])
         {{:session/keys [room share-cursors]} :root/session
-         {:user/keys [type share-cursor]} :root/user
-         {status :session/status} :root/user}
-        (hooks/use-query form-query [:db/ident :root])]
+         {:user/keys [uuid type share-cursor]} :root/user
+         {status :session/status} :root/user} result]
     (if (#{:connecting :connected :disconnected} status)
       ($ :.form-session.session
         ($ :header ($ :h2 "Lobby"))
@@ -208,7 +201,15 @@
                 ($ icon {:name "check" :size 20})
                 "Share my cursor"))))
         (if (= type :conn)
-          ($ character-form {})))
+          ($ character-form {}))
+        ($ :section.session-players
+          (let [xf (comp (filter (comp (complement #{uuid}) :user/uuid))
+                         (filter (comp #{:conn} :user/type)))]
+            (for [user (into [] xf (:session/conns (:root/session result)))]
+              ($ player-tile
+                {:key (:user/uuid user)
+                 :user user
+                 :editable (= type :host)})))))
       ($ :<>
         ($ :header ($ :h2 "Lobby"))
         ($ :.prompt

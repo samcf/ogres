@@ -30,89 +30,10 @@
   font-size: 12px;
 }
 
-.session-player-color {
-  aspect-ratio: 1;
-  background-color: var(--color-session);
-  border-radius: 20%;
-  box-sizing: border-box;
-  margin-left: 2px;
-  width: 22px;
-}
-
-.session-player {
-  display: grid;
-  grid-template-areas:
-    "image label"
-    "image description";
-  grid-template-columns: 64px 1fr;
-  grid-template-rows: repeat(2, 1fr);
-  gap: 6px;
-}
-
-.session-player-image {
-  aspect-ratio: 1;
-  border: none;
-  cursor: pointer;
-  grid-area: image;
-  position: relative;
-
-  &:focus-visible {
-    outline-offset: 2px;
-  }
-}
-
-.session-player-image-frame,
-.session-player-image-content,
-.session-player-image-placeholder {
-  position: absolute;
-  border-radius: 3px;
-  inset: 0;
-}
-
-.session-player-image-frame {
-  background: linear-gradient(125deg, #fcd34d, #b45309);
-}
-
-.session-player-image-content {
-  background-size: contain;
-  inset: 4px;
-}
-
-.session-player-image-placeholder {
-  align-items: center;
-  aspect-ratio: 1;
-  background-color: var(--color-paper-100);
+.session-players {
   display: flex;
   flex-direction: column;
-  font-family: system-ui;
-  font-size: 10px;
-  inset: 4px;
-  justify-content: center;
-  line-height: 1;
-  text-align: center;
-  text-transform: uppercase;
-}
-
-.session-player-label,
-.session-player-description {
-  align-items: stretch;
-  background-color: var(--color-paper-100);
-  border-radius: 3px;
-  border: 1px solid var(--color-paper-900);
-  display: flex;
-}
-
-.session-player-label {
-  grid-area: label;
-}
-
-.session-player-description {
-  grid-area: description;
-}
-
-.session-player input[type="text"] {
-  flex: 1;
-  font-family: Lora, serif;
+  gap: 8px;
 }
 
 .session-tokens-gallery {
@@ -159,17 +80,128 @@
   }
 }
 
-.session-tokens-hint {
-  font-style: italic;
-  margin: 16px auto 8px auto;
-  text-align: center;
-}
-
 .session-tokens-pagination {
   align-items: center;
   display: flex;
   justify-content: center;
   margin-top: 16px;
+}
+
+.player-tile {
+  border-radius: 3px;
+  box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 0.25);
+  display: flex;
+  position: relative;
+
+  &[data-editable="true"] {
+    .player-tile-image {
+      cursor: pointer;
+
+      &:is(:hover, :focus-visible) .player-tile-image-edit {
+        visibility: visible;
+      }
+    }
+  }
+}
+
+.player-tile-color {
+  aspect-ratio: 1;
+  background-color: var(--color-session);
+  border-radius: 50%;
+  inset: 8px 8px auto auto;
+  pointer-events: none;
+  position: absolute;
+  width: 12px;
+}
+
+.player-tile-image {
+  aspect-ratio: 1;
+  flex-basis: 64px;
+  position: relative;
+  border-radius: 3px;
+  border: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--outline-color);
+    outline-offset: 0px;
+    overflow: hidden;
+  }
+}
+
+.player-tile-image-frame,
+.player-tile-image-edit,
+.player-tile-image-content,
+.player-tile-image-default {
+  background-color: var(--color-blues-500);
+  border-radius: 3px;
+  color: var(--color-paper-500);
+  inset: 4px;
+  position: absolute;
+}
+
+.player-tile-image-edit,
+.player-tile-image-content,
+.player-tile-image-default {
+  box-shadow: inset 0px 0px 4px 3px rgba(0, 0, 0, 0.25);
+}
+
+.player-tile-image-frame {
+  background: linear-gradient(125deg, #fcd34d, #b45309);
+  border-radius: 3px 0 0 3px;
+  inset: 0px;
+}
+
+.player-tile-image-edit {
+  align-items: center;
+  border: none;
+  visibility: hidden;
+  font-size: 11px;
+  justify-content: center;
+  line-height: 1;
+  pointer-events: none;
+  text-align: center;
+  display: flex;
+}
+
+.player-tile-image-default {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.player-tile-content {
+  background-color: var(--color-blues-900);
+  padding: 4px 16px 4px 2px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  border-radius: 0 3px 3px 0;
+}
+
+.player-tile-content input[type="text"] {
+  background: none;
+  color: var(--color-paper-500);
+  border: 0;
+  padding: 0 0 0 4px;
+  flex: 1;
+
+  &::placeholder {
+    color: var(--color-black-400);
+    font-style: italic;
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+
+  &:focus-visible::placeholder {
+    color: var(--color-black-100);
+  }
+}
+
+.player-tile-input {
+  flex: 1;
+  display: flex;
 }
 
 [data-color="red"] {

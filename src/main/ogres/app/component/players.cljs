@@ -28,6 +28,7 @@
         (if (= self-type :conn)
           (let [{:user/keys [color label description image]} user]
             ($ :.player
+              ($ :.player-color {:data-color color})
               ($ :.player-image {:data-editable true}
                 ($ :.player-image-frame)
                 ($ :.player-image-edit
@@ -40,11 +41,12 @@
                         {:style {:background-image (str "url(" url ")")}})))
                   ($ :.player-image-content
                     ($ component/icon {:name "dnd" :size 30}))))
-              ($ :.player-tile {:style {:border-bottom-color color}}
+              ($ :.player-content
                 ($ :.player-label {:data-placeholder "Player character (You)"} label)
                 ($ :.player-description {:data-placeholder "Click on portrait to edit"} description)))))
         (for [{:user/keys [uuid color label description image]} users]
           ($ :.player {:key uuid}
+            ($ :.player-color {:data-color color})
             ($ :.player-image
               ($ :.player-image-frame)
               (if (not (nil? image))
@@ -54,6 +56,6 @@
                       {:style {:background-image (str "url(" url ")")}})))
                 ($ :.player-image-content
                   ($ component/icon {:name "dnd" :size 30}))))
-            ($ :.player-tile {:style {:border-bottom-color color}}
+            ($ :.player-content
               ($ :.player-label {:data-placeholder "Player character"} label)
               ($ :.player-description {:data-placeholder ""} description))))))))

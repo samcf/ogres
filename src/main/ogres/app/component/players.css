@@ -9,7 +9,7 @@
   box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 0.25);
   color: var(--color-black-100);
   display: flex;
-  flex-basis: 220px;
+  flex-basis: 226px;
   overflow: hidden;
   position: relative;
 }
@@ -67,19 +67,20 @@
 
 .player-color {
   aspect-ratio: 1;
+  background-color: var(--color-session);
   border-radius: 50%;
-  inset: 8px 12px auto auto;
+  inset: 8px 8px auto auto;
   position: absolute;
   width: 12px;
   z-index: 1;
 }
 
-.player-tile {
+.player-content {
   background-color: var(--color-blues-900);
   border-color: var(--color-blues-700);
   border-radius: 0 3px 3px 0;
   border-style: solid;
-  border-width: 1px 1px 2px 0;
+  border-width: 1px 1px 1px 0;
   display: flex;
   flex-direction: column;
   flex: 1;
