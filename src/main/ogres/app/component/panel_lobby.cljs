@@ -162,7 +162,6 @@
                group (.closest input "fieldset")
                ident (.querySelector group "[name='id']")
                uuid  (uuid (.-value ident))]
-           (js/console.log input (.-name input))
            (case (.-name input)
              "label"       (dispatch :user/change-label       uuid value)
              "description" (dispatch :user/change-description uuid value)
