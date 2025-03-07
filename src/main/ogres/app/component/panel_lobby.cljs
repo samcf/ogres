@@ -119,7 +119,8 @@
 
 (defui ^:private player-form
   [{:keys [user]}]
-  (let [[display-tokens? set-display-tokens] (uix/use-state true)
+  (let [selected (:image/hash (:user/image user))
+        [display-tokens? set-display-tokens] (uix/use-state (nil? selected))
         dispatch (hooks/use-dispatch)]
     ($ :form.session-player-form
       {:on-submit
@@ -143,7 +144,7 @@
       (if display-tokens?
         ($ :.session-player-form-tokens
           ($ tokens
-            {:selected (:image/hash (:user/image user))
+            {:selected selected
              :on-change
              (fn [hash]
                (dispatch :user/change-image hash))}))))))
