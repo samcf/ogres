@@ -149,11 +149,21 @@
   (let [[display-tokens set-display-tokens] (uix/use-state nil)
         dispatch (hooks/use-dispatch)]
     ($ :form.session-players-form
-      {:on-submit
+      {:on-submit (fn [event] (.preventDefault event))
+       :on-blur
        (fn [event]
-         (.preventDefault event))}
+         (let [input (.-target event)
+               value (.-value input)
+               group (.closest input "fieldset")
+               ident (.querySelector group "[name='id']")
+               uuid  (uuid (.-value ident))]
+           (js/console.log input (.-name input))
+           (case (.-name input)
+             "label"       (dispatch :user/change-label       uuid value)
+             "description" (dispatch :user/change-description uuid value)
+             nil)))}
       (for [{:keys [user/uuid] :as user} users]
-        ($ :.session-player-form {:key uuid}
+        ($ :fieldset.session-player-form {:key uuid}
           ($ player-tile
             {:user user
              :editable editable
