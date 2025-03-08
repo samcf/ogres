@@ -27,35 +27,40 @@
       ($ :<>
         (if (= self-type :conn)
           (let [{:user/keys [color label description image]} user]
-            ($ :.player
-              ($ :.player-color {:data-color color})
-              ($ :.player-image {:data-editable true}
-                ($ :.player-image-frame)
-                ($ :.player-image-edit
-                  {:on-click (fn [] (dispatch :user/select-panel :lobby))}
-                  ($ component/icon {:name "wrench-adjustable-circle" :size 30}))
+            ($ :.player-tile {:data-editable true}
+              ($ :.player-tile-color {:data-color color})
+              ($ :button.player-tile-image
+                {:type "button"
+                 :on-click (fn [] (dispatch :user/select-panel :lobby))}
+                ($ :.player-tile-image-frame)
                 (if (not (nil? image))
                   ($ component/image {:hash (:image/hash (:image/thumbnail image))}
                     (fn [url]
-                      ($ :.player-image-content
+                      ($ :.player-tile-image-content
                         {:style {:background-image (str "url(" url ")")}})))
-                  ($ :.player-image-content
-                    ($ component/icon {:name "dnd" :size 30}))))
-              ($ :.player-content
-                ($ :.player-label {:data-placeholder "Player character (You)"} label)
-                ($ :.player-description {:data-placeholder "Click on portrait to edit"} description)))))
+                  ($ :.player-tile-image-default
+                    ($ component/icon {:name "dnd"})))
+                ($ :.player-tile-image-edit
+                  ($ component/icon {:name "wrench-adjustable-circle" :size 26})))
+              ($ :.player-tile-content
+                ($ :.player-tile-label
+                  {:data-placeholder "Player character (You)"}
+                  label)
+                ($ :.player-tile-description
+                  {:data-placeholder "Click on portrait to edit"}
+                  description)))))
         (for [{:user/keys [uuid color label description image]} users]
-          ($ :.player {:key uuid}
-            ($ :.player-color {:data-color color})
-            ($ :.player-image
-              ($ :.player-image-frame)
+          ($ :.player-tile {:key uuid}
+            ($ :.player-tile-color {:data-color color})
+            ($ :.player-tile-image
+              ($ :.player-tile-image-frame)
               (if (not (nil? image))
                 ($ component/image {:hash (:image/hash (:image/thumbnail image))}
                   (fn [url]
-                    ($ :.player-image-content
+                    ($ :.player-tile-image-content
                       {:style {:background-image (str "url(" url ")")}})))
-                ($ :.player-image-content
-                  ($ component/icon {:name "dnd" :size 30}))))
-            ($ :.player-content
-              ($ :.player-label {:data-placeholder "Player character"} label)
-              ($ :.player-description {:data-placeholder ""} description))))))))
+                ($ :.player-tile-image-default
+                  ($ component/icon {:name "dnd"}))))
+            ($ :.player-tile-content
+              ($ :.player-tile-label {:data-placeholder "Player character"} label)
+              ($ :.player-tile-description {:data-placeholder ""} description))))))))

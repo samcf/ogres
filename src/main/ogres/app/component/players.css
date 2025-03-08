@@ -1,114 +1,25 @@
 .players {
-  box-sizing: border-box;
   display: flex;
-  gap: 4px;
-}
+  gap: 6px;
 
-.player {
-  border-radius: 4px;
-  box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 0.25);
-  color: var(--color-black-100);
-  display: flex;
-  flex-basis: 226px;
-  overflow: hidden;
-  position: relative;
-}
+  .player-tile {
+    --player-tile-frame-width: 3px;
+    --player-tile-image-basis: 46px;
 
-.player-image {
-  aspect-ratio: 1;
-  flex-basis: 46px;
-  position: relative;
-  z-index: 2;
+    flex-basis: 226px;
+    font-size: 13px;
+    max-width: 226px;
+  }
 
-  &[data-editable="true"] {
-    pointer-events: all;
-    &:hover .player-image-edit {
-      cursor: pointer;
-      visibility: visible;
+  .player-tile[data-editable="true"] {
+    .player-tile-image {
+      pointer-events: all;
     }
   }
-}
 
-.player-image-frame,
-.player-image-edit,
-.player-image-content {
-  border-radius: 4px;
-  inset: 0;
-  position: absolute;
-}
-
-.player-image-frame {
-  background: linear-gradient(125deg, #fcd34d, #b45309);
-  border-radius: 4px 0 0 4px;
-}
-
-.player-image-edit {
-  align-items: center;
-  background-color: var(--color-blues-700);
-  display: flex;
-  inset: 3px;
-  justify-content: center;
-  visibility: hidden;
-  z-index: 1;
-}
-
-.player-image-content {
-  align-items: center;
-  background-color: var(--color-blues-700);
-  background-size: contain;
-  display: flex;
-  inset: 3px;
-  justify-content: center;
-
-  svg {
-    color: var(--color-paper-500);
+  .player-tile-content {
+    border-color: var(--color-blues-700);
+    border-style: solid;
+    border-width: 1px 1px 1px 0;
   }
-}
-
-.player-color {
-  aspect-ratio: 1;
-  background-color: var(--color-session);
-  border-radius: 50%;
-  inset: 8px 8px auto auto;
-  position: absolute;
-  width: 12px;
-  z-index: 1;
-}
-
-.player-content {
-  background-color: var(--color-blues-900);
-  border-color: var(--color-blues-700);
-  border-radius: 0 3px 3px 0;
-  border-style: solid;
-  border-width: 1px 1px 1px 0;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  justify-content: center;
-  min-width: 0;
-  padding-left: 10px;
-  padding-right: 12px;
-}
-
-.player-label,
-.player-description {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-
-  &:empty::after {
-    color: var(--color-black-200);
-    content: attr(data-placeholder);
-    font-style: italic;
-  }
-}
-
-.player-label {
-  font-size: 14px;
-  line-height: 1;
-}
-
-.player-description {
-  color: var(--color-black-400);
-  font-size: 11px;
 }

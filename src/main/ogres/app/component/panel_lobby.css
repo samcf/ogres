@@ -40,14 +40,9 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.session-player-form {
-  position: relative;
 
   .player-tile {
-    position: relative;
-    z-index: 1;
+    --player-tile-image-basis: 56px;
   }
 }
 

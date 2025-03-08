@@ -85,7 +85,7 @@
   (let [selected (:image/hash (:user/image user))
         [display-tokens? set-display-tokens] (uix/use-state (nil? selected))
         dispatch (hooks/use-dispatch)]
-    ($ :form.session-player-form
+    ($ :form
       {:on-submit
        (fn [event]
          (.preventDefault event)

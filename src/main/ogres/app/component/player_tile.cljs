@@ -21,14 +21,13 @@
             ($ :.player-tile-image-content
               {:style {:background-image (str "url(" url ")")}})))
         ($ :.player-tile-image-default
-          ($ icon {:name "dnd" :size 38})))
+          ($ icon {:name "dnd"})))
       ($ :.player-tile-image-edit "Change portrait"))
     ($ :.player-tile-content
       (if (not editable)
         ($ :.player-tile-label
-          (if (seq (:user/label user))
-            (:user/label user)
-            "Player character"))
+          {:data-placeholder "Player character"}
+          (:user/label user))
         ($ :input.player-tile-input
           {:type "text"
            :name "label"
