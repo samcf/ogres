@@ -5,6 +5,7 @@
             [ogres.app.component.scene :refer [scene]]
             [ogres.app.component.scenes :refer [scenes]]
             [ogres.app.component.toolbar :refer [toolbar]]
+            [ogres.app.component.players :refer [players]]
             [uix.core :refer [defui $]]))
 
 (def ^:private query
@@ -25,6 +26,7 @@
             ($ :.layout-scenes  ($ scenes))
             ($ :.layout-scene   ($ scene))
             ($ :.layout-toolbar ($ toolbar))
+            ($ :.layout-players ($ players))
             ($ :.layout-panel   ($ panel/container)))
           (and (= type :view) ready)
           ($ :.layout
@@ -35,6 +37,7 @@
             {:data-user "conn" :data-expanded expanded}
             ($ :.layout-scene   ($ scene))
             ($ :.layout-toolbar ($ toolbar))
+            ($ :.layout-players ($ players))
             ($ :.layout-panel   ($ panel/container)))
           (and (= type :conn) (= status :disconnected))
           ($ :.layout-error

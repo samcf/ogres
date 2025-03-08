@@ -1,29 +1,19 @@
 (ns ogres.app.component.panel-lobby
-  (:require [ogres.app.component :refer [icon]]
+  (:require [ogres.app.component :as component :refer [icon]]
+            [ogres.app.component.player-tile :refer [player-tile]]
             [ogres.app.const :refer [VERSION]]
             [ogres.app.hooks :as hooks]
             [ogres.app.provider.release :as release]
             [uix.core :as uix :refer [defui $]]))
 
-(def ^:private query-footer
-  [{:root/user
-    [[:user/type :default :conn]
-     [:session/status :default :initial]]}
-   {:root/session [:session/room]}])
+(defn ^:private players-xf [uuid]
+  (comp (filter (comp (complement #{uuid}) :user/uuid))
+        (filter (comp #{:conn} :user/type))))
 
-(def ^:private query-form
-  [{:root/user
-    [:db/id
-     :user/uuid
-     :user/type
-     :user/color
-     [:session/status :default :initial]
-     [:user/share-cursor :default true]]}
-   {:root/session
-    [:session/room
-     {:session/conns [:db/id :user/uuid :user/color :user/type]}
-     {:session/host [:db/id :user/uuid :user/color]}
-     [:session/share-cursors :default true]]}])
+(defn ^:private tokens-xf [user-type]
+  (if (= user-type :host)
+    (map identity)
+    (filter (comp #{:public} :image/scope))))
 
 (defn ^:private session-url [room-key]
   (let [params (js/URLSearchParams. #js {"r" VERSION "join" room-key})
@@ -31,22 +21,173 @@
         path   (.. js/window -location -pathname)]
     (str origin path "?" (.toString params))))
 
+(defui ^:private upload-button []
+  (let [upload (hooks/use-image-uploader {:type :token})
+        input  (uix/use-ref nil)]
+    ($ :button.button
+      {:on-click (fn [] (.click (deref input)))}
+      ($ :input
+        {:type "file"
+         :hidden true
+         :accept "image/*"
+         :multiple true
+         :ref input
+         :on-change
+         (fn [event]
+           (upload (.. event -target -files))
+           (set! (.. event -target -value) ""))})
+      ($ icon {:name "camera-fill" :size 16})
+      "Upload image")))
+
+(def ^:private tokens-query
+  [{:root/user
+    [[:user/type :default :conn]]}
+   {:root/token-images
+    [:image/hash
+     :image/scope
+     {:image/thumbnail
+      [:image/hash]}]}])
+
+(defui ^:private tokens
+  [{:keys [selected on-change]}]
+  (let [[page set-page] (uix/use-state 1)
+        {{user-type :user/type} :root/user
+         tokens :root/token-images}
+        (hooks/use-query tokens-query [:db/ident :root])
+        limit  10
+        tokens (into [] (tokens-xf user-type) tokens)
+        pages  (js/Math.ceil (/ (count tokens) limit))
+        start  (max (* (min (dec page) pages) limit) 0)
+        stop   (min (+ start limit) (count tokens))
+        images (subvec tokens start stop)]
+    ($ :.player-tokens {:data-paginated (> pages 1)}
+      ($ :.player-tokens-gallery
+        (for [idx (range limit)]
+          (if-let [image (get images idx)]
+            (let [{hash :image/hash {display :image/hash} :image/thumbnail} image]
+              ($ component/image {:key display :hash display}
+                (fn [url]
+                  ($ :label.player-tokens-item.player-tokens-image
+                    {:style {:background-image (str "url(" url ")")}}
+                    ($ :input
+                      {:type "radio"
+                       :name "player-token"
+                       :value hash
+                       :checked (= selected hash)
+                       :on-change
+                       (fn [event]
+                         (on-change (.. event -target -value)))})))))
+            ($ :.player-tokens-item.player-tokens-placeholder
+              {:key idx}))))
+      ($ :.player-tokens-actions
+        ($ upload-button {})
+        ($ component/pagination
+          {:name "tokens-user-image"
+           :pages (max pages 1)
+           :value page
+           :on-change
+           (fn [page]
+             (set-page page))})))))
+
+(defui ^:private player-form
+  [{:keys [user]}]
+  (let [selected (:image/hash (:user/image user))
+        [display-tokens? set-display-tokens] (uix/use-state (nil? selected))
+        dispatch (hooks/use-dispatch)]
+    ($ :form
+      {:on-submit
+       (fn [event]
+         (.preventDefault event)
+         (let [input (.. event -target -elements)
+               label (.. input -label -value)
+               descr (.. input -description -value)]
+           (dispatch :user/change-details label descr)))
+       :on-blur
+       (fn [event]
+         (let [name  (.. event -target -name)
+               value (.. event -target -value)]
+           (cond (= name "label")       (dispatch :user/change-label value)
+                 (= name "description") (dispatch :user/change-description value))))}
+      ($ player-tile
+        {:user user
+         :editable true
+         :auto-focus true
+         :on-click-portrait (fn [] (set-display-tokens not))})
+      (if display-tokens?
+        ($ :.session-player-form-tokens
+          ($ tokens
+            {:selected selected
+             :on-change
+             (fn [hash]
+               (dispatch :user/change-image hash))}))))))
+
+(defui ^:private players-form
+  [{:keys [users editable]}]
+  (let [[display-tokens set-display-tokens] (uix/use-state nil)
+        dispatch (hooks/use-dispatch)]
+    ($ :form.session-players-form
+      {:on-submit (fn [event] (.preventDefault event))
+       :on-blur
+       (fn [event]
+         (let [input (.-target event)
+               value (.-value input)
+               group (.closest input "fieldset")
+               ident (.querySelector group "[name='id']")
+               uuid  (uuid (.-value ident))]
+           (case (.-name input)
+             "label"       (dispatch :user/change-label       uuid value)
+             "description" (dispatch :user/change-description uuid value)
+             nil)))}
+      (for [{:keys [user/uuid] :as user} users]
+        ($ :fieldset.session-player-form {:key uuid}
+          ($ player-tile
+            {:user user
+             :editable editable
+             :on-click-portrait
+             (fn []
+               (set-display-tokens
+                (fn [current]
+                  (if (= current uuid) nil uuid))))})
+          (if (= display-tokens uuid)
+            ($ :.session-player-form-tokens
+              ($ tokens
+                {:selected (:image/hash (:user/image user))
+                 :on-change
+                 (fn [hash]
+                   (dispatch :user/change-image uuid hash))}))))))))
+
+(def ^:private user-query
+  [:user/uuid
+   [:user/type :default :conn]
+   [:user/color :default "red"]
+   [:user/label :default ""]
+   [:user/description :default ""]
+   [:session/status :default :initial]
+   {:user/image
+    [:image/hash
+     {:image/thumbnail
+      [:image/hash]}]}])
+
+(def ^:private form-query
+  [{:root/user user-query}
+   {:root/session
+    [:session/room
+     {:session/host [:user/uuid :user/color]}
+     [:session/share-cursors :default true]
+     {:session/conns user-query}]}])
+
 (defui form []
   (let [releases (uix/use-context release/context)
         dispatch (hooks/use-dispatch)
-        result   (hooks/use-query query-form [:db/ident :root])
-        {{code    :session/room
-          host    :session/host
-          conns   :session/conns
-          cursors :session/share-cursors} :root/session
-         {share :user/share-cursor
-          state :session/status
-          type  :user/type
-          id    :db/id} :root/user} result]
-    (if (#{:connecting :connected :disconnected} state)
+        result   (hooks/use-query form-query [:db/ident :root])
+        user     (:root/user result)
+        {{room-code :session/room} :root/session
+         {user-type :user/type
+          user-status :session/status} :root/user} result]
+    (if (or (= user-status :connecting) (= user-status :connected) (= user-status :disconnected))
       ($ :.form-session.session
         ($ :header ($ :h2 "Lobby"))
-        (if (and (= type :host) (some? code) (seq releases) (not= VERSION (last releases)))
+        (if (and (= user-type :host) (some? room-code) (seq releases) (not= VERSION (last releases)))
           ($ :div
             ($ :.form-notice {:style {:margin-bottom 16}}
               ($ :p ($ :strong "Warning: ")
@@ -55,66 +196,60 @@
                  players connect using the fully qualified URL below."))
             ($ :fieldset.fieldset
               ($ :legend "Fully qualified URL")
-              ($ :input.text.text-ghost.session-url {:type "text" :value (session-url code) :readOnly true}))))
-        (if code
+              ($ :input.text.text-ghost.session-url
+                {:type "text"
+                 :value (session-url room-code)
+                 :readOnly true}))))
+        (if (some? room-code)
           ($ :fieldset.fieldset
             ($ :legend "Room Code")
             ($ :.session-room
               ($ :input.text-ghost.session-code
-                {:type "text" :value code :readOnly true})
+                {:type "text" :value room-code :readOnly true})
               (let [url (.. js/window -location -origin)]
                 ($ :.form-notice
                   "Players can join your room by going to "
                   ($ :a {:href url :target "_blank"} url)
                   " and entering this code.")))))
-        ($ :fieldset.fieldset
-          ($ :legend "Options")
-          ($ :fieldset.session-options
-            ($ :.input-group
-              ($ :label.checkbox
-                ($ :input
-                  {:type "checkbox"
-                   :checked cursors
-                   :aria-disabled (not= type :host)
-                   :on-change
-                   (fn [event]
-                     (if (= type :host)
+        (if (= user-type :host)
+          ($ :fieldset.fieldset
+            ($ :legend "Options")
+            ($ :fieldset.session-options
+              ($ :.input-group
+                ($ :label.checkbox
+                  ($ :input
+                    {:type "checkbox"
+                     :checked (:session/share-cursors (:root/session result))
+                     :aria-disabled (not= user-type :host)
+                     :on-change
+                     (fn [event]
+                       (if (= user-type :host)
+                         (let [checked (.. event -target -checked)]
+                           (dispatch :session/toggle-share-cursors checked))))})
+                  ($ icon {:name "check" :size 20})
+                  "Share cursors")
+                ($ :label.checkbox
+                  ($ :input
+                    {:type "checkbox"
+                     :checked (:user/share-cursor user)
+                     :on-change
+                     (fn [event]
                        (let [checked (.. event -target -checked)]
-                         (dispatch :session/toggle-share-cursors checked))))})
-                ($ icon {:name "check" :size 20})
-                "Share cursors")
-              ($ :label.checkbox
-                ($ :input
-                  {:type "checkbox"
-                   :checked share
-                   :on-change
-                   (fn [event]
-                     (let [checked (.. event -target -checked)]
-                       (dispatch :session/toggle-share-my-cursor checked)))})
-                ($ icon {:name "check" :size 20})
-                "Share my cursor"))))
-        ($ :fieldset.fieldset
-          ($ :legend "Host")
-          ($ :.session-players
-            (if host
-              ($ :.session-player
-                ($ :.session-player-color {:data-color (:user/color host)})
-                ($ :.session-player-label "Host"
-                  (if (= (:db/id host) id)
-                    ($ :span " ( You )"))))
-              ($ :.prompt "Not connected."))))
-        ($ :fieldset.fieldset
-          ($ :legend "Players")
-          ($ :.session-players
-            (if (seq conns)
-              (let [xf (filter (comp #{:conn} :user/type))]
-                (for [conn (->> conns (sequence xf) (sort-by :db/id))]
-                  ($ :.session-player {:key (:db/id conn)}
-                    ($ :.session-player-color {:data-color (:user/color conn)})
-                    ($ :.session-player-label "Friend"
-                      (if (= (:db/id conn) id)
-                        ($ :span " ( You )"))))))
-              ($ :.prompt "No one else is here.")))))
+                         (dispatch :session/toggle-share-my-cursor checked)))})
+                  ($ icon {:name "check" :size 20})
+                  "Share my cursor")))))
+        (if (= user-type :conn)
+          ($ :fieldset.fieldset
+            ($ :legend "Your character")
+            ($ player-form {:user user})))
+        (let [conns (sequence (players-xf (:user/uuid user)) (:session/conns (:root/session result)))]
+          (if (seq conns)
+            ($ :fieldset.fieldset-flat
+              ($ :legend "Players")
+              ($ :section.session-players
+                ($ players-form
+                  {:users (sequence (players-xf (:user/uuid user)) conns)
+                   :editable (= user-type :host)}))))))
       ($ :<>
         ($ :header ($ :h2 "Lobby"))
         ($ :.prompt
@@ -122,9 +257,15 @@
            the 'Start online game' button and sharing the room code
            or URL with them.")))))
 
+(def ^:private footer-query
+  [{:root/user
+    [[:user/type :default :conn]
+     [:session/status :default :initial]]}
+   {:root/session [:session/room]}])
+
 (defui footer []
   (let [dispatch (hooks/use-dispatch)
-        result   (hooks/use-query query-footer [:db/ident :root])
+        result   (hooks/use-query footer-query [:db/ident :root])
         {{status :session/status type :user/type} :root/user
          {room-key :session/room} :root/session} result]
     ($ :<>

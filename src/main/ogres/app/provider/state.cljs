@@ -32,6 +32,7 @@
    :user/camera       {:db/valueType :db.type/ref}
    :user/cameras      {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :user/dragging     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
+   :user/image        {:db/valueType :db.type/ref}
    :user/uuid         {:db/unique :db.unique/identity}})
 
 (defn initial-data [type]

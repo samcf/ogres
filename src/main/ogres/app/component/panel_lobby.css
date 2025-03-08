@@ -33,43 +33,98 @@
 .session-players {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
-.session-player {
+.session-players-form {
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .player-tile {
+    --player-tile-image-basis: 56px;
+  }
+}
+
+.session-player-form-tokens {
+  background-color: var(--color-paper-900);
+  border-radius: 0 0 3px 3px;
+  padding: 16px 8px 8px 8px;
+  transform: translate(0, -4px);
+}
+
+.player-tokens-gallery {
+  display: grid;
   gap: 6px;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+
+  &:has(input:focus-visible) label:not(:has(input:focus-visible)) {
+    filter: opacity(0.3);
+  }
+
+  input {
+    position: absolute;
+    width: 0;
+    opacity: 0;
+    margin: 0;
+  }
+
+  .player-tokens-item {
+    aspect-ratio: 1;
+    border-radius: 50%;
+    border: none;
+    outline: none;
+  }
+
+  .player-tokens-image {
+    background-color: var(--color-blues-900);
+    background-repeat: no-repeat;
+    background-size: cover;
+    cursor: pointer;
+    outline: 1px solid var(--color-blues-900);
+
+    &:has(input:checked) {
+      outline: 2px solid var(--color-prime-500);
+    }
+
+    &:has(input:focus-visible) {
+      outline: 2px dotted var(--outline-color);
+      outline-offset: 1px;
+    }
+  }
+
+  .player-tokens-placeholder {
+    border: 1px dashed var(--color-blues-900);
+  }
 }
 
-.session-player-color {
-  aspect-ratio: 1;
-  background-color: var(--color-session);
-  border-radius: 20%;
-  box-sizing: border-box;
-  margin-left: 2px;
-  width: 22px;
+.player-tokens-actions {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+  gap: 8px;
+
+  & > button {
+    flex: 1;
+  }
 }
 
-[data-color="red"] {
-  --color-session: var(--color-session-red);
-}
+.fieldset-flat {
+  margin-top: 8px;
+  border-top: 1px dotted var(--color-black-700);
+  position: relative;
+  padding-top: 12px;
 
-[data-color="orange"] {
-  --color-session: var(--color-session-orange);
-}
-
-[data-color="yellow"] {
-  --color-session: var(--color-session-yellow);
-}
-
-[data-color="green"] {
-  --color-session: var(--color-session-green);
-}
-
-[data-color="blue"] {
-  --color-session: var(--color-session-blue);
-}
-
-[data-color="purple"] {
-  --color-session: var(--color-session-purple);
+  legend {
+    background-color: var(--color-paper-500);
+    font-size: 11px;
+    inset: -7px auto auto auto;
+    line-height: 1;
+    margin-left: 1rem;
+    padding: 0 6px;
+    position: absolute;
+    text-transform: uppercase;
+  }
 }
