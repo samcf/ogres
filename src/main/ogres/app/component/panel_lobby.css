@@ -212,10 +212,11 @@
 
 .player-tile-content input[type="text"] {
   background: none;
-  color: var(--color-paper-500);
   border: 0;
-  padding: 0 0 0 4px;
+  color: var(--color-paper-500);
   flex: 1;
+  justify-content: center;
+  padding: 0 0 0 4px;
 
   &::placeholder {
     color: var(--color-black-400);
@@ -234,6 +235,19 @@
 .player-tile-input {
   flex: 1;
   display: flex;
+}
+
+.player-tile-label {
+  color: var(--color-paper-500);
+  font-size: 16px;
+  line-height: 1;
+  padding-left: 12px;
+}
+
+.player-tile-description {
+  color: var(--color-black-400);
+  font-size: 13px;
+  padding-left: 12px;
 }
 
 [data-color="red"] {

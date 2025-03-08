@@ -37,21 +37,29 @@
           ($ icon {:name "dnd" :size 38})))
       ($ :.player-tile-image-edit "Change portrait"))
     ($ :.player-tile-content
-      ($ :input.player-tile-input
-        {:type "text"
-         :name "label"
-         :disabled (not editable)
-         :default-value (:user/label user)
-         :placeholder (if editable "Name" "")
-         :auto-focus (and auto-focus (= (:user/label user) ""))
-         :auto-complete "off"})
-      ($ :input.player-tile-input
-        {:type "text"
-         :name "description"
-         :disabled (not editable)
-         :default-value (:user/description user)
-         :placeholder (if editable "Description" "")
-         :auto-complete "off"}))))
+      (if (not editable)
+        ($ :.player-tile-label
+          (if (seq (:user/label user))
+            (:user/label user)
+            "Player character"))
+        ($ :input.player-tile-input
+          {:type "text"
+           :name "label"
+           :disabled (not editable)
+           :default-value (:user/label user)
+           :placeholder (if editable "Name" "")
+           :auto-focus (and auto-focus (= (:user/label user) ""))
+           :auto-complete "off"}))
+      (if (not editable)
+        ($ :.player-tile-description
+          (:user/description user))
+        ($ :input.player-tile-input
+          {:type "text"
+           :name "description"
+           :disabled (not editable)
+           :default-value (:user/description user)
+           :placeholder (if editable "Description" "")
+           :auto-complete "off"})))))
 
 (defui ^:private upload-button []
   (let [upload (hooks/use-image-uploader {:type :token})
