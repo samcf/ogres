@@ -10,6 +10,11 @@
   (comp (filter (comp (complement #{uuid}) :user/uuid))
         (filter (comp #{:conn} :user/type))))
 
+(defn ^:private tokens-xf [user-type]
+  (if (= user-type :host)
+    (map identity)
+    (filter (comp #{:public} :image/scope))))
+
 (defn ^:private session-url [room-key]
   (let [params (js/URLSearchParams. #js {"r" VERSION "join" room-key})
         origin (.. js/window -location -origin)
@@ -35,7 +40,9 @@
       "Upload image")))
 
 (def ^:private tokens-query
-  [{:root/token-images
+  [{:root/user
+    [[:user/type :default :conn]]}
+   {:root/token-images
     [:image/hash
      :image/scope
      {:image/thumbnail
@@ -44,13 +51,15 @@
 (defui ^:private tokens
   [{:keys [selected on-change]}]
   (let [[page set-page] (uix/use-state 1)
-        tokens (hooks/use-query tokens-query [:db/ident :root])
-        public (into [] (filter (comp #{:public} :image/scope)) (:root/token-images tokens))
+        {{user-type :user/type} :root/user
+         tokens :root/token-images}
+        (hooks/use-query tokens-query [:db/ident :root])
         limit  10
-        pages  (js/Math.ceil (/ (count public) limit))
+        tokens (into [] (tokens-xf user-type) tokens)
+        pages  (js/Math.ceil (/ (count tokens) limit))
         start  (max (* (min (dec page) pages) limit) 0)
-        stop   (min (+ start limit) (count public))
-        images (subvec public start stop)]
+        stop   (min (+ start limit) (count tokens))
+        images (subvec tokens start stop)]
     ($ :.player-tokens {:data-paginated (> pages 1)}
       ($ :.player-tokens-gallery
         (for [idx (range limit)]
