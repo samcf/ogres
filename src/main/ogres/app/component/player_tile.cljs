@@ -33,6 +33,7 @@
            :name "label"
            :disabled (not editable)
            :default-value (:user/label user)
+           :max-length 32
            :placeholder (if editable "Name" "")
            :auto-focus (and auto-focus (= (:user/label user) ""))
            :auto-complete "off"}))
@@ -44,5 +45,6 @@
            :name "description"
            :disabled (not editable)
            :default-value (:user/description user)
+           :max-length 32
            :placeholder (if editable "Description" "")
            :auto-complete "off"})))))
