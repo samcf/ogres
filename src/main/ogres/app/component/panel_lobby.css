@@ -110,3 +110,21 @@
     flex: 1;
   }
 }
+
+.fieldset-flat {
+  margin-top: 8px;
+  border-top: 1px dotted var(--color-black-700);
+  position: relative;
+  padding-top: 12px;
+
+  legend {
+    background-color: var(--color-paper-500);
+    font-size: 11px;
+    inset: -7px auto auto auto;
+    line-height: 1;
+    margin-left: 1rem;
+    padding: 0 6px;
+    position: absolute;
+    text-transform: uppercase;
+  }
+}

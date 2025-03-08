@@ -233,11 +233,14 @@
           ($ :fieldset.fieldset
             ($ :legend "Your character")
             ($ player-form {:user user})))
-        (let [conns (:session/conns (:root/session result))]
-          ($ :section.session-players
-            ($ players-form
-              {:users (sequence (players-xf (:user/uuid user)) conns)
-               :editable (= user-type :host)}))))
+        (let [conns (sequence (players-xf (:user/uuid user)) (:session/conns (:root/session result)))]
+          (if (seq conns)
+            ($ :fieldset.fieldset-flat
+              ($ :legend "Players")
+              ($ :section.session-players
+                ($ players-form
+                  {:users (sequence (players-xf (:user/uuid user)) conns)
+                   :editable (= user-type :host)}))))))
       ($ :<>
         ($ :header ($ :h2 "Lobby"))
         ($ :.prompt
