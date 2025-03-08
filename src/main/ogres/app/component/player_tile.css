@@ -85,11 +85,12 @@
 
 .player-tile-content {
   background-color: var(--color-blues-900);
-  padding: 4px 16px 4px 2px;
+  border-radius: 0 3px 3px 0;
   display: flex;
   flex-direction: column;
   flex: 1;
-  border-radius: 0 3px 3px 0;
+  justify-content: center;
+  padding: 4px 16px 4px 2px;
 }
 
 .player-tile-content input[type="text"] {
