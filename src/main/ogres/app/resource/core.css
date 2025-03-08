@@ -82,3 +82,27 @@ a:visited {
   text-decoration: none;
   color: inherit;
 }
+
+[data-color="red"] {
+  --color-session: var(--color-session-red);
+}
+
+[data-color="orange"] {
+  --color-session: var(--color-session-orange);
+}
+
+[data-color="yellow"] {
+  --color-session: var(--color-session-yellow);
+}
+
+[data-color="green"] {
+  --color-session: var(--color-session-green);
+}
+
+[data-color="blue"] {
+  --color-session: var(--color-session-blue);
+}
+
+[data-color="purple"] {
+  --color-session: var(--color-session-purple);
+}
