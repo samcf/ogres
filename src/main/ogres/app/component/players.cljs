@@ -3,6 +3,8 @@
             [ogres.app.hooks :as hooks]
             [uix.core :refer [defui $]]))
 
+(def ^:private truncation-limit 5)
+
 (defn ^:private conns-xf [self]
   (comp (filter (comp #{:conn} :user/type))
         (filter (comp (complement #{(:user/uuid self)}) :user/uuid))
@@ -33,8 +35,14 @@
   (let [dispatch (hooks/use-dispatch)
         result   (hooks/use-query query [:db/ident :root])
         {self :root/user
-         {conns :session/conns} :root/session} result]
+         {conns :session/conns} :root/session} result
+        users (sequence (conns-xf self) conns)]
     ($ :.players
+      {:data-truncated
+       (> (count users)
+          (if (= (:user/type self) :host)
+            truncation-limit
+            (dec truncation-limit)))}
       (if (= (:user/type self) :conn)
         (let [{:user/keys [color label description image]} self]
           ($ :.player-tile {:data-editable true}
@@ -59,7 +67,7 @@
               ($ :.player-tile-description
                 {:data-placeholder "Click on portrait to edit"}
                 description)))))
-      (for [{:user/keys [uuid color label description image]} (sequence (conns-xf self) conns)]
+      (for [{:user/keys [uuid color label description image]} users]
         ($ :.player-tile {:key uuid}
           ($ :.player-tile-color {:data-color color})
           ($ :.player-tile-image

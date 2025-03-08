@@ -23,3 +23,33 @@
     border-width: 1px 1px 1px 0;
   }
 }
+
+.players[data-truncated="true"] {
+  .player-tile {
+    flex-basis: 46px;
+  }
+
+  .player-tile-image-frame {
+    border-radius: 4px;
+  }
+
+  .player-tile-content {
+    display: none;
+  }
+}
+
+@media /* Portrait */ (max-aspect-ratio: 1 / 1) {
+  .players {
+    .player-tile {
+      flex-basis: 46px;
+    }
+
+    .player-tile-image-frame {
+      border-radius: 4px;
+    }
+
+    .player-tile-content {
+      display: none;
+    }
+  }
+}
