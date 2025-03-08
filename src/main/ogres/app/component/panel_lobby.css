@@ -89,6 +89,10 @@
     cursor: pointer;
     outline: 1px solid var(--color-blues-900);
 
+    &:has(input:checked) {
+      outline: 2px solid var(--color-prime-500);
+    }
+
     &:has(input:focus-visible) {
       outline: 2px dotted var(--outline-color);
       outline-offset: 1px;
