@@ -29,7 +29,8 @@
           {:data-placeholder "Player character"}
           (:user/label user))
         ($ :input.player-tile-input
-          {:type "text"
+          {:key (str "label:" (:user/label user))
+           :type "text"
            :name "label"
            :disabled (not editable)
            :default-value (:user/label user)
@@ -41,7 +42,8 @@
         ($ :.player-tile-description
           (:user/description user))
         ($ :input.player-tile-input
-          {:type "text"
+          {:key (str "description:" (:user/description user))
+           :type "text"
            :name "description"
            :disabled (not editable)
            :default-value (:user/description user)
