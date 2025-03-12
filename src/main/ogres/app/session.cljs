@@ -135,10 +135,9 @@
 (defn ^:private on-receive-binary
   [message conn publish]
   (let [data (js/Blob. #js [(.-data message)] #js {"type" "image/jpeg"})
-        user (ds/entity (ds/db conn) [:db/ident :user])
-        call (fn [hash] (publish :image/create-token hash data))]
+        user (ds/entity (ds/db conn) [:db/ident :user])]
     (case (:user/type user)
-      :host (publish :image/cache data call)
+      :host (publish :image/create-token data)
       :conn (publish :image/cache data))))
 
 (defui listeners []

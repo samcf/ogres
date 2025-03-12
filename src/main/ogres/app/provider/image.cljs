@@ -148,12 +148,26 @@
                url))) ^:lint/disable [])]
     (events/use-subscribe :image/create-token
       (uix/use-callback
-       (fn [hash blob]
-         (.then
-          (js/createImageBitmap blob)
-          (fn [image]
-            (let [record {:hash hash :name "" :size (.-size blob) :width (.-width image) :height (.-height image)}]
-              (dispatch :token-images/create-many [[record record]] :public))))) [dispatch]))
+       (fn [blob]
+         (-> (js/createImageBitmap blob)
+             (.then
+              (fn [image]
+                (let [canvas (create-canvas image)]
+                  (js/Promise.all
+                   #js [(js/Promise.resolve "")
+                        (extract-image canvas)
+                        (extract-image (create-thumbnail canvas 256))]))))
+             (.then
+              (fn [images]
+                (.then
+                 (write :put (create-store-records images))
+                 (constantly images))))
+             (.then
+              (fn [[filename image thumbnail]]
+                (dispatch
+                 :token-images/create-many
+                 [[(create-state-record filename image)
+                   (create-state-record filename thumbnail)]] :public))))) [write dispatch]))
     (events/use-subscribe :image/cache
       (uix/use-callback
        (fn [image callback]
@@ -215,8 +229,8 @@
        (fn [files]
          (.then (js/Promise.all (into-array (into [] (map process-file) files)))
                 (fn [files]
-                  (doseq [[_ _ thumbnail] files]
-                    (publish :image/create (:data thumbnail)))))) [publish]))))
+                  (doseq [[_ image _] files]
+                    (publish :image/create (:data image)))))) [publish]))))
 
 (defn use-image
   "React hook which accepts a string that uniquely identifies an image
