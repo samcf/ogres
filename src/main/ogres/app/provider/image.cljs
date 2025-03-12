@@ -85,6 +85,47 @@
               :width  (.-width canvas)
               :height (.-height canvas)})))) type quality)))))
 
+(defn ^:private process-file
+  "Returns a Promise.all which resolves with three elements:
+     1. The filename
+     2. The image extracted from the file
+     3. The image, cropped and resized to be used as a thumbnail"
+  [^js/File file]
+  (.then (js/createImageBitmap file)
+         (fn [image]
+           (let [canvas (create-canvas image)]
+             (js/Promise.all
+              #js [(js/Promise.resolve (.-name file))
+                   (extract-image canvas)
+                   (extract-image (create-thumbnail canvas 256))])))))
+
+(defn ^:private create-store-records
+  "Returns a two-element vector containing the Javascript objects which
+   will be persisted to IndexedDB. Each object contains the image data
+   represented as a Blob and a digest of the image represented as a
+   SHA-1 string."
+  [[_ image thumb]]
+  [#js {"checksum" (:hash image) "data" (:data image)}
+   #js {"checksum" (:hash thumb) "data" (:data thumb)}])
+
+(defn ^:private create-state-record
+  "Returns a description of an image to be persisted to DataScript state,
+   containing the digest, filename, size in kb, width, and height."
+  [filename image]
+  {:hash   (:hash image)
+   :name   filename
+   :size   (.-size (:data image))
+   :width  (:width image)
+   :height (:height image)})
+
+(defn ^:private create-state-records
+  "Returns a two-element vector containing descriptions of images to be
+   persisted to DataScript state. The first is the original image and
+   the second is the thumbnail."
+  [[filename image thumb]]
+  [(create-state-record filename image)
+   (create-state-record filename thumb)])
+
 (defui provider [props]
   (let [conn           (uix/use-context state/context)
         read           (idb/use-reader "images")
@@ -144,47 +185,6 @@
                   (dispatch :token-images/change-thumbnail hash data rect)))))) [read dispatch conn write]))
     ($ context {:value [urls on-request]}
       (:children props))))
-
-(defn ^:private process-file
-  "Returns a Promise.all which resolves with three elements:
-     1. The filename
-     2. The image extracted from the file
-     3. The image, cropped and resized to be used as a thumbnail"
-  [^js/File file]
-  (.then (js/createImageBitmap file)
-         (fn [image]
-           (let [canvas (create-canvas image)]
-             (js/Promise.all
-              #js [(js/Promise.resolve (.-name file))
-                   (extract-image canvas)
-                   (extract-image (create-thumbnail canvas 256))])))))
-
-(defn ^:private create-store-records
-  "Returns a two-element vector containing the Javascript objects which
-   will be persisted to IndexedDB. Each object contains the image data
-   represented as a Blob and a digest of the image represented as a
-   SHA-1 string."
-  [[_ image thumb]]
-  [#js {"checksum" (:hash image) "data" (:data image)}
-   #js {"checksum" (:hash thumb) "data" (:data thumb)}])
-
-(defn ^:private create-state-record
-  "Returns a description of an image to be persisted to DataScript state,
-   containing the digest, filename, size in kb, width, and height."
-  [filename image]
-  {:hash   (:hash image)
-   :name   filename
-   :size   (.-size (:data image))
-   :width  (:width image)
-   :height (:height image)})
-
-(defn ^:private create-state-records
-  "Returns a two-element vector containing descriptions of images to be
-   persisted to DataScript state. The first is the original image and
-   the second is the thumbnail."
-  [[filename image thumb]]
-  [(create-state-record filename image)
-   (create-state-record filename thumb)])
 
 (defn use-image-uploader
   "React hook which provides a function that accepts one or more uploaded
