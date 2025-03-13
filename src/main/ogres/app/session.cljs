@@ -101,6 +101,10 @@
             #js {"data" (js/Uint8Array. data)
                  "dst"  (str (:src message))}))))
 
+    :image/change-thumbnail-request
+    (let [{{hash :hash bounds :bounds} :data} message]
+      (publish :image/change-thumbnail hash bounds))
+
     :cursor/moved
     (let [{src :src {[x y] :coord} :data} message]
       (publish :cursor/moved src x y))))
@@ -252,6 +256,19 @@
            (if-let [host (-> session :session/host :user/uuid)]
              (let [data {:name :image/request :hash hash}]
                (on-send-text {:type :event :dst host :data data}))))) [conn on-send-text]))
+
+    (hooks/use-subscribe :image/change-thumbnail-request
+      (uix/use-callback
+       (fn [hash bounds]
+         (let [session (ds/entity @conn [:db/ident :session])]
+           (if-let [host (-> session :session/host :user/uuid)]
+             (on-send-text
+              {:type :event
+               :dst host
+               :data
+               {:name :image/change-thumbnail-request
+                :hash hash
+                :bounds bounds}})))) [conn on-send-text]))
 
     ;; Subscribe to DataScript transactions and broadcast the transaction data
     ;; to the other connections in the session.
