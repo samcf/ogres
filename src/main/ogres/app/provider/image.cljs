@@ -170,11 +170,10 @@
                    (create-state-record filename thumbnail)]] :public))))) [write dispatch]))
     (events/use-subscribe :image/cache
       (uix/use-callback
-       (fn [image callback]
+       (fn [image]
          (-> (create-hash image)
              (.then (fn [hash] (write :put [#js {"checksum" hash "data" image}]) hash))
-             (.then (fn [hash] (set-url (fn [urls] (assoc urls hash (js/URL.createObjectURL image)))) hash))
-             (.then (fn [hash] (when (fn? callback) (callback hash)))))) [write]))
+             (.then (fn [hash] (set-url (fn [urls] (assoc urls hash (js/URL.createObjectURL image)))))))) [write]))
     (events/use-subscribe :image/change-thumbnail
       (uix/use-callback
        (fn [hash [ax ay bx by :as rect]]
