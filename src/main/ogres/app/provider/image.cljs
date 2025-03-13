@@ -85,66 +85,6 @@
               :width  (.-width canvas)
               :height (.-height canvas)})))) type quality)))))
 
-(defui provider [props]
-  (let [conn           (uix/use-context state/context)
-        read           (idb/use-reader "images")
-        write          (idb/use-writer "images")
-        loading        (atom {})
-        publish        (events/use-publish)
-        dispatch       (use-dispatch)
-        [urls set-url] (uix/use-state {})
-        on-request
-        (uix/use-callback
-         (fn [hash]
-           (let [url (get urls hash)]
-             (if (not url)
-               (when (not (get @loading hash))
-                 (swap! loading assoc hash true)
-                 (-> (read hash)
-                     (.then (fn [rec] (js/URL.createObjectURL (.-data rec))))
-                     (.then (fn [url] (set-url (fn [urls] (assoc urls hash url)))))
-                     (.catch (fn [] (publish :image/request hash)))))
-               url))) ^:lint/disable [])]
-    (events/use-subscribe :image/create-token
-      (uix/use-callback
-       (fn [hash blob]
-         (.then
-          (js/createImageBitmap blob)
-          (fn [image]
-            (let [record {:hash hash :name "" :size (.-size blob) :width (.-width image) :height (.-height image)}]
-              (dispatch :token-images/create-many [[record record]] :public))))) [dispatch]))
-    (events/use-subscribe :image/cache
-      (uix/use-callback
-       (fn [image callback]
-         (-> (create-hash image)
-             (.then (fn [hash] (write :put [#js {"checksum" hash "data" image}]) hash))
-             (.then (fn [hash] (set-url (fn [urls] (assoc urls hash (js/URL.createObjectURL image)))) hash))
-             (.then (fn [hash] (when (fn? callback) (callback hash)))))) [write]))
-    (events/use-subscribe :image/change-thumbnail
-      (uix/use-callback
-       (fn [hash [ax ay bx by :as rect]]
-         (let [entity (ds/entity (ds/db conn) [:image/hash hash])]
-           (-> (read hash)
-               (.then (fn [rec] (js/createImageBitmap (.-data rec))))
-               (.then
-                (fn [src]
-                  (-> (create-canvas src)
-                      (create-thumbnail 256 ax ay bx by)
-                      (extract-image))))
-               (.then
-                (fn [out]
-                  (let [thumb (:image/hash (:image/thumbnail entity))]
-                    (js/Promise.all
-                     #js [(write :put [#js {"checksum" (:hash out) "data" (:data out)}])
-                          (if (not= hash thumb)
-                            (write :delete [thumb]))
-                          out]))))
-               (.then
-                (fn [[_ _ data]]
-                  (dispatch :token-images/change-thumbnail hash data rect)))))) [read dispatch conn write]))
-    ($ context {:value [urls on-request]}
-      (:children props))))
-
 (defn ^:private process-file
   "Returns a Promise.all which resolves with three elements:
      1. The filename
@@ -186,6 +126,80 @@
   [(create-state-record filename image)
    (create-state-record filename thumb)])
 
+(defui provider [props]
+  (let [conn           (uix/use-context state/context)
+        read           (idb/use-reader "images")
+        write          (idb/use-writer "images")
+        loading        (atom {})
+        publish        (events/use-publish)
+        dispatch       (use-dispatch)
+        [urls set-url] (uix/use-state {})
+        on-request
+        (uix/use-callback
+         (fn [hash]
+           (let [url (get urls hash)]
+             (if (not url)
+               (when (not (get @loading hash))
+                 (swap! loading assoc hash true)
+                 (-> (read hash)
+                     (.then (fn [rec] (js/URL.createObjectURL (.-data rec))))
+                     (.then (fn [url] (set-url (fn [urls] (assoc urls hash url)))))
+                     (.catch (fn [] (publish :image/request hash)))))
+               url))) ^:lint/disable [])]
+    (events/use-subscribe :image/create-token
+      (uix/use-callback
+       (fn [blob]
+         (-> (js/createImageBitmap blob)
+             (.then
+              (fn [image]
+                (let [canvas (create-canvas image)]
+                  (js/Promise.all
+                   #js [(js/Promise.resolve "")
+                        (extract-image canvas)
+                        (extract-image (create-thumbnail canvas 256))]))))
+             (.then
+              (fn [images]
+                (.then
+                 (write :put (create-store-records images))
+                 (constantly images))))
+             (.then
+              (fn [[filename image thumbnail]]
+                (dispatch
+                 :token-images/create-many
+                 [[(create-state-record filename image)
+                   (create-state-record filename thumbnail)]] :public))))) [write dispatch]))
+    (events/use-subscribe :image/cache
+      (uix/use-callback
+       (fn [image callback]
+         (-> (create-hash image)
+             (.then (fn [hash] (write :put [#js {"checksum" hash "data" image}]) hash))
+             (.then (fn [hash] (set-url (fn [urls] (assoc urls hash (js/URL.createObjectURL image)))) hash))
+             (.then (fn [hash] (when (fn? callback) (callback hash)))))) [write]))
+    (events/use-subscribe :image/change-thumbnail
+      (uix/use-callback
+       (fn [hash [ax ay bx by :as rect]]
+         (let [entity (ds/entity (ds/db conn) [:image/hash hash])]
+           (-> (read hash)
+               (.then (fn [rec] (js/createImageBitmap (.-data rec))))
+               (.then
+                (fn [src]
+                  (-> (create-canvas src)
+                      (create-thumbnail 256 ax ay bx by)
+                      (extract-image))))
+               (.then
+                (fn [out]
+                  (let [thumb (:image/hash (:image/thumbnail entity))]
+                    (js/Promise.all
+                     #js [(write :put [#js {"checksum" (:hash out) "data" (:data out)}])
+                          (if (not= hash thumb)
+                            (write :delete [thumb]))
+                          out]))))
+               (.then
+                (fn [[_ _ data]]
+                  (dispatch :token-images/change-thumbnail hash data rect)))))) [read dispatch conn write]))
+    ($ context {:value [urls on-request]}
+      (:children props))))
+
 (defn use-image-uploader
   "React hook which provides a function that accepts one or more uploaded
    File objects, processes those files to be used as images, and persists
@@ -215,8 +229,8 @@
        (fn [files]
          (.then (js/Promise.all (into-array (into [] (map process-file) files)))
                 (fn [files]
-                  (doseq [[_ _ thumbnail] files]
-                    (publish :image/create (:data thumbnail)))))) [publish]))))
+                  (doseq [[_ image _] files]
+                    (publish :image/create (:data image)))))) [publish]))))
 
 (defn use-image
   "React hook which accepts a string that uniquely identifies an image

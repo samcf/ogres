@@ -14,10 +14,16 @@
                       useDraggable  use-draggable
                       useDroppable  use-droppable}]))
 
+(defn ^:private scopes [type]
+  (if (= type :host)
+    #{:public :private}
+    #{:public}))
+
 (def ^:private query-footer
   [{:root/user [:user/type]}
    {:root/token-images
     [:image/hash
+     :image/scope
      {:image/thumbnail
       [:image/hash]}]}])
 
@@ -276,8 +282,8 @@
 (defui ^:private editor [props]
   (let [{{hash   :image/hash
           width  :image/width
-          height :image/height} :image} props
-        publish (hooks/use-publish)
+          height :image/height} :image
+         on-change :on-change} props
         element (uix/use-ref nil)
         obj-url (hooks/use-image hash)
         initial (or (:image/thumbnail-rect (:image props)) (default-region width height))
@@ -286,11 +292,6 @@
         [scale set-scale] (uix/use-state nil)
         scale-fn (uix/use-memo #(dnd-scale-fn scale) [scale])
         clamp-fn (uix/use-memo #(dnd-clamp-fn bound width height) [bound width height])
-        on-change-thumbnail
-        (uix/use-callback
-         (fn [event]
-           (.preventDefault event)
-           (publish :image/change-thumbnail hash bound)) [publish hash bound])
         on-drag-move
         (uix/use-callback
          (fn [data]
@@ -347,7 +348,10 @@
       (let [[ax ay bx by] bound
             [cx cy dx dy] delta]
         ($ :form
-          {:on-submit on-change-thumbnail}
+          {:on-submit
+           (fn [event]
+             (.preventDefault event)
+             (on-change hash bound))}
           ($ :img.token-editor-image
             {:ref element
              :src obj-url
@@ -369,8 +373,10 @@
             "Crop and Resize"))))))
 
 (def ^:private modal-query
-  [{:root/token-images
+  [{:root/user [:user/type]}
+   {:root/token-images
     [:image/hash
+     :image/scope
      :image/name
      :image/size
      :image/width
@@ -380,11 +386,12 @@
       [:image/hash :image/size]}]}])
 
 (defui ^:private modal [props]
-  (let [result (hooks/use-query modal-query [:db/ident :root])
+  (let [publish (hooks/use-publish)
+        {user :root/user images :root/token-images} (hooks/use-query modal-query [:db/ident :root])
         [selected set-selected] (uix/use-state nil)
         [page set-page] (uix/use-state 1)
-        data  (vec (reverse (:root/token-images result)))
         limit 20
+        data  (vec (reverse (filter (comp (scopes (:user/type user)) :image/scope) images)))
         pages (js/Math.ceil (/ (count data) limit))
         start (max (* (dec (min page pages)) limit) 0)
         end   (min (+ start limit) (count data))
@@ -395,7 +402,14 @@
       ($ :.token-editor
         (if-let [entity (first (filter (comp #{selected} :image/hash) data))]
           ($ :.token-editor-workspace
-            ($ editor {:key (:image/hash entity) :image entity}))
+            ($ editor
+              {:key (:image/hash entity)
+               :image entity
+               :on-change
+               (fn [hash bounds]
+                 (case (:user/type user)
+                   :host (publish :image/change-thumbnail hash bounds)
+                   :conn (publish :image/change-thumbnail-request hash bounds)))}))
           ($ :.token-editor-placeholder
             ($ icon {:name "crop" :size 64})
             "Select an image to crop and resize." ($ :br)
@@ -453,7 +467,7 @@
       ($ :button.button.button-neutral
         {:type "button"
          :title "Crop"
-         :disabled (or (not= type :host) (not (seq images)))
+         :disabled (not (seq (filter (comp (scopes type) :image/scope) images)))
          :on-click (partial set-editing not)}
         ($ icon {:name "crop" :size 18})
         "Edit images")
