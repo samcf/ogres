@@ -93,6 +93,8 @@
           ($ icon {:name "rulers"}))
         ($ action {:name "note" :aria-pressed (= mode :note)}
           ($ icon {:name "journal-bookmark-fill"}))
+        ($ action {:name "scene-focus" :aria-disabled (not (some? (:session/_host result)))}
+          ($ icon {:name "camera2" :size 22}))
         ($ action {:name "draw-circle" :aria-pressed (= mode :circle)}
           ($ icon {:name "circle"}))
         ($ action {:name "draw-rect" :aria-pressed (= mode :rect)}
@@ -103,10 +105,6 @@
           ($ icon {:name "star"}))
         ($ action {:name "draw-line" :aria-pressed (= mode :line)}
           ($ icon {:name "slash-lg"}))
-        ($ action {:name "scene-grid" :aria-pressed (= mode :grid)}
-          ($ icon {:name "compass"}))
-        ($ action {:name "scene-focus" :aria-disabled (not (some? (:session/_host result)))}
-          ($ icon {:name "camera2" :size 22}))
         ($ action {:name "zoom-out" :aria-disabled (= scale 0.15)}
           ($ icon {:name "zoom-out"}))
         ($ action {:name "zoom-reset" :aria-disabled (= scale 1)}
@@ -124,4 +122,6 @@
         ($ action {:name "mask-hide"}
           ($ icon {:name "eye-slash-fill"}))
         ($ action {:name "scene-window" :aria-pressed share?}
-          ($ icon {:name "pip" :size 22}))))))
+          ($ icon {:name "pip" :size 22}))
+        ($ action {:name "scene-grid" :aria-pressed (= mode :grid)}
+          ($ icon {:name "compass"}))))))
