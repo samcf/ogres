@@ -44,6 +44,7 @@
     [[:user/type :default :conn]]}
    {:root/token-images
     [:image/hash
+     :image/name
      :image/scope
      {:image/thumbnail
       [:image/hash]}]}])
@@ -64,11 +65,11 @@
       ($ :.player-tokens-gallery
         (for [idx (range limit)]
           (if-let [image (get images idx)]
-            (let [{hash :image/hash {display :image/hash} :image/thumbnail} image]
+            (let [{hash :image/hash name :image/name {display :image/hash} :image/thumbnail} image]
               ($ component/image {:key display :hash display}
                 (fn [url]
                   ($ :label.player-tokens-item.player-tokens-image
-                    {:style {:background-image (str "url(" url ")")}}
+                    {:style {:background-image (str "url(" url ")")} :aria-label name}
                     ($ :input
                       {:type "radio"
                        :name "player-token"

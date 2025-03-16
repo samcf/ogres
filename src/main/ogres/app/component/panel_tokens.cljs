@@ -417,7 +417,7 @@
         ($ :.token-editor-gallery
           ($ :.token-editor-gallery-paginated
             ($ :.token-editor-gallery-thumbnails
-              (for [{{hash :image/hash} :image/thumbnail key :image/hash} part]
+              (for [{{hash :image/hash} :image/thumbnail key :image/hash name :image/name} part]
                 ($ image {:key key :hash hash}
                   (fn [url]
                     ($ :label.token-editor-gallery-thumbnail
@@ -427,6 +427,7 @@
                          :name "token-editor-image"
                          :checked (= selected key)
                          :value key
+                         :aria-label name
                          :on-change
                          (fn []
                            (set-selected key))}))))))
