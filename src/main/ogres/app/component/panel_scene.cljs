@@ -1,10 +1,9 @@
 (ns ogres.app.component.panel-scene
   (:require [clojure.string :refer [replace]]
-            [ogres.app.component :refer [icon pagination image]]
+            [ogres.app.component :refer [icon pagination image fullscreen-dialog]]
             [ogres.app.hooks :as hooks]
             [ogres.app.util :refer [display-size]]
-            [uix.core :as uix :refer [defui $]]
-            [uix.dom :refer [create-portal]]))
+            [uix.core :as uix :refer [defui $]]))
 
 (def ^:private options-vis
   [["Revealed" :revealed "sun-fill"]
@@ -24,7 +23,45 @@
       (-> filename (replace filename-re "") (replace  #"\s{2,}" " "))
       "Untitled scene")))
 
-(def ^:private query
+(defui ^:private scene-preview [{:keys [data on-close]}]
+  (let [dispatch (hooks/use-dispatch)]
+    ($ fullscreen-dialog
+      {:on-close on-close}
+      ($ :.scene-gallery-preview
+        ($ image {:hash (:image/hash data)}
+          (fn [url]
+            ($ :figure.scene-gallery-preview-details
+              {:style {:background-image (str "url(" url ")")}}
+              ($ :dl
+                ($ :dt "Filename")
+                ($ :dd (:image/name data))
+                ($ :dt "Size")
+                ($ :dd (display-size (:image/size data)))
+                (if (> (:image/size data) filesize-limit)
+                  ($ :<>
+                    ($ :dt ($ icon {:name "exclamation-triangle-fill" :size 12}) "Warning")
+                    ($ :dd
+                      "This image exceeds the maximum image filesize (8MB)"
+                      " that can be used for multiplayer games."
+                      " Decreasing its dimensions, converting it to a JPG,"
+                      " and lowering its image quality may help.")))))))
+        ($ :.scene-gallery-preview-footer
+          ($ :button.button.button-danger
+            {:style {:margin-right "auto"}
+             :on-click
+             (fn []
+               (let [thumbnail (:image/hash (:image/thumbnail data))]
+                 (on-close)
+                 (dispatch :scene-images/remove (:image/hash data) thumbnail)))}
+            ($ icon {:name "trash3-fill" :size 16}))
+          ($ :button.button.button-neutral
+            {:on-click on-close}
+            "Close")
+          ($ :button.button.button-primary
+            {:on-click (fn [] (on-close) (dispatch :scene/change-image (:image/hash data)))}
+            "Change background"))))))
+
+(def ^:private form-query
   [{:root/scene-images
     [:image/hash
      :image/name
@@ -53,7 +90,7 @@
         dispatch (hooks/use-dispatch)
         upload   (hooks/use-image-uploader {:type :scene})
         input    (uix/use-ref)
-        data     (hooks/use-query query [:db/ident :root])
+        data     (hooks/use-query form-query [:db/ident :root])
         {{{scene :camera/scene} :user/camera
           camera :user/camera} :root/user} data
         [page set-page] (uix/use-state 1)]
@@ -155,44 +192,9 @@
                  :value (min page pgs)
                  :on-change set-page})))
           (if (some? preview)
-            (let [node (js/document.querySelector "#root")
-                  data (first (filter (comp #{preview} :image/hash) (:root/scene-images data)))]
-              (create-portal
-               ($ :.scene-gallery-modal
-                 ($ :.scene-gallery-modal-container
-                   ($ image {:hash preview}
-                     (fn [url]
-                       ($ :figure.scene-gallery-modal-preview
-                         {:style {:background-image (str "url(" url ")")}}
-                         ($ :dl
-                           ($ :dt "Filename")
-                           ($ :dd (:image/name data))
-                           ($ :dt "Size")
-                           ($ :dd (display-size (:image/size data)))
-                           (if (> (:image/size data) filesize-limit)
-                             ($ :<>
-                               ($ :dt ($ icon {:name "exclamation-triangle-fill" :size 12}) "Warning")
-                               ($ :dd
-                                 "This image exceeds the maximum image filesize (8MB)"
-                                 " that can be used for multiplayer games."
-                                 " Decreasing its dimensions, converting it to a JPG,"
-                                 " and lowering its image quality may help.")))))))
-                   ($ :.scene-gallery-modal-footer
-                     ($ :button.button.button-danger
-                       {:style {:margin-right "auto"}
-                        :on-click
-                        (fn []
-                          (let [thumbnail (:image/hash (:image/thumbnail data))]
-                            (set-preview nil)
-                            (dispatch :scene-images/remove preview thumbnail)))}
-                       ($ icon {:name "trash3-fill" :size 16}))
-                     ($ :button.button.button-neutral
-                       {:on-click #(set-preview nil)}
-                       "Close")
-                     ($ :button.button.button-primary
-                       {:on-click (fn [] (set-preview nil) (dispatch :scene/change-image preview))}
-                       "Change background"))))
-               node)))))
+            (let [data (first (filter (comp #{preview} :image/hash) (:root/scene-images data)))]
+              ($ scene-preview
+                {:data data :on-close (fn [] (set-preview nil))})))))
       ($ :fieldset.fieldset
         ($ :legend "Tile size ( px )")
         ($ :input.text.text-ghost
@@ -210,8 +212,8 @@
         ($ :details
           ($ :summary "More Information")
           "The tile size is the width, in pixels, of one square in the
-                         selected background image. Changes to this value will scale the
-                         image such that each square will take up the width of one token."))
+           selected background image. Changes to this value will scale the
+           image such that each square will take up the width of one token."))
       ($ :fieldset.fieldset
         ($ :legend "Grid options")
         ($ :.input-group

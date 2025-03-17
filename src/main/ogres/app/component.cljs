@@ -1,7 +1,8 @@
 (ns ogres.app.component
   (:require [ogres.app.const :refer [PATH]]
             [ogres.app.hooks :as hooks]
-            [uix.core :refer [defui $]]))
+            [uix.core :as uix :refer [defui $]]
+            [uix.dom :as dom]))
 
 (defn ^:private create-range
   "Returns a vector of page indexes or spacing sentinels suitable for use
@@ -93,8 +94,20 @@
   (let [url (hooks/use-image hash)]
     (children url)))
 
-(defui modal-fullscreen [props]
-  ($ :.modal-fullscreen {:tab-index -1 :role "dialog"}
-    ($ :.modal-fullscreen-dialog {:role "document"}
-      ($ :.modal-fullscreen-content
-        (:children props)))))
+(defui fullscreen-dialog [props]
+  (let [element (.querySelector js/document "#root")
+        dialog  (uix/use-ref nil)]
+    (hooks/use-shortcut ["Escape"]
+      (:on-close props))
+    (dom/create-portal
+     ($ :.fullscreen-dialog
+       {:ref dialog
+        :role "dialog"
+        :tab-index -1
+        :on-click
+        (fn [event]
+          (if (= (.-target event) (deref dialog))
+            ((:on-close props) event)))}
+       ($ :.fullscreen-dialog-body {:role "document"}
+         ($ :.fullscreen-dialog-content
+           (:children props)))) element)))

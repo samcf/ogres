@@ -1,6 +1,6 @@
 (ns ogres.app.component.panel-tokens
   (:require [goog.object :as object :refer [getValueByKeys]]
-            [ogres.app.component :refer [icon image pagination modal-fullscreen]]
+            [ogres.app.component :refer [icon image pagination fullscreen-dialog]]
             [ogres.app.hooks :as hooks]
             [ogres.app.util :refer [separate]]
             [uix.core :as uix :refer [defui $]]
@@ -386,7 +386,7 @@
      {:image/thumbnail
       [:image/hash :image/size]}]}])
 
-(defui ^:private modal [props]
+(defui ^:private token-editor [props]
   (let [publish (hooks/use-publish)
         {user :root/user images :root/token-images} (hooks/use-query modal-query [:db/ident :root])
         [selected set-selected] (uix/use-state nil)
@@ -397,9 +397,8 @@
         start (max (* (dec (min page pages)) limit) 0)
         end   (min (+ start limit) (count data))
         part  (subvec data start end)]
-    (hooks/use-shortcut ["Escape"]
-      (:on-close props))
-    ($ modal-fullscreen
+    ($ fullscreen-dialog
+      {:on-close (:on-close props)}
       ($ :.token-editor
         (if-let [entity (first (filter (comp #{selected} :image/hash) data))]
           ($ :.token-editor-workspace
@@ -452,9 +451,7 @@
         input    (uix/use-ref)]
     ($ :<>
       (if editing
-        (let [node (js/document.querySelector "#root")]
-          (create-portal
-           ($ modal {:on-close #(set-editing false)}) node)))
+        ($ token-editor {:on-close #(set-editing false)}))
       ($ :button.button.button-neutral
         {:type     "button"
          :title    "Upload token image"
