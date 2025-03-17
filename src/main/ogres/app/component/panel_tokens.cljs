@@ -125,6 +125,7 @@
       (if (> pages 1)
         ($ pagination
           {:name  name
+           :label "Token image pages"
            :pages (max pages 1)
            :value (max (min pages page) 1)
            :on-change set-page})))))
@@ -421,18 +422,18 @@
                 ($ image {:key key :hash hash}
                   (fn [url]
                     ($ :label.token-editor-gallery-thumbnail
-                      {:style {:background-image (str "url(" url ")")}}
+                      {:style {:background-image (str "url(" url ")")} :aria-label name}
                       ($ :input
                         {:type "radio"
                          :name "token-editor-image"
                          :checked (= selected key)
                          :value key
-                         :aria-label name
                          :on-change
                          (fn []
                            (set-selected key))}))))))
             ($ pagination
               {:name "token-editor-gallery"
+               :label "Token image pages"
                :pages pages
                :value page
                :on-change set-page

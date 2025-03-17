@@ -45,14 +45,15 @@
       :value 1
       :on-change (fn [page] ...)})
    ```"
-  [{:keys [class-name name pages value on-change]
+  [{:keys [class-name name label pages value on-change]
     :or   {pages 10 value 1 on-change identity}}]
-  ($ :nav {:role "navigation"}
+  ($ :nav {:role "navigation" :aria-label label}
     ($ :ol.pagination
       {:class (if class-name (str "pagination-" class-name))}
       ($ :li
         ($ :button
           {:aria-disabled (= value 1)
+           :aria-label "Previous page"
            :on-click
            (fn []
              (if (not (= value 1))
@@ -61,8 +62,8 @@
       (for [term (create-range 1 pages value)]
         ($ :li {:key term}
           (if (or (= term :spacel) (= term :spacer))
-            ($ :label \…)
-            ($ :label
+            ($ :label {:role "presentation"} \…)
+            ($ :label {:aria-label value :aria-current (= term value)}
               ($ :input
                 {:type "radio"
                  :name name
@@ -72,6 +73,7 @@
       ($ :li
         ($ :button
           {:aria-disabled (= value pages)
+           :aria-label "Next page"
            :on-click
            (fn []
              (if (not (= value pages))

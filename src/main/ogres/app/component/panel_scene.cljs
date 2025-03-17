@@ -150,6 +150,7 @@
             (if (> pgs 1)
               ($ pagination
                 {:name "scenes-gallery"
+                 :label "Scene image pages"
                  :pages pgs
                  :value (min page pgs)
                  :on-change set-page})))
