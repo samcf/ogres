@@ -13,7 +13,7 @@
             [ogres.app.provider.shortcut :as provider.shortcut]
             [ogres.app.provider.state    :as provider.state]
             [ogres.app.provider.window   :as provider.window]
-            [ogres.app.session           :as provider.session]
+            [ogres.app.provider.session  :as provider.session]
             [uix.core :as uix :refer [defui $]]
             [uix.dom :as dom]))
 

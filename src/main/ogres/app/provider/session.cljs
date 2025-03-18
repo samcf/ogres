@@ -1,4 +1,4 @@
-(ns ogres.app.session
+(ns ogres.app.provider.session
   (:require [cognitect.transit :as transit]
             [datascript.core :as ds]
             [datascript.transit :as dst]
