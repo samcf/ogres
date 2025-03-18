@@ -63,7 +63,7 @@
   (clojure.core/max (clojure.core/min n max) min))
 
 (defn ^:private mode-allowed? [mode type]
-  (not (and (contains? #{:mask :mask-toggle :mask-remove :grid} mode)
+  (not (and (contains? #{:mask :mask-toggle :mask-remove :grid :note} mode)
             (not= type :host))))
 
 (defn ^:private initiative-order [a b]
