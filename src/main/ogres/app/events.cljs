@@ -909,7 +909,6 @@
    :note/description
    :shape/points
    :shape/color
-   :shape/opacity
    :shape/pattern
    :token/label
    :token/flags

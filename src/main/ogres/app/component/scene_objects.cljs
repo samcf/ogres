@@ -97,57 +97,62 @@
   (let [options (use-draggable #js {"id" id "disabled" (boolean disabled)})]
     (children options)))
 
-(defui ^:private shape-circle
-  [{:keys [data]}]
-  (let [{[ax ay] :shape/points} data]
-    ($ :circle
-      {:cx 0 :cy 0 :r (geom/chebyshev-distance 0 0 ax ay)})))
+(defui ^:private shape-circle [props]
+  (let [{[ax ay] :shape/points} (:entity props)
+        radius (geom/chebyshev-distance 0 0 ax ay)]
+    ($ :circle.scene-shape-fill
+      {:cx 0
+       :cy 0
+       :r radius
+       :fill (str "url(#shape-pattern-" (:db/id (:entity props)) ")")})))
 
-(defui ^:private shape-rect
-  [{:keys [data]}]
-  (let [{[ax ay] :shape/points} data]
-    ($ :path
-      {:d (join " " [\M 0 0 \H ax \V ay \H 0 \Z])})))
+(defui ^:private shape-rect [props]
+  (let [{[ax ay] :shape/points} (:entity props)]
+    ($ :path.scene-shape-fill
+      {:d (join " " [\M 0 0 \H ax \V ay \H 0 \Z])
+       :fill (str "url(#shape-pattern-" (:db/id (:entity props)) ")")})))
 
-(defui ^:private shape-line
-  [{:keys [data]}]
-  (let [{[ax ay] :shape/points} data]
-    ($ :line
-      {:x1 0 :y1 0 :x2 ax :y2 ay :stroke-width 16 :stroke-linecap "round"})))
+(defui ^:private shape-line [props]
+  (let [{[ax ay] :shape/points} (:entity props)]
+    ($ :line.scene-shape-fill
+      {:x1 0
+       :y1 0
+       :x2 ax
+       :y2 ay
+       :stroke-width 16
+       :stroke-linecap "round"
+       :fill (str "url(#shape-pattern-" (:db/id (:entity props)) ")")})))
 
-(defui ^:private shape-cone
-  [{:keys [data]}]
-  (let [{[bx by] :shape/points} data]
-    ($ :polygon
-      {:points (join " " (geom/cone-points 0 0 bx by))})))
+(defui ^:private shape-cone [props]
+  (let [{[bx by] :shape/points} (:entity props)]
+    ($ :polygon.scene-shape-fill
+      {:points (join " " (geom/cone-points 0 0 bx by))
+       :fill (str "url(#shape-pattern-" (:db/id (:entity props)) ")")})))
 
-(defui ^:private shape-poly
-  [{:keys [data]}]
-  (let [{points :shape/points} data]
-    ($ :polygon
-      {:points (join " " (into [0 0] points))})))
+(defui ^:private shape-poly [props]
+  (let [{points :shape/points} (:entity props)]
+    ($ :polygon.scene-shape-fill
+      {:points (join " " (into [0 0] points))
+       :fill (str "url(#shape-pattern-" (:db/id (:entity props)) ")")})))
 
 (defui ^:private shape [props]
-  (case (keyword (name (:object/type (:data props))))
+  (case (keyword (name (:object/type (:entity props))))
     :circle ($ shape-circle props)
     :rect   ($ shape-rect props)
     :line   ($ shape-line props)
     :cone   ($ shape-cone props)
     :poly   ($ shape-poly props)))
 
-(defui ^:private object-shape [{:keys [entity]}]
-  (let [{id :db/id
+(defui ^:private object-shape [props]
+  (let [entity (:entity props)
+        {id :db/id
          color :shape/color
          pattern-name :shape/pattern
-         opacity :shape/opacity
          [ax ay] :object/point} entity
         [bx by cx cy] (geom/object-bounding-rect entity)]
-    ($ :g.scene-shape
+    ($ :g.scene-shape {:data-color color}
       ($ :defs.scene-shape-defs
-        ($ pattern
-          {:id (str "shape-pattern-" id)
-           :name pattern-name
-           :color color}))
+        ($ pattern {:id (str "shape-pattern-" id) :name pattern-name}))
       ($ :rect.scene-shape-bounds
         {:x (- bx ax 6)
          :y (- by ay 6)
@@ -155,8 +160,9 @@
          :ry 3
          :width (+ (- cx bx) (* 6 2))
          :height (+ (- cy by) (* 6 2))})
-      ($ :g.scene-shape-path {:stroke color :fill (str "url(#shape-pattern-" id ")") :fill-opacity opacity}
-        ($ shape {:data entity})))))
+      ($ :g.scene-shape-path
+        {:fill-opacity (if (= pattern-name :solid) 0.40 0.80)}
+        ($ shape props)))))
 
 (defui ^:private object-token [props]
   (let [{id :db/id} (:entity props)]
@@ -293,6 +299,7 @@
        {:camera/scene
         [[:scene/grid-origin :default [0 0]]
          [:scene/grid-align :default false]
+         [:scene/grid-size :default 70]
          {:scene/tokens
           [:db/id
            [:object/type :default :token/token]
@@ -309,8 +316,7 @@
            [:object/type :default :shape/circle]
            [:object/point :default [0 0]]
            [:shape/points :default [0 0]]
-           [:shape/color :default "#f44336"]
-           [:shape/opacity :default 0.25]
+           [:shape/color :default "red"]
            [:shape/pattern :default :solid]]}
          {:scene/notes
           [:db/id
@@ -339,6 +345,7 @@
            selected :camera/selected
            {[ox oy] :scene/grid-origin
             align? :scene/grid-align
+            size   :scene/grid-size
             notes  :scene/notes
             shapes :scene/shapes
             tokens :scene/tokens}
@@ -391,9 +398,10 @@
                              :data-type (namespace (:object/type entity))
                              :data-id id}
                             ($ object
-                              {:entity entity
+                              {:aligned-to to
+                               :entity entity
                                :portal portal
-                               :aligned-to to}))))))))))))
+                               :scale size}))))))))))))
       ($ hooks/use-portal {:name :selected}
         (let [[ax ay bx by] (geom/bounding-rect (sequence boundsxf entities))]
           ($ drag-local-fn {:id "selected" :disabled (some dragging selected)}
@@ -432,9 +440,10 @@
                                    :data-color (:user/color user)
                                    :data-id id}
                                   ($ object
-                                    {:entity entity
+                                    {:aligned-to rect
+                                     :entity entity
                                      :portal portal
-                                     :aligned-to rect})))))))))
+                                     :scale size})))))))))
                   (let [sz 400
                         tx (-> (+ ax bx) (* scale) (- sz) (/ 2) int)
                         ty (-> (+ by 24) (* scale) (- 24) int)

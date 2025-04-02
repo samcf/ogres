@@ -1,4 +1,5 @@
 @import url(reset.css);
+@import url(color.css);
 @import url(core.css);
 @import url(form.css);
 @import url(component.css);

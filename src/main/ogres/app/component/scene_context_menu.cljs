@@ -32,24 +32,16 @@
    {:value :unconscious   :icon "activity"}])
 
 (def ^:private shape-colors
-  [{:value "#ffeb3b" :label "Yellow"}
-   {:value "#ff9800" :label "Orange"}
-   {:value "#f44336" :label "Red"}
-   {:value "#673ab7" :label "Purple"}
-   {:value "#2196f3" :label "Blue"}
-   {:value "#009688" :label "Green"}
-   {:value "#8bc34a" :label "Light green"}
-   {:value "#ffffff" :label "White"}
-   {:value "#9e9e9e" :label "Gray"}
-   {:value "#000000" :label "Black"}])
+  ["red"   "orange"  "amber"  "yellow" "lime"
+   "green" "emerald" "teal"   "cyan"   "sky"
+   "blue"  "indigo"  "violet" "purple" "fuchsia"])
 
 (def ^:private shape-patterns
-  [{:value :solid   :label "None"}
+  [{:value :solid   :label "Fill"}
+   {:value :empty   :label "Empty"}
    {:value :lines   :label "Lines"}
-   {:value :circles :label "Circles"}
    {:value :crosses :label "Crosses"}
-   {:value :caps    :label "Caps"}
-   {:value :waves   :label "Waves"}])
+   {:value :caps    :label "Caps"}])
 
 (defn ^:private stop-propagation [event]
   (.stopPropagation event))
@@ -252,72 +244,47 @@
             :details    ($ token-form-details props)
             :conditions ($ token-form-conditions props)))))))
 
-(defui ^:private shape-form-color
+(defui ^:private shape-form-style
   [{:keys [on-change values]}]
-  ($ :<>
-    ($ :fieldset.fieldset
-      ($ :legend "Opacity")
-      ($ :label
-        {:aria-label "Shape opacity"}
-        ($ :input
-          {:type "range" :name "shape-opacity" :min 0 :max 1 :step 0.10
-           :value (first (values :shape/opacity))
-           :auto-focus true
-           :on-change
-           (fn [event]
-             (on-change :objects/update :shape/opacity (.. event -target -value)))})))
-    ($ :fieldset.fieldset
-      ($ :legend "Color")
-      ($ :.context-menu-form-colors
-        (for [{:keys [value label]} shape-colors]
-          ($ :label {:key value :aria-label label :style {:background-color value}}
-            ($ :input
-              {:type "radio"
-               :name "shape-color"
-               :value value
-               :checked (= value (first (values :shape/color)))
-               :on-change
-               (fn [event]
-                 (on-change :objects/update :shape/color (.. event -target -value)))})))))))
-
-(defui ^:private shape-form-pattern
-  [{:keys [on-change values]}]
-  (for [{:keys [value label]} shape-patterns
-        :let [checked (= value (first (values :shape/pattern)))]]
-    (let [id (str "template-pattern-" (name value))]
-      ($ :label {:key value :aria-label label}
+  ($ :.context-menu-form-styles
+    (for [{:keys [value label]} shape-patterns]
+      (let [id (str "template-pattern-" (name value))]
+        ($ :label {:key value :aria-label label}
+          ($ :input
+            {:type "radio"
+             :name "shape-pattern"
+             :value value
+             :checked (= value (first (values :shape/pattern)))
+             :on-change
+             (fn [event]
+               (let [value (.. event -target -value)]
+                 (on-change :objects/update :shape/pattern (keyword value))))})
+          ($ :svg
+            ($ :defs ($ pattern {:id id :name value}))
+            ($ :rect {:x 0 :y 0 :width "100%" :height "100%" :fill (str "url(#" id ")")})))))
+    (for [value shape-colors]
+      ($ :label {:key value :aria-label value :data-color value}
         ($ :input
           {:type "radio"
-           :name "shape-pattern"
+           :name "shape-color"
            :value value
-           :checked checked
-           :auto-focus checked
+           :checked (= value (first (values :shape/color)))
            :on-change
            (fn [event]
-             (let [value (.. event -target -value)]
-               (on-change :objects/update :shape/pattern (keyword value))))})
-        ($ :svg
-          ($ :defs ($ pattern {:id id :name value}))
-          ($ :rect {:x 0 :y 0 :width "100%" :height "100%" :fill (str "url(#" id ")")}))))))
+             (on-change :objects/update :shape/color (.. event -target -value)))})))))
 
-(defui ^:private context-menu-shape [{:keys [data]}]
-  (let [dispatch (hooks/use-dispatch)]
+(defui ^:private context-menu-shape [props]
+  (let [dispatch (hooks/use-dispatch)
+        data     (:data props)]
     ($ context-menu-fn
       {:render-toolbar
        (fn [{:keys [selected on-change]}]
-         ($ :<>
-           ($ :button
-             {:type "button"
-              :data-selected (= selected :color)
-              :data-tooltip "Color"
-              :on-click #(on-change :color)}
-             ($ icon {:name "palette-fill"}))
-           ($ :button
-             {:type "button"
-              :data-selected (= selected :pattern)
-              :data-tooltip "Pattern"
-              :on-click #(on-change :pattern)}
-             ($ icon {:name "paint-bucket"}))))
+         ($ :button
+           {:type "button"
+            :data-selected (= selected :style)
+            :data-tooltip "Style"
+            :on-click #(on-change :style)}
+           ($ icon {:name "palette-fill"})))
        :render-aside
        (fn []
          ($ :button
@@ -325,16 +292,15 @@
             :on-click #(dispatch :selection/remove)}
            ($ icon {:name "trash3-fill"})))}
       (fn [{:keys [selected]}]
-        (let [props {:values
-                     (fn vs
-                       ([f] (vs f #{}))
-                       ([f init] (into init (map f) data)))
-                     :on-change
-                     (fn [event & args]
-                       (apply dispatch event (map :db/id data) args))}]
-          (case selected
-            :color   ($ shape-form-color props)
-            :pattern ($ shape-form-pattern props)))))))
+        (if (= selected :style)
+          ($ shape-form-style
+            {:values
+             (fn vs
+               ([f] (vs f #{}))
+               ([f init] (into init (map f) data)))
+             :on-change
+             (fn [event & args]
+               (apply dispatch event (map :db/id data) args))}))))))
 
 (defui context-menu [props]
   (let [types (into #{} (map (comp keyword namespace :object/type)) (:data props))]

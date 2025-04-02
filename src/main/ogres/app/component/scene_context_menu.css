@@ -213,80 +213,45 @@
       }
     }
   }
+}
 
-  .context-menu-form-color {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding-top: 10px;
+.context-menu-form-styles {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(5, 1fr);
 
-    input[type="range"] {
-      width: 100%;
-      border-radius: 3px;
+  &:has(input[type="radio"]:focus-visible) label {
+    opacity: 0.4;
+  }
 
-      &:focus-visible {
-        outline: none;
-      }
+  label {
+    aspect-ratio: 1;
+    background-color: var(--color-context, var(--color-blues-900));
+    border-radius: 3px;
+    cursor: pointer;
+    overflow: hidden;
+
+    &:has(input[type="radio"]:focus-visible) {
+      outline: 1px solid var(--outline-color);
+      opacity: 1;
     }
 
-    .fieldset {
-      border-color: var(--color-paper-500);
-
-      &:has(:focus-visible) {
-        outline-width: 1px;
-      }
-
-      legend {
-        background-color: var(--color-blues-700);
-        color: var(--color-paper-500);
-      }
-    }
-
-    .context-menu-form-colors {
-      display: grid;
-      gap: 1px;
-      grid-template-columns: repeat(5, 1fr);
-      grid-template-rows: repeat(2, 1fr);
-
-      &:has(input[type="radio"]:focus-visible) label {
-        opacity: 0.4;
-      }
-
-      label {
-        aspect-ratio: 1;
-        border: 1px solid var(--color-black-700);
-        border-radius: 3px;
-
-        &:has(input[type="radio"]:focus-visible) {
-          outline: 1px solid var(--outline-color);
-          opacity: 1;
-        }
-      }
+    &:has(:active) {
+      opacity: 0.8;
     }
   }
 
-  .context-menu-form-pattern {
-    display: grid;
-    gap: 3px;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(2, 1fr);
+  svg {
+    aspect-ratio: 1;
+    height: 100%;
+    width: 100%;
+  }
 
-    label {
-      background-color: var(--color-blues-900);
-      border-radius: 3px;
-      box-sizing: border-box;
-      color: var(--color-black-300);
-      cursor: pointer;
+  pattern {
+    stroke: rgba(200, 200, 200);
+  }
 
-      &:has(:focus-visible) {
-        outline: 1px solid var(--outline-color);
-      }
-
-      svg {
-        aspect-ratio: 1;
-        height: 100%;
-        width: 100%;
-      }
-    }
+  pattern[id="template-pattern-solid"] {
+    fill: rgba(200, 200, 200);
   }
 }

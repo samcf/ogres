@@ -78,6 +78,15 @@
   }
 }
 
+.scene-shape pattern {
+  fill: var(--color-context, var(--color-red-500));
+  stroke: var(--color-context, var(--color-red-500));
+}
+
+.scene-shape-fill {
+  stroke: var(--color-context, var(--color-red-500));
+}
+
 .scene-shape:hover {
   cursor: pointer;
 }
