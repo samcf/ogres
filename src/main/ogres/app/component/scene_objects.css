@@ -87,10 +87,11 @@
   stroke: var(--color-context, var(--color-red-500));
 }
 
-.scene-object-squares {
-  fill-opacity: 0.45;
-  fill: var(--color-black);
+.scene-object-tiles {
+  fill: none;
   pointer-events: none;
+  stroke-opacity: 0.8;
+  stroke: var(--scene-stroke);
 }
 
 .scene-shape:hover {
