@@ -35,6 +35,11 @@
        (clockwise-triangle? cx cy ax ay sx sy)
        (clockwise-triangle? bx by cx cy sx sy)))
 
+(defn rect-points
+  "Returns all points of the rect given by its top-left corner."
+  [[x y]]
+  [x y (+ x grid-size) y x (+ y grid-size) (+ x grid-size) (+ y grid-size)])
+
 (defn cone-points
   "Returns the vertices of an isosceles triangle whose altitude is equal to
    the length of the base."
@@ -214,3 +219,39 @@
                   (nth zs 4) (nth zs 5)
                   (+ px hz)  (+ py hz))]
        [px py]))))
+
+(def ^:private edge-vector
+  [[1 0 0 1] [0 1 -1 0] [-1 0 0 -1] [0 -1 1 0]])
+
+(defn ^:private edge
+  [curr ax ay bx by cx cy]
+  (cond (= cy ay) 0
+        (= cx bx) 1
+        (= cy by) 2
+        (= cx ax) 3
+        :else curr))
+
+(defn path-around-tiles
+  "Returns a closed path {Ax Ay Bx By ...} around the tiles given by their
+   top-left corner."
+  [points]
+  (let [xs (into  [] (comp (partition-all 2) (mapcat rect-points)) points)
+        vs (into #{} (partition-all 2) xs)
+        bb (bounding-rect xs)
+        ax (bb 0)
+        ay (bb 1)
+        bx (bb 2)
+        by (bb 3)
+        st (first (filter (fn [point] (= (point 1) ay)) vs))
+        sx (st 0)
+        sy (st 1)]
+    (loop [nx sx ny sy rs [] ed 0]
+      (if (and (= nx sx) (= ny sy) (seq rs)) rs
+          (let [ev (edge-vector ed)
+                cx (+ nx (* (ev 0) grid-size))
+                cy (+ ny (* (ev 1) grid-size))
+                dx (+ nx (* (ev 2) grid-size))
+                dy (+ ny (* (ev 3) grid-size))]
+            (if (contains? vs [cx cy])
+              (recur cx cy (conj rs cx cy) (edge ed ax ay bx by cx cy))
+              (recur dx dy (conj rs dx dy) (edge ed ax ay bx by dx dy))))))))

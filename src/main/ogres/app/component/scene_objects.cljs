@@ -4,9 +4,9 @@
             [ogres.app.component :refer [icon]]
             [ogres.app.component.scene-context-menu :refer [context-menu]]
             [ogres.app.component.scene-pattern :refer [pattern]]
-            [ogres.app.const :refer [grid-size]]
             [ogres.app.geom :as geom]
             [ogres.app.hooks :as hooks]
+            [ogres.app.svg :refer [poly->path]]
             [react-transition-group :refer [TransitionGroup CSSTransition]]
             [uix.core :as uix :refer [defui $]]
             [uix.dom :as dom]
@@ -390,7 +390,7 @@
                               ty (+ ay (or ry dy 0))
                               to (if (and align? (.-isDragging drag) (or (not= dx 0) (not= dy 0)))
                                    (into [] (geom/alignment-xf dx dy) rect))
-                              sq (geom/object-grid-overlap entity dx dy 0 0)]
+                              ts (geom/object-grid-overlap entity dx dy 0 0)]
                           ($ :g.scene-object
                             {:ref (.-setNodeRef drag)
                              :transform (str "translate(" tx ", " ty ")")
@@ -401,11 +401,10 @@
                              :data-color (:user/color user)
                              :data-type (namespace (:object/type entity))
                              :data-id id}
-                            (if (and (seq sq) (some? (deref portal)))
+                            (if (and (seq ts) (some? (deref portal)))
                               (dom/create-portal
-                               ($ :g.scene-object-squares
-                                 (for [[x y] (partition 2 sq)]
-                                   ($ :rect {:key [x y] :x x :y y :width grid-size :height grid-size})))
+                               ($ :path.scene-object-tiles
+                                 {:d (transduce (map geom/path-around-tiles) poly->path (list ts))})
                                (deref portal)))
                             ($ object
                               {:aligned-to to
@@ -442,18 +441,17 @@
                           (if (selected id)
                             ($ drag-remote-fn {:user (:user/uuid user) :x ax :y ay}
                               (fn [[rx ry]]
-                                (let [sqrs (geom/object-grid-overlap entity dx dy 0 0)]
+                                (let [tiles (geom/object-grid-overlap entity dx dy 0 0)]
                                   ($ :g.scene-object
                                     {:transform (str "translate(" (+ ax rx) ", " (+ ay ry) ")")
                                      :data-drag-remote (some? user)
                                      :data-drag-local (.-isDragging drag)
                                      :data-color (:user/color user)
                                      :data-id id}
-                                    (if (and (seq sqrs) (some? (deref portal)))
+                                    (if (and (seq tiles) (some? (deref portal)))
                                       (dom/create-portal
-                                       ($ :g.scene-object-squares
-                                         (for [[x y] (partition 2 sqrs)]
-                                           ($ :rect {:key [x y] :x x :y y :width grid-size :height grid-size})))
+                                       ($ :path.scene-object-tiles
+                                         {:d (transduce (map geom/path-around-tiles) poly->path (list tiles))})
                                        (deref portal)))
                                     ($ object
                                       {:aligned-to rect
