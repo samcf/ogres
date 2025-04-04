@@ -384,22 +384,27 @@
                               tx (+ ax (or rx dx 0))
                               ty (+ ay (or ry dy 0))
                               to (if (and align? (.-isDragging drag) (or (not= dx 0) (not= dy 0)))
-                                   (into [] (geom/alignment-xf dx dy) rect))]
-                          ($ :g.scene-object
-                            {:ref (.-setNodeRef drag)
-                             :transform (str "translate(" tx ", " ty ")")
-                             :tab-index (if (and (not lock) seen) 0 -1)
-                             :on-pointer-down (or handler stop-propagation)
-                             :data-drag-remote (some? user)
-                             :data-drag-local (.-isDragging drag)
-                             :data-color (:user/color user)
-                             :data-type (namespace (:object/type entity))
-                             :data-id id}
-                            ($ object
-                              {:aligned-to to
-                               :entity entity
-                               :portal portal
-                               :scale size}))))))))))))
+                                   (into [] (geom/alignment-xf dx dy) rect))
+                              sq (geom/object-grid-overlap entity dx dy)]
+                          ($ :<>
+                            ($ :g.scene-object-squares
+                              (for [[x y] (partition 2 sq)]
+                                ($ :rect {:key [x y] :x x :y y :width 70 :height 70})))
+                            ($ :g.scene-object
+                              {:ref (.-setNodeRef drag)
+                               :transform (str "translate(" tx ", " ty ")")
+                               :tab-index (if (and (not lock) seen) 0 -1)
+                               :on-pointer-down (or handler stop-propagation)
+                               :data-drag-remote (some? user)
+                               :data-drag-local (.-isDragging drag)
+                               :data-color (:user/color user)
+                               :data-type (namespace (:object/type entity))
+                               :data-id id}
+                              ($ object
+                                {:aligned-to to
+                                 :entity entity
+                                 :portal portal
+                                 :scale size})))))))))))))
       ($ hooks/use-portal {:name :selected}
         (let [[ax ay bx by] (geom/bounding-rect (sequence boundsxf entities))]
           ($ drag-local-fn {:id "selected" :disabled (some dragging selected)}
