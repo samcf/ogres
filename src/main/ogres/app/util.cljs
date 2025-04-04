@@ -15,9 +15,10 @@
            (map first (f second pcoll))))))
 
 (defn round
-  "Round the scalar `x` to nearest `n` (default 1)."
-  ([x]   (round x 1))
-  ([x n] (* (js/Math.round (/ x n)) n)))
+  "Round x to the nearest integer."
+  ([x]     (js/Math.round x))
+  ([x n]   (* (js/Math.round (/ x n)) n))
+  ([f x n] (* (f (/ x n)) n)))
 
 (defn display-size
   "Returns the given size in bytes as a string using the most appropriate

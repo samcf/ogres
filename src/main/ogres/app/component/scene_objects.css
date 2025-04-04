@@ -87,6 +87,12 @@
   stroke: var(--color-context, var(--color-red-500));
 }
 
+.scene-object-squares {
+  fill-opacity: 0.45;
+  fill: var(--color-black);
+  pointer-events: none;
+}
+
 .scene-shape:hover {
   cursor: pointer;
 }
