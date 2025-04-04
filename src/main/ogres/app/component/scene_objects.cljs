@@ -298,7 +298,6 @@
        [:camera/point :default [0 0]]
        {:camera/scene
         [[:scene/grid-align :default false]
-         [:scene/grid-size :default 70]
          {:scene/tokens
           [:db/id
            [:object/type :default :token/token]
@@ -343,7 +342,6 @@
            scale    :camera/scale
            selected :camera/selected
            {align? :scene/grid-align
-            size   :scene/grid-size
             notes  :scene/notes
             shapes :scene/shapes
             tokens :scene/tokens}
@@ -403,8 +401,7 @@
                               ($ object
                                 {:aligned-to to
                                  :entity entity
-                                 :portal portal
-                                 :scale size})))))))))))))
+                                 :portal portal})))))))))))))
       ($ hooks/use-portal {:name :selected}
         (let [[ax ay bx by] (geom/bounding-rect (sequence boundsxf entities))]
           ($ drag-local-fn {:id "selected" :disabled (some dragging selected)}
@@ -445,8 +442,7 @@
                                   ($ object
                                     {:aligned-to rect
                                      :entity entity
-                                     :portal portal
-                                     :scale size})))))))))
+                                     :portal portal})))))))))
                   (let [sz 400
                         tx (-> (+ ax bx) (* scale) (- sz) (/ 2) int)
                         ty (-> (+ by 24) (* scale) (- 24) int)
