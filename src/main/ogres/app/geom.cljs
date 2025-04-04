@@ -182,30 +182,6 @@
            :when (point-within-circle? ax ay rd (+ px hz) (+ py hz))]
        [px py]))))
 
-(defmethod object-grid-overlap :shape/rect
-  [object dx dy ox oy]
-  (let [sz grid-size
-        hz half-size
-        xs (:object/point object)
-        ys (:shape/points object)
-        mx (mod ox sz)
-        my (mod oy sz)
-        ax (+ (nth xs 0) dx)
-        ay (+ (nth xs 1) dy)
-        bx (+ (nth ys 0) ax)
-        by (+ (nth ys 1) ay)
-        cx (+ (round floor (- ax mx) sz) mx)
-        cy (+ (round floor (- ay my) sz) my)
-        dx (+ (round ceil  (- bx mx) sz) mx)
-        dy (+ (round ceil  (- by my) sz) my)]
-    (into
-     [] cat
-     (for [px (range cx dx sz)
-           py (range cy dy sz)
-           :let [qx (+ px hz) qy (+ py hz)]
-           :when (and (>= qx ax) (>= qy ay) (<= qx bx) (<= qy by))]
-       [px py]))))
-
 (defmethod object-grid-overlap :shape/cone
   [object dx dy ox oy]
   (let [sz grid-size
@@ -238,6 +214,3 @@
                   (nth zs 4) (nth zs 5)
                   (+ px hz)  (+ py hz))]
        [px py]))))
-
-(defmethod object-grid-overlap :shape/line [{}]
-  [])
