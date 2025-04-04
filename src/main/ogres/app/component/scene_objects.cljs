@@ -4,6 +4,7 @@
             [ogres.app.component :refer [icon]]
             [ogres.app.component.scene-context-menu :refer [context-menu]]
             [ogres.app.component.scene-pattern :refer [pattern]]
+            [ogres.app.const :refer [grid-size]]
             [ogres.app.geom :as geom]
             [ogres.app.hooks :as hooks]
             [react-transition-group :refer [TransitionGroup CSSTransition]]
@@ -336,7 +337,8 @@
       [:db/ident :user/uuid :user/color :user/dragging]}]}])
 
 (defui objects []
-  (let [result (hooks/use-query query [:db/ident :root])
+  (let [[_ set-ready] (uix/use-state false)
+        result (hooks/use-query query [:db/ident :root])
         {{[_ _ bw bh] :bounds/self
           type :user/type
           {[cx cy]  :camera/point
@@ -359,6 +361,11 @@
         selected (into #{} (map :db/id) selected)
         dragging (into {} user-drag-xf conns)
         boundsxf (comp (filter (comp selected :db/id)) (mapcat geom/object-bounding-rect))]
+
+    ;; automatically re-render once the portal ref is initialized.
+    (uix/use-effect
+     (fn [] (set-ready true)) [])
+
     (use-drag-listener)
     ($ :g.scene-objects {}
       ($ :g.scene-objects-portal
@@ -386,24 +393,26 @@
                               to (if (and align? (.-isDragging drag) (or (not= dx 0) (not= dy 0)))
                                    (into [] (geom/alignment-xf dx dy ox oy) rect))
                               sq (geom/object-grid-overlap entity dx dy ox oy)]
-                          ($ :<>
-                            ($ :g.scene-object-squares
-                              (for [[x y] (partition 2 sq)]
-                                ($ :rect {:key [x y] :x x :y y :width 70 :height 70})))
-                            ($ :g.scene-object
-                              {:ref (.-setNodeRef drag)
-                               :transform (str "translate(" tx ", " ty ")")
-                               :tab-index (if (and (not lock) seen) 0 -1)
-                               :on-pointer-down (or handler stop-propagation)
-                               :data-drag-remote (some? user)
-                               :data-drag-local (.-isDragging drag)
-                               :data-color (:user/color user)
-                               :data-type (namespace (:object/type entity))
-                               :data-id id}
-                              ($ object
-                                {:aligned-to to
-                                 :entity entity
-                                 :portal portal})))))))))))))
+                          ($ :g.scene-object
+                            {:ref (.-setNodeRef drag)
+                             :transform (str "translate(" tx ", " ty ")")
+                             :tab-index (if (and (not lock) seen) 0 -1)
+                             :on-pointer-down (or handler stop-propagation)
+                             :data-drag-remote (some? user)
+                             :data-drag-local (.-isDragging drag)
+                             :data-color (:user/color user)
+                             :data-type (namespace (:object/type entity))
+                             :data-id id}
+                            (if (and (seq sq) (some? (deref portal)))
+                              (dom/create-portal
+                               ($ :g.scene-object-squares
+                                 (for [[x y] (partition 2 sq)]
+                                   ($ :rect {:key [x y] :x x :y y :width grid-size :height grid-size})))
+                               (deref portal)))
+                            ($ object
+                              {:aligned-to to
+                               :entity entity
+                               :portal portal}))))))))))))
       ($ hooks/use-portal {:name :selected}
         (let [[ax ay bx by] (geom/bounding-rect (sequence boundsxf entities))]
           ($ drag-local-fn {:id "selected" :disabled (some dragging selected)}
@@ -435,16 +444,23 @@
                           (if (selected id)
                             ($ drag-remote-fn {:user (:user/uuid user) :x ax :y ay}
                               (fn [[rx ry]]
-                                ($ :g.scene-object
-                                  {:transform (str "translate(" (+ ax rx) ", " (+ ay ry) ")")
-                                   :data-drag-remote (some? user)
-                                   :data-drag-local (.-isDragging drag)
-                                   :data-color (:user/color user)
-                                   :data-id id}
-                                  ($ object
-                                    {:aligned-to rect
-                                     :entity entity
-                                     :portal portal})))))))))
+                                (let [sqrs (geom/object-grid-overlap entity dx dy ox oy)]
+                                  ($ :g.scene-object
+                                    {:transform (str "translate(" (+ ax rx) ", " (+ ay ry) ")")
+                                     :data-drag-remote (some? user)
+                                     :data-drag-local (.-isDragging drag)
+                                     :data-color (:user/color user)
+                                     :data-id id}
+                                    (if (and (seq sqrs) (some? (deref portal)))
+                                      (dom/create-portal
+                                       ($ :g.scene-object-squares
+                                         (for [[x y] (partition 2 sqrs)]
+                                           ($ :rect {:key [x y] :x x :y y :width grid-size :height grid-size})))
+                                       (deref portal)))
+                                    ($ object
+                                      {:aligned-to rect
+                                       :entity entity
+                                       :portal portal}))))))))))
                   (let [sz 400
                         tx (-> (+ ax bx) (* scale) (- sz) (/ 2) int)
                         ty (-> (+ by 24) (* scale) (- 24) int)
