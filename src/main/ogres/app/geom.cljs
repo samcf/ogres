@@ -207,7 +207,6 @@
 (defmethod object-grid-overlap :shape/cone
   [object dx dy ox oy]
   (let [sz grid-size
-        hz half-size
         xs (:object/point object)
         ys (:shape/points object)
         mx (mod ox sz)
@@ -217,6 +216,12 @@
         bx (+ (ys 0) ax)
         by (+ (ys 1) ay)
         zs (cone-points ax ay bx by)
+        z0 (zs 0)
+        z1 (zs 1)
+        z2 (zs 2)
+        z3 (zs 3)
+        z4 (zs 4)
+        z5 (zs 5)
         vs (bounding-rect zs)
         vx (vs 0)
         vy (vs 1)
@@ -230,11 +235,10 @@
       (cond (> px dx) (persistent! rs)
             (> py dy)
             (recur (+ px sz) cy rs)
-            (point-within-triangle?
-             (zs 0) (zs 1)
-             (zs 2) (zs 3)
-             (zs 4) (zs 5)
-             (+ px hz) (+ py hz))
+            (or (point-within-triangle? z0 z1 z2 z3 z4 z5 (+ px 14) (+ py 14))
+                (point-within-triangle? z0 z1 z2 z3 z4 z5 (+ px 56) (+ py 14))
+                (point-within-triangle? z0 z1 z2 z3 z4 z5 (+ px 14) (+ py 56))
+                (point-within-triangle? z0 z1 z2 z3 z4 z5 (+ px 56) (+ py 56)))
             (recur px (+ py sz) (conj! rs px py))
             :else
             (recur px (+ py sz) rs)))))
