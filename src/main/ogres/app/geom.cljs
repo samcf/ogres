@@ -1,6 +1,10 @@
 (ns ogres.app.geom
-  (:require [ogres.app.const :refer [grid-size]]
+  (:require [clojure.math :refer [floor ceil]]
+            [ogres.app.const :refer [grid-size half-size]]
             [ogres.app.util :refer [round]]))
+
+(def ^:const deg45->rad (/ js/Math.PI 4))
+(def ^:const deg45->sin (js/Math.sin deg45->rad))
 
 (defn euclidean-distance
   "Returns the euclidean distance from [Ax Ay] to [Bx By]."
@@ -13,6 +17,32 @@
   (max (js/Math.abs (- ax bx))
        (js/Math.abs (- ay by))))
 
+(defn clockwise-triangle?
+  "Returns true if the triangle {Ax Ay Bx By Cx Cy} is in
+   clockwise winding order, false otherwise."
+  [ax ay bx by cx cy]
+  (pos? (- (* (- bx ax) (- cy ay))
+           (* (- by ay) (- cx ax)))))
+
+(defn point-within-circle?
+  "Returns true if the point {Ax Ay} is within the circle
+   {Cx Cy Radius}, false otherwise."
+  [cx cy radius ax ay]
+  (< (euclidean-distance ax ay cx cy) radius))
+
+(defn point-within-triangle?
+  "Returns true if the point {Sx Sy} is within the triangle
+   {Ax Ay Bx By Cx Cy} (in clockwise order), false otherwise."
+  [ax ay bx by cx cy sx sy]
+  (and (clockwise-triangle? ax ay bx by sx sy)
+       (clockwise-triangle? cx cy ax ay sx sy)
+       (clockwise-triangle? bx by cx cy sx sy)))
+
+(defn rect-points
+  "Returns all points of the rect given by its top-left corner."
+  [[x y]]
+  [x y (+ x grid-size) y x (+ y grid-size) (+ x grid-size) (+ y grid-size)])
+
 (defn cone-points
   "Returns the vertices of an isosceles triangle whose altitude is equal to
    the length of the base."
@@ -22,10 +52,10 @@
         rad (js/Math.atan2 (- by ay) (- bx ax))]
     [ax
      ay
-     (+ ax (* hyp (js/Math.cos (+ rad 0.46))))
-     (+ ay (* hyp (js/Math.sin (+ rad 0.46))))
      (+ ax (* hyp (js/Math.cos (- rad 0.46))))
-     (+ ay (* hyp (js/Math.sin (- rad 0.46))))]))
+     (+ ay (* hyp (js/Math.sin (- rad 0.46))))
+     (+ ax (* hyp (js/Math.cos (+ rad 0.46))))
+     (+ ay (* hyp (js/Math.sin (+ rad 0.46))))]))
 
 (defn point-within-rect
   "Returns true if the point [Ax Ay] is within the given bounding
@@ -127,3 +157,125 @@
 (defmethod object-bounding-rect :note/note
   [{[ax ay] :object/point}]
   (bounding-rect [ax ay (+ ax 42) (+ ay 42)]))
+
+(defmulti object-grid-overlap
+  "Returns a vector of points in the form of [Ax Ay [Bx By Cx Cy ...]], each
+   point representing the top-left corner of a grid square which the given
+   object has at least some overlap with."
+  (fn [object _ _ _ _]
+    (:object/type object)))
+
+(defmethod object-grid-overlap :default [] [])
+
+(defmethod object-grid-overlap :shape/circle
+  [object dx dy ox oy]
+  (let [sz grid-size
+        xs (:object/point object)
+        ys (:shape/points object)
+        mx (mod ox sz)
+        my (mod oy sz)
+        ax (+ (xs 0) dx)
+        ay (+ (xs 1) dy)
+        bx (+ (ys 0) ax)
+        by (+ (ys 1) ay)
+        rd (chebyshev-distance ax ay bx by)
+        ln (* rd deg45->sin)
+        cx (+ (round floor (- ax rd mx) sz) mx)
+        cy (+ (round floor (- ay rd my) sz) my)
+        dx (+ (round ceil  (- (+ ax rd) mx) sz) mx)
+        dy (+ (round ceil  (- (+ ay rd) my) sz) my)
+        ex (+ (round ceil  (- ax ln mx) sz) mx)
+        ey (+ (round ceil  (- ay ln my) sz) my)
+        fx (+ (round floor (- (+ ax ln) mx) sz) mx)
+        fy (+ (round floor (- (+ ay ln) my) sz) my)]
+    (loop [px cx py cy rs (transient [])]
+      (cond (> px dx) (persistent! rs)
+            (> py dy) (recur (+ px sz) cy rs)
+            ;; points found within the inscribed square can be omitted
+            ;; since they definitionally lie within the circle.
+            (and (= py ey) (>= px ex) (< px fx)
+                 (not (and (= ex fx) (= ey fy)))
+                 (not (and (= px ex) (= py ey)))
+                 (not (and (= px ex) (= py fy)))
+                 (not (and (= px (- fx sz)) (= py ey)))
+                 (not (and (= px (- fx sz)) (= py fy))))
+            (recur px fy rs)
+            (point-within-circle? ax ay rd (+ px half-size) (+ py half-size))
+            (recur px (+ py sz) (conj! rs px py))
+            :else
+            (recur px (+ py sz) rs)))))
+
+(defmethod object-grid-overlap :shape/cone
+  [object dx dy ox oy]
+  (let [sz grid-size
+        xs (:object/point object)
+        ys (:shape/points object)
+        mx (mod ox sz)
+        my (mod oy sz)
+        ax (+ (xs 0) dx)
+        ay (+ (xs 1) dy)
+        bx (+ (ys 0) ax)
+        by (+ (ys 1) ay)
+        zs (cone-points ax ay bx by)
+        z0 (zs 0)
+        z1 (zs 1)
+        z2 (zs 2)
+        z3 (zs 3)
+        z4 (zs 4)
+        z5 (zs 5)
+        vs (bounding-rect zs)
+        vx (vs 0)
+        vy (vs 1)
+        wx (vs 2)
+        wy (vs 3)
+        cx (+ (round floor (- vx mx) sz) mx)
+        cy (+ (round floor (- vy my) sz) my)
+        dx (+ (round ceil  (- wx mx) sz) mx)
+        dy (+ (round ceil  (- wy my) sz) my)]
+    (loop [px cx py cy rs (transient [])]
+      (cond (> px dx) (persistent! rs)
+            (> py dy)
+            (recur (+ px sz) cy rs)
+            (or (point-within-triangle? z0 z1 z2 z3 z4 z5 (+ px 14) (+ py 14))
+                (point-within-triangle? z0 z1 z2 z3 z4 z5 (+ px 56) (+ py 14))
+                (point-within-triangle? z0 z1 z2 z3 z4 z5 (+ px 14) (+ py 56))
+                (point-within-triangle? z0 z1 z2 z3 z4 z5 (+ px 56) (+ py 56)))
+            (recur px (+ py sz) (conj! rs px py))
+            :else
+            (recur px (+ py sz) rs)))))
+
+(def ^:private edge-vector
+  [[1 0 0 1] [0 1 -1 0] [-1 0 0 -1] [0 -1 1 0]])
+
+(defn ^:private edge
+  [curr ax ay bx by cx cy]
+  (cond (= cy ay) 0
+        (= cx bx) 1
+        (= cy by) 2
+        (= cx ax) 3
+        :else curr))
+
+(defn path-around-tiles
+  "Returns a closed path {Ax Ay Bx By ...} around the tiles given by their
+   top-left corner."
+  [points]
+  (let [xs (into  [] (comp (partition-all 2) (mapcat rect-points)) points)
+        vs (into #{} (partition-all 2) xs)
+        bb (bounding-rect xs)
+        ax (bb 0)
+        ay (bb 1)
+        bx (bb 2)
+        by (bb 3)
+        st (first (filter (fn [point] (= (point 1) ay)) vs))
+        sx (st 0)
+        sy (st 1)]
+    (loop [nx sx ny sy rs (transient []) ed 0]
+      (if (and (= nx sx) (= ny sy) (> (count rs) 0)) (persistent! rs)
+          (let [ev (edge-vector ed)
+                cx (+ nx (* (ev 0) grid-size))
+                cy (+ ny (* (ev 1) grid-size))
+                dx (+ nx (* (ev 2) grid-size))
+                dy (+ ny (* (ev 3) grid-size))]
+            (if (contains? vs [cx cy])
+              (recur cx cy (conj! rs cx cy) (edge ed ax ay bx by cx cy))
+              (recur dx dy (conj! rs dx dy) (edge ed ax ay bx by dx dy))))))))
