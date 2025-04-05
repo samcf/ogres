@@ -3,6 +3,9 @@
             [ogres.app.const :refer [grid-size half-size]]
             [ogres.app.util :refer [round]]))
 
+(def ^:const deg45->rad (/ js/Math.PI 4))
+(def ^:const deg45->sin (js/Math.sin deg45->rad))
+
 (defn euclidean-distance
   "Returns the euclidean distance from [Ax Ay] to [Bx By]."
   [ax ay bx by]
@@ -166,26 +169,40 @@
 (defmethod object-grid-overlap :shape/circle
   [object dx dy ox oy]
   (let [sz grid-size
-        hz half-size
         xs (:object/point object)
         ys (:shape/points object)
         mx (mod ox sz)
         my (mod oy sz)
-        ax (+ (nth xs 0) dx)
-        ay (+ (nth xs 1) dy)
-        bx (+ (nth ys 0) ax)
-        by (+ (nth ys 1) ay)
+        ax (+ (xs 0) dx)
+        ay (+ (xs 1) dy)
+        bx (+ (ys 0) ax)
+        by (+ (ys 1) ay)
         rd (chebyshev-distance ax ay bx by)
+        ln (* rd deg45->sin)
         cx (+ (round floor (- ax rd mx) sz) mx)
         cy (+ (round floor (- ay rd my) sz) my)
         dx (+ (round ceil  (- (+ ax rd) mx) sz) mx)
-        dy (+ (round ceil  (- (+ ay rd) my) sz) my)]
-    (into
-     [] cat
-     (for [px (range cx dx sz)
-           py (range cy dy sz)
-           :when (point-within-circle? ax ay rd (+ px hz) (+ py hz))]
-       [px py]))))
+        dy (+ (round ceil  (- (+ ay rd) my) sz) my)
+        ex (+ (round ceil  (- ax ln mx) sz) mx)
+        ey (+ (round ceil  (- ay ln my) sz) my)
+        fx (+ (round floor (- (+ ax ln) mx) sz) mx)
+        fy (+ (round floor (- (+ ay ln) my) sz) my)]
+    (loop [px cx py cy xs []]
+      (cond (> px dx) xs
+            (> py dy) (recur (+ px sz) cy xs)
+            ;; points found within the inscribed square can be omitted
+            ;; since they definitionally lie within the circle.
+            (and (= py ey) (>= px ex) (< px fx)
+                 (not (and (= ex fx) (= ey fy)))
+                 (not (and (= px ex) (= py ey)))
+                 (not (and (= px ex) (= py fy)))
+                 (not (and (= px (- fx sz)) (= py ey)))
+                 (not (and (= px (- fx sz)) (= py fy))))
+            (recur px fy xs)
+            :else
+            (if (point-within-circle? ax ay rd (+ px half-size) (+ py half-size))
+              (recur px (+ py sz) (conj xs px py))
+              (recur px (+ py sz) xs))))))
 
 (defmethod object-grid-overlap :shape/cone
   [object dx dy ox oy]
