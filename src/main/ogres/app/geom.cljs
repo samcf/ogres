@@ -187,9 +187,9 @@
         ey (+ (round ceil  (- ay ln my) sz) my)
         fx (+ (round floor (- (+ ax ln) mx) sz) mx)
         fy (+ (round floor (- (+ ay ln) my) sz) my)]
-    (loop [px cx py cy xs []]
-      (cond (> px dx) xs
-            (> py dy) (recur (+ px sz) cy xs)
+    (loop [px cx py cy rs []]
+      (cond (> px dx) rs
+            (> py dy) (recur (+ px sz) cy rs)
             ;; points found within the inscribed square can be omitted
             ;; since they definitionally lie within the circle.
             (and (= py ey) (>= px ex) (< px fx)
@@ -198,11 +198,11 @@
                  (not (and (= px ex) (= py fy)))
                  (not (and (= px (- fx sz)) (= py ey)))
                  (not (and (= px (- fx sz)) (= py fy))))
-            (recur px fy xs)
+            (recur px fy rs)
+            (point-within-circle? ax ay rd (+ px half-size) (+ py half-size))
+            (recur px (+ py sz) (conj rs px py))
             :else
-            (if (point-within-circle? ax ay rd (+ px half-size) (+ py half-size))
-              (recur px (+ py sz) (conj xs px py))
-              (recur px (+ py sz) xs))))))
+            (recur px (+ py sz) rs)))))
 
 (defmethod object-grid-overlap :shape/cone
   [object dx dy ox oy]
@@ -212,30 +212,32 @@
         ys (:shape/points object)
         mx (mod ox sz)
         my (mod oy sz)
-        ax (+ (nth xs 0) dx)
-        ay (+ (nth xs 1) dy)
-        bx (+ (nth ys 0) ax)
-        by (+ (nth ys 1) ay)
+        ax (+ (xs 0) dx)
+        ay (+ (xs 1) dy)
+        bx (+ (ys 0) ax)
+        by (+ (ys 1) ay)
         zs (cone-points ax ay bx by)
         vs (bounding-rect zs)
-        vx (nth vs 0)
-        vy (nth vs 1)
-        wx (nth vs 2)
-        wy (nth vs 3)
+        vx (vs 0)
+        vy (vs 1)
+        wx (vs 2)
+        wy (vs 3)
         cx (+ (round floor (- vx mx) sz) mx)
         cy (+ (round floor (- vy my) sz) my)
         dx (+ (round ceil  (- wx mx) sz) mx)
         dy (+ (round ceil  (- wy my) sz) my)]
-    (into
-     [] cat
-     (for [px (range cx dx sz)
-           py (range cy dy sz)
-           :when (point-within-triangle?
-                  (nth zs 0) (nth zs 1)
-                  (nth zs 2) (nth zs 3)
-                  (nth zs 4) (nth zs 5)
-                  (+ px hz)  (+ py hz))]
-       [px py]))))
+    (loop [px cx py cy rs []]
+      (cond (> px dx) rs
+            (> py dy)
+            (recur (+ px sz) cy rs)
+            (point-within-triangle?
+             (zs 0) (zs 1)
+             (zs 2) (zs 3)
+             (zs 4) (zs 5)
+             (+ px hz) (+ py hz))
+            (recur px (+ py sz) (conj rs px py))
+            :else
+            (recur px (+ py sz) rs)))))
 
 (def ^:private edge-vector
   [[1 0 0 1] [0 1 -1 0] [-1 0 0 -1] [0 -1 1 0]])
