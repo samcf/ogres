@@ -187,8 +187,8 @@
         ey (+ (round ceil  (- ay ln my) sz) my)
         fx (+ (round floor (- (+ ax ln) mx) sz) mx)
         fy (+ (round floor (- (+ ay ln) my) sz) my)]
-    (loop [px cx py cy rs []]
-      (cond (> px dx) rs
+    (loop [px cx py cy rs (transient [])]
+      (cond (> px dx) (persistent! rs)
             (> py dy) (recur (+ px sz) cy rs)
             ;; points found within the inscribed square can be omitted
             ;; since they definitionally lie within the circle.
@@ -200,7 +200,7 @@
                  (not (and (= px (- fx sz)) (= py fy))))
             (recur px fy rs)
             (point-within-circle? ax ay rd (+ px half-size) (+ py half-size))
-            (recur px (+ py sz) (conj rs px py))
+            (recur px (+ py sz) (conj! rs px py))
             :else
             (recur px (+ py sz) rs)))))
 
@@ -226,8 +226,8 @@
         cy (+ (round floor (- vy my) sz) my)
         dx (+ (round ceil  (- wx mx) sz) mx)
         dy (+ (round ceil  (- wy my) sz) my)]
-    (loop [px cx py cy rs []]
-      (cond (> px dx) rs
+    (loop [px cx py cy rs (transient [])]
+      (cond (> px dx) (persistent! rs)
             (> py dy)
             (recur (+ px sz) cy rs)
             (point-within-triangle?
@@ -235,7 +235,7 @@
              (zs 2) (zs 3)
              (zs 4) (zs 5)
              (+ px hz) (+ py hz))
-            (recur px (+ py sz) (conj rs px py))
+            (recur px (+ py sz) (conj! rs px py))
             :else
             (recur px (+ py sz) rs)))))
 
@@ -264,13 +264,13 @@
         st (first (filter (fn [point] (= (point 1) ay)) vs))
         sx (st 0)
         sy (st 1)]
-    (loop [nx sx ny sy rs [] ed 0]
-      (if (and (= nx sx) (= ny sy) (seq rs)) rs
+    (loop [nx sx ny sy rs (transient []) ed 0]
+      (if (and (= nx sx) (= ny sy) (> (count rs) 0)) (persistent! rs)
           (let [ev (edge-vector ed)
                 cx (+ nx (* (ev 0) grid-size))
                 cy (+ ny (* (ev 1) grid-size))
                 dx (+ nx (* (ev 2) grid-size))
                 dy (+ ny (* (ev 3) grid-size))]
             (if (contains? vs [cx cy])
-              (recur cx cy (conj rs cx cy) (edge ed ax ay bx by cx cy))
-              (recur dx dy (conj rs dx dy) (edge ed ax ay bx by dx dy))))))))
+              (recur cx cy (conj! rs cx cy) (edge ed ax ay bx by cx cy))
+              (recur dx dy (conj! rs dx dy) (edge ed ax ay bx by dx dy))))))))
