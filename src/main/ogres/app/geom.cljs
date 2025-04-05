@@ -54,14 +54,13 @@
 (defn alignment-xf
   "Returns a transducer which expects a collection of points in the
    form of [Ax Ay Bx By ...] and aligns those points to the nearest
-   grid intersection given a drag delta (dx dy) and the current
-   grid offset (ox oy)."
-  [dx dy ox oy]
+   grid intersection given a drag delta (dx dy)."
+  [dx dy]
   (comp (partition-all 2)
         (mapcat
          (fn [[x y]]
-           [(+ (round (- (+ x dx) ox) grid-size) ox)
-            (+ (round (- (+ y dy) oy) grid-size) oy)]))))
+           [(round (+ x dx) grid-size)
+            (round (+ y dy) grid-size)]))))
 
 (defn ^:private clockwise?
   "Returns true if the given polygon has a clockwise winding order, false

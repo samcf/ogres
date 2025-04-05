@@ -77,6 +77,7 @@
   [{:user/camera
     [{:camera/scene
       [[:scene/grid-size :default 70]
+       [:scene/grid-origin :default [0 0]]
        [:scene/lighting :default :revealed]
        {:scene/image [:image/hash :image/width :image/height]}]}]}])
 
@@ -85,8 +86,9 @@
         {{{{width  :image/width
             height :image/height
             hash :image/hash} :scene/image
+           [ox oy] :scene/grid-origin
            size :scene/grid-size} :camera/scene} :user/camera} result
-        transform (str "scale(" (/ grid-size size) ")")
+        transform (str "translate(" (- ox) ", " (- oy) ") scale(" (/ grid-size size) ")")
         node (uix/use-ref)]
     ;; Safari has issues with rendering an `<image ...> immediately after it is
     ;; defined. One way to fix this is to update its `class` attribute after
@@ -241,27 +243,23 @@
   [[:bounds/self :default [0 0 0 0]]
    {:user/camera
     [[:camera/point :default [0 0]]
-     [:camera/scale :default 1]
-     {:camera/scene
-      [[:scene/grid-origin :default [0 0]]]}]}])
+     [:camera/scale :default 1]]}])
 
 (defui ^:private grid-defs []
   (let [data (hooks/use-query grid-defs-query)
         {[_ _ w h] :bounds/self
          {[cx cy] :camera/point
-          scale   :camera/scale
-          scene   :camera/scene} :user/camera} data
+          scale :camera/scale} :user/camera} data
         wd (/ w scale)
         ht (/ h scale)
         ax (+ (* wd -3) cx)
         ay (+ (* ht -3) cy)
         bx (+ (* wd  3) cx)
-        by (+ (* ht  3) cy)
-        [ox oy] (:scene/grid-origin scene)]
+        by (+ (* ht  3) cy)]
     ($ :defs
       ($ :pattern {:id "grid-pattern" :width grid-size :height grid-size :patternUnits "userSpaceOnUse"}
         ($ :path.scene-grid-path {:d (join " " ["M" 0 0 "H" grid-size "V" grid-size])}))
-      ($ :g {:id "scene-grid" :transform (str "translate(" (mod ox grid-size) "," (mod oy grid-size) ")")}
+      ($ :g {:id "scene-grid"}
         ($ :path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"]) :fill "url(#grid-pattern)"})))))
 
 (defn ^:private token-flags [data]

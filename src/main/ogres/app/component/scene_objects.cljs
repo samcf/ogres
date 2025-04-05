@@ -297,8 +297,7 @@
        [:camera/scale :default 1]
        [:camera/point :default [0 0]]
        {:camera/scene
-        [[:scene/grid-origin :default [0 0]]
-         [:scene/grid-align :default false]
+        [[:scene/grid-align :default false]
          [:scene/grid-size :default 70]
          {:scene/tokens
           [:db/id
@@ -343,8 +342,7 @@
           {[cx cy]  :camera/point
            scale    :camera/scale
            selected :camera/selected
-           {[ox oy] :scene/grid-origin
-            align? :scene/grid-align
+           {align? :scene/grid-align
             size   :scene/grid-size
             notes  :scene/notes
             shapes :scene/shapes
@@ -386,7 +384,7 @@
                               tx (+ ax (or rx dx 0))
                               ty (+ ay (or ry dy 0))
                               to (if (and align? (.-isDragging drag) (or (not= dx 0) (not= dy 0)))
-                                   (into [] (geom/alignment-xf dx dy ox oy) rect))]
+                                   (into [] (geom/alignment-xf dx dy) rect))]
                           ($ :g.scene-object
                             {:ref (.-setNodeRef drag)
                              :transform (str "translate(" tx ", " ty ")")
@@ -427,7 +425,7 @@
                                 user (dragging id)
                                 rect (geom/object-bounding-rect entity)
                                 rect (if (and align? (.-isDragging drag) (or (not= dx 0) (not= dy 0)))
-                                       (into [] (geom/alignment-xf dx dy ox oy) rect))]]
+                                       (into [] (geom/alignment-xf dx dy) rect))]]
                       ($ CSSTransition {:key id :nodeRef node :timeout 256}
                         ($ :g.scene-object-transition {:ref node}
                           (if (selected id)

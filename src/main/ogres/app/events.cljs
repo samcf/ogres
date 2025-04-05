@@ -369,12 +369,16 @@
 (defmethod
   ^{:doc "Applies both a grid origin and tile size to the current scene."}
   event-tx-fn :scene/apply-grid-options
-  [data _ origin size]
-  (let [user (ds/entity data [:db/ident :user])]
-    [{:db/id (:db/id (:user/camera user))
+  [data _ [x y :as origin] size]
+  (let [{{{scene :db/id [ox oy] :scene/grid-origin} :camera/scene
+          [cx cy] :camera/point
+          camera :db/id} :user/camera}
+        (ds/entity data [:db/ident :user])]
+    [{:db/id camera
       :camera/draw-mode :select
+      :camera/point [(- (+ cx ox) x) (- (+ cy oy) y)]
       :camera/scene
-      {:db/id (:db/id (:camera/scene (:user/camera user)))
+      {:db/id scene
        :scene/grid-size size
        :scene/grid-origin origin}}]))
 
@@ -432,12 +436,10 @@
           option is enabled."}
   [data _ idxs dx dy]
   (let [result (ds/entity data [:db/ident :user])
-        {{{align? :scene/grid-align
-           [ox oy] :scene/grid-origin} :camera/scene}
-         :user/camera} result
+        {{{align? :scene/grid-align} :camera/scene} :user/camera} result
         selected [:db/id :object/type :object/point :shape/points :token/size]
         entities (ds/pull-many data selected idxs)
-        align-xf (geom/alignment-xf dx dy ox oy)]
+        align-xf (geom/alignment-xf dx dy)]
     (into [[:db/retract [:db/ident :user] :user/dragging]]
           (for [{id :db/id :as entity} entities
                 :let [type (keyword (namespace (:object/type entity)))]]
@@ -501,20 +503,17 @@
   (let [user (ds/entity data [:db/ident :user])
         {{[cx cy] :camera/point
           scale :camera/scale
-          {align? :scene/grid-align
-           [ox oy] :scene/grid-origin}
+          {align? :scene/grid-align}
           :camera/scene} :user/camera} user
         tx (+ (/ sx (or scale 1)) (or cx 0))
         ty (+ (/ sy (or scale 1)) (or cy 0))
-        rd (/ grid-size 2)
-        mx (mod ox grid-size)
-        my (mod oy grid-size)]
+        rd (/ grid-size 2)]
     [(cond-> {:db/id -1 :object/type :token/token}
        (some? hash) (assoc :token/image {:image/hash hash})
        (not align?) (assoc :object/point [(round tx) (round ty)])
        align?       (assoc :object/point
-                           [(+ (round (- tx rd mx) grid-size) rd mx)
-                            (+ (round (- ty rd my) grid-size) rd my)]))
+                           [(+ (round (- tx rd) grid-size) rd)
+                            (+ (round (- ty rd) grid-size) rd)]))
      {:db/id (:db/id (:user/camera user))
       :camera/selected -1
       :camera/draw-mode :select
@@ -952,7 +951,6 @@
        [:camera/point :default [0 0]]
        {:camera/scene
         [:db/id
-         [:scene/grid-origin :default [0 0]]
          [:scene/grid-align :default false]]}]}]}
    {:root/token-images [:image/hash]}])
 
@@ -969,16 +967,14 @@
           {camera :db/id
            scale :camera/scale
            [cx cy] :camera/point
-           {scene :db/id
-            align? :scene/grid-align
-            [ox oy] :scene/grid-origin}
+           {scene :db/id align? :scene/grid-align}
            :camera/scene} :user/camera} :root/user
          images :root/token-images} result
         hashes (into #{} (map :image/hash) images)
         [ax ay bx by] (geom/bounding-rect (mapcat geom/object-bounding-rect clipboard))
         dx (- (+ cx (/ sw scale 2)) (+ ax (/ (- bx ax) 2)))
         dy (- (+ cy (/ sh scale 2)) (+ ay (/ (- by ay) 2)))
-        xf (geom/alignment-xf dx dy ox oy)]
+        xf (geom/alignment-xf dx dy)]
     (for [[idx copy] (sequence (indexed) clipboard)
           :let [{[tx ty] :object/point type :object/type} copy
                 hash (:image/hash (:token/image copy))

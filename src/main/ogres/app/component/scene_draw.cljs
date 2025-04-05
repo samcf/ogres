@@ -66,8 +66,7 @@
     [[:camera/scale :default 1]
      [:camera/point :default [0 0]]
      {:camera/scene
-      [[:scene/grid-size :default grid-size]
-       :scene/grid-origin]}]}])
+      [[:scene/grid-size :default grid-size]]}]}])
 
 (defui ^:private polygon
   [{:keys [on-create]}]
@@ -237,11 +236,11 @@
 
 (defui ^:private draw-grid []
   (let [dispatch (hooks/use-dispatch)
-        {[ox oy] :bounds/self
+        {[bx by] :bounds/self
          {[tx ty] :camera/point
           scale   :camera/scale
           {prev-size :scene/grid-size
-           prev-origin :scene/grid-origin}
+           [px py :as prev-origin] :scene/grid-origin}
           :camera/scene} :user/camera} (hooks/use-query query)
         [next-origin set-origin] (uix/use-state nil)
         [next-size     set-size] (uix/use-state prev-size)]
@@ -261,7 +260,7 @@
                          path [[(- wide) "," (* indx draw) "H" wide]
                                [(* indx draw) "," (- wide) "V" wide]]]
                      (apply str "M" path))]
-          ($ :g {:transform (str "translate(" (- x ox) "," (- y oy) ")")}
+          ($ :g {:transform (str "translate(" (- x bx) "," (- y by) ")")}
             ($ :path {:d (join path)})
             ($ :circle {:cx 0 :cy 0 :r 14})
             ($ :foreignObject.grid-align-form
@@ -270,7 +269,14 @@
                 {:on-submit
                  (fn [event]
                    (.preventDefault event)
-                   (let [xf (comp (+' (- ox) (- oy)) (*' (/ scale)) (+' tx ty) (*' (/ prev-size next-size)) round cat)]
+                   (let [xf (comp (+' (- bx) (- by))
+                                  (*' (/ scale))
+                                  (+' tx ty)
+                                  (+' px py)
+                                  (*' (/ prev-size next-size))
+                                  (map (fn [[x y]] [(mod (abs x) grid-size) (mod (abs y) grid-size)]))
+                                  round
+                                  cat)]
                      (dispatch :scene/apply-grid-options (convert next-origin xf) next-size)))}
                 ($ :fieldset.grid-align-origin
                   ($ :button
