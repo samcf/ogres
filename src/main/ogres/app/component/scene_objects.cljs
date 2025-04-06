@@ -390,7 +390,7 @@
                               ty (+ ay (or ry dy 0))
                               to (if (and align? (.-isDragging drag) (or (not= dx 0) (not= dy 0)))
                                    (into [] (geom/alignment-xf dx dy) rect))
-                              ts (geom/object-grid-overlap entity dx dy 0 0)]
+                              ts (geom/object-grid-overlap entity dx dy)]
                           ($ :g.scene-object
                             {:ref (.-setNodeRef drag)
                              :transform (str "translate(" tx ", " ty ")")
@@ -441,7 +441,7 @@
                           (if (selected id)
                             ($ drag-remote-fn {:user (:user/uuid user) :x ax :y ay}
                               (fn [[rx ry]]
-                                (let [tiles (geom/object-grid-overlap entity dx dy 0 0)]
+                                (let [tiles (geom/object-grid-overlap entity dx dy)]
                                   ($ :g.scene-object
                                     {:transform (str "translate(" (+ ax rx) ", " (+ ay ry) ")")
                                      :data-drag-remote (some? user)

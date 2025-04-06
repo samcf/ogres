@@ -167,26 +167,24 @@
 (defmethod object-grid-overlap :default [] [])
 
 (defmethod object-grid-overlap :shape/circle
-  [object dx dy ox oy]
+  [object dx dy]
   (let [sz grid-size
         xs (:object/point object)
         ys (:shape/points object)
-        mx (mod ox sz)
-        my (mod oy sz)
         ax (+ (xs 0) dx)
         ay (+ (xs 1) dy)
         bx (+ (ys 0) ax)
         by (+ (ys 1) ay)
         rd (chebyshev-distance ax ay bx by)
         ln (* rd deg45->sin)
-        cx (+ (round floor (- ax rd mx) sz) mx)
-        cy (+ (round floor (- ay rd my) sz) my)
-        dx (+ (round ceil  (- (+ ax rd) mx) sz) mx)
-        dy (+ (round ceil  (- (+ ay rd) my) sz) my)
-        ex (+ (round ceil  (- ax ln mx) sz) mx)
-        ey (+ (round ceil  (- ay ln my) sz) my)
-        fx (+ (round floor (- (+ ax ln) mx) sz) mx)
-        fy (+ (round floor (- (+ ay ln) my) sz) my)]
+        cx (round floor (- ax rd) sz)
+        cy (round floor (- ay rd) sz)
+        dx (round ceil  (+ ax rd) sz)
+        dy (round ceil  (+ ay rd) sz)
+        ex (round ceil  (- ax ln) sz)
+        ey (round ceil  (- ay ln) sz)
+        fx (round floor (+ ax ln) sz)
+        fy (round floor (+ ay ln) sz)]
     (loop [px cx py cy rs (transient [])]
       (cond (> px dx) (persistent! rs)
             (> py dy) (recur (+ px sz) cy rs)
@@ -205,12 +203,10 @@
             (recur px (+ py sz) rs)))))
 
 (defmethod object-grid-overlap :shape/cone
-  [object dx dy ox oy]
+  [object dx dy]
   (let [sz grid-size
         xs (:object/point object)
         ys (:shape/points object)
-        mx (mod ox sz)
-        my (mod oy sz)
         ax (+ (xs 0) dx)
         ay (+ (xs 1) dy)
         bx (+ (ys 0) ax)
@@ -227,10 +223,10 @@
         vy (vs 1)
         wx (vs 2)
         wy (vs 3)
-        cx (+ (round floor (- vx mx) sz) mx)
-        cy (+ (round floor (- vy my) sz) my)
-        dx (+ (round ceil  (- wx mx) sz) mx)
-        dy (+ (round ceil  (- wy my) sz) my)]
+        cx (round floor vx sz)
+        cy (round floor vy sz)
+        dx (round ceil  wx sz)
+        dy (round ceil  wy sz)]
     (loop [px cx py cy rs (transient [])]
       (cond (> px dx) (persistent! rs)
             (> py dy)
