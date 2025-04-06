@@ -66,7 +66,8 @@
     [[:camera/scale :default 1]
      [:camera/point :default [0 0]]
      {:camera/scene
-      [[:scene/grid-size :default grid-size]]}]}])
+      [[:scene/grid-size :default grid-size]
+       [:scene/grid-origin :default [0 0]]]}]}])
 
 (defui ^:private polygon
   [{:keys [on-create]}]
