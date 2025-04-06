@@ -167,14 +167,12 @@
 (defmethod object-grid-overlap :default [] [])
 
 (defmethod object-grid-overlap :shape/circle
-  [object dx dy]
+  [{[ax ay] :object/point [bx by] :shape/points} dx dy]
   (let [sz grid-size
-        xs (:object/point object)
-        ys (:shape/points object)
-        ax (+ (xs 0) dx)
-        ay (+ (xs 1) dy)
-        bx (+ (ys 0) ax)
-        by (+ (ys 1) ay)
+        ax (+ ax dx)
+        ay (+ ay dy)
+        bx (+ bx ax)
+        by (+ by ay)
         rd (chebyshev-distance ax ay bx by)
         ln (* rd deg45->sin)
         cx (round floor (- ax rd) sz)
@@ -203,38 +201,26 @@
             (recur px (+ py sz) rs)))))
 
 (defmethod object-grid-overlap :shape/cone
-  [object dx dy]
+  [{[ax ay] :object/point [bx by] :shape/points} dx dy]
   (let [sz grid-size
-        xs (:object/point object)
-        ys (:shape/points object)
-        ax (+ (xs 0) dx)
-        ay (+ (xs 1) dy)
-        bx (+ (ys 0) ax)
-        by (+ (ys 1) ay)
-        zs (cone-points ax ay bx by)
-        z0 (zs 0)
-        z1 (zs 1)
-        z2 (zs 2)
-        z3 (zs 3)
-        z4 (zs 4)
-        z5 (zs 5)
-        vs (bounding-rect zs)
-        vx (vs 0)
-        vy (vs 1)
-        wx (vs 2)
-        wy (vs 3)
-        cx (round floor vx sz)
-        cy (round floor vy sz)
-        dx (round ceil  wx sz)
-        dy (round ceil  wy sz)]
-    (loop [px cx py cy rs (transient [])]
-      (cond (> px dx) (persistent! rs)
-            (> py dy)
-            (recur (+ px sz) cy rs)
-            (or (point-within-triangle? z0 z1 z2 z3 z4 z5 (+ px 14) (+ py 14))
-                (point-within-triangle? z0 z1 z2 z3 z4 z5 (+ px 56) (+ py 14))
-                (point-within-triangle? z0 z1 z2 z3 z4 z5 (+ px 14) (+ py 56))
-                (point-within-triangle? z0 z1 z2 z3 z4 z5 (+ px 56) (+ py 56)))
+        ax (+ ax dx)
+        ay (+ ay dy)
+        bx (+ bx ax)
+        by (+ by ay)
+        [ax ay bx by cx cy :as xs] (cone-points ax ay bx by)
+        [yx yy zx zy] (bounding-rect xs)
+        dx (round floor yx sz)
+        dy (round floor yy sz)
+        ex (round ceil  zx sz)
+        ey (round ceil  zy sz)]
+    (loop [px dx py dy rs (transient [])]
+      (cond (> px ex) (persistent! rs)
+            (> py ey)
+            (recur (+ px sz) dy rs)
+            (or (point-within-triangle? ax ay bx by cx cy (+ px 14) (+ py 14))
+                (point-within-triangle? ax ay bx by cx cy (+ px 56) (+ py 14))
+                (point-within-triangle? ax ay bx by cx cy (+ px 14) (+ py 56))
+                (point-within-triangle? ax ay bx by cx cy (+ px 56) (+ py 56)))
             (recur px (+ py sz) (conj! rs px py))
             :else
             (recur px (+ py sz) rs)))))
@@ -256,21 +242,15 @@
   [points]
   (let [xs (into  [] (comp (partition-all 2) (mapcat rect-points)) points)
         vs (into #{} (partition-all 2) xs)
-        bb (bounding-rect xs)
-        ax (bb 0)
-        ay (bb 1)
-        bx (bb 2)
-        by (bb 3)
-        st (first (filter (fn [point] (= (point 1) ay)) vs))
-        sx (st 0)
-        sy (st 1)]
+        [ax ay bx by] (bounding-rect xs)
+        [sx sy] (first (filter (fn [[_ y]] (= y ay)) vs))]
     (loop [nx sx ny sy rs (transient []) ed 0]
       (if (and (= nx sx) (= ny sy) (> (count rs) 0)) (persistent! rs)
-          (let [ev (edge-vector ed)
-                cx (+ nx (* (ev 0) grid-size))
-                cy (+ ny (* (ev 1) grid-size))
-                dx (+ nx (* (ev 2) grid-size))
-                dy (+ ny (* (ev 3) grid-size))]
+          (let [[ex ey fx fy] (edge-vector ed)
+                cx (+ nx (* ex grid-size))
+                cy (+ ny (* ey grid-size))
+                dx (+ nx (* fx grid-size))
+                dy (+ ny (* fy grid-size))]
             (if (contains? vs [cx cy])
               (recur cx cy (conj! rs cx cy) (edge ed ax ay bx by cx cy))
               (recur dx dy (conj! rs dx dy) (edge ed ax ay bx by dx dy))))))))
