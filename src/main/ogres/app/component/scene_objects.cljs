@@ -6,7 +6,6 @@
             [ogres.app.component.scene-pattern :refer [pattern]]
             [ogres.app.geom :as geom]
             [ogres.app.hooks :as hooks]
-            [ogres.app.svg :refer [poly->path]]
             [react-transition-group :refer [TransitionGroup CSSTransition]]
             [uix.core :as uix :refer [defui $]]
             [uix.dom :as dom]
@@ -14,6 +13,9 @@
              :refer [useDndMonitor useDraggable]
              :rename {useDndMonitor use-dnd-monitor
                       useDraggable use-draggable}]))
+
+(def ^:private rf-points->poly
+  (completing into (fn [xs] (join " " xs))))
 
 (def ^:private note-icons
   ["journal-bookmark-fill" "dice-5" "door-open" "geo-alt" "fire" "skull" "question-circle"])
@@ -403,8 +405,8 @@
                              :data-id id}
                             (if (and (seq ts) (some? (deref portal)))
                               (dom/create-portal
-                               ($ :path.scene-object-tiles
-                                 {:d (transduce (map identity) poly->path (list ts))})
+                               ($ :polygon.scene-object-tiles
+                                 {:points (transduce (partition-all 2) rf-points->poly ts)})
                                (deref portal)))
                             ($ object
                               {:aligned-to to
@@ -450,8 +452,8 @@
                                      :data-id id}
                                     (if (and (seq tiles) (some? (deref portal)))
                                       (dom/create-portal
-                                       ($ :path.scene-object-tiles
-                                         {:d (transduce (map identity) poly->path (list tiles))})
+                                       ($ :polygon.scene-object-tiles
+                                         {:points (transduce (partition-all 2) rf-points->poly tiles)})
                                        (deref portal)))
                                     ($ object
                                       {:aligned-to rect
