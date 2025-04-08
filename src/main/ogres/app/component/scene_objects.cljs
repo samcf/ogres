@@ -390,13 +390,13 @@
                         (let [handler (getValueByKeys drag "listeners" "onPointerDown")
                               dx (or (getValueByKeys drag "transform" "x") 0)
                               dy (or (getValueByKeys drag "transform" "y") 0)
-                              tx (+ ax (or rx dx 0))
-                              ty (+ ay (or ry dy 0))
+                              sx (or rx dx 0)
+                              sy (or ry dy 0)
                               to (if (and align? (.-isDragging drag) (or (not= dx 0) (not= dy 0)))
                                    (into [] (geom/alignment-xf dx dy) rect))]
                           ($ :g.scene-object
                             {:ref (.-setNodeRef drag)
-                             :transform (str "translate(" tx ", " ty ")")
+                             :transform (str "translate(" (+ ax sx) ", " (+ ay sy) ")")
                              :tab-index (if (and (not lock) seen) 0 -1)
                              :on-pointer-down (or handler stop-propagation)
                              :data-drag-remote (some? user)
@@ -405,7 +405,7 @@
                              :data-type (namespace (:object/type entity))
                              :data-id id}
                             (if outlines
-                              (let [path (geom/object-tile-path entity dx dy)]
+                              (let [path (geom/object-tile-path entity sx sy)]
                                 (if (and (seq path) (some? (deref portal)))
                                   (dom/create-portal
                                    ($ :polygon.scene-object-tiles
@@ -453,7 +453,7 @@
                                    :data-color (:user/color user)
                                    :data-id id}
                                   (if outlines
-                                    (let [path (geom/object-tile-path entity dx dy)]
+                                    (let [path (geom/object-tile-path entity (or rx dx 0) (or ry dy 0))]
                                       (if (and (seq path) (some? (deref portal)))
                                         (dom/create-portal
                                          ($ :polygon.scene-object-tiles
