@@ -107,6 +107,85 @@
   (if (clockwise? xs) xs
       (into [] cat (reverse (partition 2 xs)))))
 
+(defn ^:private tile-edge
+  [ax ay bx by cx cy]
+  (cond (= cy ay) 0
+        (= cx bx) 1
+        (= cy by) 2
+        (= cx ax) 3))
+
+(def ^:private tile-edge-path
+  [[+1 +0 +0 +1]
+   [+0 +1 -1 +0]
+   [-1 +0 +0 -1]
+   [+0 -1 +1 +0]])
+
+(defn ^:private path-around-tiles
+  [points]
+  (let [xs (into  [] (comp (partition-all 2) (mapcat rect-points)) points)
+        vs (into #{} (partition-all 2) xs)
+        [ax ay bx by] (bounding-rect xs)
+        [sx sy] (first (filter (fn [[_ y]] (= y ay)) vs))]
+    (loop [nx sx ny sy rs (transient []) ed 0]
+      (if (and (= nx sx) (= ny sy) (> (count rs) 0)) (persistent! rs)
+          (let [[ex ey fx fy] (tile-edge-path ed)
+                cx (+ nx (* ex grid-size))
+                cy (+ ny (* ey grid-size))
+                dx (+ nx (* fx grid-size))
+                dy (+ ny (* fy grid-size))]
+            (if (contains? vs [cx cy])
+              (recur cx cy (conj! rs cx cy) (or (tile-edge ax ay bx by cx cy) ed))
+              (recur dx dy (conj! rs dx dy) (or (tile-edge ax ay bx by dx dy) ed))))))))
+
+(defn ^:private tile-path-circle
+  [ax ay rd]
+  (let [sz grid-size
+        ln (* rd deg45->sin)
+        cx (round floor (- ax rd) sz)
+        cy (round floor (- ay rd) sz)
+        dx (round ceil  (+ ax rd) sz)
+        dy (round ceil  (+ ay rd) sz)
+        ex (round ceil  (- ax ln) sz)
+        ey (round ceil  (- ay ln) sz)
+        fx (round floor (+ ax ln) sz)
+        fy (round floor (+ ay ln) sz)]
+    (loop [px cx py cy rs (transient [])]
+      (cond (> px dx) (path-around-tiles (persistent! rs))
+            (> py dy) (recur (+ px sz) cy rs)
+              ;; points found within the inscribed square can be omitted
+              ;; since they definitionally lie within the circle.
+            (and (= py ey) (>= px ex) (< px fx)
+                 (not (and (= ex fx) (= ey fy)))
+                 (not (and (= px ex) (= py ey)))
+                 (not (and (= px ex) (= py fy)))
+                 (not (and (= px (- fx sz)) (= py ey)))
+                 (not (and (= px (- fx sz)) (= py fy))))
+            (recur px fy rs)
+            (point-within-circle? ax ay rd (+ px half-size) (+ py half-size))
+            (recur px (+ py sz) (conj! rs px py))
+            :else
+            (recur px (+ py sz) rs)))))
+
+(defn ^:private tile-path-cone
+  [[ax ay bx by cx cy :as xs]]
+  (let [[yx yy zx zy] (bounding-rect xs)
+        sz grid-size
+        dx (round floor yx sz)
+        dy (round floor yy sz)
+        ex (round ceil  zx sz)
+        ey (round ceil  zy sz)]
+    (loop [px dx py dy rs (transient [])]
+      (cond (> px ex) (path-around-tiles (persistent! rs))
+            (> py ey)
+            (recur (+ px sz) dy rs)
+            (or (point-within-triangle? ax ay bx by cx cy (+ px 14) (+ py 14))
+                (point-within-triangle? ax ay bx by cx cy (+ px 56) (+ py 14))
+                (point-within-triangle? ax ay bx by cx cy (+ px 14) (+ py 56))
+                (point-within-triangle? ax ay bx by cx cy (+ px 56) (+ py 56)))
+            (recur px (+ py sz) (conj! rs px py))
+            :else
+            (recur px (+ py sz) rs)))))
+
 (defmulti object-bounding-rect
   "Returns an axis-aligned minimum bounding rectangle (AABB) of the given
    object in the form of [Ax Ay Bx By] where A is the top-left corner and B
@@ -157,100 +236,29 @@
   [{[ax ay] :object/point}]
   (bounding-rect [ax ay (+ ax 42) (+ ay 42)]))
 
-(defmulti object-grid-overlap
-  "Returns a vector of points in the form of [Ax Ay [Bx By Cx Cy ...]], each
-   point representing the top-left corner of a grid square which the given
-   object has at least some overlap with."
+(defmulti object-tile-path
+  "Returns a path in the form of [Ax Ay [Bx By ...]] of a perimeter around
+   the given object. This perimeter is aligned with the grid tiles. This
+   is useful for illustrating, for example, which tiles are affected by
+   a circle of arbitrary position and radius."
   (fn [object _ _ _ _]
     (:object/type object)))
 
-(defmethod object-grid-overlap :default [] [])
+(defmethod object-tile-path :default [] [])
 
-(defmethod object-grid-overlap :shape/circle
+(defmethod object-tile-path :shape/circle
   [{[ax ay] :object/point [bx by] :shape/points} dx dy]
-  (let [sz grid-size
-        ax (+ ax dx)
+  (let [ax (+ ax dx)
         ay (+ ay dy)
         bx (+ bx ax)
         by (+ by ay)
-        rd (chebyshev-distance ax ay bx by)
-        ln (* rd deg45->sin)
-        cx (round floor (- ax rd) sz)
-        cy (round floor (- ay rd) sz)
-        dx (round ceil  (+ ax rd) sz)
-        dy (round ceil  (+ ay rd) sz)
-        ex (round ceil  (- ax ln) sz)
-        ey (round ceil  (- ay ln) sz)
-        fx (round floor (+ ax ln) sz)
-        fy (round floor (+ ay ln) sz)]
-    (loop [px cx py cy rs (transient [])]
-      (cond (> px dx) (persistent! rs)
-            (> py dy) (recur (+ px sz) cy rs)
-            ;; points found within the inscribed square can be omitted
-            ;; since they definitionally lie within the circle.
-            (and (= py ey) (>= px ex) (< px fx)
-                 (not (and (= ex fx) (= ey fy)))
-                 (not (and (= px ex) (= py ey)))
-                 (not (and (= px ex) (= py fy)))
-                 (not (and (= px (- fx sz)) (= py ey)))
-                 (not (and (= px (- fx sz)) (= py fy))))
-            (recur px fy rs)
-            (point-within-circle? ax ay rd (+ px half-size) (+ py half-size))
-            (recur px (+ py sz) (conj! rs px py))
-            :else
-            (recur px (+ py sz) rs)))))
+        rd (chebyshev-distance ax ay bx by)]
+    (tile-path-circle ax ay rd)))
 
-(defmethod object-grid-overlap :shape/cone
+(defmethod object-tile-path :shape/cone
   [{[ax ay] :object/point [bx by] :shape/points} dx dy]
-  (let [sz grid-size
-        ax (+ ax dx)
+  (let [ax (+ ax dx)
         ay (+ ay dy)
         bx (+ bx ax)
-        by (+ by ay)
-        [ax ay bx by cx cy :as xs] (cone-points ax ay bx by)
-        [yx yy zx zy] (bounding-rect xs)
-        dx (round floor yx sz)
-        dy (round floor yy sz)
-        ex (round ceil  zx sz)
-        ey (round ceil  zy sz)]
-    (loop [px dx py dy rs (transient [])]
-      (cond (> px ex) (persistent! rs)
-            (> py ey)
-            (recur (+ px sz) dy rs)
-            (or (point-within-triangle? ax ay bx by cx cy (+ px 14) (+ py 14))
-                (point-within-triangle? ax ay bx by cx cy (+ px 56) (+ py 14))
-                (point-within-triangle? ax ay bx by cx cy (+ px 14) (+ py 56))
-                (point-within-triangle? ax ay bx by cx cy (+ px 56) (+ py 56)))
-            (recur px (+ py sz) (conj! rs px py))
-            :else
-            (recur px (+ py sz) rs)))))
-
-(def ^:private edge-vector
-  [[1 0 0 1] [0 1 -1 0] [-1 0 0 -1] [0 -1 1 0]])
-
-(defn ^:private edge
-  [curr ax ay bx by cx cy]
-  (cond (= cy ay) 0
-        (= cx bx) 1
-        (= cy by) 2
-        (= cx ax) 3
-        :else curr))
-
-(defn path-around-tiles
-  "Returns a closed path {Ax Ay Bx By ...} around the tiles given by their
-   top-left corner."
-  [points]
-  (let [xs (into  [] (comp (partition-all 2) (mapcat rect-points)) points)
-        vs (into #{} (partition-all 2) xs)
-        [ax ay bx by] (bounding-rect xs)
-        [sx sy] (first (filter (fn [[_ y]] (= y ay)) vs))]
-    (loop [nx sx ny sy rs (transient []) ed 0]
-      (if (and (= nx sx) (= ny sy) (> (count rs) 0)) (persistent! rs)
-          (let [[ex ey fx fy] (edge-vector ed)
-                cx (+ nx (* ex grid-size))
-                cy (+ ny (* ey grid-size))
-                dx (+ nx (* fx grid-size))
-                dy (+ ny (* fy grid-size))]
-            (if (contains? vs [cx cy])
-              (recur cx cy (conj! rs cx cy) (edge ed ax ay bx by cx cy))
-              (recur dx dy (conj! rs dx dy) (edge ed ax ay bx by dx dy))))))))
+        by (+ by ay)]
+    (tile-path-cone (cone-points ax ay bx by))))
