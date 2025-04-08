@@ -392,7 +392,7 @@
                               ty (+ ay (or ry dy 0))
                               to (if (and align? (.-isDragging drag) (or (not= dx 0) (not= dy 0)))
                                    (into [] (geom/alignment-xf dx dy) rect))
-                              ts (geom/object-tile-path entity dx dy)]
+                              xs (geom/object-tile-path entity dx dy)]
                           ($ :g.scene-object
                             {:ref (.-setNodeRef drag)
                              :transform (str "translate(" tx ", " ty ")")
@@ -403,10 +403,10 @@
                              :data-color (:user/color user)
                              :data-type (namespace (:object/type entity))
                              :data-id id}
-                            (if (and (seq ts) (some? (deref portal)))
+                            (if (and (seq xs) (some? (deref portal)))
                               (dom/create-portal
                                ($ :polygon.scene-object-tiles
-                                 {:points (transduce (partition-all 2) rf-points->poly ts)})
+                                 {:points (transduce (partition-all 2) rf-points->poly xs)})
                                (deref portal)))
                             ($ object
                               {:aligned-to to
