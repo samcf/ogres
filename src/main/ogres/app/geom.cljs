@@ -137,7 +137,7 @@
               (recur cx cy (conj! rs cx cy) (or (tile-edge ax ay bx by cx cy) ed))
               (recur dx dy (conj! rs dx dy) (or (tile-edge ax ay bx by dx dy) ed))))))))
 
-(defn ^:private tile-path-circle
+(defn tile-path-circle
   [ax ay rd]
   (let [sz grid-size
         ln (* rd deg45->sin)
@@ -166,7 +166,7 @@
             :else
             (recur px (+ py sz) rs)))))
 
-(defn ^:private tile-path-cone
+(defn tile-path-cone
   [[ax ay bx by cx cy :as xs]]
   (let [[yx yy zx zy] (bounding-rect xs)
         sz grid-size
