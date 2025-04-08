@@ -70,7 +70,8 @@
      [:camera/point :default [0 0]]
      {:camera/scene
       [[:scene/grid-size :default grid-size]
-       [:scene/grid-origin :default [0 0]]]}]}])
+       [:scene/grid-origin :default [0 0]]
+       [:scene/show-object-outlines :default true]]}]}])
 
 (defui ^:private polygon
   [{:keys [on-create]}]
@@ -149,7 +150,8 @@
         result   (hooks/use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
-          scale :camera/scale} :user/camera} result
+          scale :camera/scale
+          scene :camera/scene} :user/camera} result
         xf-offset (-' ox oy)
         xf-canvas (comp (*' (/ scale)) (+' tx ty))
         cf (completing into (fn [xs] (join " " xs)))]
@@ -162,7 +164,7 @@
               [cx cy dx dy] (convert points xf-offset cat)
               radius (geom/chebyshev-distance ax ay bx by)]
           ($ :g
-            (if (> radius 64)
+            (if (and (:scene/show-object-outlines scene) (> radius 64))
               (let [xf (comp (partition-all 2) (-' tx ty) (*' scale))
                     xs (geom/tile-path-circle ax ay radius)]
                 ($ :polygon {:points (transduce xf cf [] xs)})))
@@ -217,7 +219,8 @@
         result   (hooks/use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
-          scale   :camera/scale} :user/camera} result
+          scale   :camera/scale
+          scene   :camera/scene} :user/camera} result
         xf-offset (-' ox oy)
         xf-canvas (comp (*' (/ scale)) (+' tx ty))
         cf (completing into (fn [xs] (join " " xs)))]
@@ -231,7 +234,7 @@
               [cx cy dx dy] (convert points xf-offset cat)
               radius (geom/euclidean-distance ax ay bx by)]
           ($ :g
-            (if (> radius 100)
+            (if (and (:scene/show-object-outlines scene) (> radius 100))
               (let [xs (geom/tile-path-cone (geom/cone-points ax ay bx by))
                     xf (comp (partition-all 2) (-' tx ty) (*' scale))]
                 ($ :polygon {:points (transduce xf cf xs)})))

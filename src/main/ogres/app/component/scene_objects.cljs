@@ -301,6 +301,7 @@
        [:camera/point :default [0 0]]
        {:camera/scene
         [[:scene/grid-align :default false]
+         [:scene/show-object-outlines :default true]
          {:scene/tokens
           [:db/id
            [:object/type :default :token/token]
@@ -345,10 +346,11 @@
           {[cx cy]  :camera/point
            scale    :camera/scale
            selected :camera/selected
-           {align? :scene/grid-align
-            notes  :scene/notes
+           {outlines :scene/show-object-outlines
+            align? :scene/grid-align
             shapes :scene/shapes
-            tokens :scene/tokens}
+            tokens :scene/tokens
+            notes :scene/notes}
            :camera/scene}
           :user/camera} :root/user
          {conns :session/conns} :root/session} result
@@ -391,8 +393,7 @@
                               tx (+ ax (or rx dx 0))
                               ty (+ ay (or ry dy 0))
                               to (if (and align? (.-isDragging drag) (or (not= dx 0) (not= dy 0)))
-                                   (into [] (geom/alignment-xf dx dy) rect))
-                              xs (geom/object-tile-path entity dx dy)]
+                                   (into [] (geom/alignment-xf dx dy) rect))]
                           ($ :g.scene-object
                             {:ref (.-setNodeRef drag)
                              :transform (str "translate(" tx ", " ty ")")
@@ -403,11 +404,13 @@
                              :data-color (:user/color user)
                              :data-type (namespace (:object/type entity))
                              :data-id id}
-                            (if (and (seq xs) (some? (deref portal)))
-                              (dom/create-portal
-                               ($ :polygon.scene-object-tiles
-                                 {:points (transduce (partition-all 2) rf-points->poly xs)})
-                               (deref portal)))
+                            (if outlines
+                              (let [path (geom/object-tile-path entity dx dy)]
+                                (if (and (seq path) (some? (deref portal)))
+                                  (dom/create-portal
+                                   ($ :polygon.scene-object-tiles
+                                     {:points (transduce (partition-all 2) rf-points->poly path)})
+                                   (deref portal)))))
                             ($ object
                               {:aligned-to to
                                :entity entity
@@ -443,22 +446,23 @@
                           (if (selected id)
                             ($ drag-remote-fn {:user (:user/uuid user) :x ax :y ay}
                               (fn [[rx ry]]
-                                (let [tiles (geom/object-tile-path entity dx dy)]
-                                  ($ :g.scene-object
-                                    {:transform (str "translate(" (+ ax rx) ", " (+ ay ry) ")")
-                                     :data-drag-remote (some? user)
-                                     :data-drag-local (.-isDragging drag)
-                                     :data-color (:user/color user)
-                                     :data-id id}
-                                    (if (and (seq tiles) (some? (deref portal)))
-                                      (dom/create-portal
-                                       ($ :polygon.scene-object-tiles
-                                         {:points (transduce (partition-all 2) rf-points->poly tiles)})
-                                       (deref portal)))
-                                    ($ object
-                                      {:aligned-to rect
-                                       :entity entity
-                                       :portal portal}))))))))))
+                                ($ :g.scene-object
+                                  {:transform (str "translate(" (+ ax rx) ", " (+ ay ry) ")")
+                                   :data-drag-remote (some? user)
+                                   :data-drag-local (.-isDragging drag)
+                                   :data-color (:user/color user)
+                                   :data-id id}
+                                  (if outlines
+                                    (let [path (geom/object-tile-path entity dx dy)]
+                                      (if (and (seq path) (some? (deref portal)))
+                                        (dom/create-portal
+                                         ($ :polygon.scene-object-tiles
+                                           {:points (transduce (partition-all 2) rf-points->poly path)})
+                                         (deref portal)))))
+                                  ($ object
+                                    {:aligned-to rect
+                                     :entity entity
+                                     :portal portal})))))))))
                   (let [sz 400
                         tx (-> (+ ax bx) (* scale) (- sz) (/ 2) int)
                         ty (-> (+ by 24) (* scale) (- 24) int)

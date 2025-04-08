@@ -419,6 +419,12 @@
   [[:db.fn/call assoc-scene :scene/grid-align enabled]])
 
 (defmethod
+  ^{:doc "Updates whether or not object outlines are drawn on the current scene."}
+  event-tx-fn :scene/toggle-object-outlines
+  [_ _ enabled]
+  [[:db.fn/call assoc-scene :scene/show-object-outlines enabled]])
+
+(defmethod
   ^{:doc "Updates the lighting option used for the current scene."}
   event-tx-fn :scene/change-lighting
   [_ _ value]

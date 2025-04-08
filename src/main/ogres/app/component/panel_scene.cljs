@@ -78,6 +78,7 @@
          [:scene/show-grid :default true]
          [:scene/grid-align :default false]
          [:scene/dark-mode :default false]
+         [:scene/show-object-outlines :default true]
          [:scene/lighting :default :revealed]
          {:scene/image
           [:image/hash
@@ -224,6 +225,13 @@
                :on-change #(dispatch :scene/toggle-show-grid (.. % -target -checked))})
             ($ icon {:name "check" :size 20})
             "Show grid")
+          ($ :label.checkbox
+            ($ :input
+              {:type "checkbox"
+               :checked (:scene/show-object-outlines scene)
+               :on-change #(dispatch :scene/toggle-object-outlines (.. % -target -checked))})
+            ($ icon {:name "check" :size 20})
+            "Show shape outlines")
           ($ :label.checkbox
             ($ :input
               {:type "checkbox"
