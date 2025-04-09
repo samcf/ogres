@@ -1,7 +1,7 @@
 (ns ogres.app.component.scene-draw
   (:require [clojure.string :refer [join]]
             [ogres.app.component :refer [icon]]
-            [ogres.app.const :refer [grid-size]]
+            [ogres.app.const :refer [grid-size half-size]]
             [ogres.app.geom :as geom]
             [ogres.app.hooks :as hooks]
             [uix.core :as uix :refer [defui $]]
@@ -208,8 +208,8 @@
       (fn [points]
         (let [[ax ay bx by] (convert points (+' (- ox) (- oy)) cat)]
           ($ :g
-            ($ :line {:x1 ax :y1 ay :x2 bx :y2 by})
-            ($ text {:attrs {:x (+ ax 8) :y (- ay 8) :fill "white"}}
+            ($ :polygon {:points (join " " (geom/line-points ax ay bx by (* half-size scale)))})
+            ($ text {:attrs {:x (+ bx 8) :y (- by 8) :fill "white"}}
               (-> (geom/chebyshev-distance ax ay bx by)
                   (px->ft (* grid-size scale))
                   (str "ft.")))))))))

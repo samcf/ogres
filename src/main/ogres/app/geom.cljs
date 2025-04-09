@@ -38,14 +38,35 @@
        (clockwise-triangle? cx cy ax ay sx sy)
        (clockwise-triangle? bx by cx cy sx sy)))
 
+(defn line-points
+  "Returns a vector of points as [Ax Ay Bx By Cx Cy Dx Dy] for each
+   corner of the oriented rectangle defined by the line {Ax Ay Bx By}
+   in clock-wise winding order."
+  [ax ay bx by ln]
+  (let [ma (/ (- bx ax) (- ay by))
+        mb (js/Math.sqrt (inc (* ma ma)))
+        dx (* ln (/ mb))
+        dy (* ln (/ ma mb))]
+    [(+ ax (- dx))
+     (+ ay (- dy))
+     (+ bx (- dx))
+     (+ by (- dy))
+     (+ bx dx)
+     (+ by dy)
+     (+ ax dx)
+     (+ ay dy)]))
+
 (defn rect-points
-  "Returns all points of the rect given by its top-left corner."
-  [[x y]]
-  [x y (+ x grid-size) y x (+ y grid-size) (+ x grid-size) (+ y grid-size)])
+  "Returns a vector of points as [Ax Ay Bx By Cx Cy Dx Dy] for each corner
+   of the axis-aligned rectangle defined by the top-left corner {Ax Ay} in
+   clock-wise winding order."
+  [[ax ay]]
+  [ax ay (+ ax grid-size) ay (+ ax grid-size) (+ ay grid-size) ax (+ ay grid-size)])
 
 (defn cone-points
-  "Returns the vertices of an isosceles triangle whose altitude is equal to
-   the length of the base."
+  "Returns a vector of points as [Ax Ay Bx By Cx Cy] for each vertex of the
+   isosceles triangle given as the segment {Ax Ay Bx By} which defines its
+   altitude."
   [ax ay bx by]
   (let [alt (js/Math.hypot (- bx ax) (- by ay))
         hyp (js/Math.hypot alt (/ alt 2))
@@ -229,7 +250,7 @@
 ;; Lines are defined by points {A, B}, opposite ends of the segment.
 (defmethod object-bounding-rect :shape/line
   [{[ax ay] :object/point [bx by] :shape/points}]
-  (bounding-rect [ax ay (+ ax bx) (+ ay by)]))
+  (bounding-rect (line-points ax ay (+ ax bx) (+ ay by) half-size)))
 
 ;; Notes are defined by the point {A} and is fixed square bound.
 (defmethod object-bounding-rect :note/note

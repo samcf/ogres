@@ -4,6 +4,7 @@
             [ogres.app.component :refer [icon]]
             [ogres.app.component.scene-context-menu :refer [context-menu]]
             [ogres.app.component.scene-pattern :refer [pattern]]
+            [ogres.app.const :refer [half-size]]
             [ogres.app.geom :as geom]
             [ogres.app.hooks :as hooks]
             [react-transition-group :refer [TransitionGroup CSSTransition]]
@@ -117,13 +118,8 @@
 
 (defui ^:private shape-line [props]
   (let [{[ax ay] :shape/points} (:entity props)]
-    ($ :line.scene-shape-fill
-      {:x1 0
-       :y1 0
-       :x2 ax
-       :y2 ay
-       :stroke-width 16
-       :stroke-linecap "round"
+    ($ :polygon.scene-shape-fill
+      {:points (join " " (geom/line-points 0 0 ax ay half-size))
        :fill (str "url(#shape-pattern-" (:db/id (:entity props)) ")")})))
 
 (defui ^:private shape-cone [props]
