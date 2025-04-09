@@ -43,18 +43,21 @@
    corner of the oriented rectangle defined by the line {Ax Ay Bx By}
    in clock-wise winding order."
   [ax ay bx by ln]
-  (let [ma (/ (- bx ax) (- ay by))
-        mb (js/Math.sqrt (inc (* ma ma)))
-        dx (* ln (/ mb))
-        dy (* ln (/ ma mb))]
-    [(+ ax (- dx))
-     (+ ay (- dy))
-     (+ bx (- dx))
-     (+ by (- dy))
-     (+ bx dx)
-     (+ by dy)
-     (+ ax dx)
-     (+ ay dy)]))
+  (if (= ay by)
+    [ax (+ ay ln) bx (+ ay ln) bx (- ay ln) ax (- ay ln)]
+    (let [ma (/ (- bx ax) (- ay by))
+          mb (js/Math.sqrt (inc (* ma ma)))
+          dx (* ln (/ mb))
+          dy (* ln (/ ma mb))
+          si (js/Math.sign (- ay by))]
+      [(+ ax (* dx si -1))
+       (+ ay (* dy si -1))
+       (+ bx (* dx si -1))
+       (+ by (* dy si -1))
+       (+ bx (* dx si))
+       (+ by (* dy si))
+       (+ ax (* dx si))
+       (+ ay (* dy si))])))
 
 (defn rect-points
   "Returns a vector of points as [Ax Ay Bx By Cx Cy Dx Dy] for each corner
@@ -143,20 +146,21 @@
 
 (defn ^:private path-around-tiles
   [points]
-  (let [xs (into  [] (comp (partition-all 2) (mapcat rect-points)) points)
-        vs (into #{} (partition-all 2) xs)
-        [ax ay bx by] (bounding-rect xs)
-        [sx sy] (first (filter (fn [[_ y]] (= y ay)) vs))]
-    (loop [nx sx ny sy rs (transient []) ed 0]
-      (if (and (= nx sx) (= ny sy) (> (count rs) 0)) (persistent! rs)
-          (let [[ex ey fx fy] (tile-edge-path ed)
-                cx (+ nx (* ex grid-size))
-                cy (+ ny (* ey grid-size))
-                dx (+ nx (* fx grid-size))
-                dy (+ ny (* fy grid-size))]
-            (if (contains? vs [cx cy])
-              (recur cx cy (conj! rs cx cy) (or (tile-edge ax ay bx by cx cy) ed))
-              (recur dx dy (conj! rs dx dy) (or (tile-edge ax ay bx by dx dy) ed))))))))
+  (if (not (seq points)) []
+      (let [xs (into  [] (comp (partition-all 2) (mapcat rect-points)) points)
+            vs (into #{} (partition-all 2) xs)
+            [ax ay bx by] (bounding-rect xs)
+            [sx sy] (first (filter (fn [[_ y]] (= y ay)) vs))]
+        (loop [nx sx ny sy rs (transient []) ed 0]
+          (if (and (= nx sx) (= ny sy) (> (count rs) 0)) (persistent! rs)
+              (let [[ex ey fx fy] (tile-edge-path ed)
+                    cx (+ nx (* ex grid-size))
+                    cy (+ ny (* ey grid-size))]
+                (if (contains? vs [cx cy])
+                  (recur cx cy (conj! rs cx cy) (or (tile-edge ax ay bx by cx cy) ed))
+                  (let [dx (+ nx (* fx grid-size))
+                        dy (+ ny (* fy grid-size))]
+                    (recur dx dy (conj! rs dx dy) (or (tile-edge ax ay bx by dx dy) ed))))))))))
 
 (defn tile-path-circle
   [ax ay rd]
@@ -203,6 +207,24 @@
                 (point-within-triangle? ax ay bx by cx cy (+ px 56) (+ py 14))
                 (point-within-triangle? ax ay bx by cx cy (+ px 14) (+ py 56))
                 (point-within-triangle? ax ay bx by cx cy (+ px 56) (+ py 56)))
+            (recur px (+ py sz) (conj! rs px py))
+            :else
+            (recur px (+ py sz) rs)))))
+
+(defn tile-path-line
+  [[ax ay bx by cx cy dx dy :as xs]]
+  (let [[ex ey fx fy] (bounding-rect xs)
+        sz grid-size
+        hz half-size
+        ex (round floor ex sz)
+        ey (round floor ey sz)
+        fx (round ceil  fx sz)
+        fy (round ceil  fy sz)]
+    (loop [px ex py ey rs (transient [])]
+      (cond (> px fx) (path-around-tiles (persistent! rs))
+            (> py fy) (recur (+ px sz) ey rs)
+            (or (point-within-triangle? ax ay bx by cx cy (+ px hz) (+ py hz))
+                (point-within-triangle? ax ay cx cy dx dy (+ px hz) (+ py hz)))
             (recur px (+ py sz) (conj! rs px py))
             :else
             (recur px (+ py sz) rs)))))
@@ -283,3 +305,11 @@
         bx (+ bx ax)
         by (+ by ay)]
     (tile-path-cone (cone-points ax ay bx by))))
+
+(defmethod object-tile-path :shape/line
+  [{[ax ay] :object/point [bx by] :shape/points} dx dy]
+  (let [ax (+ ax dx)
+        ay (+ ay dy)
+        bx (+ bx ax)
+        by (+ by ay)]
+    (tile-path-line (line-points ax ay bx by half-size))))
