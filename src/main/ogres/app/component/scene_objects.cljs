@@ -145,6 +145,7 @@
 (defui ^:private object-shape [props]
   (let [entity (:entity props)
         {id :db/id
+         type :object/type
          color :shape/color
          pattern-name :shape/pattern
          [ax ay] :object/point} entity
@@ -152,13 +153,14 @@
     ($ :g.scene-shape {:data-color color}
       ($ :defs.scene-shape-defs
         ($ pattern {:id (str "shape-pattern-" id) :name pattern-name}))
-      ($ :rect.scene-shape-bounds
-        {:x (- bx ax 6)
-         :y (- by ay 6)
-         :rx 3
-         :ry 3
-         :width (+ (- cx bx) (* 6 2))
-         :height (+ (- cy by) (* 6 2))})
+      (if (not= type :shape/rect)
+        ($ :rect.scene-shape-bounds
+          {:x (- bx ax)
+           :y (- by ay)
+           :width (- cx bx)
+           :height (- cy by)
+           :rx 3
+           :ry 3}))
       ($ :g.scene-shape-path
         {:fill-opacity (if (= pattern-name :solid) 0.40 0.80)}
         ($ shape props)))))
@@ -425,9 +427,9 @@
                    :data-drag-local (.-isDragging drag)}
                   (if (> (count selected) 1)
                     ($ :rect.scene-objects-bounds
-                      {:x (- ax 6) :y (- ay 6)
-                       :width  (+ (- bx ax) (* 6 2))
-                       :height (+ (- by ay) (* 6 2))
+                      {:x ax :y ay
+                       :width  (- bx ax)
+                       :height (- by ay)
                        :rx 3 :ry 3}))
                   ($ TransitionGroup {:component nil}
                     (for [entity entities
