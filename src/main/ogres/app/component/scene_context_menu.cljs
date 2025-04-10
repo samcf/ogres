@@ -23,11 +23,11 @@
    {:value :grappled      :icon "fist"}
    {:value :incapacitated :icon "lock-fill"}
    {:value :invisible     :icon "incognito"}
-   {:value :paralyzed     :icon "lightning-fill"}
+   {:value :paralyzed     :icon "cobra"}
    {:value :petrified     :icon "gem"}
-   {:value :poisoned      :icon "droplet-fill"}
-   {:value :prone         :icon "falling"}
-   {:value :restrained    :icon "spiderweb"}
+   {:value :poisoned      :icon "poison-bottle"}
+   {:value :prone         :icon "tripwire"}
+   {:value :restrained    :icon "cobweb"}
    {:value :stunned       :icon "stars"}
    {:value :unconscious   :icon "activity"}])
 

@@ -39,11 +39,11 @@
    :incapacitated "lock-fill"
    :initiative    "hourglass-split"
    :invisible     "incognito"
-   :paralyzed     "lightning-fill"
+   :paralyzed     "cobra"
    :petrified     "gem"
-   :poisoned      "droplet-fill"
-   :prone         "falling"
-   :restrained    "spiderweb"
+   :poisoned      "poison-bottle"
+   :prone         "tripwire"
+   :restrained    "cobweb"
    :stunned       "stars"
    :unconscious   "activity"})
 
