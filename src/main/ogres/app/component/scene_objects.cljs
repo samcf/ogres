@@ -4,6 +4,7 @@
             [ogres.app.component :refer [icon]]
             [ogres.app.component.scene-context-menu :refer [context-menu]]
             [ogres.app.component.scene-pattern :refer [pattern]]
+            [ogres.app.const :refer [half-size]]
             [ogres.app.geom :as geom]
             [ogres.app.hooks :as hooks]
             [react-transition-group :refer [TransitionGroup CSSTransition]]
@@ -13,6 +14,9 @@
              :refer [useDndMonitor useDraggable]
              :rename {useDndMonitor use-dnd-monitor
                       useDraggable use-draggable}]))
+
+(def ^:private rf-points->poly
+  (completing into (fn [xs] (join " " xs))))
 
 (def ^:private note-icons
   ["journal-bookmark-fill" "dice-5" "door-open" "geo-alt" "fire" "skull" "question-circle"])
@@ -114,13 +118,8 @@
 
 (defui ^:private shape-line [props]
   (let [{[ax ay] :shape/points} (:entity props)]
-    ($ :line.scene-shape-fill
-      {:x1 0
-       :y1 0
-       :x2 ax
-       :y2 ay
-       :stroke-width 16
-       :stroke-linecap "round"
+    ($ :polygon.scene-shape-fill
+      {:points (join " " (geom/line-points 0 0 ax ay half-size))
        :fill (str "url(#shape-pattern-" (:db/id (:entity props)) ")")})))
 
 (defui ^:private shape-cone [props]
@@ -146,6 +145,7 @@
 (defui ^:private object-shape [props]
   (let [entity (:entity props)
         {id :db/id
+         type :object/type
          color :shape/color
          pattern-name :shape/pattern
          [ax ay] :object/point} entity
@@ -153,13 +153,14 @@
     ($ :g.scene-shape {:data-color color}
       ($ :defs.scene-shape-defs
         ($ pattern {:id (str "shape-pattern-" id) :name pattern-name}))
-      ($ :rect.scene-shape-bounds
-        {:x (- bx ax 6)
-         :y (- by ay 6)
-         :rx 3
-         :ry 3
-         :width (+ (- cx bx) (* 6 2))
-         :height (+ (- cy by) (* 6 2))})
+      (if (not= type :shape/rect)
+        ($ :rect.scene-shape-bounds
+          {:x (- bx ax)
+           :y (- by ay)
+           :width (- cx bx)
+           :height (- cy by)
+           :rx 3
+           :ry 3}))
       ($ :g.scene-shape-path
         {:fill-opacity (if (= pattern-name :solid) 0.40 0.80)}
         ($ shape props)))))
@@ -298,7 +299,7 @@
        [:camera/point :default [0 0]]
        {:camera/scene
         [[:scene/grid-align :default false]
-         [:scene/grid-size :default 70]
+         [:scene/show-object-outlines :default true]
          {:scene/tokens
           [:db/id
            [:object/type :default :token/token]
@@ -336,17 +337,18 @@
       [:db/ident :user/uuid :user/color :user/dragging]}]}])
 
 (defui objects []
-  (let [result (hooks/use-query query [:db/ident :root])
+  (let [[_ set-ready] (uix/use-state false)
+        result (hooks/use-query query [:db/ident :root])
         {{[_ _ bw bh] :bounds/self
           type :user/type
           {[cx cy]  :camera/point
            scale    :camera/scale
            selected :camera/selected
-           {align? :scene/grid-align
-            size   :scene/grid-size
-            notes  :scene/notes
+           {outlines :scene/show-object-outlines
+            align? :scene/grid-align
             shapes :scene/shapes
-            tokens :scene/tokens}
+            tokens :scene/tokens
+            notes :scene/notes}
            :camera/scene}
           :user/camera} :root/user
          {conns :session/conns} :root/session} result
@@ -359,6 +361,11 @@
         selected (into #{} (map :db/id) selected)
         dragging (into {} user-drag-xf conns)
         boundsxf (comp (filter (comp selected :db/id)) (mapcat geom/object-bounding-rect))]
+
+    ;; automatically re-render once the portal ref is initialized.
+    (uix/use-effect
+     (fn [] (set-ready true)) [])
+
     (use-drag-listener)
     ($ :g.scene-objects {}
       ($ :g.scene-objects-portal
@@ -381,13 +388,13 @@
                         (let [handler (getValueByKeys drag "listeners" "onPointerDown")
                               dx (or (getValueByKeys drag "transform" "x") 0)
                               dy (or (getValueByKeys drag "transform" "y") 0)
-                              tx (+ ax (or rx dx 0))
-                              ty (+ ay (or ry dy 0))
+                              sx (or rx dx 0)
+                              sy (or ry dy 0)
                               to (if (and align? (.-isDragging drag) (or (not= dx 0) (not= dy 0)))
                                    (into [] (geom/alignment-xf dx dy) rect))]
                           ($ :g.scene-object
                             {:ref (.-setNodeRef drag)
-                             :transform (str "translate(" tx ", " ty ")")
+                             :transform (str "translate(" (+ ax sx) ", " (+ ay sy) ")")
                              :tab-index (if (and (not lock) seen) 0 -1)
                              :on-pointer-down (or handler stop-propagation)
                              :data-drag-remote (some? user)
@@ -395,11 +402,17 @@
                              :data-color (:user/color user)
                              :data-type (namespace (:object/type entity))
                              :data-id id}
+                            (if outlines
+                              (let [path (geom/object-tile-path entity sx sy)]
+                                (if (and (seq path) (some? (deref portal)))
+                                  (dom/create-portal
+                                   ($ :polygon.scene-object-tiles
+                                     {:points (transduce (partition-all 2) rf-points->poly path)})
+                                   (deref portal)))))
                             ($ object
                               {:aligned-to to
                                :entity entity
-                               :portal portal
-                               :scale size}))))))))))))
+                               :portal portal}))))))))))))
       ($ hooks/use-portal {:name :selected}
         (let [[ax ay bx by] (geom/bounding-rect (sequence boundsxf entities))]
           ($ drag-local-fn {:id "selected" :disabled (some dragging selected)}
@@ -414,9 +427,9 @@
                    :data-drag-local (.-isDragging drag)}
                   (if (> (count selected) 1)
                     ($ :rect.scene-objects-bounds
-                      {:x (- ax 6) :y (- ay 6)
-                       :width  (+ (- bx ax) (* 6 2))
-                       :height (+ (- by ay) (* 6 2))
+                      {:x ax :y ay
+                       :width  (- bx ax)
+                       :height (- by ay)
                        :rx 3 :ry 3}))
                   ($ TransitionGroup {:component nil}
                     (for [entity entities
@@ -437,11 +450,17 @@
                                    :data-drag-local (.-isDragging drag)
                                    :data-color (:user/color user)
                                    :data-id id}
+                                  (if outlines
+                                    (let [path (geom/object-tile-path entity (or rx dx 0) (or ry dy 0))]
+                                      (if (and (seq path) (some? (deref portal)))
+                                        (dom/create-portal
+                                         ($ :polygon.scene-object-tiles
+                                           {:points (transduce (partition-all 2) rf-points->poly path)})
+                                         (deref portal)))))
                                   ($ object
                                     {:aligned-to rect
                                      :entity entity
-                                     :portal portal
-                                     :scale size})))))))))
+                                     :portal portal})))))))))
                   (let [sz 400
                         tx (-> (+ ax bx) (* scale) (- sz) (/ 2) int)
                         ty (-> (+ by 24) (* scale) (- 24) int)

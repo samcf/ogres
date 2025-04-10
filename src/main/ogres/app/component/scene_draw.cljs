@@ -1,8 +1,8 @@
 (ns ogres.app.component.scene-draw
   (:require [clojure.string :refer [join]]
             [ogres.app.component :refer [icon]]
-            [ogres.app.const :refer [grid-size]]
-            [ogres.app.geom :refer [chebyshev-distance euclidean-distance cone-points reorient]]
+            [ogres.app.const :refer [grid-size half-size]]
+            [ogres.app.geom :as geom]
             [ogres.app.hooks :as hooks]
             [uix.core :as uix :refer [defui $]]
             ["@dnd-kit/core"
@@ -10,6 +10,9 @@
              :rename {DndContext    dnd-context
                       useDndMonitor use-dnd-monitor
                       useDraggable  use-draggable}]))
+
+(def ^:private rf-points->poly
+  (completing into (fn [xs] (join " " xs))))
 
 (def ^:private round
   (map (fn [[x y]] [(js/Math.round x) (js/Math.round y)])))
@@ -19,6 +22,9 @@
 
 (defn ^:private +' [x y]
   (map (fn [[ax ay]] [(+ ax x) (+ ay y)])))
+
+(defn ^:private -' [x y]
+  (map (fn [[ax ay]] [(- ax x) (- ay y)])))
 
 (defn ^:private *' [n]
   (map (fn [[x y]] [(* x n) (* y n)])))
@@ -67,7 +73,8 @@
      [:camera/point :default [0 0]]
      {:camera/scene
       [[:scene/grid-size :default grid-size]
-       [:scene/grid-origin :default [0 0]]]}]}])
+       [:scene/grid-origin :default [0 0]]
+       [:scene/show-object-outlines :default true]]}]}])
 
 (defui ^:private polygon
   [{:keys [on-create]}]
@@ -79,7 +86,7 @@
         [mouse set-mouse] (uix/use-state [])
         [ax ay] pairs
         [mx my] mouse
-        closed? (< (euclidean-distance ax ay mx my) 32)]
+        closed? (< (geom/euclidean-distance ax ay mx my) 32)]
     ($ :<>
       ($ :rect
         {:x 0 :y 0 :fill "transparent"
@@ -95,7 +102,7 @@
          (fn [event]
            (if closed?
              (let [xs (convert pairs (*' (/ scale)) (+' tx ty) round cat)
-                   xs (reorient xs)]
+                   xs (geom/reorient xs)]
                (set-pairs [])
                (on-create event xs))
              (set-pairs #(conj %1 mx my))))})
@@ -137,7 +144,7 @@
           ($ :g
             ($ :line {:x1 ax :y1 ay :x2 bx :y2 by})
             ($ text {:attrs {:x (- bx 48) :y (- by 8) :fill "white"}}
-              (-> (chebyshev-distance ax ay bx by)
+              (-> (geom/chebyshev-distance ax ay bx by)
                   (px->ft (* grid-size scale))
                   (str "ft.")))))))))
 
@@ -146,19 +153,27 @@
         result   (hooks/use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
-          scale :camera/scale} :user/camera} result]
+          scale :camera/scale
+          scene :camera/scene} :user/camera} result
+        xf-offset (-' ox oy)
+        xf-canvas (comp (*' (/ scale)) (+' tx ty))]
     ($ drawable
       {:on-release
        (fn [points]
-         (let [points (convert points (+' (- ox) (- oy)) (*' (/ scale)) (+' tx ty) cat)]
-           (dispatch :shape/create :circle points)))}
+         (dispatch :shape/create :circle (convert points xf-offset xf-canvas cat)))}
       (fn [points]
-        (let [[ax ay bx by] (convert points (+' (- ox) (- oy)) cat)
-              radius (chebyshev-distance ax ay bx by)]
+        (let [[ax ay bx by] (convert points xf-offset xf-canvas cat)
+              [cx cy dx dy] (convert points xf-offset cat)
+              radius (geom/chebyshev-distance ax ay bx by)]
           ($ :g
-            ($ :circle {:cx ax :cy ay :r radius})
-            ($ text {:attrs {:x ax :y ay :fill "white"}}
-              (-> radius (px->ft (* grid-size scale)) (str "ft. radius")))))))))
+            (if (:scene/show-object-outlines scene)
+              (let [xf (comp (partition-all 2) (-' tx ty) (*' scale))
+                    xs (geom/tile-path-circle ax ay radius)]
+                ($ :polygon {:points (transduce xf rf-points->poly [] xs)})))
+            ($ :circle {:cx cx :cy cy :r (geom/chebyshev-distance cx cy dx dy)})
+            ($ text {:attrs {:x cx :y cy :fill "white"}}
+              (str (px->ft radius grid-size)
+                   "ft. radius"))))))))
 
 (defui ^:private draw-rect []
   (let [dispatch (hooks/use-dispatch)
@@ -186,40 +201,54 @@
         result   (hooks/use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
-          scale   :camera/scale} :user/camera} result]
+          scale   :camera/scale
+          scene   :camera/scene} :user/camera} result
+        xf-offset (-' ox oy)
+        xf-canvas (comp (*' (/ scale)) (+' tx ty))
+        xf-invert (comp (partition-all 2) (-' tx ty) (*' scale))]
     ($ drawable
       {:on-release
        (fn [points]
-         (let [points (convert points (+' (- ox) (- oy)) (*' (/ scale)) (+' tx ty) cat)]
+         (let [points (convert points xf-offset xf-canvas cat)]
            (dispatch :shape/create :line points)))}
       (fn [points]
-        (let [[ax ay bx by] (convert points (+' (- ox) (- oy)) cat)]
+        (let [[ax ay bx by] (convert points xf-offset xf-canvas cat)
+              [_  _  cx cy] (convert points xf-offset cat)
+              xs (geom/line-points ax ay bx by half-size)
+              ln (geom/chebyshev-distance ax ay bx by)]
           ($ :g
-            ($ :line {:x1 ax :y1 ay :x2 bx :y2 by})
-            ($ text {:attrs {:x (+ ax 8) :y (- ay 8) :fill "white"}}
-              (-> (chebyshev-distance ax ay bx by)
-                  (px->ft (* grid-size scale))
-                  (str "ft.")))))))))
+            (if (:scene/show-object-outlines scene)
+              ($ :polygon {:points (transduce xf-invert rf-points->poly [] (geom/tile-path-line xs))}))
+            ($ :polygon {:points (transduce xf-invert rf-points->poly [] xs)})
+            ($ text {:attrs {:x (+ cx 8) :y (- cy 8) :fill "white"}}
+              (str (px->ft ln grid-size) "ft."))))))))
 
 (defui ^:private draw-cone []
   (let [dispatch (hooks/use-dispatch)
         result   (hooks/use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
-          scale   :camera/scale} :user/camera} result]
+          scale   :camera/scale
+          scene   :camera/scene} :user/camera} result
+        xf-offset (-' ox oy)
+        xf-canvas (comp (*' (/ scale)) (+' tx ty))]
     ($ drawable
       {:on-release
        (fn [points]
-         (let [points (convert points (+' (- ox) (- oy)) (*' (/ scale)) (+' tx ty) cat)]
+         (let [points (convert points xf-offset xf-canvas cat)]
            (dispatch :shape/create :cone points)))}
       (fn [points]
-        (let [[ax ay bx by] (convert points (+' (- ox) (- oy)) cat)]
+        (let [[ax ay bx by] (convert points xf-offset xf-canvas cat)
+              [cx cy dx dy] (convert points xf-offset cat)
+              radius (geom/euclidean-distance ax ay bx by)]
           ($ :g
-            ($ :polygon {:points (join " " (cone-points ax ay bx by))})
-            ($ text {:attrs {:x (+ bx 16) :y (+ by 16) :fill "white"}}
-              (-> (euclidean-distance ax ay bx by)
-                  (px->ft (* grid-size scale))
-                  (str "ft.")))))))))
+            (if (:scene/show-object-outlines scene)
+              (let [xs (geom/tile-path-cone (geom/cone-points ax ay bx by))
+                    xf (comp (partition-all 2) (-' tx ty) (*' scale))]
+                ($ :polygon {:points (transduce xf rf-points->poly xs)})))
+            ($ :polygon {:points (join " " (geom/cone-points cx cy dx dy))})
+            ($ text {:attrs {:x (+ dx 16) :y (+ dy 16) :fill "white"}}
+              (str (px->ft radius grid-size) "ft."))))))))
 
 (defui ^:private draw-poly []
   (let [dispatch (hooks/use-dispatch)]
