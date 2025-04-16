@@ -1,34 +1,41 @@
-.scene-drawable {
+.scene-draw {
+  pointer-events: none;
+}
+
+.scene-draw-surface {
   cursor: crosshair;
+  pointer-events: all;
+}
 
-  line,
-  path,
-  polygon,
-  circle {
-    fill: transparent;
-    stroke: var(--scene-stroke);
-    stroke-dasharray: 6px 2px;
-  }
+.scene-draw-shape {
+  fill: var(--scene-stroke);
+  fill-opacity: 0.1;
+  stroke-dasharray: 16px 3px;
+  stroke: var(--scene-stroke);
+}
 
-  &.scene-drawable-grid path,
-  &.scene-drawable-rect path,
-  &.scene-drawable-select path {
-    shape-rendering: crispEdges;
-  }
+.scene-draw-tile-path {
+  fill: var(--scene-stroke);
+  fill-opacity: 0.15;
+}
 
-  &.scene-drawable-select {
-    cursor: auto;
+.scene-draw-anchor {
+  fill: var(--scene-stroke);
+}
 
-    path {
-      fill-opacity: 0.1;
-      fill: var(--scene-stroke);
-      stroke-dasharray: 0;
-      stroke-dashoffset: 0;
-      stroke-opacity: 0.25;
-      stroke-width: 1px;
-      stroke: var(--scene-stroke);
-    }
-  }
+.scene-draw-anchor-ring {
+  fill: none;
+  stroke: var(--scene-stroke);
+}
+
+.scene-draw-select .scene-draw-shape {
+  fill-opacity: 0.1;
+  fill: var(--scene-stroke);
+  stroke-dasharray: 0;
+  stroke-dashoffset: 0;
+  stroke-opacity: 0.45;
+  stroke-width: 1px;
+  stroke: var(--scene-stroke);
 }
 
 .grid-align path,

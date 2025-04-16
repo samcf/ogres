@@ -4,6 +4,7 @@
             [ogres.app.const :refer [grid-size half-size]]
             [ogres.app.geom :as geom]
             [ogres.app.hooks :as hooks]
+            [ogres.app.util :as util]
             [uix.core :as uix :refer [defui $]]
             ["@dnd-kit/core"
              :refer  [DndContext useDraggable useDndMonitor]
@@ -11,28 +12,50 @@
                       useDndMonitor use-dnd-monitor
                       useDraggable  use-draggable}]))
 
+(defn ^:private xf-identity
+  ([ax ay]       [ax ay])
+  ([ax ay bx by] [ax ay bx by]))
+
+(defn ^:private xf-align
+  ([ax ay]
+   [(util/round ax grid-size)
+    (util/round ay grid-size)])
+  ([ax ay bx by]
+   [(util/round ax grid-size)
+    (util/round ay grid-size)
+    (util/round bx grid-size)
+    (util/round by grid-size)]))
+
+(defn ^:private xf-align-half [ax ay bx by]
+  [(util/round ax half-size)
+   (util/round ay half-size)
+   (util/round bx half-size)
+   (util/round by half-size)])
+
 (def ^:private rf-points->poly
   (completing into (fn [xs] (join " " xs))))
 
-(defn ^:private to-camera [a o t s]
-  (+ (/ (- a o) s) t))
+(defn ^:private to-camera [ax ay ox oy tx ty scale]
+  [(+ (/ (- ax ox) scale) tx)
+   (+ (/ (- ay oy) scale) ty)])
 
-(defn ^:private to-canvas [a t s]
-  (* (- a t) s))
+(defn ^:private to-canvas [ax ay tx ty scale]
+  [(* (- ax tx) scale)
+   (* (- ay ty) scale)])
 
 (defn ^:private xf-to-canvas
   [tx ty scale]
-  (comp (partition-all 2)
-        (map
-         (fn [[ax ay]]
-           [(to-canvas ax tx scale)
-            (to-canvas ay ty scale)]))))
+  (comp
+   (partition-all 2)
+   (map (fn [[ax ay]] (to-canvas ax ay tx ty scale)))))
 
 (def ^:private round
   (map (fn [[x y]] [(js/Math.round x) (js/Math.round y)])))
 
 (defn ^:private px->ft [px size]
-  (js/Math.round (* (/ px size) 5)))
+  (let [ft (* (/ px size) 5)]
+    (if (js/Number.isInteger ft) ft
+        (.toFixed ft 1))))
 
 (defn ^:private +' [x y]
   (map (fn [[ax ay]] [(+ ax x) (+ ay y)])))
@@ -43,29 +66,26 @@
 (defn ^:private convert [xs & xfs]
   (into [] (apply comp (partition-all 2) xfs) xs))
 
-(defui ^:private text [{:keys [attrs children]}]
+(defui ^:private ^:memo text [{:keys [attrs children]}]
   ($ :text.scene-text attrs children))
 
-(def ^:private query
-  [[:bounds/self :default [0 0 0 0]]
-   {:user/camera
-    [[:camera/scale :default 1]
-     [:camera/point :default [0 0]]
-     {:camera/scene
-      [[:scene/grid-size :default grid-size]
-       [:scene/grid-origin :default [0 0]]
-       [:scene/show-object-outlines :default true]]}]}])
+(defui ^:private ^:memo anchor []
+  ($ :<>
+    ($ :circle.scene-draw-anchor {:cx 0 :cy 0 :r 4})
+    ($ :circle.scene-draw-anchor-ring {:cx 0 :cy 0 :r 6})))
 
-(defui draw-segment-drag [props]
-  (let [{:keys [children on-release]} props
+(defui ^:private draw-segment-drag [props]
+  (let [{:keys [children on-release use-cursor]} props
         [points set-points] (uix/use-state nil)
+        [cursor set-cursor] (uix/use-state nil)
         options (use-draggable #js {"id" "drawable"})
         on-down (.. options -listeners -onPointerDown)
         on-stop
         (fn []
-          (set-points [])
+          (set-points nil)
+          (set-cursor nil)
           (on-release points))
-        on-move
+        on-drag
         (uix/use-callback
          (fn [data]
            (let [dx (.-x (.-delta data))
@@ -77,55 +97,78 @@
                     [ax ay (+ ax dx) (+ ay dy)])
                   (let [ax (.-clientX (.-activatorEvent data))
                         ay (.-clientY (.-activatorEvent data))]
-                    [ax ay ax ay])))))) [])]
+                    [ax ay ax ay])))))) [])
+        on-move
+        (uix/use-callback
+         (fn [event]
+           (set-cursor [(.-clientX event) (.-clientY event)])) [])]
     (use-dnd-monitor
-     #js {"onDragMove" on-move
+     #js {"onDragMove" on-drag
           "onDragEnd"  on-stop})
     ($ :<>
-      ($ :rect
+      ($ :rect.scene-draw-surface
         {:x 0 :y 0
          :width "100%" :height "100%"
          :fill "transparent"
          :ref (.-setNodeRef options)
-         :on-pointer-down on-down})
-      (if (seq points)
-        (children points)))))
+         :on-pointer-down on-down
+         :on-pointer-move (if (and use-cursor (not (seq points))) on-move)})
+      (children points cursor))))
 
-(defui draw-segment [props]
-  (let [{:keys [children on-release tile-path]} props
+(def ^:private query
+  [[:bounds/self :default [0 0 0 0]]
+   {:user/camera
+    [[:camera/scale :default 1]
+     [:camera/point :default [0 0]]
+     {:camera/scene
+      [[:scene/grid-align :default false]
+       [:scene/grid-size :default grid-size]
+       [:scene/grid-origin :default [0 0]]
+       [:scene/show-object-outlines :default true]]}]}])
+
+(defui ^:private draw-segment [props]
+  (let [{:keys [children on-release tile-path transform]
+         :or   {transform xf-identity}} props
         result (hooks/use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
           scale :camera/scale
-          {show-path :scene/show-object-outlines}
+          {grid-paths :scene/show-object-outlines
+           grid-align :scene/grid-align}
           :camera/scene}
-         :user/camera} result]
+         :user/camera} result
+        transform (if grid-align transform xf-identity)]
     ($ draw-segment-drag
-      {:on-release
+      {:use-cursor (contains? props :transform)
+       :on-release
        (uix/use-callback
         (fn [[ax ay bx by]]
-          (let [ax (to-camera ax ox tx scale)
-                ay (to-camera ay oy ty scale)
-                bx (to-camera bx ox tx scale)
-                by (to-camera by oy ty scale)]
+          (let [[ax ay] (to-camera ax ay ox oy tx ty scale)
+                [bx by] (to-camera bx by ox oy tx ty scale)
+                [ax ay bx by] (transform ax ay bx by)]
             (on-release ax ay bx by)))
-        [on-release ox oy tx ty scale])}
+        [on-release transform ox oy tx ty scale])}
       (uix/use-callback
-       (fn [[ax ay bx by]]
-         (let [ax (to-camera ax ox tx scale)
-               ay (to-camera ay oy ty scale)
-               bx (to-camera bx ox tx scale)
-               by (to-camera by oy ty scale)
-               cx (to-canvas ax tx scale)
-               cy (to-canvas ay ty scale)
-               dx (to-canvas bx tx scale)
-               dy (to-canvas by ty scale)]
-           ($ :<>
-             (if (and (fn? tile-path) show-path)
-               (let [path (tile-path ax ay bx by)]
-                 ($ :polygon {:points (transduce (xf-to-canvas tx ty scale) rf-points->poly [] path)})))
-             (children ax ay bx by cx cy dx dy))))
-       [children show-path tile-path ox oy tx ty scale]))))
+       (fn [[ax ay bx by] [mx my]]
+         (cond (or ax ay bx by)
+               (let [[ax ay] (to-camera ax ay ox oy tx ty scale)
+                     [bx by] (to-camera bx by ox oy tx ty scale)
+                     [ax ay bx by] (transform ax ay bx by)
+                     [cx cy] (to-canvas ax ay tx ty scale)
+                     [dx dy] (to-canvas bx by tx ty scale)]
+                 ($ :<>
+                   (if (and (fn? tile-path) grid-paths)
+                     (let [path (tile-path ax ay bx by)]
+                       ($ :polygon.scene-draw-tile-path
+                         {:points (transduce (xf-to-canvas tx ty scale) rf-points->poly [] path)})))
+                   (children ax ay bx by cx cy dx dy)))
+               (and grid-align (or mx my))
+               (let [[cx cy] (to-camera mx my ox oy tx ty scale)
+                     [cx cy] (transform cx cy)
+                     [cx cy] (to-canvas cx cy tx ty scale)]
+                 ($ :g {:transform (str "translate(" cx ", " cy ")")}
+                   ($ anchor)))))
+       [children grid-paths grid-align tile-path transform ox oy tx ty scale]))))
 
 (defui ^:private polygon
   [{:keys [on-create]}]
@@ -178,15 +221,17 @@
       (uix/use-callback
        (fn [_ _ _ _ ax ay bx by]
          ($ hooks/use-portal {:name :multiselect}
-           ($ :path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}))) []))))
+           ($ :path.scene-draw-shape
+             {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])}))) []))))
 
 (defui ^:private draw-ruler []
   ($ draw-segment
-    {:on-release (uix/use-callback (fn []) [])}
+    {:transform xf-align-half
+     :on-release (uix/use-callback (fn []) [])}
     (uix/use-callback
      (fn [ax ay bx by cx cy dx dy]
        ($ :<>
-         ($ :line {:x1 cx :y1 cy :x2 dx :y2 dy})
+         ($ :line.scene-draw-shape {:x1 cx :y1 cy :x2 dx :y2 dy})
          ($ text {:attrs {:x (- dx 48) :y (- dy 8) :fill "white"}}
            (-> (geom/chebyshev-distance ax ay bx by)
                (px->ft grid-size)
@@ -195,7 +240,8 @@
 (defui ^:private draw-circle []
   (let [dispatch (hooks/use-dispatch)]
     ($ draw-segment
-      {:on-release
+      {:transform xf-align
+       :on-release
        (uix/use-callback
         (fn [ax ay bx by]
           (dispatch :shape/create :circle [ax ay bx by])) [dispatch])
@@ -208,7 +254,7 @@
        (fn [ax ay bx by cx cy dx dy]
          (let [radius (geom/chebyshev-distance ax ay bx by)]
            ($ :<>
-             ($ :circle {:cx cx :cy cy :r (geom/chebyshev-distance cx cy dx dy)})
+             ($ :circle.scene-draw-shape {:cx cx :cy cy :r (geom/chebyshev-distance cx cy dx dy)})
              ($ text {:attrs {:x cx :y cy :fill "white"}}
                (str (px->ft radius grid-size)
                     "ft. radius"))))) []))))
@@ -216,14 +262,15 @@
 (defui ^:private draw-rect []
   (let [dispatch (hooks/use-dispatch)]
     ($ draw-segment
-      {:on-release
+      {:transform xf-align
+       :on-release
        (uix/use-callback
         (fn [ax ay bx by]
           (dispatch :shape/create :rect [ax ay bx by])) [dispatch])}
       (uix/use-callback
        (fn [cx cy dx dy ax ay bx by]
          ($ :<>
-           ($ :path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])})
+           ($ :path.scene-draw-shape {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"])})
            ($ text {:attrs {:x (+ ax 8) :y (- ay 8) :fill "white"}}
              (let [w (px->ft (abs (- cx dx)) grid-size)
                    h (px->ft (abs (- cy dy)) grid-size)]
@@ -232,7 +279,8 @@
 (defui ^:private draw-line []
   (let [dispatch (hooks/use-dispatch)]
     ($ draw-segment
-      {:on-release
+      {:transform xf-align-half
+       :on-release
        (uix/use-callback
         (fn [ax ay bx by]
           (dispatch :shape/create :line [ax ay bx by])) [dispatch])
@@ -246,7 +294,7 @@
            (let [scale (/ (abs (- dx cx)) (abs (- bx ax)))]
              (if (not (js/isNaN scale))
                (let [xs (geom/line-points cx cy dx dy (* scale half-size))]
-                 ($ :polygon {:points (transduce (partition-all 2) rf-points->poly [] xs)}))))
+                 ($ :polygon.scene-draw-shape {:points (transduce (partition-all 2) rf-points->poly [] xs)}))))
            (let [ln (geom/chebyshev-distance ax ay bx by)]
              ($ text {:attrs {:x (+ cx 8) :y (- cy 8) :fill "white"}}
                (str (px->ft ln grid-size) "ft."))))) []))))
@@ -254,7 +302,8 @@
 (defui ^:private draw-cone []
   (let [dispatch (hooks/use-dispatch)]
     ($ draw-segment
-      {:on-release
+      {:transform xf-align
+       :on-release
        (uix/use-callback
         (fn [ax ay bx by]
           (dispatch :shape/create :cone [ax ay bx by])) [dispatch])
@@ -266,7 +315,7 @@
        (fn [ax ay bx by cx cy dx dy]
          (let [radius (geom/euclidean-distance ax ay bx by)]
            ($ :<>
-             ($ :polygon {:points (join " " (geom/cone-points cx cy dx dy))})
+             ($ :polygon.scene-draw-shape {:points (join " " (geom/cone-points cx cy dx dy))})
              ($ text {:attrs {:x (+ dx 16) :y (+ dy 16) :fill "white"}}
                (str (px->ft radius grid-size) "ft."))))) []))))
 
@@ -365,7 +414,7 @@
                   ($ :button {:type "submit" :data-name "submit"}
                     ($ icon {:name "check"})))))))))))
 
-(defui draw-note []
+(defui ^:private draw-note []
   (let [dispatch (hooks/use-dispatch)]
     ($ :rect
       {:x 0
