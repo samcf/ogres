@@ -1,32 +1,41 @@
 (ns ogres.app.vec
   (:refer-clojure :exclude [abs max mod]))
 
-(defn ^:private to-string-vec2 [this]
-  (str "#vec2[" (.-x this) "," (.-y this) "]"))
+(defn ^:private to-string-vec2 [x y]
+  (str "#vec2[" x "," y "]"))
 
-(defn ^:private to-string-segment [this]
+(defn ^:private to-string-segment [a b]
   (str "#segment["
-       (.-x (.-a this)) ","
-       (.-y (.-a this)) " "
-       (.-x (.-b this)) ","
-       (.-y (.-b this))
-       "]"))
+       (.-x a) "," (.-y a) " "
+       (.-x b) "," (.-y b) "]"))
 
-(deftype ^:export Vec2 [x y]
+(deftype Vec2 [x y]
   Object
-  (toString [this]
-    (to-string-vec2 this))
+  (toString [_]
+    (to-string-vec2 x y))
   cljs.core/IPrintWithWriter
-  (-pr-writer [this writer _]
-    (-write writer (to-string-vec2 this))))
+  (-pr-writer [_ writer _]
+    (-write writer (to-string-vec2 x y)))
+  IEquiv
+  (-equiv [_ v]
+    (and (instance? Vec2 v) (= (.-x v) x) (= (.-y v) y)))
+  IHash
+  (-hash [_]
+    (hash [x y])))
 
-(deftype ^:export Segment [a b]
+(deftype Segment [a b]
   Object
-  (toString [this]
-    (to-string-segment this))
+  (toString [_]
+    (to-string-segment a b))
   cljs.core/IPrintWithWriter
-  (-pr-writer [this writer _]
-    (-write writer (to-string-segment this))))
+  (-pr-writer [_ writer _]
+    (-write writer (to-string-segment a b)))
+  IEquiv
+  (-equiv [_ s]
+    (and (instance? Segment s) (= (.-a s) a) (= (.-b s) b)))
+  IHash
+  (-hash [_]
+    (hash [a b])))
 
 (defn ^:private rounded
   ([x]     (js/Math.round x))
