@@ -27,7 +27,18 @@
   ([a]   (vec/round a half-size))
   ([a b] (Segment. (xf-align-half a) (xf-align-half b))))
 
-(defn ^:private xf-cone
+(defn ^:private xf-align-line
+  ([a] (xf-align-half a))
+  ([a b]
+   (let [src (xf-align-half a)
+         dir (vec/sub b src)
+         len (vec/dist vec/zero dir)]
+     (if (= len 0)
+       (Segment. src src)
+       (let [dst (-> (vec/div dir len) (vec/mul (util/round len grid-size)) (vec/add src))]
+         (Segment. src dst))))))
+
+(defn ^:private xf-align-cone
   ([a] (xf-align a))
   ([a b]
    (let [src (xf-align a)
@@ -306,7 +317,7 @@
 (defui ^:private draw-line []
   (let [dispatch (hooks/use-dispatch)]
     ($ draw-segment
-      {:transform xf-align-half
+      {:transform xf-align-line
        :on-release
        (uix/use-callback
         (fn [^Segment s]
@@ -327,14 +338,13 @@
                (if (not (js/isNaN scale))
                  (let [xs (geom/line-points (.-x c) (.-y c) (.-x d) (.-y d) (* scale half-size))]
                    ($ :polygon.scene-draw-shape {:points (transduce (partition-all 2) points->poly [] xs)}))))
-             (let [ln (vec/dist-cheb camera)]
-               ($ text {:attrs {:x (+ (.-x c) 8) :y (- (.-y c) 8) :fill "white"}}
-                 (str (px->ft ln) "ft.")))))) []))))
+             ($ text {:attrs {:x (+ (.-x c) 8) :y (- (.-y c) 8) :fill "white"}}
+               (str (px->ft (vec/dist camera)) "ft."))))) []))))
 
 (defui ^:private draw-cone []
   (let [dispatch (hooks/use-dispatch)]
     ($ draw-segment
-      {:transform xf-cone
+      {:transform xf-align-cone
        :on-release
        (uix/use-callback
         (fn [^Segment s]
