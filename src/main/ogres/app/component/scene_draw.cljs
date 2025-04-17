@@ -78,8 +78,8 @@
 (defui ^:private anchor
   []
   ($ :<>
-    ($ :circle.scene-draw-anchor {:cx 0 :cy 0 :r 4})
-    ($ :circle.scene-draw-anchor-ring {:cx 0 :cy 0 :r 6})))
+    ($ :circle.scene-draw-anchor {:r 4})
+    ($ :circle.scene-draw-anchor-ring {:r 6})))
 
 (defui ^:private draw-segment-drag [props]
   (let [{:keys [children on-release use-cursor]} props
@@ -113,10 +113,7 @@
           "onDragEnd"  on-stop})
     ($ :<>
       ($ :rect.scene-draw-surface
-        {:x 0 :y 0
-         :width "100%" :height "100%"
-         :fill "transparent"
-         :ref (.-setNodeRef options)
+        {:ref (.-setNodeRef options)
          :on-pointer-down on-down
          :on-pointer-move (if (and use-cursor (nil? segment)) on-move)})
       (children segment cursor))))
@@ -194,12 +191,7 @@
         shift (Vec2. tx ty)]
     ($ :<>
       ($ :rect.scene-draw-surface
-        {:x 0
-         :y 0
-         :fill "transparent"
-         :width "100%"
-         :height "100%"
-         :on-pointer-down
+        {:on-pointer-down
          (fn [event]
            (.stopPropagation event))
          :on-pointer-move
@@ -262,6 +254,10 @@
               :y1 (.-y a)
               :x2 (.-x b)
               :y2 (.-y b)})
+           ($ :g {:transform (vec/to-translate a)}
+             ($ anchor))
+           ($ :g {:transform (vec/to-translate b)}
+             ($ anchor))
            ($ text
              {:attrs
               {:x (- (.-x b) 48)
@@ -394,12 +390,7 @@
         on-shift (fn [a] (fn [] (set-origin (fn [b] (vec/add a b)))))]
     ($ :g.grid-align
       ($ :rect.scene-draw-surface
-        {:x 0
-         :y 0
-         :width "100%"
-         :height "100%"
-         :fill "transparent"
-         :on-click
+        {:on-click
          (fn [event]
            (set-origin (Vec2. (.-clientX event) (.-clientY event))))})
       (if (some? origin)
@@ -411,7 +402,7 @@
                           "M " (- wide)      " " (* step draw) " " \H " " wide " "))]
           ($ :g {:transform (vec/to-translate (vec/sub origin basis))}
             ($ :path.grid-align-path {:d (join path)})
-            ($ :circle.grid-align-center {:cx 0 :cy 0 :r 6})
+            ($ :circle.grid-align-center {:r 6})
             ($ :foreignObject.grid-align-form
               {:x -128 :y -128 :width 256 :height 256}
               ($ :form
@@ -461,17 +452,10 @@
 
 (defui ^:private draw-note []
   (let [dispatch (hooks/use-dispatch)]
-    ($ :rect
-      {:x 0
-       :y 0
-       :width "100%"
-       :height "100%"
-       :fill "transparent"
-       :on-click
+    ($ :rect.scene-draw-surface
+      {:on-click
        (fn [event]
-         (let [x (.-clientX event)
-               y (.-clientY event)]
-           (dispatch :note/create x y)))})))
+         (dispatch :note/create (.-clientX event) (.-clientY event)))})))
 
 (defui draw [{:keys [mode] :as props}]
   ($ dnd-context

@@ -4,7 +4,10 @@
 
 .scene-draw-surface {
   cursor: crosshair;
+  fill: transparent;
+  height: 100%;
   pointer-events: all;
+  width: 100%;
 }
 
 .scene-draw-shape {
