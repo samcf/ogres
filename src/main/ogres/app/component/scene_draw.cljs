@@ -1,11 +1,11 @@
 (ns ogres.app.component.scene-draw
   (:require [clojure.string :refer [join]]
-            #_[ogres.app.component :refer [icon]]
+            [ogres.app.component :refer [icon]]
             [ogres.app.const :refer [grid-size half-size]]
             [ogres.app.geom :as geom]
             [ogres.app.hooks :as hooks]
-            [uix.core :as uix :refer [defui $]]
             [ogres.app.vec :as vec :refer [Segment Vec2]]
+            [uix.core :as uix :refer [defui $]]
             ["@dnd-kit/core"
              :refer  [DndContext useDraggable useDndMonitor]
              :rename {DndContext    dnd-context
@@ -354,86 +354,85 @@
        (fn [_ points]
          (dispatch :mask/create points))})))
 
-#_(defui ^:private draw-grid []
-    (let [dispatch (hooks/use-dispatch)
-          {[bx by] :bounds/self
-           {[tx ty] :camera/point
-            scale   :camera/scale
-            {prev-size :scene/grid-size
-             [px py :as prev-origin] :scene/grid-origin}
-            :camera/scene} :user/camera} (hooks/use-query query)
-          [next-origin set-origin] (uix/use-state nil)
-          [next-size     set-size] (uix/use-state prev-size)]
-      ($ :g.grid-align
-        ($ :rect
-          {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"
-           :on-click
-           (fn [event]
-             (let [x (.-clientX event) y (.-clientY event)]
-               (set-origin [x y])))})
-        (if (some? next-origin)
-          (let [[x y] next-origin
-                idxs 7
-                draw (* next-size (/ grid-size prev-size) scale)
-                wide (* (inc idxs) draw)
-                path (for [indx (range (- idxs) (inc idxs))
-                           path [[(- wide) "," (* indx draw) "H" wide]
-                                 [(* indx draw) "," (- wide) "V" wide]]]
-                       (apply str "M" path))]
-            ($ :g {:transform (str "translate(" (- x bx) "," (- y by) ")")}
-              ($ :path {:d (join path)})
-              ($ :circle {:cx 0 :cy 0 :r 14})
-              ($ :foreignObject.grid-align-form
-                {:x -128 :y -128 :width 256 :height 256}
-                ($ :form
-                  {:on-submit
-                   (fn [event]
-                     (.preventDefault event)
-                     (let [xf (comp (+' (- bx) (- by))
-                                    (*' (/ scale))
-                                    (+' tx ty)
-                                    (+' px py)
-                                    (*' (/ prev-size next-size))
-                                    (map (fn [[x y]] [(mod (abs x) grid-size) (mod (abs y) grid-size)]))
-                                    round
-                                    cat)]
-                       (dispatch :scene/apply-grid-options (convert next-origin xf) next-size)))}
-                  ($ :fieldset.grid-align-origin
+(defui ^:private draw-grid []
+  (let [dispatch (hooks/use-dispatch)
+        {[ox oy] :bounds/self
+         {[tx ty] :camera/point
+          scale   :camera/scale
+          {prev-size :scene/grid-size
+           [px py] :scene/grid-origin}
+          :camera/scene} :user/camera} (hooks/use-query query)
+        [origin set-origin] (uix/use-state nil)
+        [size     set-size] (uix/use-state prev-size)
+        basis (Vec2. ox oy)
+        shift (Vec2. tx ty)
+        on-shift (fn [a] (fn [] (set-origin (fn [b] (vec/add a b)))))]
+    ($ :g.grid-align
+      ($ :rect.scene-draw-surface
+        {:x 0
+         :y 0
+         :width "100%"
+         :height "100%"
+         :fill "transparent"
+         :on-click
+         (fn [event]
+           (set-origin (Vec2. (.-clientX event) (.-clientY event))))})
+      (if (some? origin)
+        (let [rows 7
+              draw (* size scale (/ grid-size prev-size))
+              wide (* draw (inc rows))
+              path (for [step (range (- rows) (inc rows))]
+                     (str "M " (* step draw) " " (- wide)      " " \V " " wide " "
+                          "M " (- wide)      " " (* step draw) " " \H " " wide " "))]
+          ($ :g {:transform (vec/to-translate (vec/sub origin basis))}
+            ($ :path.grid-align-path {:d (join path)})
+            ($ :circle.grid-align-center {:cx 0 :cy 0 :r 6})
+            ($ :foreignObject.grid-align-form
+              {:x -128 :y -128 :width 256 :height 256}
+              ($ :form
+                {:on-submit
+                 (fn [event]
+                   (.preventDefault event)
+                   (let [point (-> (vec/sub origin basis) (vec/div scale) (vec/add shift)
+                                   (vec/add (Vec2. px py)) (vec/abs) (vec/mod grid-size)
+                                   (vec/round 0.25))]
+                     (dispatch :scene/apply-grid-options [(.-x point) (.-y point)] size)))}
+                ($ :fieldset.grid-align-origin
+                  ($ :button
+                    {:type "button" :data-name "up" :on-click (on-shift (Vec2. 0 -1))}
+                    ($ icon {:name "arrow-up-short" :size 20}))
+                  ($ :button
+                    {:type "button" :data-name "right" :on-click (on-shift (Vec2. 1 0))}
+                    ($ icon {:name "arrow-right-short" :size 20}))
+                  ($ :button
+                    {:type "button" :data-name "down" :on-click (on-shift (Vec2. 0 1))}
+                    ($ icon {:name "arrow-down-short" :size 20}))
+                  ($ :button
+                    {:type "button" :data-name "left" :on-click (on-shift (Vec2. -1 0))}
+                    ($ icon {:name "arrow-left-short" :size 20}))
+                  (if (and (not= px 0) (not= py 0))
                     ($ :button
-                      {:type "button" :data-name "up" :on-click #(set-origin [x (dec y)])}
-                      ($ icon {:name "arrow-up-short" :size 20}))
-                    ($ :button
-                      {:type "button" :data-name "right" :on-click #(set-origin [(inc x) y])}
-                      ($ icon {:name "arrow-right-short" :size 20}))
-                    ($ :button
-                      {:type "button" :data-name "down" :on-click #(set-origin [x (inc y)])}
-                      ($ icon {:name "arrow-down-short" :size 20}))
-                    ($ :button
-                      {:type "button" :data-name "left" :on-click #(set-origin [(dec x) y])}
-                      ($ icon {:name "arrow-left-short" :size 20}))
-                    (if (some? prev-origin)
-                      ($ :button
-                        {:type "button" :data-name "clear" :data-tooltip "Reset"
-                         :on-click #(dispatch :scene/reset-grid-origin)}
-                        ($ icon {:name "x-circle-fill" :size 16}))))
-                  ($ :fieldset.grid-align-size
-                    ($ :button
-                      {:type "button" :data-name "dec" :on-click #(set-size dec)}
-                      ($ icon {:name "dash" :size 20}))
-                    ($ :button
-                      {:type "button" :data-name "inc" :on-click #(set-size inc)}
-                      ($ icon {:name "plus" :size 20}))
-                    ($ :input.text.text-ghost
-                      {:type "number"
-                       :value next-size
-                       :style {:color "white"}
-                       :on-change
-                       (fn [event]
-                         (let [n (js/Number (.. event -target -value))]
-                           (if (number? n)
-                             (set-size n))))})
-                    ($ :button {:type "submit" :data-name "submit"}
-                      ($ icon {:name "check"})))))))))))
+                      {:type "button" :data-name "clear" :data-tooltip "Reset"
+                       :on-click (fn [] (dispatch :scene/reset-grid-origin))}
+                      ($ icon {:name "x-circle-fill" :size 16}))))
+                ($ :fieldset.grid-align-size
+                  ($ :button
+                    {:type "button" :data-name "dec" :on-click (fn [] (set-size dec))}
+                    ($ icon {:name "dash" :size 20}))
+                  ($ :button
+                    {:type "button" :data-name "inc" :on-click (fn [] (set-size inc))}
+                    ($ icon {:name "plus" :size 20}))
+                  ($ :input.text.text-ghost
+                    {:type "number"
+                     :value size
+                     :style {:color "white"}
+                     :on-change
+                     (fn [event]
+                       (let [n (js/Number (.. event -target -value))]
+                         (if (number? n)
+                           (set-size n))))})
+                  ($ :button {:type "submit" :data-name "submit"}
+                    ($ icon {:name "check"})))))))))))
 
 (defui ^:private draw-note []
   (let [dispatch (hooks/use-dispatch)]
@@ -454,7 +453,7 @@
     (case mode
       :circle ($ draw-circle props)
       :cone   ($ draw-cone props)
-      ;; :grid   ($ draw-grid props)
+      :grid   ($ draw-grid props)
       :line   ($ draw-line props)
       :mask   ($ draw-mask props)
       :note   ($ draw-note props)

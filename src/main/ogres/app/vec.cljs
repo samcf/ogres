@@ -1,5 +1,5 @@
 (ns ogres.app.vec
-  (:refer-clojure :exclude [abs max]))
+  (:refer-clojure :exclude [abs max mod]))
 
 (deftype ^:export Vec2 [x y])
 (deftype ^:export Segment [a b])
@@ -29,6 +29,9 @@
 
 (defn max [a]
   (clojure.core/max (.-x a) (.-y a)))
+
+(defn mod [a x]
+  (Vec2. (clojure.core/mod (.-x a) x) (clojure.core/mod (.-y a) x)))
 
 (defn round
   ([a]     (round a 1 js/Math.round))

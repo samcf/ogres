@@ -47,16 +47,19 @@
   stroke: var(--scene-stroke);
 }
 
-.grid-align path,
-.grid-align circle {
-  pointer-events: none;
+.grid-align-path {
   stroke-dasharray: 1px 3px;
   stroke-opacity: 0.7;
+  stroke: var(--scene-stroke);
+}
+
+.grid-align-center {
+  fill: none;
+  stroke: var(--scene-stroke);
 }
 
 .grid-align-form {
   position: relative;
-  pointer-events: none;
 
   button {
     align-items: center;
@@ -70,12 +73,16 @@
     font-size: 12px;
     gap: 4px;
     justify-content: center;
-    pointer-events: all;
     text-transform: uppercase;
 
     &:hover {
       color: white;
     }
+  }
+
+  button,
+  input {
+    pointer-events: all;
   }
 }
 
@@ -134,7 +141,6 @@
   inset: auto 0 0 0;
   margin: 4px;
   padding: 4px;
-  pointer-events: all;
   position: absolute;
 
   button[type="button"] {
@@ -149,6 +155,5 @@
   input {
     background-color: var(--color-blues-500);
     border-radius: 2px;
-    pointer-events: all;
   }
 }
