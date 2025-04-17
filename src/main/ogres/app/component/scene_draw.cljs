@@ -154,46 +154,54 @@
                      ($ anchor))))))
        [children grid-paths grid-align tile-path transform ox oy tx ty scale]))))
 
-#_(defui ^:private polygon
-    [{:keys [on-create]}]
-    (let [result (hooks/use-query query)
-          {[ox oy] :bounds/self
-           {[tx ty] :camera/point
-            scale :camera/scale} :user/camera} result
-          [pairs set-pairs] (uix/use-state [])
-          [mouse set-mouse] (uix/use-state [])
-          [ax ay] pairs
-          [mx my] mouse
-          closed? (< (geom/euclidean-distance ax ay mx my) 32)]
-      ($ :<>
-        ($ :rect
-          {:x 0 :y 0 :fill "transparent"
-           :width "100%" :height "100%"
-           :on-pointer-down
-           (fn [event]
-             (.stopPropagation event))
-           :on-pointer-move
-           (fn [event]
-             (let [dst [(.-clientX event) (.-clientY event)]]
-               (set-mouse (convert dst (+' (- ox) (- oy)) cat))))
-           :on-click
-           (fn [event]
-             (if closed?
-               (let [xs (convert pairs (*' (/ scale)) (+' tx ty) round cat)
-                     xs (geom/reorient xs)]
-                 (set-pairs [])
-                 (on-create event xs))
-               (set-pairs #(conj %1 mx my))))})
-        ($ :circle {:cx mx :cy my :r 3 :style {:pointer-events "none" :fill "white"}})
-        (if (seq pairs)
-          ($ :circle
-            {:cx ax :cy ay :r 6
-             :style {:pointer-events "none" :stroke "white" :stroke-width 1 :stroke-dasharray "none"}}))
-        (for [[x y] (partition 2 pairs)]
-          ($ :circle {:key [x y] :cx x :cy y :r 3 :style {:pointer-events "none" :fill "white"}}))
-        ($ :polygon
-          {:points (join " " (if closed? pairs (into pairs mouse)))
-           :style  {:pointer-events "none"}}))))
+(defui ^:private polygon
+  [{:keys [on-create]}]
+  (let [result (hooks/use-query query)
+        {[ox oy] :bounds/self
+         {[tx ty] :camera/point
+          scale :camera/scale} :user/camera} result
+        [points set-points] (uix/use-state [])
+        [cursor set-cursor] (uix/use-state nil)
+        closing? (and (seq points) (some? cursor) (< (vec/dist (first points) cursor) 32))
+        basis (Vec2. ox oy)
+        shift (Vec2. tx ty)]
+    ($ :<>
+      ($ :rect.scene-draw-surface
+        {:x 0
+         :y 0
+         :fill "transparent"
+         :width "100%"
+         :height "100%"
+         :on-pointer-down
+         (fn [event]
+           (.stopPropagation event))
+         :on-pointer-move
+         (fn [event]
+           (let [point (Vec2. (.-clientX event) (.-clientY event))]
+             (set-cursor (vec/round (xf-camera point basis shift scale)))))
+         :on-click
+         (fn [event]
+           (if closing?
+             (let [xs (geom/reorient (mapcat (fn [v] [(.-x v) (.-y v)]) points))]
+               (set-points [])
+               (set-cursor nil)
+               (on-create event xs))
+             (set-points (fn [points] (conj points cursor)))))})
+      (if (seq points)
+        (let [point (xf-canvas (first points) shift scale)]
+          ($ :circle.scene-draw-point-ring
+            {:cx (.-x point) :cy (.-y point) :r 6})))
+      (for [point points :let [point (xf-canvas point shift scale)]]
+        ($ :circle.scene-draw-point
+          {:key (vec/to-string point) :cx (.-x point) :cy (.-y point) :r 4}))
+      (if (and (seq points) (some? cursor))
+        ($ :polygon.scene-draw-shape
+          {:points
+           (transduce
+            (comp (map (fn [v] (xf-canvas v (Vec2. tx ty) scale)))
+                  (map (fn [v] [(.-x v) (.-y v)])))
+            points->poly []
+            (if (not closing?) (conj points cursor) points))})))))
 
 (defui ^:private draw-select []
   (let [dispatch (hooks/use-dispatch)]
@@ -325,19 +333,19 @@
              ($ text {:attrs {:x (+ (.-x d) 16) :y (+ (.-y d) 16) :fill "white"}}
                (str (px->ft (vec/dist camera)) "ft."))))) []))))
 
-#_(defui ^:private draw-poly []
-    (let [dispatch (hooks/use-dispatch)]
-      ($ polygon
-        {:on-create
-         (fn [_ xs]
-           (dispatch :shape/create :poly xs))})))
+(defui ^:private draw-poly []
+  (let [dispatch (hooks/use-dispatch)]
+    ($ polygon
+      {:on-create
+       (fn [_ points]
+         (dispatch :shape/create :poly points))})))
 
-#_(defui ^:private draw-mask []
-    (let [dispatch (hooks/use-dispatch)]
-      ($ polygon
-        {:on-create
-         (fn [_ points]
-           (dispatch :mask/create points))})))
+(defui ^:private draw-mask []
+  (let [dispatch (hooks/use-dispatch)]
+    ($ polygon
+      {:on-create
+       (fn [_ points]
+         (dispatch :mask/create points))})))
 
 #_(defui ^:private draw-grid []
     (let [dispatch (hooks/use-dispatch)
@@ -441,9 +449,9 @@
       :cone   ($ draw-cone props)
       ;; :grid   ($ draw-grid props)
       :line   ($ draw-line props)
-      ;; :mask   ($ draw-mask props)
+      :mask   ($ draw-mask props)
       :note   ($ draw-note props)
-      ;; :poly   ($ draw-poly props)
+      :poly   ($ draw-poly props)
       :rect   ($ draw-rect props)
       :ruler  ($ draw-ruler props)
       :select ($ draw-select props))))
