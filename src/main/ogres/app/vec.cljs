@@ -1,13 +1,39 @@
 (ns ogres.app.vec
   (:refer-clojure :exclude [abs max mod]))
 
-(deftype ^:export Vec2 [x y])
-(deftype ^:export Segment [a b])
+(defn ^:private to-string-vec2 [this]
+  (str "#vec2[" (.-x this) "," (.-y this) "]"))
+
+(defn ^:private to-string-segment [this]
+  (str "#segment["
+       (.-x (.-a this)) ","
+       (.-y (.-a this)) " "
+       (.-x (.-b this)) ","
+       (.-y (.-b this))
+       "]"))
+
+(deftype ^:export Vec2 [x y]
+  Object
+  (toString [this]
+    (to-string-vec2 this))
+  cljs.core/IPrintWithWriter
+  (-pr-writer [this writer _]
+    (-write writer (to-string-vec2 this))))
+
+(deftype ^:export Segment [a b]
+  Object
+  (toString [this]
+    (to-string-segment this))
+  cljs.core/IPrintWithWriter
+  (-pr-writer [this writer _]
+    (-write writer (to-string-segment this))))
 
 (defn ^:private rounded
   ([x]     (js/Math.round x))
   ([x n]   (* (js/Math.round (/ x n)) n))
   ([x n f] (* (f (/ x n)) n)))
+
+(def zero (Vec2. 0 0))
 
 (defn abs [a]
   (Vec2. (clojure.core/abs (.-x a)) (clojure.core/abs (.-y a))))

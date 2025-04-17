@@ -4,6 +4,7 @@
             [ogres.app.const :refer [grid-size half-size]]
             [ogres.app.geom :as geom]
             [ogres.app.hooks :as hooks]
+            [ogres.app.util :as util]
             [ogres.app.vec :as vec :refer [Segment Vec2]]
             [uix.core :as uix :refer [defui $]]
             ["@dnd-kit/core"
@@ -12,17 +13,30 @@
                       useDndMonitor use-dnd-monitor
                       useDraggable  use-draggable}]))
 
+(def ^:private epsilon 0.01)
+
 (defn ^:private xf-identity
   ([a] a)
   ([a b] (Segment. a b)))
 
 (defn ^:private xf-align
   ([a]   (vec/round a grid-size))
-  ([a b] (Segment. (vec/round a grid-size) (vec/round b grid-size))))
+  ([a b] (Segment. (xf-align a) (xf-align b))))
 
 (defn ^:private xf-align-half
   ([a]   (vec/round a half-size))
-  ([a b] (Segment. (vec/round a half-size) (vec/round b half-size))))
+  ([a b] (Segment. (xf-align-half a) (xf-align-half b))))
+
+(defn ^:private xf-cone
+  ([a] (xf-align a))
+  ([a b]
+   (let [src (xf-align a)
+         dir (vec/sub b src)
+         len (vec/dist vec/zero dir)]
+     (if (= len 0)
+       (Segment. src src)
+       (let [dst (-> (vec/div dir len) (vec/mul (util/round len grid-size)) (vec/add src))]
+         (Segment. src dst))))))
 
 (defn ^:private xf-camera [a o t x]
   (vec/add (vec/div (vec/sub a o) x) t))
@@ -41,8 +55,9 @@
    (map (fn [v] [(.-x v) (.-y v)]))))
 
 (defn ^:private px->ft [len]
-  (let [ft (* (/ len grid-size) 5)]
-    (if (js/Number.isInteger ft) ft
+  (let [ft (* (/ len grid-size) 5)
+        rd (js/Math.round ft)]
+    (if (< (abs (- ft rd)) epsilon) rd
         (.toFixed ft 1))))
 
 (defui ^:private text
@@ -319,7 +334,7 @@
 (defui ^:private draw-cone []
   (let [dispatch (hooks/use-dispatch)]
     ($ draw-segment
-      {:transform xf-align
+      {:transform xf-cone
        :on-release
        (uix/use-callback
         (fn [^Segment s]
