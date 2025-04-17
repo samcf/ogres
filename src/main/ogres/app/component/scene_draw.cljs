@@ -150,7 +150,7 @@
                        (xf-canvas (.-b seg) trs scale)))))
                  (and grid-align (some? cursor))
                  (let [v (-> cursor (xf-camera off trs scale) (transform) (xf-canvas trs scale))]
-                   ($ :g {:transform (str "translate(" (.-x v) ", " (.-y v) ")")}
+                   ($ :g {:transform (vec/to-translate v)}
                      ($ anchor))))))
        [children grid-paths grid-align tile-path transform ox oy tx ty scale]))))
 
@@ -159,7 +159,8 @@
   (let [result (hooks/use-query query)
         {[ox oy] :bounds/self
          {[tx ty] :camera/point
-          scale :camera/scale} :user/camera} result
+          scale :camera/scale
+          {align? :scene/grid-align} :camera/scene} :user/camera} result
         [points set-points] (uix/use-state [])
         [cursor set-cursor] (uix/use-state nil)
         closing? (and (seq points) (some? cursor) (< (vec/dist (first points) cursor) 32))
@@ -177,16 +178,22 @@
            (.stopPropagation event))
          :on-pointer-move
          (fn [event]
-           (let [point (Vec2. (.-clientX event) (.-clientY event))]
-             (set-cursor (vec/round (xf-camera point basis shift scale)))))
+           (-> (Vec2. (.-clientX event) (.-clientY event))
+               (xf-camera basis shift scale)
+               (vec/round (if align? half-size 1))
+               (set-cursor)))
          :on-click
          (fn [event]
-           (if closing?
+           (if (not closing?)
+             (set-points (conj points cursor))
              (let [xs (geom/reorient (mapcat (fn [v] [(.-x v) (.-y v)]) points))]
                (set-points [])
                (set-cursor nil)
-               (on-create event xs))
-             (set-points (fn [points] (conj points cursor)))))})
+               (on-create event xs))))})
+      (if (and align? (not closing?) (some? cursor))
+        (let [point (xf-canvas cursor shift scale)]
+          ($ :g {:transform (vec/to-translate point)}
+            ($ anchor))))
       (if (seq points)
         (let [point (xf-canvas (first points) shift scale)]
           ($ :circle.scene-draw-point-ring

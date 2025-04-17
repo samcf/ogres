@@ -49,3 +49,6 @@
 
 (defn to-string [a]
   (str "x:" (.-x a) ",y:" (.-y a)))
+
+(defn to-translate [a]
+  (str "translate(" (.-x a) "," (.-y a) ")"))
