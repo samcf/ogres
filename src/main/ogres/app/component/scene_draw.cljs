@@ -143,7 +143,7 @@
         basis (Vec2. ox oy)
         shift (Vec2. tx ty)]
     ($ draw-segment-drag
-      {:use-cursor (contains? props :transform)
+      {:use-cursor (contains? props :align-fn)
        :on-release
        (uix/use-callback
         (fn [segment]
