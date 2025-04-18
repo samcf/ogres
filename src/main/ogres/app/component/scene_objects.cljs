@@ -7,6 +7,7 @@
             [ogres.app.const :refer [half-size]]
             [ogres.app.geom :as geom]
             [ogres.app.hooks :as hooks]
+            [ogres.app.util :as util]
             [react-transition-group :refer [TransitionGroup CSSTransition]]
             [uix.core :as uix :refer [defui $]]
             [uix.dom :as dom]
@@ -157,10 +158,10 @@
         ($ :rect.scene-shape-bounds
           {:x (- bx ax)
            :y (- by ay)
-           :width (- cx bx)
-           :height (- cy by)
            :rx 3
-           :ry 3}))
+           :ry 3
+           :width (- cx bx)
+           :height (- cy by)}))
       ($ :g.scene-shape-path
         {:fill-opacity (if (= pattern-name :solid) 0.40 0.80)}
         ($ shape props)))))
@@ -174,10 +175,10 @@
           (dom/create-portal
            ($ :g.scene-object-align
              ($ :rect
-               {:x  ax :y (+ ay 1)
-                :rx 3  :ry 3
-                :width (- bx ax 1)
-                :height (- by ay 1)})) portal))))))
+               {:x ax
+                :y ay
+                :width (- bx ax)
+                :height (- by ay)})) portal))))))
 
 (defui ^:private object-note [props]
   (let [dispatch  (hooks/use-dispatch)
@@ -344,7 +345,7 @@
           {[cx cy]  :camera/point
            scale    :camera/scale
            selected :camera/selected
-           {outlines :scene/show-object-outlines
+           {outline? :scene/show-object-outlines
             align? :scene/grid-align
             shapes :scene/shapes
             tokens :scene/tokens
@@ -377,7 +378,8 @@
                     node (uix/create-ref)
                     user (dragging id)
                     rect (geom/object-bounding-rect entity)
-                    seen (geom/rect-intersects-rect rect bounds)]]
+                    seen (geom/rect-intersects-rect rect bounds)
+                    type (keyword (namespace (:object/type entity)))]]
           ($ CSSTransition {:key id :nodeRef node :timeout 256}
             ($ :g.scene-object-transition {:ref node}
               (if (not (selected id))
@@ -386,12 +388,12 @@
                     ($ drag-local-fn {:id id :disabled (or user lock)}
                       (fn [drag]
                         (let [handler (getValueByKeys drag "listeners" "onPointerDown")
-                              dx (or (getValueByKeys drag "transform" "x") 0)
-                              dy (or (getValueByKeys drag "transform" "y") 0)
+                              dx (getValueByKeys drag "transform" "x")
+                              dy (getValueByKeys drag "transform" "y")
                               sx (or rx dx 0)
                               sy (or ry dy 0)
-                              to (if (and align? (.-isDragging drag) (or (not= dx 0) (not= dy 0)))
-                                   (into [] (geom/alignment-xf dx dy) rect))]
+                              spec? (and align? (or (not= sx 0) (not= sy 0)))
+                              rect (if spec? (into [] (geom/alignment-xf dx dy) rect))]
                           ($ :g.scene-object
                             {:ref (.-setNodeRef drag)
                              :transform (str "translate(" (+ ax sx) ", " (+ ay sy) ")")
@@ -400,17 +402,27 @@
                              :data-drag-remote (some? user)
                              :data-drag-local (.-isDragging drag)
                              :data-color (:user/color user)
-                             :data-type (namespace (:object/type entity))
+                             :data-type (name type)
                              :data-id id}
-                            (if outlines
-                              (let [path (geom/object-tile-path entity sx sy)]
-                                (if (and (seq path) (some? (deref portal)))
-                                  (dom/create-portal
-                                   ($ :polygon.scene-object-tiles
-                                     {:points (transduce (partition-all 2) rf-points->poly path)})
-                                   (deref portal)))))
+                            (if (and (= type :shape) (deref portal))
+                              (let [rn (geom/object-alignment entity)
+                                    bx (if spec? (util/round (+ ax sx) rn) (+ ax sx))
+                                    by (if spec? (util/round (+ ay sy) rn) (+ ay sy))]
+                                (dom/create-portal
+                                 ($ :<>
+                                   (if outline?
+                                     (let [path (geom/object-tile-path entity (- bx ax) (- by ay))]
+                                       (if (seq path)
+                                         ($ :polygon.scene-object-tiles
+                                           {:points (transduce (partition-all 2) rf-points->poly path)}))))
+                                   (if spec?
+                                     ($ :g.scene-object-ghost
+                                       {:transform (str "translate(" bx ", " by ")")}
+                                       ($ :circle.scene-object-anchor {:r 3})
+                                       ($ :circle.scene-object-anchor-ring {:r 5})
+                                       ($ shape {:entity entity})))) (deref portal))))
                             ($ object
-                              {:aligned-to to
+                              {:aligned-to rect
                                :entity entity
                                :portal portal}))))))))))))
       ($ hooks/use-portal {:name :selected}
@@ -427,17 +439,20 @@
                    :data-drag-local (.-isDragging drag)}
                   (if (> (count selected) 1)
                     ($ :rect.scene-objects-bounds
-                      {:x ax :y ay
-                       :width  (- bx ax)
-                       :height (- by ay)
-                       :rx 3 :ry 3}))
+                      {:x ax
+                       :y ay
+                       :rx 3
+                       :ry 3
+                       :width (- bx ax)
+                       :height (- by ay)}))
                   ($ TransitionGroup {:component nil}
                     (for [entity entities
                           :let [{id :db/id [ax ay] :object/point} entity
                                 node (uix/create-ref)
                                 user (dragging id)
+                                type (keyword (namespace (:object/type entity)))
                                 rect (geom/object-bounding-rect entity)
-                                rect (if (and align? (.-isDragging drag) (or (not= dx 0) (not= dy 0)))
+                                rect (if (and align? (or (not= dx 0) (not= dy 0)))
                                        (into [] (geom/alignment-xf dx dy) rect))]]
                       ($ CSSTransition {:key id :nodeRef node :timeout 256}
                         ($ :g.scene-object-transition {:ref node}
@@ -450,13 +465,26 @@
                                    :data-drag-local (.-isDragging drag)
                                    :data-color (:user/color user)
                                    :data-id id}
-                                  (if outlines
-                                    (let [path (geom/object-tile-path entity (or rx dx 0) (or ry dy 0))]
-                                      (if (and (seq path) (some? (deref portal)))
-                                        (dom/create-portal
-                                         ($ :polygon.scene-object-tiles
-                                           {:points (transduce (partition-all 2) rf-points->poly path)})
-                                         (deref portal)))))
+                                  (if (and (= type :shape) (deref portal))
+                                    (let [sx (or rx dx 0)
+                                          sy (or ry dy 0)
+                                          spec? (and align? (or (not= sx 0) (not= sy 0)))
+                                          rn (geom/object-alignment entity)
+                                          bx (if spec? (util/round (+ ax sx) rn) (+ ax sx))
+                                          by (if spec? (util/round (+ ay sy) rn) (+ ay sy))]
+                                      (dom/create-portal
+                                       ($ :<>
+                                         (if outline?
+                                           (let [path (geom/object-tile-path entity (- bx ax) (- by ay))]
+                                             (if (seq path)
+                                               ($ :polygon.scene-object-tiles
+                                                 {:points (transduce (partition-all 2) rf-points->poly path)}))))
+                                         (if spec?
+                                           ($ :g.scene-object-ghost
+                                             {:transform (str "translate(" bx ", " by ")")}
+                                             ($ :circle.scene-object-anchor {:r 3})
+                                             ($ :circle.scene-object-anchor-ring {:r 5})
+                                             ($ shape {:entity entity})))) (deref portal))))
                                   ($ object
                                     {:aligned-to rect
                                      :entity entity

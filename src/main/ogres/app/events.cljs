@@ -449,11 +449,19 @@
     (into [[:db/retract [:db/ident :user] :user/dragging]]
           (for [{id :db/id :as entity} entities
                 :let [type (keyword (namespace (:object/type entity)))]]
-            (if (and (= type :token) align?)
-              (let [[ax ay bx by] (sequence align-xf (geom/object-bounding-rect entity))]
-                {:db/id id :object/point [(/ (+ ax bx) 2) (/ (+ ay by) 2)]})
-              (let [[ax ay] (:object/point entity)]
-                {:db/id id :object/point [(+ ax dx) (+ ay dy)]}))))))
+            (cond (and align? (= type :token))
+                  (let [[ax ay bx by] (sequence align-xf (geom/object-bounding-rect entity))]
+                    {:db/id id :object/point
+                     [(/ (+ ax bx) 2) (/ (+ ay by) 2)]})
+                  align?
+                  (let [[ax ay] (:object/point entity)
+                        rn (geom/object-alignment entity)]
+                    {:db/id id :object/point
+                     [(round (+ ax dx) rn) (round (+ ay dy) rn)]})
+                  :else
+                  (let [[ax ay] (:object/point entity)]
+                    {:db/id id :object/point
+                     [(+ ax dx) (+ ay dy)]}))))))
 
 (defmethod event-tx-fn :objects/translate-selected
   ^{:doc "Translate the currently selected objects by the delta dx and dy."}
