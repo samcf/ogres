@@ -298,7 +298,8 @@
          (let [a (.-a camera) b (.-b camera)
                c (.-a canvas) d (.-b canvas)]
            ($ :<>
-             ($ :path.scene-draw-shape {:d (join " " [\M (.-x c) (.-y c) \H (.-x d) \V (.-y d) \H (.-x c) \Z])})
+             ($ :path.scene-draw-shape
+               {:d (join " " [\M (.-x c) (.-y c) \H (.-x d) \V (.-y d) \H (.-x c) \Z])})
              ($ text {:attrs {:x (+ (.-x c) 8) :y (- (.-y c) 8) :fill "white"}}
                (let [v (vec/abs (vec/sub a b))]
                  (str (px->ft (.-x v)) "ft. x "
@@ -326,7 +327,8 @@
              (let [scale (/ (abs (- (.-x d) (.-x c))) (abs (- (.-x b) (.-x a))))]
                (if (not (js/isNaN scale))
                  (let [xs (geom/line-points (.-x c) (.-y c) (.-x d) (.-y d) (* scale half-size))]
-                   ($ :polygon.scene-draw-shape {:points (transduce (partition-all 2) points->poly [] xs)}))))
+                   ($ :polygon.scene-draw-shape
+                     {:points (transduce (partition-all 2) points->poly [] xs)}))))
              ($ text {:attrs {:x (+ (.-x c) 8) :y (- (.-y c) 8) :fill "white"}}
                (str (px->ft (vec/dist camera)) "ft."))))) []))))
 
