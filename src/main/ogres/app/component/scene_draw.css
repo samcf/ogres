@@ -1,46 +1,68 @@
-.scene-drawable {
-  cursor: crosshair;
-
-  line,
-  path,
-  polygon,
-  circle {
-    fill: transparent;
-    stroke: var(--scene-stroke);
-    stroke-dasharray: 6px 2px;
-  }
-
-  &.scene-drawable-grid path,
-  &.scene-drawable-rect path,
-  &.scene-drawable-select path {
-    shape-rendering: crispEdges;
-  }
-
-  &.scene-drawable-select {
-    cursor: auto;
-
-    path {
-      fill-opacity: 0.1;
-      fill: var(--scene-stroke);
-      stroke-dasharray: 0;
-      stroke-dashoffset: 0;
-      stroke-opacity: 0.25;
-      stroke-width: 1px;
-      stroke: var(--scene-stroke);
-    }
-  }
+.scene-draw {
+  pointer-events: none;
 }
 
-.grid-align path,
-.grid-align circle {
-  pointer-events: none;
+.scene-draw-surface {
+  cursor: crosshair;
+  fill: transparent;
+  height: 100%;
+  pointer-events: all;
+  width: 100%;
+}
+
+.scene-draw-shape {
+  fill: var(--scene-stroke);
+  fill-opacity: 0.1;
+  stroke-dasharray: 16px 3px;
+  stroke: var(--scene-stroke);
+}
+
+.scene-draw-tile-path {
+  fill: var(--scene-stroke);
+  fill-opacity: 0.15;
+}
+
+.scene-draw-anchor {
+  fill: var(--scene-stroke);
+}
+
+.scene-draw-anchor-ring {
+  fill: none;
+  stroke: var(--scene-stroke);
+}
+
+.scene-draw-point {
+  fill: var(--scene-stroke);
+}
+
+.scene-draw-point-ring {
+  fill: none;
+  stroke: var(--scene-stroke);
+}
+
+.scene-draw-select .scene-draw-shape {
+  fill-opacity: 0.1;
+  fill: var(--scene-stroke);
+  stroke-dasharray: 0;
+  stroke-dashoffset: 0;
+  stroke-opacity: 0.45;
+  stroke-width: 1px;
+  stroke: var(--scene-stroke);
+}
+
+.grid-align-path {
   stroke-dasharray: 1px 3px;
   stroke-opacity: 0.7;
+  stroke: var(--scene-stroke);
+}
+
+.grid-align-center {
+  fill: none;
+  stroke: var(--scene-stroke);
 }
 
 .grid-align-form {
   position: relative;
-  pointer-events: none;
 
   button {
     align-items: center;
@@ -54,12 +76,16 @@
     font-size: 12px;
     gap: 4px;
     justify-content: center;
-    pointer-events: all;
     text-transform: uppercase;
 
     &:hover {
       color: white;
     }
+  }
+
+  button,
+  input {
+    pointer-events: all;
   }
 }
 
@@ -118,7 +144,6 @@
   inset: auto 0 0 0;
   margin: 4px;
   padding: 4px;
-  pointer-events: all;
   position: absolute;
 
   button[type="button"] {
@@ -133,6 +158,5 @@
   input {
     background-color: var(--color-blues-500);
     border-radius: 2px;
-    pointer-events: all;
   }
 }

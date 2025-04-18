@@ -48,6 +48,15 @@
   }
 }
 
+.scene-object-anchor {
+  fill: var(--scene-stroke);
+}
+
+.scene-object-anchor-ring {
+  fill: none;
+  stroke: var(--scene-stroke);
+}
+
 .scene-object-align {
   fill-opacity: 0.2;
   fill: var(--scene-stroke);
@@ -78,6 +87,16 @@
   }
 }
 
+.scene-object-ghost {
+  transition: transform 80ms linear;
+
+  .scene-shape-fill {
+    fill: none;
+    stroke: var(--scene-stroke);
+    stroke-opacity: 0.5;
+  }
+}
+
 .scene-shape pattern {
   fill: var(--color-context, var(--color-red-500));
   stroke: var(--color-context, var(--color-red-500));
@@ -88,10 +107,9 @@
 }
 
 .scene-object-tiles {
-  fill: none;
+  fill: var(--scene-stroke);
+  fill-opacity: 0.15;
   pointer-events: none;
-  stroke-opacity: 0.8;
-  stroke: var(--scene-stroke);
 }
 
 .scene-shape:hover {

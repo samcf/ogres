@@ -313,3 +313,10 @@
         bx (+ bx ax)
         by (+ by ay)]
     (tile-path-line (line-points ax ay bx by half-size))))
+
+(defn object-alignment [entity]
+  (case (:object/type entity)
+    :shape/cone half-size
+    :shape/line half-size
+    :shape/poly half-size
+    grid-size))

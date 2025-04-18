@@ -562,10 +562,10 @@
           (:children props)))
       ($ hooks/create-portal {:name :multiselect}
         (fn [{:keys [ref]}]
-          ($ :g.scene-drawable.scene-drawable-select
+          ($ :g.scene-draw.scene-draw-select
             {:ref ref :style {:outline "none"} :tab-index -1})))
       (if (contains? draw-modes mode)
-        ($ :g.scene-drawable {:class (str "scene-drawable-" (name mode))}
+        ($ :g.scene-draw {:class (str "scene-draw-" (name mode))}
           ($ draw {:key mode :mode mode :node nil})))
       (if (and (= user :host) (:user/sharing? (:data props)))
         ($ player-window-bounds)))))
