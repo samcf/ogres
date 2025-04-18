@@ -87,9 +87,10 @@
         on-down (.. options -listeners -onPointerDown)
         on-stop
         (fn []
-          (set-segment nil)
-          (set-cursor nil)
-          (on-release segment))
+          (when (not (nil? segment))
+            (set-segment nil)
+            (set-cursor nil)
+            (on-release segment)))
         on-drag
         (uix/use-callback
          (fn [data]
