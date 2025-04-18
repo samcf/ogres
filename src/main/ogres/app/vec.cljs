@@ -85,8 +85,5 @@
   ([s]   (to-seq (.-a s) (.-b s)))
   ([a b] (list (.-x a) (.-y a) (.-x b) (.-y b))))
 
-(defn to-string [a]
-  (str "x:" (.-x a) ",y:" (.-y a)))
-
 (defn to-translate [a]
   (str "translate(" (.-x a) "," (.-y a) ")"))

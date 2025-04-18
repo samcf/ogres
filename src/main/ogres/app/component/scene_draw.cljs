@@ -218,7 +218,7 @@
             {:cx (.-x point) :cy (.-y point) :r 6})))
       (for [point points :let [point (xf-canvas point shift scale)]]
         ($ :circle.scene-draw-point
-          {:key (vec/to-string point) :cx (.-x point) :cy (.-y point) :r 4}))
+          {:key point :cx (.-x point) :cy (.-y point) :r 4}))
       (if (and (seq points) (some? cursor))
         ($ :polygon.scene-draw-shape
           {:points
