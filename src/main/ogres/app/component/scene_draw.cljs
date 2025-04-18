@@ -234,7 +234,7 @@
       {:on-release
        (uix/use-callback
         (fn [^Segment s]
-          (dispatch :selection/from-rect (vec/to-seq s))) [dispatch])}
+          (dispatch :selection/from-rect (seq s))) [dispatch])}
       (uix/use-callback
        (fn [_ canvas]
          (let [a (.-a canvas) b (.-b canvas)]
@@ -272,7 +272,7 @@
        :on-release
        (uix/use-callback
         (fn [^Segment s]
-          (dispatch :shape/create :circle (vec/to-seq s))) [dispatch])
+          (dispatch :shape/create :circle (seq s))) [dispatch])
        :tile-path
        (uix/use-callback
         (fn [^Segment s]
@@ -297,7 +297,7 @@
        :on-release
        (uix/use-callback
         (fn [^Segment s]
-          (dispatch :shape/create :rect (vec/to-seq s))) [dispatch])}
+          (dispatch :shape/create :rect (seq s))) [dispatch])}
       (uix/use-callback
        (fn [^Segment camera
             ^Segment canvas]
@@ -317,7 +317,7 @@
        :on-release
        (uix/use-callback
         (fn [^Segment s]
-          (dispatch :shape/create :line (vec/to-seq s))) [dispatch])
+          (dispatch :shape/create :line (seq s))) [dispatch])
        :tile-path
        (uix/use-callback
         (fn [^Segment s]
@@ -344,7 +344,7 @@
        :on-release
        (uix/use-callback
         (fn [^Segment s]
-          (dispatch :shape/create :cone (vec/to-seq s))) [dispatch])
+          (dispatch :shape/create :cone (seq s))) [dispatch])
        :tile-path
        (uix/use-callback
         (fn [^Segment s]

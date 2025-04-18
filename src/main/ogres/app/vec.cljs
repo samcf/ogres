@@ -21,7 +21,10 @@
     (and (instance? Vec2 v) (= (.-x v) x) (= (.-y v) y)))
   IHash
   (-hash [_]
-    (hash [x y])))
+    (hash [x y]))
+  ISeqable
+  (-seq [_]
+    (list x y)))
 
 (deftype Segment [a b]
   Object
@@ -35,7 +38,10 @@
     (and (instance? Segment s) (= (.-a s) a) (= (.-b s) b)))
   IHash
   (-hash [_]
-    (hash [a b])))
+    (hash [a b]))
+  ISeqable
+  (-seq [_]
+    (list (.-x a) (.-y a) (.-x b) (.-y b))))
 
 (defn ^:private rounded
   ([x]     (js/Math.round x))
@@ -80,10 +86,6 @@
 (defn dist-cheb
   ([s]   (dist-cheb (.-a s) (.-b s)))
   ([a b] (max (abs (sub a b)))))
-
-(defn to-seq
-  ([s]   (to-seq (.-a s) (.-b s)))
-  ([a b] (list (.-x a) (.-y a) (.-x b) (.-y b))))
 
 (defn to-translate [a]
   (str "translate(" (.-x a) "," (.-y a) ")"))
