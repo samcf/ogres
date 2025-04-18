@@ -49,10 +49,10 @@
        (let [dst (-> (vec/div dir len) (vec/mul (util/round len grid-size)) (vec/add src))]
          (Segment. src dst))))))
 
-(defn ^:private xf-camera [a o t x]
+(defn ^:private proj-camera [a o t x]
   (vec/add (vec/div (vec/sub a o) x) t))
 
-(defn ^:private xf-canvas [a t x]
+(defn ^:private proj-canvas [a t x]
   (vec/mul (vec/sub a t) x))
 
 (def ^:private points->poly
@@ -62,7 +62,7 @@
   (comp
    (partition-all 2)
    (map (fn [[x y]] (Vec2. x y)))
-   (map (fn [v] (xf-canvas v t x)))
+   (map (fn [v] (proj-canvas v t x)))
    (map (fn [v] [(.-x v) (.-y v)]))))
 
 (defn ^:private px->ft [len]
@@ -149,8 +149,8 @@
         (fn [^Segment segment]
           (let [o (Vec2. ox oy)
                 t (Vec2. tx ty)
-                a (xf-camera (.-a segment) o t scale)
-                b (xf-camera (.-b segment) o t scale)]
+                a (proj-camera (.-a segment) o t scale)
+                b (proj-camera (.-b segment) o t scale)]
             (on-release (transform a b))))
         [on-release transform ox oy tx ty scale])}
       (uix/use-callback
@@ -159,8 +159,8 @@
                trs (Vec2. tx ty)]
            (cond (some? segment)
                  (let [seg (transform
-                            (xf-camera (.-a segment) off trs scale)
-                            (xf-camera (.-b segment) off trs scale))]
+                            (proj-camera (.-a segment) off trs scale)
+                            (proj-camera (.-b segment) off trs scale))]
                    ($ :<>
                      (if (and (fn? tile-path) grid-paths)
                        (let [path (tile-path seg)]
@@ -169,10 +169,10 @@
                      (children
                       (Segment. (.-a seg) (.-b seg))
                       (Segment.
-                       (xf-canvas (.-a seg) trs scale)
-                       (xf-canvas (.-b seg) trs scale)))))
+                       (proj-canvas (.-a seg) trs scale)
+                       (proj-canvas (.-b seg) trs scale)))))
                  (and grid-align (some? cursor))
-                 (let [v (-> cursor (xf-camera off trs scale) (transform) (xf-canvas trs scale))]
+                 (let [v (-> cursor (proj-camera off trs scale) (transform) (proj-canvas trs scale))]
                    ($ :g {:transform (vec/to-translate v)}
                      ($ anchor))))))
        [children grid-paths grid-align tile-path transform ox oy tx ty scale]))))
@@ -197,7 +197,7 @@
          :on-pointer-move
          (fn [event]
            (-> (Vec2. (.-clientX event) (.-clientY event))
-               (xf-camera basis shift scale)
+               (proj-camera basis shift scale)
                (vec/round (if align? half-size 1))
                (set-cursor)))
          :on-click
@@ -209,21 +209,21 @@
                (set-cursor nil)
                (on-create event xs))))})
       (if (and align? (not closing?) (some? cursor))
-        (let [point (xf-canvas cursor shift scale)]
+        (let [point (proj-canvas cursor shift scale)]
           ($ :g {:transform (vec/to-translate point)}
             ($ anchor))))
       (if (seq points)
-        (let [point (xf-canvas (first points) shift scale)]
+        (let [point (proj-canvas (first points) shift scale)]
           ($ :circle.scene-draw-point-ring
             {:cx (.-x point) :cy (.-y point) :r 6})))
-      (for [point points :let [point (xf-canvas point shift scale)]]
+      (for [point points :let [point (proj-canvas point shift scale)]]
         ($ :circle.scene-draw-point
           {:key point :cx (.-x point) :cy (.-y point) :r 4}))
       (if (and (seq points) (some? cursor))
         ($ :polygon.scene-draw-shape
           {:points
            (transduce
-            (comp (map (fn [v] (xf-canvas v (Vec2. tx ty) scale)))
+            (comp (map (fn [v] (proj-canvas v (Vec2. tx ty) scale)))
                   (map (fn [v] [(.-x v) (.-y v)])))
             points->poly []
             (if (not closing?) (conj points cursor) points))})))))
