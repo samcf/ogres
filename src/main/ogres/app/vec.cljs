@@ -9,6 +9,20 @@
        (.-x a) "," (.-y a) " "
        (.-x b) "," (.-y b) "]"))
 
+(defprotocol IVec2
+  (abs [a])
+  (add [a b])
+  (dist [a] [a b])
+  (dist-cheb [a] [a b])
+  (div [a x])
+  (mag [a])
+  (max [a])
+  (mod [a x])
+  (mul [a x])
+  (round [a] [a x] [a x f])
+  (sub [a b])
+  (to-translate [a]))
+
 (deftype Vec2 [x y]
   Object
   (toString [_]
@@ -24,7 +38,24 @@
     (hash [x y]))
   ISeqable
   (-seq [_]
-    (list x y)))
+    (list x y))
+  IVec2
+  (abs [_] (Vec2. (clojure.core/abs x) (clojure.core/abs y)))
+  (add [_ b] (Vec2. (+ x (.-x b)) (+ y (.-y b))))
+  (dist [_] (js/Math.hypot x y))
+  (dist [a b] (dist (sub b a)))
+  (dist-cheb [a] (max (abs a)))
+  (dist-cheb [a b] (max (abs (sub a b))))
+  (div [_ n] (Vec2. (/ x n) (/ y n)))
+  (mag [_] (js/math.hypot x y))
+  (max [_] (clojure.core/max x y))
+  (mod [_ n] (Vec2. (clojure.core/mod x n) (clojure.core/mod y n)))
+  (mul [_ n] (Vec2. (* x n) (* y n)))
+  (round [_] (Vec2. (js/Math.round x) (js/Math.round y)))
+  (round [_ n] (Vec2. (* (js/Math.round (/ x n)) n) (* (js/Math.round (/ y n)) n)))
+  (round [_ n f] (Vec2. (* (f (/ x n)) n) (* (f (/ y n)) n)))
+  (sub [_ b] (Vec2. (- x (.-x b)) (- y (.-y b))))
+  (to-translate [_] (str "translate(" x "," y ")")))
 
 (deftype Segment [a b]
   Object
@@ -41,51 +72,9 @@
     (hash [a b]))
   ISeqable
   (-seq [_]
-    (list (.-x a) (.-y a) (.-x b) (.-y b))))
-
-(defn ^:private rounded
-  ([x]     (js/Math.round x))
-  ([x n]   (* (js/Math.round (/ x n)) n))
-  ([x n f] (* (f (/ x n)) n)))
+    (list (.-x a) (.-y a) (.-x b) (.-y b)))
+  IVec2
+  (dist [_] (dist a b))
+  (dist-cheb [_] (dist-cheb a b)))
 
 (def zero (Vec2. 0 0))
-
-(defn abs [a]
-  (Vec2. (clojure.core/abs (.-x a)) (clojure.core/abs (.-y a))))
-
-(defn add [a b]
-  (Vec2. (+ (.-x a) (.-x b)) (+ (.-y a) (.-y b))))
-
-(defn sub [a b]
-  (Vec2. (- (.-x a) (.-x b)) (- (.-y a) (.-y b))))
-
-(defn mul [a x]
-  (Vec2. (* (.-x a) x) (* (.-y a) x)))
-
-(defn div [a x]
-  (Vec2. (/ (.-x a) x) (/ (.-y a) x)))
-
-(defn mag [a]
-  (js/Math.hypot (.-x a) (.-y a)))
-
-(defn max [a]
-  (clojure.core/max (.-x a) (.-y a)))
-
-(defn mod [a x]
-  (Vec2. (clojure.core/mod (.-x a) x) (clojure.core/mod (.-y a) x)))
-
-(defn round
-  ([a]     (round a 1 js/Math.round))
-  ([a x]   (round a x js/Math.round))
-  ([a x f] (Vec2. (rounded (.-x a) x f) (rounded (.-y a) x f))))
-
-(defn dist
-  ([s]   (dist (.-a s) (.-b s)))
-  ([a b] (mag (sub a b))))
-
-(defn dist-cheb
-  ([s]   (dist-cheb (.-a s) (.-b s)))
-  ([a b] (max (abs (sub a b)))))
-
-(defn to-translate [a]
-  (str "translate(" (.-x a) "," (.-y a) ")"))
