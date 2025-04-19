@@ -1,5 +1,5 @@
 (ns ogres.app.vec
-  (:refer-clojure :exclude [abs max mod]))
+  (:refer-clojure :exclude [abs max mod map]))
 
 (defn ^:private to-string-vec2 [x y]
   (str "#vec2[" x "," y "]"))
@@ -22,6 +22,9 @@
   (rnd [a] [a x] [a x f])
   (sub [a b])
   (to-translate [a]))
+
+(defprotocol ISegment
+  (map [s f]))
 
 (deftype Vec2 [x y]
   Object
@@ -75,6 +78,8 @@
     (list (.-x a) (.-y a) (.-x b) (.-y b)))
   IVec2
   (dist [_] (dist a b))
-  (dist-cheb [_] (dist-cheb a b)))
+  (dist-cheb [_] (dist-cheb a b))
+  ISegment
+  (map [_ f] (Segment. (f a) (f b))))
 
 (def zero (Vec2. 0 0))
