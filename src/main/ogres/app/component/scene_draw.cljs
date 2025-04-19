@@ -18,11 +18,11 @@
   ([a b] (Segment. a b)))
 
 (defn ^:private align-grid
-  ([a]   (vec/round a grid-size))
+  ([a]   (vec/rnd a grid-size))
   ([a b] (Segment. (align-grid a) (align-grid b))))
 
 (defn ^:private align-grid-half
-  ([a]   (vec/round a half-size))
+  ([a]   (vec/rnd a half-size))
   ([a b] (Segment. (align-grid-half a) (align-grid-half b))))
 
 (defn ^:private align-line
@@ -194,7 +194,7 @@
          (fn [event]
            (-> (Vec2. (.-clientX event) (.-clientY event))
                (proj-camera basis shift scale)
-               (vec/round (if align? half-size 1))
+               (vec/rnd (if align? half-size 1))
                (set-cursor)))
          :on-click
          (fn [event]
@@ -405,7 +405,7 @@
                    (.preventDefault event)
                    (let [point (-> (vec/sub origin basis) (vec/div scale) (vec/add shift)
                                    (vec/add (Vec2. px py)) (vec/abs) (vec/mod grid-size)
-                                   (vec/round 0.25))]
+                                   (vec/rnd 0.25))]
                      (dispatch :scene/apply-grid-options [(.-x point) (.-y point)] size)))}
                 ($ :fieldset.grid-align-origin
                   ($ :button

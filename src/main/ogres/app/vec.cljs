@@ -19,7 +19,7 @@
   (max [a])
   (mod [a x])
   (mul [a x])
-  (round [a] [a x] [a x f])
+  (rnd [a] [a x] [a x f])
   (sub [a b])
   (to-translate [a]))
 
@@ -51,9 +51,9 @@
   (max [_] (clojure.core/max x y))
   (mod [_ n] (Vec2. (clojure.core/mod x n) (clojure.core/mod y n)))
   (mul [_ n] (Vec2. (* x n) (* y n)))
-  (round [_] (Vec2. (js/Math.round x) (js/Math.round y)))
-  (round [_ n] (Vec2. (* (js/Math.round (/ x n)) n) (* (js/Math.round (/ y n)) n)))
-  (round [_ n f] (Vec2. (* (f (/ x n)) n) (* (f (/ y n)) n)))
+  (rnd [_] (Vec2. (js/Math.round x) (js/Math.round y)))
+  (rnd [_ n] (Vec2. (* (js/Math.round (/ x n)) n) (* (js/Math.round (/ y n)) n)))
+  (rnd [_ n f] (Vec2. (* (f (/ x n)) n) (* (f (/ y n)) n)))
   (sub [_ b] (Vec2. (- x (.-x b)) (- y (.-y b))))
   (to-translate [_] (str "translate(" x "," y ")")))
 
