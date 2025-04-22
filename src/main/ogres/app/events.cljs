@@ -456,17 +456,16 @@
         delta (Vec2. dx dy)]
     (into [[:db/retract [:db/ident :user] :user/dragging]]
           (for [entity (ds/pull-many data translate-many-select idxs)
-                :let [{id :db/id [ax ay] :object/point} entity
-                      point (Vec2. ax ay)]]
+                :let [{id :db/id point :object/point} entity]]
             (cond
               (and align? (= (:object/type entity) :token/token))
               (let [bounds (-> (geom/object-bounding-rect entity) (vec/add delta) (vec/rnd grid-size))]
-                {:db/id id :object/point (seq (vec/div (vec/add (.-a bounds) (.-b bounds)) 2))})
+                {:db/id id :object/point (vec/midpoint bounds)})
               (and align? (not= (:object/type entity) :note/note))
               (let [round (geom/object-alignment entity)]
-                {:db/id id :object/point (seq (vec/rnd (vec/add point delta) round))})
+                {:db/id id :object/point (vec/rnd (vec/add point delta) round)})
               :else
-              {:db/id id :object/point (seq (vec/add point delta))})))))
+              {:db/id id :object/point (vec/add point delta)})))))
 
 (defmethod event-tx-fn :objects/translate-selected
   ^{:doc "Translate the currently selected objects by the delta dx and dy."}
@@ -530,8 +529,8 @@
         tv (Vec2. tx ty)]
     [(cond-> {:db/id -1 :object/type :token/token}
        (some? hash) (assoc :token/image {:image/hash hash})
-       (not align?) (assoc :object/point (seq (vec/rnd tv)))
-       align?       (assoc :object/point (seq (vec/shift (vec/rnd (vec/shift tv (- rd)) grid-size) rd))))
+       (not align?) (assoc :object/point (vec/rnd tv))
+       align?       (assoc :object/point (vec/shift (vec/rnd (vec/shift tv (- rd)) grid-size) rd)))
      {:db/id (:db/id (:user/camera user))
       :camera/selected -1
       :camera/draw-mode :select
@@ -572,17 +571,13 @@
      [:db.fn/call event-tx-fn :initiative/toggle idxs false])])
 
 (defmethod event-tx-fn :shape/create
-  [_ _ type points]
-  (let [src (first points)
-        xfr (comp (drop 1)
-                  (map (fn [dst] (vec/sub dst src)))
-                  (mapcat seq))]
-    [{:db/id -1
-      :object/type (keyword :shape type)
-      :object/point (seq src)
-      :shape/points (into [] xfr points)}
-     [:db.fn/call assoc-camera :camera/draw-mode :select :camera/selected -1]
-     [:db.fn/call assoc-scene :scene/shapes -1]]))
+  [_ _ type [src & points]]
+  [{:db/id -1
+    :object/type (keyword :shape type)
+    :object/point src
+    :shape/points (into [] (map (fn [vrt] (vec/sub vrt src))) points)}
+   [:db.fn/call assoc-camera :camera/draw-mode :select :camera/selected -1]
+   [:db.fn/call assoc-scene :scene/shapes -1]])
 
 (defmethod event-tx-fn :share/initiate [] [])
 
@@ -989,21 +984,19 @@
         dy (- (+ cy (/ sh scale 2)) (+ ay (/ (- by ay) 2)))
         dv (Vec2. dx dy)]
     (for [[idx copy] (sequence (indexed) clipboard)
-          :let [{[tx ty] :object/point type :object/type} copy
-                tv (Vec2. tx ty)
+          :let [{src :object/point type :object/type} copy
                 hash (:image/hash (:token/image copy))
                 type (keyword (namespace type))
-                data (cond-> (assoc copy :db/id idx :object/point (seq (vec/add tv dv)))
+                data (cond-> (assoc copy :db/id idx :object/point (vec/add src dv))
                        align?
-                       (assoc :object/point (seq (vec/rnd (vec/add tv dv) grid-size)))
+                       (assoc :object/point (vec/rnd (vec/add src dv) grid-size))
                        (and (= type :token) (hashes hash))
                        (assoc :token/image [:image/hash (hashes hash)])
                        (and (= type :token) align?)
                        (assoc :object/point
                               (let [bounds (geom/object-bounding-rect copy)
-                                    aligns (vec/rnd (vec/add bounds dv) grid-size)
-                                    center (vec/midpoint aligns)]
-                                (seq center))))]]
+                                    aligns (vec/rnd (vec/add bounds dv) grid-size)]
+                                (vec/midpoint aligns))))]]
       {:db/id camera
        :camera/selected idx
        :camera/scene
@@ -1059,7 +1052,7 @@
         oy (int (- (+ cy (/ (- my by) (or scale 1))) 16))]
     [{:db/id -1
       :object/type :note/note
-      :object/point [ox oy]
+      :object/point (Vec2. ox oy)
       :object/hidden true
       :object/locked true
       :note/label "Note"}

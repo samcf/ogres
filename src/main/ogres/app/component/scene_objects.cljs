@@ -27,16 +27,20 @@
 (defn ^:private compare-objects
   "Defines a comparator function for shapes."
   [a b]
-  (let [{[ax ay] :object/point} a
-        {[bx by] :object/point} b]
-    (compare [ax ay] [bx by])))
+  (let [{point-a :object/point} a
+        {point-b :object/point} b]
+    (compare
+     [(.-x point-a) (.-y point-a)]
+     [(.-x point-b) (.-y point-b)])))
 
 (defn ^:private compare-tokens
   "Defines a comparator function for tokens."
   [a b]
-  (let [{size-a :token/size [ax ay] :object/point} a
-        {size-b :token/size [bx by] :object/point} b]
-    (compare [size-b ax ay] [size-a bx by])))
+  (let [{size-a :token/size point-a :object/point} a
+        {size-b :token/size point-b :object/point} b]
+    (compare
+     [size-b (.-x point-a) (.-y point-a)]
+     [size-a (.-x point-b) (.-y point-b)])))
 
 (def ^{:private true
        :doc "Defines a transducer which expects a collection of user
@@ -103,29 +107,29 @@
     (children options)))
 
 (defui ^:private shape-circle [props]
-  (let [{{[ax ay] :shape/points} :entity} props]
+  (let [{{[dst] :shape/points} :entity} props]
     ($ :circle.scene-shape-fill
-      {:r (vec/dist-cheb (Vec2. ax ay))})))
+      {:r (vec/dist-cheb dst)})))
 
 (defui ^:private shape-rect [props]
-  (let [{{[ax ay] :shape/points} :entity} props]
+  (let [{{[dst] :shape/points} :entity} props]
     ($ :path.scene-shape-fill
-      {:d (join " " [\M 0 0 \H ax \V ay \H 0 \Z])})))
+      {:d (join " " [\M 0 0 \H (.-x dst) \V (.-y dst) \H 0 \Z])})))
 
 (defui ^:private shape-line [props]
-  (let [{{[ax ay] :shape/points} :entity} props]
+  (let [{{[dst] :shape/points} :entity} props]
     ($ :polygon.scene-shape-fill
-      {:points (->> (Segment. vec/zero (Vec2. ax ay)) (geom/line-points) (mapcat seq) (join " "))})))
+      {:points (->> (Segment. vec/zero dst) (geom/line-points) (mapcat seq) (join " "))})))
 
 (defui ^:private shape-cone [props]
-  (let [{{[ax ay] :shape/points} :entity} props]
+  (let [{{[dst] :shape/points} :entity} props]
     ($ :polygon.scene-shape-fill
-      {:points (->> (Segment. vec/zero (Vec2. ax ay)) (geom/cone-points) (mapcat seq) (join " "))})))
+      {:points (->> (Segment. vec/zero dst) (geom/cone-points) (mapcat seq) (join " "))})))
 
 (defui ^:private shape-poly [props]
   (let [{{points :shape/points} :entity} props]
     ($ :polygon.scene-shape-fill
-      {:points (join " " (into [0 0] points))})))
+      {:points (join " " (into [0 0] (mapcat seq) points))})))
 
 (defui ^:private shape [props]
   (case (:object/type (:entity props))
@@ -142,7 +146,7 @@
          type :object/type
          color :shape/color
          pattern-name :shape/pattern
-         [ax ay] :object/point} entity
+         point :object/point} entity
         bounds (geom/object-bounding-rect entity)]
     ($ :g.scene-shape {:data-color color}
       ($ :defs.scene-shape-defs
@@ -151,7 +155,7 @@
         ($ :rect.scene-shape-bounds
           {:width (vec/width bounds)
            :height (vec/height bounds)
-           :transform (vec/to-translate (vec/sub (.-a bounds) (Vec2. ax ay)))}))
+           :transform (vec/to-translate (vec/sub (.-a bounds) point))}))
       ($ :g.scene-shape-path
         {:fill (str "url(#shape-pattern-" id ")")
          :fill-opacity (if (= pattern-name :solid) 0.40 0.80)}
@@ -285,7 +289,7 @@
          {:scene/tokens
           [:db/id
            [:object/type :default :token/token]
-           [:object/point :default [0 0]]
+           [:object/point :default vec/zero]
            [:token/flags :default #{}]
            [:token/label :default ""]
            [:token/size :default 5]
@@ -296,14 +300,14 @@
          {:scene/shapes
           [:db/id
            [:object/type :default :shape/circle]
-           [:object/point :default [0 0]]
-           [:shape/points :default [0 0]]
+           [:object/point :default vec/zero]
+           [:shape/points :default [vec/zero]]
            [:shape/color :default "red"]
            [:shape/pattern :default :solid]]}
          {:scene/notes
           [:db/id
            [:object/type :default :note/note]
-           [:object/point :default [0 0]]
+           [:object/point :default vec/zero]
            [:object/hidden :default true]
            [:object/locked :default true]
            [:note/icon :default "journal-bookmark-fill"]
@@ -356,9 +360,8 @@
         {:ref portal :tab-index -1})
       ($ TransitionGroup {:component nil}
         (for [entity entities
-              :let [{id :db/id [ax ay] :object/point} entity
+              :let [{id :db/id point :object/point} entity
                     locked? (and (= type :conn) (:object/locked entity))
-                    point (Vec2. ax ay)
                     node (uix/create-ref)
                     user (dragging id)
                     rect (geom/object-bounding-rect entity)
@@ -431,8 +434,7 @@
                        :transform (vec/to-translate (.-a bounds))}))
                   ($ TransitionGroup {:component nil}
                     (for [entity entities
-                          :let [{id :db/id [ax ay] :object/point} entity
-                                point (Vec2. ax ay)
+                          :let [{id :db/id point :object/point} entity
                                 node (uix/create-ref)
                                 user (dragging id)
                                 type (keyword (namespace (:object/type entity)))]]

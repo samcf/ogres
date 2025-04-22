@@ -1,17 +1,15 @@
 (ns ogres.app.provider.session
   (:require [cognitect.transit :as transit]
             [datascript.core :as ds]
-            [datascript.transit :as dst]
             [goog.functions :refer [throttle]]
             [ogres.app.const :refer [SOCKET-URL]]
             [ogres.app.hooks :as hooks]
             [ogres.app.provider.idb :as idb]
             [ogres.app.provider.state :as state]
+            [ogres.app.serialize :refer [reader writer]]
             [uix.core :as uix :refer [defui]]
             ["@msgpack/msgpack" :as MessagePack]))
 
-(def ^:private reader (transit/reader :json {:handlers dst/read-handlers}))
-(def ^:private writer (transit/writer :json {:handlers dst/write-handlers}))
 (def ^:private interval-heartbeat 20000)
 (def ^:private interval-reconnect 5000)
 

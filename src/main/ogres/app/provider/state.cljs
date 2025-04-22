@@ -1,9 +1,10 @@
 (ns ogres.app.provider.state
-  (:require [datascript.core :as ds]
-            [datascript.transit :as dt]
+  (:require [cognitect.transit :as t]
+            [datascript.core :as ds]
             [goog.functions :refer [throttle]]
             [ogres.app.const :refer [VERSION]]
             [ogres.app.provider.events :as events]
+            [ogres.app.serialize :refer [reader writer]]
             [ogres.app.provider.idb :as idb]
             [uix.core :as uix :refer [defui $]]))
 
@@ -96,7 +97,7 @@
                                [:db/retract [:db/ident :session] :session/conns]])
                   (ds/filter (fn [_ [_ attr _ _]] (not (contains? ignored-attrs attr))))
                   (ds/datoms :eavt)
-                  (dt/write-transit-str)
+                  (as-> datoms (t/write writer datoms))
                   (as-> marshalled #js {:release VERSION :updated (* -1 (.now js/Date)) :data marshalled})
                   (as-> record (write :put [record])))))
           600))
@@ -113,8 +114,7 @@
                 (fn [record]
                   (if (nil? record)
                     (ds/transact! conn tx-data)
-                    (-> (.-data record)
-                        (dt/read-transit-str)
+                    (-> (t/read reader (.-data record))
                         (ds/conn-from-datoms schema)
                         (ds/db)
                         (ds/db-with tx-data)

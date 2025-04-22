@@ -189,58 +189,48 @@
 
 ;; Tokens are defined by their position {A} and size.
 (defmethod object-bounding-rect :token/token
-  [{[ax ay] :object/point size :token/size}]
-  (let [src (Vec2. ax ay)
-        rad (/ (* (or size 5) grid-size) 10)]
+  [{src :object/point size :token/size}]
+  (let [rad (/ (* (or size 5) grid-size) 10)]
     (Segment. (vec/shift src (- rad)) (vec/shift src rad))))
 
 ;; Circles are defined by points {A, B} where A is the center and B is
 ;; some point on the circumference.
 (defmethod object-bounding-rect :shape/circle
-  [{[ax ay] :object/point [bx by] :shape/points}]
-  (let [src (Vec2. ax ay)
-        rad (vec/dist-cheb (Vec2. bx by))]
+  [{src :object/point [dst] :shape/points}]
+  (let [rad (vec/dist-cheb dst)]
     (Segment. (vec/shift src (- rad)) (vec/shift src rad))))
 
 ;; Cones are isosceles triangles defined by points {A, B} where A is
 ;; the apex and B is the center of the base.
 (defmethod object-bounding-rect :shape/cone
-  [{[ax ay] :object/point [bx by] :shape/points}]
-  (let [src (Vec2. ax ay)
-        dst (vec/add (Vec2. bx by) src)]
+  [{src :object/point [dst] :shape/points}]
+  (let [dst (vec/add dst src)]
     (bounding-rect (cone-points (Segment. src dst)))))
 
 ;; Rectangles are defined by points {A, B} where A and B are opposite and
 ;; opposing corners, such as top-left and bottom-right.
 (defmethod object-bounding-rect :shape/rect
-  [{[ax ay] :object/point [bx by] :shape/points}]
-  (let [src (Vec2. ax ay)
-        dst (vec/add (Vec2. bx by) src)]
+  [{src :object/point [dst] :shape/points}]
+  (let [dst (vec/add dst src)]
     (bounding-rect (list src dst))))
 
 ;; Polygons are defined by points {A, B, C, [...]} where each point is
 ;; adjacent to its neighbors.
 (defmethod object-bounding-rect :shape/poly
-  [{[ax ay] :object/point points :shape/points}]
-  (let [src (Vec2. ax ay)
-        xfr (comp
-             (partition-all 2)
-             (map (fn [[bx by]] (Vec2. bx by)))
-             (map (fn [v] (vec/add src v))))]
+  [{src :object/point points :shape/points}]
+  (let [xfr (map (fn [v] (vec/add src v)))]
     (bounding-rect (list* src (sequence xfr points)))))
 
 ;; Lines are defined by points {A, B}, opposite ends of the segment.
 (defmethod object-bounding-rect :shape/line
-  [{[ax ay] :object/point [bx by] :shape/points}]
-  (let [src (Vec2. ax ay)
-        dst (vec/add (Vec2. bx by) src)]
+  [{src :object/point [dst] :shape/points}]
+  (let [dst (vec/add dst src)]
     (bounding-rect (line-points (Segment. src dst)))))
 
 ;; Notes are defined by the point {A} and is fixed square bound.
 (defmethod object-bounding-rect :note/note
-  [{[ax ay] :object/point}]
-  (let [src (Vec2. ax ay)]
-    (Segment. src (vec/shift src 42))))
+  [{src :object/point}]
+  (Segment. src (vec/shift src 42)))
 
 (defmulti object-tile-path
   (fn [object _ _]
@@ -249,22 +239,22 @@
 (defmethod object-tile-path :default [] [])
 
 (defmethod object-tile-path :shape/circle
-  [{[ax ay] :object/point [bx by] :shape/points} delta]
-  (let [src (vec/add (Vec2. ax ay) delta)
-        dst (vec/add (Vec2. bx by) src)
+  [{src :object/point [dst] :shape/points} delta]
+  (let [src (vec/add src delta)
+        dst (vec/add dst src)
         rad (vec/dist-cheb src dst)]
     (tile-path-circle src rad)))
 
 (defmethod object-tile-path :shape/cone
-  [{[ax ay] :object/point [bx by] :shape/points} delta]
-  (let [src (vec/add (Vec2. ax ay) delta)
-        dst (vec/add (Vec2. bx by) src)]
+  [{src :object/point [dst] :shape/points} delta]
+  (let [src (vec/add src delta)
+        dst (vec/add dst src)]
     (tile-path-cone (cone-points (Segment. src dst)))))
 
 (defmethod object-tile-path :shape/line
-  [{[ax ay] :object/point [bx by] :shape/points} delta]
-  (let [src (vec/add (Vec2. ax ay) delta)
-        dst (vec/add (Vec2. bx by) src)]
+  [{src :object/point [dst] :shape/points} delta]
+  (let [src (vec/add src delta)
+        dst (vec/add dst src)]
     (tile-path-line (line-points (Segment. src dst)))))
 
 (defn object-alignment [entity]

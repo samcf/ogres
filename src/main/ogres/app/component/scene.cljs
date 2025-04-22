@@ -20,8 +20,8 @@
 (defn ^:private token-light-xf [user]
   (comp (filter (fn [{radius :token/light flags :token/flags}]
                   (and (> radius 0) (or (= user :host) (not (flags :hidden))))))
-        (map (fn [{[x y] :object/point radius :token/light}]
-               [x y (+ (/ (* radius grid-size) 5) grid-size)]))))
+        (map (fn [{point :object/point radius :token/light}]
+               [(.-x point) (.-y point) (+ (/ (* radius grid-size) 5) grid-size)]))))
 
 (def ^:private mask-area-xf
   (comp (filter :mask/enabled?) (map :mask/vecs)))
