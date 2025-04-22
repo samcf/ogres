@@ -5,6 +5,8 @@
 .scene-objects-bounds {
   fill: transparent;
   pointer-events: none;
+  rx: 3;
+  ry: 3;
   shape-rendering: crispEdges;
   stroke-dasharray: 3px 1px;
   stroke-opacity: 0.6;
@@ -125,6 +127,8 @@
   display: none;
   fill: transparent;
   pointer-events: none;
+  rx: 3;
+  ry: 3;
   shape-rendering: crispEdges;
   stroke-dasharray: 6px 2px;
   stroke-opacity: 0.8;

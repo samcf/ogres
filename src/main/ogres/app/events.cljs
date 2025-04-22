@@ -4,7 +4,7 @@
             [clojure.string :refer [trim]]
             [ogres.app.const :refer [grid-size]]
             [ogres.app.geom :as geom]
-            [ogres.app.util :refer [round]]))
+            [ogres.app.vec :as vec :refer [Vec2]]))
 
 (def ^:private suffix-max-xf
   (map (fn [[label tokens]] [label (apply max (map :initiative/suffix tokens))])))
@@ -156,12 +156,12 @@
   event-tx-fn :camera/translate
   [data _ dx dy]
   (let [user (ds/entity data [:db/ident :user])
-        {[cx cy] :camera/point
-         scale :camera/scale} (:user/camera user)]
+        {[cx cy] :camera/point scale :camera/scale} (:user/camera user)
+        cv (Vec2. (or cx 0) (or cy 0))
+        dv (Vec2. dx dy)]
     [{:db/id (:db/id (:user/camera user))
       :camera/point
-      [(round (+ (or cx 0) (/ dx (or scale 1))))
-       (round (+ (or cy 0) (/ dy (or scale 1))))]}]))
+      (seq (vec/rnd (vec/add cv (vec/div dv (or scale 1)))))}]))
 
 (defmethod
   ^{:doc "Changes the camera draw mode to the given value. The draw mode is
@@ -192,13 +192,16 @@
        (let [[scale x y] args
              camera  (:user/camera user)
              [cx cy] (or (:camera/point camera) [0 0])
-             prev    (or (:camera/scale camera) 1)
-             fx      (/ scale prev)
-             dx      (/ (- (* x fx) x) scale)
-             dy      (/ (- (* y fx) y) scale)]
+             prev (or (:camera/scale camera) 1)
+             fx (/ scale prev)
+             xv (Vec2. x y)
+             dv (vec/rnd
+                 (vec/add
+                  (vec/div (vec/sub (vec/mul xv fx) xv) scale)
+                  (Vec2. cx cy)))]
          [{:db/id (:db/id camera)
-           :camera/point [(round (+ cx dx)) (round (+ cy dy))]
-           :camera/scale scale}])))))
+           :camera/scale scale
+           :camera/point (seq dv)}])))))
 
 (defmethod
   ^{:doc "Changes the zoom value for the current camera by offsetting it from
@@ -436,32 +439,34 @@
   [_ _ id dx dy]
   [[:db.fn/call event-tx-fn :objects/translate-many #{id} dx dy]])
 
+(def ^:private translate-many-select
+  [:db/id
+   :object/type
+   :object/point
+   :shape/points
+   :token/size])
+
 (defmethod event-tx-fn :objects/translate-many
   ^{:doc "Translates the objects given by idxs by the delta dx and dy,
           possibly aligning them to the grid if the appropriate scene
           option is enabled."}
   [data _ idxs dx dy]
   (let [result (ds/entity data [:db/ident :user])
-        {{{align? :scene/grid-align} :camera/scene} :user/camera} result
-        selected [:db/id :object/type :object/point :shape/points :token/size]
-        entities (ds/pull-many data selected idxs)
-        align-xf (geom/alignment-xf dx dy)]
+        align? (-> result :user/camera :camera/scene :scene/grid-align)
+        delta (Vec2. dx dy)]
     (into [[:db/retract [:db/ident :user] :user/dragging]]
-          (for [{id :db/id :as entity} entities
-                :let [type (keyword (namespace (:object/type entity)))]]
-            (cond (and align? (= type :token))
-                  (let [[ax ay bx by] (sequence align-xf (geom/object-bounding-rect entity))]
-                    {:db/id id :object/point
-                     [(/ (+ ax bx) 2) (/ (+ ay by) 2)]})
-                  align?
-                  (let [[ax ay] (:object/point entity)
-                        rn (geom/object-alignment entity)]
-                    {:db/id id :object/point
-                     [(round (+ ax dx) rn) (round (+ ay dy) rn)]})
-                  :else
-                  (let [[ax ay] (:object/point entity)]
-                    {:db/id id :object/point
-                     [(+ ax dx) (+ ay dy)]}))))))
+          (for [entity (ds/pull-many data translate-many-select idxs)
+                :let [{id :db/id [ax ay] :object/point} entity
+                      point (Vec2. ax ay)]]
+            (cond
+              (and align? (= (:object/type entity) :token/token))
+              (let [bounds (-> (geom/object-bounding-rect entity) (vec/add delta) (vec/rnd grid-size))]
+                {:db/id id :object/point (seq (vec/div (vec/add (.-a bounds) (.-b bounds)) 2))})
+              (and align? (not= (:object/type entity) :note/note))
+              (let [round (geom/object-alignment entity)]
+                {:db/id id :object/point (seq (vec/rnd (vec/add point delta) round))})
+              :else
+              {:db/id id :object/point (seq (vec/add point delta))})))))
 
 (defmethod event-tx-fn :objects/translate-selected
   ^{:doc "Translate the currently selected objects by the delta dx and dy."}
@@ -521,13 +526,12 @@
           :camera/scene} :user/camera} user
         tx (+ (/ sx (or scale 1)) (or cx 0))
         ty (+ (/ sy (or scale 1)) (or cy 0))
-        rd (/ grid-size 2)]
+        rd (/ grid-size 2)
+        tv (Vec2. tx ty)]
     [(cond-> {:db/id -1 :object/type :token/token}
        (some? hash) (assoc :token/image {:image/hash hash})
-       (not align?) (assoc :object/point [(round tx) (round ty)])
-       align?       (assoc :object/point
-                           [(+ (round (- tx rd) grid-size) rd)
-                            (+ (round (- ty rd) grid-size) rd)]))
+       (not align?) (assoc :object/point (seq (vec/rnd tv)))
+       align?       (assoc :object/point (seq (vec/shift (vec/rnd (vec/shift tv (- rd)) grid-size) rd))))
      {:db/id (:db/id (:user/camera user))
       :camera/selected -1
       :camera/draw-mode :select
@@ -569,24 +573,16 @@
 
 (defmethod event-tx-fn :shape/create
   [_ _ type points]
-  (if (> (count points) 2)
-    (let [[ax ay bx by] points
-          origin [ax ay]
-          offset (fn [[ax ay]]
-                   (comp (partition-all 2)
-                         (drop 1)
-                         (mapcat
-                          (fn [[bx by]]
-                            [(- bx ax) (- by ay)]))))]
-      (if (> (geom/euclidean-distance ax ay bx by) 16)
-        [{:db/id -1
-          :object/type (keyword :shape type)
-          :object/point origin
-          :shape/points (into [] (offset origin) points)}
-         [:db.fn/call assoc-camera :camera/draw-mode :select :camera/selected -1]
-         [:db.fn/call assoc-scene :scene/shapes -1]]
-        []))
-    []))
+  (let [src (first points)
+        xfr (comp (drop 1)
+                  (map (fn [dst] (vec/sub dst src)))
+                  (mapcat seq))]
+    [{:db/id -1
+      :object/type (keyword :shape type)
+      :object/point (seq src)
+      :shape/points (into [] xfr points)}
+     [:db.fn/call assoc-camera :camera/draw-mode :select :camera/selected -1]
+     [:db.fn/call assoc-scene :scene/shapes -1]]))
 
 (defmethod event-tx-fn :share/initiate [] [])
 
@@ -611,17 +607,16 @@
            camera :db/id} :user/camera
           type :user/type} :root/user
          {conns :session/conns} :root/session} result
-        bounds (geom/bounding-rect rect)
-        restri (into #{} (comp (mapcat :user/dragging) (map :db/id)) conns)]
-    [{:db/id            camera
+        bounds (geom/bounding-rect (seq rect))
+        locked (into #{} (comp (mapcat :user/dragging) (map :db/id)) conns)]
+    [{:db/id camera
       :camera/draw-mode :select
       :camera/selected
       (for [entity (concat shapes tokens notes)
             :let   [{id :db/id flags :token/flags} entity]
-            :let   [[ax ay bx by] (geom/object-bounding-rect entity)]
-            :when  (and (geom/point-within-rect [ax ay] bounds)
-                        (geom/point-within-rect [bx by] bounds)
-                        (not (restri id))
+            :let   [object (geom/object-bounding-rect entity)]
+            :when  (and (geom/rect-intersects-rect object bounds)
+                        (not (locked id))
                         (or (= type :host) (not (:object/locked entity)))
                         (or (= type :host) (not (contains? flags :hidden))))]
         {:db/id id})}]))
@@ -985,21 +980,30 @@
            :camera/scene} :user/camera} :root/user
          images :root/token-images} result
         hashes (into #{} (map :image/hash) images)
-        [ax ay bx by] (geom/bounding-rect (mapcat geom/object-bounding-rect clipboard))
+        rt (transduce (mapcat geom/object-bounding-rect) geom/bounding-rect-rf clipboard)
+        ax (.-x (.-a rt))
+        ay (.-y (.-a rt))
+        bx (.-x (.-b rt))
+        by (.-x (.-b rt))
         dx (- (+ cx (/ sw scale 2)) (+ ax (/ (- bx ax) 2)))
         dy (- (+ cy (/ sh scale 2)) (+ ay (/ (- by ay) 2)))
-        xf (geom/alignment-xf dx dy)]
+        dv (Vec2. dx dy)]
     (for [[idx copy] (sequence (indexed) clipboard)
           :let [{[tx ty] :object/point type :object/type} copy
+                tv (Vec2. tx ty)
                 hash (:image/hash (:token/image copy))
                 type (keyword (namespace type))
-                data (cond-> (assoc copy :db/id idx :object/point [(+ tx dx) (+ ty dy)])
+                data (cond-> (assoc copy :db/id idx :object/point (seq (vec/add tv dv)))
+                       align?
+                       (assoc :object/point (seq (vec/rnd (vec/add tv dv) grid-size)))
                        (and (= type :token) (hashes hash))
                        (assoc :token/image [:image/hash (hashes hash)])
                        (and (= type :token) align?)
                        (assoc :object/point
-                              (let [[ax ay bx by] (sequence xf (geom/object-bounding-rect copy))]
-                                [(/ (+ ax bx) 2) (/ (+ ay by) 2)])))]]
+                              (let [bounds (geom/object-bounding-rect copy)
+                                    aligns (vec/rnd (vec/add bounds dv) grid-size)
+                                    center (vec/midpoint aligns)]
+                                (seq center))))]]
       {:db/id camera
        :camera/selected idx
        :camera/scene

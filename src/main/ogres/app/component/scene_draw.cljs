@@ -21,11 +21,12 @@
 (defmethod align-grid Vec2 [a]
   (vec/rnd a grid-size))
 (defmethod align-grid Segment [s]
-  (vec/map s align-grid))
+  (vec/map align-grid s))
 
 (defmulti align-grid-half type)
 (defmethod align-grid-half Vec2 [a] (vec/rnd a half-size))
-(defmethod align-grid-half Segment [s] (vec/map s align-grid-half))
+(defmethod align-grid-half Segment [s]
+  (vec/map align-grid-half s))
 
 (defmulti align-line type)
 (defmethod align-line Vec2 [a] (align-grid-half a))
@@ -53,23 +54,20 @@
 (defmethod proj-camera Vec2 [a o t x]
   (vec/add (vec/div (vec/sub a o) x) t))
 (defmethod proj-camera Segment [s o t x]
-  (vec/map s (fn [v] (proj-camera v o t x))))
+  (vec/map (fn [v] (proj-camera v o t x)) s))
 
 (defmulti proj-canvas type)
 (defmethod proj-canvas Vec2 [a t x]
   (vec/mul (vec/sub a t) x))
 (defmethod proj-canvas Segment [s t x]
-  (vec/map s (fn [v] (proj-canvas v t x))))
+  (vec/map (fn [v] (proj-canvas v t x)) s))
 
 (def ^:private points->poly
   (completing into (fn [xs] (join " " xs))))
 
 (defn ^:private points->canvas [t x]
-  (comp
-   (partition-all 2)
-   (map (fn [[x y]] (Vec2. x y)))
-   (map (fn [v] (proj-canvas v t x)))
-   (map (fn [v] [(.-x v) (.-y v)]))))
+  (comp (map (fn [v] (proj-canvas v t x)))
+        (map seq)))
 
 (defn ^:private px->ft [len]
   (let [ft (* (/ len grid-size) 5)
@@ -202,10 +200,11 @@
          (fn [event]
            (if (not closing?)
              (set-points (conj points cursor))
-             (let [xs (geom/reorient (mapcat (fn [v] [(.-x v) (.-y v)]) points))]
+             (let [xs (geom/reorient (mapcat (fn [v] [(.-x v) (.-y v)]) points))
+                   xf (comp (partition-all 2) (map (fn [[x y]] (Vec2. x y))))]
                (set-points [])
                (set-cursor nil)
-               (on-create event xs))))})
+               (on-create event (into [] xf xs)))))})
       (if (and align? (not closing?) (some? cursor))
         ($ anchor {:transform (vec/to-translate (proj-canvas cursor shift scale))}))
       (if (seq points)
@@ -229,7 +228,7 @@
       {:on-release
        (uix/use-callback
         (fn [s]
-          (dispatch :selection/from-rect (seq s))) [dispatch])}
+          (dispatch :selection/from-rect s)) [dispatch])}
       (uix/use-callback
        (fn [_ canvas]
          (let [a (.-a canvas) b (.-b canvas)]
@@ -269,7 +268,7 @@
        (uix/use-callback
         (fn [s]
           (let [r (vec/dist-cheb s)]
-            (geom/tile-path-circle (.-x (.-a s)) (.-y (.-a s)) r))) [])}
+            (geom/tile-path-circle (.-a s) r))) [])}
       (uix/use-callback
        (fn [camera canvas]
          (let [src (.-a canvas)]
@@ -310,21 +309,18 @@
        :tile-path
        (uix/use-callback
         (fn [s]
-          (let [a (.-a s) b (.-b s)]
-            (-> (geom/line-points (.-x a) (.-y a) (.-x b) (.-y b) half-size)
-                (geom/tile-path-line)))) [])}
+          (geom/tile-path-line (geom/line-points s))) [])}
       (uix/use-callback
        (fn [camera canvas]
-         (let [a (.-a camera) b (.-b camera)
-               c (.-a canvas) d (.-b canvas)]
-           ($ :<>
-             (let [scale (/ (abs (- (.-x d) (.-x c))) (abs (- (.-x b) (.-x a))))]
-               (if (not (js/isNaN scale))
-                 (let [xs (geom/line-points (.-x c) (.-y c) (.-x d) (.-y d) (* scale half-size))]
-                   ($ :polygon.scene-draw-shape
-                     {:points (transduce (partition-all 2) points->poly [] xs)}))))
-             ($ text {:attrs {:x (+ (.-x c) 8) :y (- (.-y c) 8) :fill "white"}}
-               (str (px->ft (vec/dist camera)) "ft."))))) []))))
+         ($ :<>
+           (let [points (geom/line-points canvas)]
+             ($ :polygon.scene-draw-shape
+               {:points (join " " (mapcat seq points))}))
+           ($ text
+             {:attrs
+              {:x (.-x (.-a canvas))
+               :y (.-y (.-a canvas))}}
+             (str (px->ft (vec/dist camera)) "ft.")))) []))))
 
 (defui ^:private draw-cone []
   (let [dispatch (hooks/use-dispatch)]
@@ -337,17 +333,18 @@
        :tile-path
        (uix/use-callback
         (fn [s]
-          (let [a (.-a s) b (.-b s)]
-            (-> (geom/cone-points (.-x a) (.-y a) (.-x b) (.-y b))
-                (geom/tile-path-cone)))) [])}
+          (geom/tile-path-cone (geom/cone-points s))) [])}
       (uix/use-callback
        (fn [camera canvas]
-         (let [c (.-a canvas) d (.-b canvas)]
-           ($ :<>
+         ($ :<>
+           (let [points (geom/cone-points canvas)]
              ($ :polygon.scene-draw-shape
-               {:points (join " " (geom/cone-points (.-x c) (.-y c) (.-x d) (.-y d)))})
-             ($ text {:attrs {:x (+ (.-x d) 16) :y (+ (.-y d) 16) :fill "white"}}
-               (str (px->ft (vec/dist camera)) "ft."))))) []))))
+               {:points (join " " (mapcat seq points))}))
+           ($ text
+             {:attrs
+              {:x (+ (.-x (.-b canvas)) 16)
+               :y (+ (.-y (.-b canvas)) 16)}}
+             (str (px->ft (vec/dist camera)) "ft.")))) []))))
 
 (defui ^:private draw-poly []
   (let [dispatch (hooks/use-dispatch)]
@@ -361,7 +358,7 @@
     ($ polygon
       {:on-create
        (fn [_ points]
-         (dispatch :mask/create points))})))
+         (dispatch :mask/create (mapcat seq points)))})))
 
 (defui ^:private draw-grid []
   (let [dispatch (hooks/use-dispatch)
