@@ -126,11 +126,11 @@
   [[:bounds/self :default vec/zero-segment]
    {:user/camera
     [[:camera/scale :default 1]
-     [:camera/point :default [0 0]]
+     [:camera/point :default vec/zero]
      {:camera/scene
       [[:scene/grid-align :default false]
+       [:scene/grid-origin :default vec/zero]
        [:scene/grid-size :default grid-size]
-       [:scene/grid-origin :default [0 0]]
        [:scene/show-object-outlines :default true]]}]}])
 
 (defui ^:private draw-segment [props]
@@ -138,15 +138,14 @@
          :or {on-release :default align-fn align-identity}} props
         result (hooks/use-query query)
         {bounds :bounds/self
-         {[tx ty] :camera/point
+         {shift :camera/point
           scale :camera/scale
           {grid-paths :scene/show-object-outlines
            grid-align :scene/grid-align}
           :camera/scene}
          :user/camera} result
         align (if grid-align align-fn align-identity)
-        basis (.-a bounds)
-        shift (Vec2. tx ty)]
+        basis (.-a bounds)]
     ($ draw-segment-drag
       {:use-cursor (contains? props :align-fn)
        :on-release
@@ -177,14 +176,13 @@
   [{:keys [on-create]}]
   (let [result (hooks/use-query query)
         {bounds :bounds/self
-         {[tx ty] :camera/point
+         {shift :camera/point
           scale :camera/scale
           {align? :scene/grid-align} :camera/scene} :user/camera} result
         [points set-points] (uix/use-state [])
         [cursor set-cursor] (uix/use-state nil)
         closing? (and (seq points) (some? cursor) (< (vec/dist (first points) cursor) 32))
-        basis (.-a bounds)
-        shift (Vec2. tx ty)]
+        basis (.-a bounds)]
     ($ :<>
       ($ :rect.scene-draw-surface
         {:on-pointer-down
@@ -217,7 +215,7 @@
         ($ :polygon.scene-draw-shape
           {:points
            (transduce
-            (comp (map (fn [v] (proj-canvas v (Vec2. tx ty) scale)))
+            (comp (map (fn [v] (proj-canvas v shift scale)))
                   (map (fn [v] [(.-x v) (.-y v)])))
             points->poly []
             (if (not closing?) (conj points cursor) points))})))))
@@ -363,15 +361,14 @@
 (defui ^:private draw-grid []
   (let [dispatch (hooks/use-dispatch)
         {bounds :bounds/self
-         {[tx ty] :camera/point
+         {shift :camera/point
           scale   :camera/scale
           {prev-size :scene/grid-size
-           [px py] :scene/grid-origin}
+           prev-origin :scene/grid-origin}
           :camera/scene} :user/camera} (hooks/use-query query)
         [origin set-origin] (uix/use-state nil)
         [size     set-size] (uix/use-state prev-size)
         basis (.-a bounds)
-        shift (Vec2. tx ty)
         on-shift (fn [a] (fn [] (set-origin (fn [b] (vec/add a b)))))]
     ($ :g.grid-align
       ($ :rect.scene-draw-surface
@@ -393,11 +390,17 @@
               ($ :form
                 {:on-submit
                  (fn [event]
+                   (prn prev-origin)
                    (.preventDefault event)
-                   (let [point (-> (vec/sub origin basis) (vec/div scale) (vec/add shift)
-                                   (vec/add (Vec2. px py)) (vec/abs) (vec/mod grid-size)
-                                   (vec/rnd 0.25))]
-                     (dispatch :scene/apply-grid-options [(.-x point) (.-y point)] size)))}
+                   (dispatch
+                    :scene/apply-grid-options
+                    (-> (vec/sub origin basis)
+                        (vec/div scale)
+                        (vec/add shift)
+                        (vec/add (or prev-origin vec/zero))
+                        (vec/abs)
+                        (vec/mod grid-size)
+                        (vec/rnd 0.25)) size))}
                 ($ :fieldset.grid-align-origin
                   ($ :button
                     {:type "button" :data-name "up" :on-click (on-shift (Vec2. 0 -1))}
@@ -411,7 +414,7 @@
                   ($ :button
                     {:type "button" :data-name "left" :on-click (on-shift (Vec2. -1 0))}
                     ($ icon {:name "arrow-left-short" :size 20}))
-                  (if (and (not= px 0) (not= py 0))
+                  (if (not= prev-origin vec/zero)
                     ($ :button
                       {:type "button" :data-name "clear" :data-tooltip "Reset"
                        :on-click (fn [] (dispatch :scene/reset-grid-origin))}

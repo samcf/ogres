@@ -1,19 +1,19 @@
 (ns ogres.app.provider.cursor
   (:require [ogres.app.hooks :as hooks]
             [uix.core :as uix :refer [defui]]
-            [ogres.app.vec :as vec]))
+            [ogres.app.vec :as vec :refer [Vec2]]))
 
 (def ^:private handler-query
   [[:bounds/self :default vec/zero-segment]
    {:user/camera
     [[:camera/scale :default 1]
-     [:camera/point :default [0 0]]]}])
+     [:camera/point :default vec/zero]]}])
 
 (defui listeners []
   (let [publish (hooks/use-publish)
         result  (hooks/use-query handler-query)
         {bounds :bounds/self
-         {[cx cy] :camera/point
+         {point :camera/point
           scale :camera/scale} :user/camera} result]
     (hooks/use-event-listener js/window "pointermove"
       (uix/use-callback
@@ -23,7 +23,6 @@
              (if (and (some? data) (= (.-dragging data) "false"))
                (let [dx (.-clientX event)
                      dy (.-clientY event)
-                     mx (int (+ (/ (- dx (.-x (.-a bounds))) scale) cx))
-                     my (int (+ (/ (- dy (.-y (.-a bounds))) scale) cy))]
-                 (publish :cursor/move mx my))))))
-       [publish cx cy bounds scale]))))
+                     mv (vec/add (vec/div (vec/sub (Vec2. dx dy) (.-a bounds)) scale) point)]
+                 (publish :cursor/move (.-x mv) (.-y mv)))))))
+       [publish point bounds scale]))))

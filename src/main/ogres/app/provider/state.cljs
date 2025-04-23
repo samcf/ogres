@@ -6,6 +6,7 @@
             [ogres.app.provider.events :as events]
             [ogres.app.serialize :refer [reader writer]]
             [ogres.app.provider.idb :as idb]
+            [ogres.app.vec :as vec]
             [uix.core :as uix :refer [defui $]]))
 
 (def schema
@@ -53,6 +54,7 @@
     [:db/add -3 :user/type type]
     [:db/add -3 :panel/selected :tokens]
     [:db/add -4 :camera/scene -2]
+    [:db/add -4 :camera/point vec/zero]
     [:db/add -5 :db/ident :session]]))
 
 (def context (uix/create-context))

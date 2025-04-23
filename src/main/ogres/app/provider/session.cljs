@@ -7,6 +7,7 @@
             [ogres.app.provider.idb :as idb]
             [ogres.app.provider.state :as state]
             [ogres.app.serialize :refer [reader writer]]
+            [ogres.app.vec :as vec]
             [uix.core :as uix :refer [defui]]
             ["@msgpack/msgpack" :as MessagePack]))
 
@@ -77,7 +78,7 @@
                        :user/camera} user]
                   {:db/id -1
                    :camera/scene scene
-                   :camera/point (or point [0 0])
+                   :camera/point (or point vec/zero)
                    :camera/scale (or scale 1)})}
                [:db/add [:db/ident :session] :session/host [:db/ident :user]]
                [:db/add [:db/ident :session] :session/conns [:user/uuid (:uuid data)]]]

@@ -1,6 +1,7 @@
 (ns ogres.app.component.panel-scene
   (:require [clojure.string :refer [replace]]
             [ogres.app.component :refer [icon pagination image fullscreen-dialog]]
+            [ogres.app.const :refer [grid-size]]
             [ogres.app.hooks :as hooks]
             [ogres.app.util :refer [display-size]]
             [uix.core :as uix :refer [defui $]]))
@@ -74,7 +75,7 @@
        :camera/label
        {:camera/scene
         [:db/id
-         [:scene/grid-size :default 70]
+         [:scene/grid-size :default grid-size]
          [:scene/show-grid :default true]
          [:scene/grid-align :default false]
          [:scene/dark-mode :default false]

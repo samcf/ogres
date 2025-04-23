@@ -282,7 +282,7 @@
       [:db/id
        :camera/selected
        [:camera/scale :default 1]
-       [:camera/point :default [0 0]]
+       [:camera/point :default vec/zero]
        {:camera/scene
         [[:scene/grid-align :default false]
          [:scene/show-object-outlines :default true]
@@ -327,8 +327,8 @@
         result (hooks/use-query query [:db/ident :root])
         {{bounds :bounds/self
           type :user/type
-          {[cx cy]  :camera/point
-           scale    :camera/scale
+          {point :camera/point
+           scale :camera/scale
            selected :camera/selected
            {outline? :scene/show-object-outlines
             align? :scene/grid-align
@@ -340,10 +340,11 @@
          {conns :session/conns} :root/session} result
         portal (uix/use-ref)
         screen (Segment.
-                (Vec2. cx cy)
-                (Vec2.
-                 (+ (/ (vec/width bounds) scale) cx)
-                 (+ (/ (vec/height bounds) scale) cy)))
+                point
+                (vec/add
+                 (Vec2.
+                  (/ (vec/width bounds) scale)
+                  (/ (vec/height bounds) scale)) point))
         notes  (sort compare-objects notes)
         shapes (sort compare-objects shapes)
         tokens (sort compare-tokens (sequence (tokens-xf type) tokens))
