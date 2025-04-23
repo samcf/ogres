@@ -10,6 +10,7 @@
             [ogres.app.hooks :as hooks]
             [ogres.app.svg :refer [circle->path poly->path]]
             [ogres.app.util :refer [key-by]]
+            [ogres.app.vec :as vec]
             [react-transition-group :refer [TransitionGroup Transition CSSTransition]]
             [uix.core :as uix :refer [defui $]]
             ["@rwh/react-keystrokes" :refer [useKey] :rename {useKey use-key}]
@@ -240,18 +241,18 @@
                :mask-remove (dispatch :mask/remove id)))})))))
 
 (def ^:private grid-defs-query
-  [[:bounds/self :default [0 0 0 0]]
+  [[:bounds/self :default vec/zero-segment]
    {:user/camera
     [[:camera/point :default [0 0]]
      [:camera/scale :default 1]]}])
 
 (defui ^:private grid-defs []
   (let [data (hooks/use-query grid-defs-query)
-        {[_ _ w h] :bounds/self
+        {bounds :bounds/self
          {[cx cy] :camera/point
           scale :camera/scale} :user/camera} data
-        wd (/ w scale)
-        ht (/ h scale)
+        wd (/ (vec/width bounds) scale)
+        ht (/ (vec/height bounds) scale)
         ax (+ (* wd -3) cx)
         ay (+ (* ht -3) cy)
         bx (+ (* wd  3) cx)
@@ -366,12 +367,20 @@
             ($ token {:node node :data data})))))))
 
 (defui ^:private player-window-bounds []
-  (let [result (hooks/use-query [:bounds/host :bounds/view])
-        {[_ _ hw hh] :bounds/host
-         [_ _ vw vh] :bounds/view} result
-        [ox oy] [(/ (- hw vw) 2) (/ (- hh vh) 2)]]
-    ($ :g.scene-bounds {:transform (str "translate(" ox " , " oy ")")}
-      ($ :rect {:x 0 :y 0 :width vw :height vh :rx 8}))))
+  (let [{bounds-host :bounds/host
+         bounds-view :bounds/view}
+        (hooks/use-query
+         [[:bounds/host :default vec/zero-segment]
+          [:bounds/view :default vec/zero-segment]])
+        point
+        (vec/Vec2.
+         (- (vec/width bounds-host) (vec/width bounds-view))
+         (- (vec/height bounds-host) (vec/height bounds-view)))]
+    ($ :g.scene-bounds {:transform (vec/to-translate (vec/div point 2))}
+      ($ :rect
+        {:x 0 :y 0
+         :width (vec/width bounds-view)
+         :height (vec/height bounds-view) :rx 8}))))
 
 (def ^:private player-cursors-query
   [{:root/user [{:user/camera [:camera/scene]}]}
@@ -512,8 +521,8 @@
 (def ^:private scene-query
   [:user/type
    :user/sharing?
-   [:bounds/host :default [0 0 0 0]]
-   [:bounds/view :default [0 0 0 0]]
+   [:bounds/host :default vec/zero-segment]
+   [:bounds/view :default vec/zero-segment]
    {:user/camera
     [:db/id
      [:camera/point :default [0 0]]
@@ -530,14 +539,16 @@
 (defui ^:private scene-content [props]
   (let [dispatch (hooks/use-dispatch)
         {user        :user/type
-         [_ _ hw hh] :bounds/host
-         [_ _ vw vh] :bounds/view
+         bounds-host :bounds/host
+         bounds-view :bounds/view
          {scene   :camera/scene
           scale   :camera/scale
           mode    :camera/draw-mode
           [cx cy] :camera/point} :user/camera} (:data props)
-        cx (if (= user :view) (->> (- hw vw) (max 0) (* (/ -1 2 scale)) (- cx)) cx)
-        cy (if (= user :view) (->> (- hh vh) (max 0) (* (/ -1 2 scale)) (- cy)) cy)
+        point
+        (vec/Vec2.
+         (if (= user :view) (->> (- (vec/width bounds-host) (vec/width bounds-view)) (max 0) (* (/ -1 2 scale)) (- cx)) cx)
+         (if (= user :view) (->> (- (vec/height bounds-host) (vec/height bounds-view)) (max 0) (* (/ -1 2 scale)) (- cy)) cy))
         multi-select? (use-key "shift")]
     ($ :svg.scene
       {:ref (:ref props)
@@ -555,10 +566,10 @@
             (if (and (= dx 0) (= dy 0))
               (dispatch :selection/clear)
               (dispatch :camera/translate (- dx) (- dy))))
-          [dispatch cx cy scale])}
+          [dispatch point scale])}
         (if (and (= mode :select) multi-select?)
           ($ draw {:mode :select}))
-        ($ :g {:transform (str "scale(" scale ") translate(" (- cx) ", " (- cy) ")")}
+        ($ :g {:transform  (str "scale(" scale ") " (vec/to-translate (vec/mul point -1)))}
           (:children props)))
       ($ hooks/create-portal {:name :multiselect}
         (fn [{:keys [ref]}]

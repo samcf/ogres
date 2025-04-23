@@ -1,23 +1,20 @@
 (ns ogres.app.provider.window
   (:require [cognitect.transit :as t]
             [datascript.core :as ds]
-            [datascript.transit :as dst]
             [goog.functions :refer [throttle]]
             [ogres.app.hooks :as hooks]
             [ogres.app.provider.state :as state]
+            [ogres.app.serialize :refer [reader writer]]
+            [ogres.app.vec :refer [Vec2 Segment]]
             [uix.core :as uix :refer [defui $]]))
 
 (def ^:private context (uix/create-context))
 
-(def ^:private reader (t/reader :json {:handlers dst/read-handlers}))
-(def ^:private writer (t/writer :json {:handlers dst/write-handlers}))
-
-(defn ^:private bounds->vector
-  [bounds]
-  [(.-x bounds)
-   (.-y bounds)
-   (.-width bounds)
-   (.-height bounds)])
+(defn ^:private bounds->segment [bounds]
+  (Segment.
+   (Vec2. (.-x bounds) (.-y bounds))
+   (Vec2. (+ (.-x bounds) (.-width bounds))
+          (+ (.-y bounds) (.-height bounds)))))
 
 (defui ^:private initialize
   "Registers a DataScript listener in order to manage the view window, the
@@ -67,12 +64,12 @@
   [{:keys [target type]}]
   (let [dispatch (hooks/use-dispatch)
         handler  (uix/use-memo
-                  #(throttle
-                    (fn []
-                      (if-let [element (.. target -document (querySelector ".layout-scene"))]
-                        (->> (.getBoundingClientRect element)
-                             (bounds->vector)
-                             (dispatch :bounds/change type)))) 100) [dispatch type target])
+                  (fn []
+                    (throttle
+                     (fn []
+                       (if-let [element (.. target -document (querySelector ".layout-scene"))]
+                         (let [rect (.getBoundingClientRect element)]
+                           (dispatch :bounds/change type (bounds->segment rect))))) 100)) [dispatch type target])
         [observer] (uix/use-state (js/ResizeObserver. handler))
         [scene set-scene] (uix/use-state nil)]
     (hooks/use-event-listener "resize" handler)

@@ -277,7 +277,7 @@
 (def ^:private query
   [{:root/user
     [:user/type
-     [:bounds/self :default [0 0 0 0]]
+     [:bounds/self :default vec/zero-segment]
      {:user/camera
       [:db/id
        :camera/selected
@@ -325,7 +325,7 @@
 (defui objects []
   (let [[_ set-ready] (uix/use-state false)
         result (hooks/use-query query [:db/ident :root])
-        {{[_ _ bw bh] :bounds/self
+        {{bounds :bounds/self
           type :user/type
           {[cx cy]  :camera/point
            scale    :camera/scale
@@ -339,7 +339,11 @@
           :user/camera} :root/user
          {conns :session/conns} :root/session} result
         portal (uix/use-ref)
-        screen (Segment. (Vec2. cx cy) (Vec2. (+ (/ bw scale) cx) (+ (/ bh scale) cy)))
+        screen (Segment.
+                (Vec2. cx cy)
+                (Vec2.
+                 (+ (/ (vec/width bounds) scale) cx)
+                 (+ (/ (vec/height bounds) scale) cy)))
         notes  (sort compare-objects notes)
         shapes (sort compare-objects shapes)
         tokens (sort compare-tokens (sequence (tokens-xf type) tokens))

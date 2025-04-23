@@ -123,7 +123,7 @@
       (children segment cursor))))
 
 (def ^:private query
-  [[:bounds/self :default [0 0 0 0]]
+  [[:bounds/self :default vec/zero-segment]
    {:user/camera
     [[:camera/scale :default 1]
      [:camera/point :default [0 0]]
@@ -137,7 +137,7 @@
   (let [{:keys [children on-release tile-path align-fn]
          :or {on-release :default align-fn align-identity}} props
         result (hooks/use-query query)
-        {[ox oy] :bounds/self
+        {bounds :bounds/self
          {[tx ty] :camera/point
           scale :camera/scale
           {grid-paths :scene/show-object-outlines
@@ -145,7 +145,7 @@
           :camera/scene}
          :user/camera} result
         align (if grid-align align-fn align-identity)
-        basis (Vec2. ox oy)
+        basis (.-a bounds)
         shift (Vec2. tx ty)]
     ($ draw-segment-drag
       {:use-cursor (contains? props :align-fn)
@@ -176,14 +176,14 @@
 (defui ^:private polygon
   [{:keys [on-create]}]
   (let [result (hooks/use-query query)
-        {[ox oy] :bounds/self
+        {bounds :bounds/self
          {[tx ty] :camera/point
           scale :camera/scale
           {align? :scene/grid-align} :camera/scene} :user/camera} result
         [points set-points] (uix/use-state [])
         [cursor set-cursor] (uix/use-state nil)
         closing? (and (seq points) (some? cursor) (< (vec/dist (first points) cursor) 32))
-        basis (Vec2. ox oy)
+        basis (.-a bounds)
         shift (Vec2. tx ty)]
     ($ :<>
       ($ :rect.scene-draw-surface
@@ -362,7 +362,7 @@
 
 (defui ^:private draw-grid []
   (let [dispatch (hooks/use-dispatch)
-        {[ox oy] :bounds/self
+        {bounds :bounds/self
          {[tx ty] :camera/point
           scale   :camera/scale
           {prev-size :scene/grid-size
@@ -370,7 +370,7 @@
           :camera/scene} :user/camera} (hooks/use-query query)
         [origin set-origin] (uix/use-state nil)
         [size     set-size] (uix/use-state prev-size)
-        basis (Vec2. ox oy)
+        basis (.-a bounds)
         shift (Vec2. tx ty)
         on-shift (fn [a] (fn [] (set-origin (fn [b] (vec/add a b)))))]
     ($ :g.grid-align
@@ -440,7 +440,8 @@
     ($ :rect.scene-draw-surface
       {:on-click
        (fn [event]
-         (dispatch :note/create (.-clientX event) (.-clientY event)))})))
+         (let [point (Vec2. (.-clientX event) (.-clientY event))]
+           (dispatch :note/create point)))})))
 
 (defui draw [{:keys [mode] :as props}]
   ($ dnd-context

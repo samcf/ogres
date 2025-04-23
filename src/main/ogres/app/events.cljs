@@ -187,21 +187,20 @@
      (case (count args)
        0 [[:db.fn/call event-tx-fn event 1]]
        1 (let [[scale] args
-               [_ _ w h] (or (:bounds/self user) [0 0 0 0])]
-           [[:db.fn/call event-tx-fn event scale (/ w 2) (/ h 2)]])
-       (let [[scale x y] args
-             camera  (:user/camera user)
+               bounds (or (:bounds/self user) vec/zero-segment)]
+           [[:db.fn/call event-tx-fn event scale (vec/midpoint bounds)]])
+       (let [[scale point] args
+             camera (:user/camera user)
              [cx cy] (or (:camera/point camera) [0 0])
-             prev (or (:camera/scale camera) 1)
-             fx (/ scale prev)
-             xv (Vec2. x y)
-             dv (vec/rnd
-                 (vec/add
-                  (vec/div (vec/sub (vec/mul xv fx) xv) scale)
-                  (Vec2. cx cy)))]
+             scale-prev (or (:camera/scale camera) 1)]
          [{:db/id (:db/id camera)
            :camera/scale scale
-           :camera/point (seq dv)}])))))
+           :camera/point
+           (seq (-> (vec/mul point (/ scale scale-prev))
+                    (vec/sub point)
+                    (vec/div scale)
+                    (vec/add (Vec2. cx cy))
+                    (vec/rnd)))}])))))
 
 (defmethod
   ^{:doc "Changes the zoom value for the current camera by offsetting it from
@@ -210,15 +209,14 @@
   event-tx-fn :camera/zoom-delta
   [data _ mx my delta trackpad?]
   (let [user (ds/entity data [:db/ident :user])
-        [ox oy] (or (:bounds/self user) [0 0 0 0])
+        bound (or (:bounds/self user) vec/zero-segment)
         scale (linear -400 400 -0.50 0.50)
         delta (if trackpad? (scale (* -1 8 delta)) (scale (* -1 2 delta)))
-        zoomx (- mx ox)
-        zoomy (- my oy)
-        zoomz (-> (:camera/scale (:user/camera user)) (or 1)
+        point (vec/sub (Vec2. mx my) (.-a bound))
+        scale (-> (:camera/scale (:user/camera user)) (or 1)
                   (js/Math.log) (+ delta) (js/Math.exp)
                   (to-precision 2) (constrain 0.15 4))]
-    [[:db.fn/call event-tx-fn :camera/zoom-change zoomz zoomx zoomy]]))
+    [[:db.fn/call event-tx-fn :camera/zoom-change scale point]]))
 
 (defmethod
   ^{:doc "Increases the zoom value for the current camera to the next nearest
@@ -873,30 +871,26 @@
   event-tx-fn :session/focus
   [data]
   (let [select-w [:camera/scene [:camera/point :default [0 0]] [:camera/scale :default 1]]
-        select-l [:db/id [:bounds/self :default [0 0 0 0]] {:user/cameras [:camera/scene] :user/camera select-w}]
+        select-l [:db/id [:bounds/self :default vec/zero-segment]
+                  {:user/cameras [:camera/scene] :user/camera select-w}]
         select-s [{:session/host select-l} {:session/conns select-l}]
         result   (ds/pull data select-s [:db/ident :session])
-        {{[_ _ hw hh] :bounds/self
+        {{bounds :bounds/self
           {[hx hy] :camera/point} :user/camera
           host :user/camera} :session/host
          conns :session/conns} result
         scale (:camera/scale host)
-        mx (+ (/ hw scale 2) hx)
-        my (+ (/ hh scale 2) hy)]
+        center (vec/add (Vec2. hx hy) (vec/div (vec/midpoint bounds) scale))]
     (->> (for [[next conn] (sequence (indexed) conns)
-               :let [exst (->> (:user/cameras conn)
+               :let [prev (->> (:user/cameras conn)
                                (filter (fn [conn]
                                          (= (:db/id (:camera/scene conn))
-                                            (:db/id (:camera/scene host)))))
-                               (first)
-                               (:db/id))
-                     prev (or exst next)
-                     [_ _ cw ch] (:bounds/self conn)
-                     cx (- mx (/ cw scale 2))
-                     cy (- my (/ ch scale 2))]]
-           [{:db/id (:db/id conn) :user/camera prev :user/cameras prev}
-            {:db/id prev
-             :camera/point [cx cy]
+                                            (:db/id (:camera/scene host))))) (first) (:db/id))
+                     next  (or prev next)
+                     point (vec/sub center (vec/div (vec/midpoint (:bounds/self conn)) scale))]]
+           [{:db/id (:db/id conn) :user/camera next :user/cameras next}
+            {:db/id next
+             :camera/point [(.-x point) (.-y point)]
              :camera/scale scale
              :camera/scene (:db/id (:camera/scene host))}])
          (into [] cat))))
@@ -948,7 +942,7 @@
 (def ^:private clipboard-paste-select
   [{:root/user
     [[:user/clipboard :default []]
-     [:bounds/self :default [0 0 0 0]]
+     [:bounds/self :default vec/zero-segment]
      {:user/camera
       [:db/id
        [:camera/scale :default 1]
@@ -967,7 +961,7 @@
   [data]
   (let [result (ds/pull data clipboard-paste-select [:db/ident :root])
         {{clipboard :user/clipboard
-          [_ _ sw sh] :bounds/self
+          screen :bounds/self
           {camera :db/id
            scale :camera/scale
            [cx cy] :camera/point
@@ -975,27 +969,23 @@
            :camera/scene} :user/camera} :root/user
          images :root/token-images} result
         hashes (into #{} (map :image/hash) images)
-        rt (transduce (mapcat geom/object-bounding-rect) geom/bounding-rect-rf clipboard)
-        ax (.-x (.-a rt))
-        ay (.-y (.-a rt))
-        bx (.-x (.-b rt))
-        by (.-x (.-b rt))
-        dx (- (+ cx (/ sw scale 2)) (+ ax (/ (- bx ax) 2)))
-        dy (- (+ cy (/ sh scale 2)) (+ ay (/ (- by ay) 2)))
-        dv (Vec2. dx dy)]
+        bound (transduce (mapcat geom/object-bounding-rect) geom/bounding-rect-rf clipboard)
+        delta (vec/sub
+               (vec/add (Vec2. cx cy) (vec/div (vec/midpoint screen) scale))
+               (vec/midpoint bound))]
     (for [[idx copy] (sequence (indexed) clipboard)
           :let [{src :object/point type :object/type} copy
                 hash (:image/hash (:token/image copy))
                 type (keyword (namespace type))
-                data (cond-> (assoc copy :db/id idx :object/point (vec/add src dv))
+                data (cond-> (assoc copy :db/id idx :object/point (vec/add src delta))
                        align?
-                       (assoc :object/point (vec/rnd (vec/add src dv) grid-size))
+                       (assoc :object/point (vec/rnd (vec/add src delta) grid-size))
                        (and (= type :token) (hashes hash))
                        (assoc :token/image [:image/hash (hashes hash)])
                        (and (= type :token) align?)
                        (assoc :object/point
                               (let [bounds (geom/object-bounding-rect copy)
-                                    aligns (vec/rnd (vec/add bounds dv) grid-size)]
+                                    aligns (vec/rnd (vec/add bounds delta) grid-size)]
                                 (vec/midpoint aligns))))]]
       {:db/id camera
        :camera/selected idx
@@ -1041,18 +1031,21 @@
 (defmethod
   ^{:doc "Create a new note object at the given point."}
   event-tx-fn :note/create
-  [data _ mx my]
+  [data _ point]
   (let [user (ds/entity data [:db/ident :user])
-        {[bx by] :bounds/self
+        {bounds :bounds/self
          {camera :db/id
           {scene :db/id} :camera/scene
           [cx cy] :camera/point
-          scale :camera/scale} :user/camera} user
-        ox (int (- (+ cx (/ (- mx bx) (or scale 1))) 16))
-        oy (int (- (+ cy (/ (- my by) (or scale 1))) 16))]
+          scale :camera/scale} :user/camera} user]
     [{:db/id -1
       :object/type :note/note
-      :object/point (Vec2. ox oy)
+      :object/point
+      (-> (vec/sub point (.-a bounds))
+          (vec/div (or scale 1))
+          (vec/add (Vec2. cx cy))
+          (vec/shift -16)
+          (vec/rnd))
       :object/hidden true
       :object/locked true
       :note/label "Note"}
