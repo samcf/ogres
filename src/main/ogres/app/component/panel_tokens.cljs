@@ -3,7 +3,7 @@
             [ogres.app.component :refer [icon image pagination fullscreen-dialog]]
             [ogres.app.hooks :as hooks]
             [ogres.app.util :refer [separate]]
-            [ogres.app.vec :as vec]
+            [ogres.app.vec :as vec :refer [Vec2]]
             [uix.core :as uix :refer [defui $]]
             [uix.dom :refer [create-portal]]
             [clojure.string :as str]
@@ -183,7 +183,7 @@
                  my (- (+ ty dy (/ th 2)) by)]
              (if (and (<= bx mx (+ bx (vec/width bounds)))
                       (<= by my (+ by (vec/height bounds))))
-               (dispatch :token/create mx my (if (not= hash "default") hash)))))
+               (dispatch :token/create (Vec2. mx my) (if (not= hash "default") hash)))))
          [dispatch bounds])]
     ($ dnd-context
       #js {"onDragEnd"

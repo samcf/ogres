@@ -511,25 +511,26 @@
           given by `sx` and `sy`. These coordinates are converted to the
           scene coordinate space."}
   event-tx-fn :token/create
-  [data _ sx sy hash]
-  (let [user (ds/entity data [:db/ident :user])
-        {{point :camera/point
+  [data _ point hash]
+  (let [{{camera-id :db/id
+          shift :camera/point
           scale :camera/scale
-          {align? :scene/grid-align} :camera/scene}
-         :user/camera} user
-        point (vec/add (vec/div (Vec2. sx sy) (or scale 1)) point)]
+          {scene-id :db/id
+           align? :scene/grid-align} :camera/scene} :user/camera}
+        (ds/entity data [:db/ident :user])
+        next (vec/add (vec/div point (or scale 1)) shift)]
     [(cond-> {:db/id -1 :object/type :token/token}
        (some? hash) (assoc :token/image {:image/hash hash})
-       (not align?) (assoc :object/point (vec/rnd point))
+       (not align?) (assoc :object/point next)
        align?       (assoc :object/point
-                           (vec/shift
-                            (vec/rnd (vec/shift point (- half-size)) grid-size)
-                            half-size)))
-     {:db/id (:db/id (:user/camera user))
+                           (-> (vec/shift next (- half-size))
+                               (vec/rnd grid-size)
+                               (vec/shift half-size))))
+     {:db/id camera-id
       :camera/selected -1
       :camera/draw-mode :select
       :camera/scene
-      {:db/id (:db/id (:camera/scene (:user/camera user)))
+      {:db/id scene-id
        :scene/tokens -1}}]))
 
 (defmethod event-tx-fn :token/change-flag

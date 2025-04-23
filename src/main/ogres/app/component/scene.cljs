@@ -133,7 +133,7 @@
         [:db/id
          [:token/flags :default #{}]
          [:token/light :default 15]
-         [:object/point :default [0 0]]]}]}]}])
+         [:object/point :default vec/zero]]}]}]}])
 
 (defui ^:private mask-defs []
   (let [result (hooks/use-query mask-defs-query)
@@ -317,7 +317,7 @@
       [{:scene/tokens
         [:db/id
          [:initiative/suffix :default nil]
-         [:object/point :default [0 0]]
+         [:object/point :default vec/zero]
          [:token/flags :default #{}]
          [:token/label :default ""]
          [:token/size :default 5]
