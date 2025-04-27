@@ -559,7 +559,7 @@
             (if (= delta vec/zero)
               (dispatch :selection/clear)
               (dispatch :camera/translate (vec/mul delta -1))))
-          [dispatch point scale])}
+          [dispatch scale])}
         (if (and (= mode :select) multi-select?)
           ($ draw {:mode :select}))
         ($ :g {:transform  (str "scale(" scale ") " (vec/to-translate (vec/rnd (vec/mul point -1))))}
