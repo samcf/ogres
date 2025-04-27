@@ -242,30 +242,18 @@
                :mask-toggle (dispatch :mask/toggle id (not enabled?))
                :mask-remove (dispatch :mask/remove id)))})))))
 
-(def ^:private grid-defs-query
-  [[:bounds/self :default vec/zero-segment]
-   {:user/camera
-    [[:camera/point :default vec/zero]
-     [:camera/scale :default 1]]}])
-
 (defui ^:private grid-defs []
-  (let [data (hooks/use-query grid-defs-query)
-        {bounds :bounds/self
-         {point :camera/point
-          scale :camera/scale} :user/camera} data
-        wd (/ (vec/width bounds) scale)
-        ht (/ (vec/height bounds) scale)
-        cx (.-x point)
-        cy (.-y point)
-        ax (+ (* wd -3) cx)
-        ay (+ (* ht -3) cy)
-        bx (+ (* wd  3) cx)
-        by (+ (* ht  3) cy)]
-    ($ :defs
-      ($ :pattern {:id "grid-pattern" :width grid-size :height grid-size :patternUnits "userSpaceOnUse"}
-        ($ :path.scene-grid-path {:d (join " " ["M" 0 0 "H" grid-size "V" grid-size])}))
-      ($ :g {:id "scene-grid"}
-        ($ :path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"]) :fill "url(#grid-pattern)"})))))
+  ($ :defs
+    ($ :pattern
+      {:id "grid-pattern"
+       :width grid-size
+       :height grid-size
+       :patternUnits "userSpaceOnUse"}
+      ($ :path.scene-grid-path {:d "M 0 0 H 70 V 70"}))
+    ($ :g {:id "scene-grid"}
+      ($ :path
+        {:d "M -100000 -100000 H 100000 V 100000 H -100000"
+         :fill "url(#grid-pattern)"}))))
 
 (defn ^:private token-flags [data]
   (let [{[{turn :initiative/turn}] :scene/_initiative} data]
