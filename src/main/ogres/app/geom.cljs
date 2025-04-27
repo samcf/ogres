@@ -12,6 +12,11 @@
   (> (- (* (- (.-x b) (.-x a)) (- (.-y c) (.-y a)))
         (* (- (.-y b) (.-y a)) (- (.-x c) (.-x a)))) 0))
 
+(defn point-within-rect?
+  [point segment]
+  (and (< (.-x (.-a segment)) (.-x point) (.-x (.-b segment)))
+       (< (.-y (.-a segment)) (.-y point) (.-y (.-b segment)))))
+
 (defn point-within-circle?
   [point center radius]
   (< (vec/dist center point) radius))

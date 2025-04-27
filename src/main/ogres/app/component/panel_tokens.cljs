@@ -1,6 +1,7 @@
 (ns ogres.app.component.panel-tokens
   (:require [goog.object :as object :refer [getValueByKeys]]
             [ogres.app.component :refer [icon image pagination fullscreen-dialog]]
+            [ogres.app.geom :as geom]
             [ogres.app.hooks :as hooks]
             [ogres.app.util :refer [separate]]
             [ogres.app.vec :as vec :refer [Vec2]]
@@ -170,20 +171,18 @@
         on-create
         (uix/use-callback
          (fn [hash element delta]
-           (let [rect (.getBoundingClientRect element)
-                 tw (.-width rect)
-                 th (.-height rect)
-                 bx (.-x (.-a bounds))
-                 by (.-y (.-a bounds))
-                 tx (.-x rect)
-                 ty (.-y rect)
-                 dx (.-x delta)
-                 dy (.-y delta)
-                 mx (- (+ tx dx (/ tw 2)) bx)
-                 my (- (+ ty dy (/ th 2)) by)]
-             (if (and (<= bx mx (+ bx (vec/width bounds)))
-                      (<= by my (+ by (vec/height bounds))))
-               (dispatch :token/create (Vec2. mx my) (if (not= hash "default") hash)))))
+           (let [start (.getBoundingClientRect element)
+                 start (vec/Segment.
+                        (Vec2. (.-left start) (.-top start))
+                        (Vec2. (.-right start) (.-bottom start)))
+                 delta (Vec2. (.-x delta) (.-y delta))
+                 point (-> (vec/add (.-a start) delta)
+                           (vec/add (vec/sub (vec/midpoint start) (.-a start)))
+                           (vec/sub (.-a bounds)))]
+             (if (geom/point-within-rect? point bounds)
+               (if (= hash "default")
+                 (dispatch :token/create point nil)
+                 (dispatch :token/create point hash)))))
          [dispatch bounds])]
     ($ dnd-context
       #js {"onDragEnd"
