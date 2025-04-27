@@ -3,6 +3,8 @@
   (:require
    [ogres.app.vec :as vec]))
 
+(declare zero)
+
 (defn ^:private to-string-vec2 [x y]
   (str "#vec2[" x "," y "]"))
 
@@ -29,7 +31,8 @@
 (defprotocol ISegment
   (width [s])
   (height [s])
-  (midpoint [s]))
+  (midpoint [s])
+  (rebase [s]))
 
 (deftype Vec2 [x y]
   Object
@@ -93,7 +96,8 @@
   ISegment
   (midpoint [_] (div (add a b) 2))
   (width [_] (clojure.core/abs (- (.-x b) (.-x a))))
-  (height [_] (clojure.core/abs (- (.-y b) (.-y a)))))
+  (height [_] (clojure.core/abs (- (.-y b) (.-y a))))
+  (rebase [_] (Segment. zero (sub b a))))
 
 (def zero (Vec2. 0 0))
 (def zero-segment (Segment. zero zero))

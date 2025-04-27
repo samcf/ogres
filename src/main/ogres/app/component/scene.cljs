@@ -370,19 +370,19 @@
             ($ token {:node node :data data})))))))
 
 (defui ^:private player-window-bounds []
-  (let [{bounds-host :bounds/host
-         bounds-view :bounds/view}
+  (let [{host :bounds/host
+         view :bounds/view}
         (hooks/use-query
          [[:bounds/host :default vec/zero-segment]
           [:bounds/view :default vec/zero-segment]])
         point
-        (vec/Vec2.
-         (- (vec/width bounds-host) (vec/width bounds-view))
-         (- (vec/height bounds-host) (vec/height bounds-view)))]
-    ($ :g.scene-bounds {:transform (vec/to-translate (vec/div point 2))}
+        (vec/sub
+         (vec/midpoint (vec/rebase host))
+         (vec/midpoint (vec/rebase view)))]
+    ($ :g.scene-bounds {:transform (vec/to-translate point)}
       ($ :rect
-        {:width (vec/width bounds-view)
-         :height (vec/height bounds-view)
+        {:width (vec/width view)
+         :height (vec/height view)
          :rx 8}))))
 
 (def ^:private player-cursors-query
