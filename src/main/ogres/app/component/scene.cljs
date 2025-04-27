@@ -114,8 +114,8 @@
         ($ image {:hash hash}
           (fn [url]
             ($ :image
-              {:x 0 :y 0 :id "scene-image" :ref node :href url :width width :height height :transform transform}))))
-      ($ :rect {:id "scene-image-cover" :x 0 :y 0 :width width :height height :transform transform})
+              {:id "scene-image" :ref node :href url :width width :height height :transform transform}))))
+      ($ :rect {:id "scene-image-cover" :width width :height height :transform transform})
       ($ :clipPath {:id "scene-image-clip"}
         ($ :use {:href "#scene-image-cover"})))))
 
@@ -293,22 +293,22 @@
       {:ref node :id (str "token" (:db/id data)) :data-flags (token-flags-attr data)}
       (let [radius (:token/aura-radius data)
             radius (if (> radius 0) (+ (* grid-size (/ radius 5)) (* scale half-size)) 0)]
-        ($ :circle.scene-token-aura {:cx 0 :cy 0 :style {:r radius}}))
+        ($ :circle.scene-token-aura {:style {:r radius}}))
       ($ :g {:style {:transform (str "scale(" scale ")")}}
-        ($ :circle.scene-token-shape {:cx 0 :cy 0 :r radius :fill (str "url(#" fill ")")})
-        ($ :circle.scene-token-base {:cx 0 :cy 0 :r (+ radius 5)})
+        ($ :circle.scene-token-shape {:r radius :fill (str "url(#" fill ")")})
+        ($ :circle.scene-token-base {:r (+ radius 5)})
         (for [[deg flag] (mapv vector [-120 120 -65 65] (token-conditions data))
               :let [rn (* (/ js/Math.PI 180) deg)
                     cx (* (js/Math.sin rn) radius)
                     cy (* (js/Math.cos rn) radius)]]
           ($ :g.scene-token-flags {:key flag :data-flag flag :transform (str "translate(" cx ", " cy ")")}
-            ($ :circle {:cx 0 :cy 0 :r 12})
+            ($ :circle {:r 12})
             ($ :g {:transform (str "translate(" -8 ", " -8 ")")}
               ($ icon {:name (condition->icon flag) :size 16}))))
         (if-let [label (token-label data)]
           ($ :text.scene-token-label {:y half-size} label)))
       (let [radius (+ (* scale half-size) 2)]
-        ($ :circle.scene-token-ring {:cx 0 :cy 0 :style {:r radius}})))))
+        ($ :circle.scene-token-ring {:style {:r radius}})))))
 
 (def ^:private tokens-defs-query
   [[:user/type :default :host]
@@ -363,7 +363,7 @@
                   (fn [url]
                     (if (some? url)
                       ($ :image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"})
-                      ($ :rect {:x 0 :y 0 :width 256 :height 256 :fill "var(--color-blues-900)"})))))))))
+                      ($ :rect {:width 256 :height 256 :fill "var(--color-blues-900)"})))))))))
       ($ TransitionGroup {:component nil}
         (for [{id :db/id :as data} tokens :let [node (uix/create-ref)]]
           ($ Transition {:key id :nodeRef node :timeout 240}
@@ -381,9 +381,9 @@
          (- (vec/height bounds-host) (vec/height bounds-view)))]
     ($ :g.scene-bounds {:transform (vec/to-translate (vec/div point 2))}
       ($ :rect
-        {:x 0 :y 0
-         :width (vec/width bounds-view)
-         :height (vec/height bounds-view) :rx 8}))))
+        {:width (vec/width bounds-view)
+         :height (vec/height bounds-view)
+         :rx 8}))))
 
 (def ^:private player-cursors-query
   [{:root/user [{:user/camera [:camera/scene]}]}
@@ -432,7 +432,7 @@
        :transform (str "translate(" (or dx 0) ", " (or dy 0) ")")
        :data-dragging (.-isDragging options)
        :on-pointer-down (.. options -listeners -onPointerDown)}
-      ($ :rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"})
+      ($ :rect {:width "100%" :height "100%" :fill "transparent"})
       children)))
 
 (defui ^:private scene-camera

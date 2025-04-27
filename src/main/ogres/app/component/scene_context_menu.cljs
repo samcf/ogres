@@ -261,7 +261,7 @@
                  (on-change :objects/update :shape/pattern (keyword value))))})
           ($ :svg
             ($ :defs ($ pattern {:id id :name value}))
-            ($ :rect {:x 0 :y 0 :width "100%" :height "100%" :fill (str "url(#" id ")")})))))
+            ($ :rect {:width "100%" :height "100%" :fill (str "url(#" id ")")})))))
     (for [value shape-colors]
       ($ :label {:key value :aria-label value :data-color value}
         ($ :input
