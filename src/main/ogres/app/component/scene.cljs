@@ -6,10 +6,11 @@
             [ogres.app.component.scene-draw :refer [draw]]
             [ogres.app.component.scene-objects :refer [objects]]
             [ogres.app.component.scene-pattern :refer [pattern]]
-            [ogres.app.const :refer [grid-size]]
+            [ogres.app.const :refer [grid-size half-size]]
             [ogres.app.hooks :as hooks]
             [ogres.app.svg :refer [circle->path poly->path]]
             [ogres.app.util :refer [key-by]]
+            [ogres.app.vec :as vec :refer [Vec2]]
             [react-transition-group :refer [TransitionGroup Transition CSSTransition]]
             [uix.core :as uix :refer [defui $]]
             ["@rwh/react-keystrokes" :refer [useKey] :rename {useKey use-key}]
@@ -20,8 +21,8 @@
 (defn ^:private token-light-xf [user]
   (comp (filter (fn [{radius :token/light flags :token/flags}]
                   (and (> radius 0) (or (= user :host) (not (flags :hidden))))))
-        (map (fn [{[x y] :object/point radius :token/light}]
-               [x y (+ (/ (* radius grid-size) 5) grid-size)]))))
+        (map (fn [{point :object/point radius :token/light}]
+               [(.-x point) (.-y point) (+ (/ (* radius grid-size) 5) grid-size)]))))
 
 (def ^:private mask-area-xf
   (comp (filter :mask/enabled?) (map :mask/vecs)))
@@ -76,8 +77,8 @@
 (def ^:private image-defs-query
   [{:user/camera
     [{:camera/scene
-      [[:scene/grid-size :default 70]
-       [:scene/grid-origin :default [0 0]]
+      [[:scene/grid-size :default grid-size]
+       [:scene/grid-origin :default vec/zero]
        [:scene/lighting :default :revealed]
        {:scene/image [:image/hash :image/width :image/height]}]}]}])
 
@@ -86,9 +87,11 @@
         {{{{width  :image/width
             height :image/height
             hash :image/hash} :scene/image
-           [ox oy] :scene/grid-origin
+           origin :scene/grid-origin
            size :scene/grid-size} :camera/scene} :user/camera} result
-        transform (str "translate(" (- ox) ", " (- oy) ") scale(" (/ grid-size size) ")")
+        transform
+        (str (vec/to-translate (vec/rnd (vec/mul origin -1)))
+             " scale(" (/ grid-size size) ")")
         node (uix/use-ref)]
     ;; Safari has issues with rendering an `<image ...> immediately after it is
     ;; defined. One way to fix this is to update its `class` attribute after
@@ -111,8 +114,8 @@
         ($ image {:hash hash}
           (fn [url]
             ($ :image
-              {:x 0 :y 0 :id "scene-image" :ref node :href url :width width :height height :transform transform}))))
-      ($ :rect {:id "scene-image-cover" :x 0 :y 0 :width width :height height :transform transform})
+              {:id "scene-image" :ref node :href url :width width :height height :transform transform}))))
+      ($ :rect {:id "scene-image-cover" :width width :height height :transform transform})
       ($ :clipPath {:id "scene-image-clip"}
         ($ :use {:href "#scene-image-cover"})))))
 
@@ -130,7 +133,7 @@
         [:db/id
          [:token/flags :default #{}]
          [:token/light :default 15]
-         [:object/point :default [0 0]]]}]}]}])
+         [:object/point :default vec/zero]]}]}]}])
 
 (defui ^:private mask-defs []
   (let [result (hooks/use-query mask-defs-query)
@@ -239,28 +242,18 @@
                :mask-toggle (dispatch :mask/toggle id (not enabled?))
                :mask-remove (dispatch :mask/remove id)))})))))
 
-(def ^:private grid-defs-query
-  [[:bounds/self :default [0 0 0 0]]
-   {:user/camera
-    [[:camera/point :default [0 0]]
-     [:camera/scale :default 1]]}])
-
 (defui ^:private grid-defs []
-  (let [data (hooks/use-query grid-defs-query)
-        {[_ _ w h] :bounds/self
-         {[cx cy] :camera/point
-          scale :camera/scale} :user/camera} data
-        wd (/ w scale)
-        ht (/ h scale)
-        ax (+ (* wd -3) cx)
-        ay (+ (* ht -3) cy)
-        bx (+ (* wd  3) cx)
-        by (+ (* ht  3) cy)]
-    ($ :defs
-      ($ :pattern {:id "grid-pattern" :width grid-size :height grid-size :patternUnits "userSpaceOnUse"}
-        ($ :path.scene-grid-path {:d (join " " ["M" 0 0 "H" grid-size "V" grid-size])}))
-      ($ :g {:id "scene-grid"}
-        ($ :path {:d (join " " ["M" ax ay "H" bx "V" by "H" ax "Z"]) :fill "url(#grid-pattern)"})))))
+  ($ :defs
+    ($ :pattern
+      {:id "grid-pattern"
+       :width grid-size
+       :height grid-size
+       :patternUnits "userSpaceOnUse"}
+      ($ :path.scene-grid-path {:d "M 0 0 H 70 V 70"}))
+    ($ :g {:id "scene-grid"}
+      ($ :path
+        {:d "M -100000 -100000 H 100000 V 100000 H -100000"
+         :fill "url(#grid-pattern)"}))))
 
 (defn ^:private token-flags [data]
   (let [{[{turn :initiative/turn}] :scene/_initiative} data]
@@ -278,7 +271,7 @@
     (take 4 (filter (difference (token-flags data) exclu) order))))
 
 (defui ^:private token [{:keys [node data]}]
-  (let [radius (- (/ grid-size 2) 2)
+  (let [radius (- half-size 2)
         scale  (/ (:token/size data) 5)
         hash   (:image/hash (:image/thumbnail (:token/image data)))
         fill   (if (some? hash)
@@ -287,24 +280,23 @@
     ($ :g.scene-token
       {:ref node :id (str "token" (:db/id data)) :data-flags (token-flags-attr data)}
       (let [radius (:token/aura-radius data)
-            radius (if (> radius 0) (+ (* grid-size (/ radius 5)) (* scale (/ grid-size 2))) 0)]
-        ($ :circle.scene-token-aura {:cx 0 :cy 0 :style {:r radius}}))
+            radius (if (> radius 0) (+ (* grid-size (/ radius 5)) (* scale half-size)) 0)]
+        ($ :circle.scene-token-aura {:style {:r radius}}))
       ($ :g {:style {:transform (str "scale(" scale ")")}}
-        ($ :circle.scene-token-shape {:cx 0 :cy 0 :r radius :fill (str "url(#" fill ")")})
-        ($ :circle.scene-token-base {:cx 0 :cy 0 :r (+ radius 5)})
+        ($ :circle.scene-token-shape {:r radius :fill (str "url(#" fill ")")})
+        ($ :circle.scene-token-base {:r (+ radius 5)})
         (for [[deg flag] (mapv vector [-120 120 -65 65] (token-conditions data))
               :let [rn (* (/ js/Math.PI 180) deg)
                     cx (* (js/Math.sin rn) radius)
                     cy (* (js/Math.cos rn) radius)]]
           ($ :g.scene-token-flags {:key flag :data-flag flag :transform (str "translate(" cx ", " cy ")")}
-            ($ :circle {:cx 0 :cy 0 :r 12})
+            ($ :circle {:r 12})
             ($ :g {:transform (str "translate(" -8 ", " -8 ")")}
               ($ icon {:name (condition->icon flag) :size 16}))))
         (if-let [label (token-label data)]
-          ($ :text.scene-token-label {:y (/ grid-size 2)}
-            label)))
-      (let [radius (+ (* scale (/ grid-size 2)) 2)]
-        ($ :circle.scene-token-ring {:cx 0 :cy 0 :style {:r radius}})))))
+          ($ :text.scene-token-label {:y half-size} label)))
+      (let [radius (+ (* scale half-size) 2)]
+        ($ :circle.scene-token-ring {:style {:r radius}})))))
 
 (def ^:private tokens-defs-query
   [[:user/type :default :host]
@@ -313,7 +305,7 @@
       [{:scene/tokens
         [:db/id
          [:initiative/suffix :default nil]
-         [:object/point :default [0 0]]
+         [:object/point :default vec/zero]
          [:token/flags :default #{}]
          [:token/label :default ""]
          [:token/size :default 5]
@@ -359,19 +351,27 @@
                   (fn [url]
                     (if (some? url)
                       ($ :image {:href url :width 1 :height 1 :preserveAspectRatio "xMidYMin slice"})
-                      ($ :rect {:x 0 :y 0 :width 256 :height 256 :fill "var(--color-blues-900)"})))))))))
+                      ($ :rect {:width 256 :height 256 :fill "var(--color-blues-900)"})))))))))
       ($ TransitionGroup {:component nil}
         (for [{id :db/id :as data} tokens :let [node (uix/create-ref)]]
           ($ Transition {:key id :nodeRef node :timeout 240}
             ($ token {:node node :data data})))))))
 
 (defui ^:private player-window-bounds []
-  (let [result (hooks/use-query [:bounds/host :bounds/view])
-        {[_ _ hw hh] :bounds/host
-         [_ _ vw vh] :bounds/view} result
-        [ox oy] [(/ (- hw vw) 2) (/ (- hh vh) 2)]]
-    ($ :g.scene-bounds {:transform (str "translate(" ox " , " oy ")")}
-      ($ :rect {:x 0 :y 0 :width vw :height vh :rx 8}))))
+  (let [{host :bounds/host
+         view :bounds/view}
+        (hooks/use-query
+         [[:bounds/host :default vec/zero-segment]
+          [:bounds/view :default vec/zero-segment]])
+        point
+        (vec/sub
+         (vec/midpoint (vec/rebase host))
+         (vec/midpoint (vec/rebase view)))]
+    ($ :g.scene-bounds {:transform (vec/to-translate point)}
+      ($ :rect
+        {:width (vec/width view)
+         :height (vec/height view)
+         :rx 8}))))
 
 (def ^:private player-cursors-query
   [{:root/user [{:user/camera [:camera/scene]}]}
@@ -420,7 +420,7 @@
        :transform (str "translate(" (or dx 0) ", " (or dy 0) ")")
        :data-dragging (.-isDragging options)
        :on-pointer-down (.. options -listeners -onPointerDown)}
-      ($ :rect {:x 0 :y 0 :width "100%" :height "100%" :fill "transparent"})
+      ($ :rect {:width "100%" :height "100%" :fill "transparent"})
       children)))
 
 (defui ^:private scene-camera
@@ -432,9 +432,10 @@
            "onDragEnd"
            (uix/use-callback
             (fn [data]
-              (on-translate
-               (.. data -delta -x)
-               (.. data -delta -y))) [on-translate])}
+              (let [x (.. data -delta -x)
+                    y (.. data -delta -y)]
+                (on-translate
+                 (Vec2. x y)))) [on-translate])}
       ($ scene-camera-draggable
         ($ dnd-context
           #js {"modifiers" #js [scale-fn dnd-modifier-int]}
@@ -512,11 +513,11 @@
 (def ^:private scene-query
   [:user/type
    :user/sharing?
-   [:bounds/host :default [0 0 0 0]]
-   [:bounds/view :default [0 0 0 0]]
+   [:bounds/host :default vec/zero-segment]
+   [:bounds/view :default vec/zero-segment]
    {:user/camera
     [:db/id
-     [:camera/point :default [0 0]]
+     [:camera/point :default vec/zero]
      [:camera/scale :default 1]
      [:camera/draw-mode :default :select]
      {:camera/scene
@@ -530,14 +531,17 @@
 (defui ^:private scene-content [props]
   (let [dispatch (hooks/use-dispatch)
         {user        :user/type
-         [_ _ hw hh] :bounds/host
-         [_ _ vw vh] :bounds/view
-         {scene   :camera/scene
-          scale   :camera/scale
-          mode    :camera/draw-mode
-          [cx cy] :camera/point} :user/camera} (:data props)
-        cx (if (= user :view) (->> (- hw vw) (max 0) (* (/ -1 2 scale)) (- cx)) cx)
-        cy (if (= user :view) (->> (- hh vh) (max 0) (* (/ -1 2 scale)) (- cy)) cy)
+         bounds-host :bounds/host
+         bounds-view :bounds/view
+         {scene :camera/scene
+          scale :camera/scale
+          mode  :camera/draw-mode
+          point :camera/point} :user/camera} (:data props)
+        point (if (= user :view)
+                (Vec2.
+                 (- (.-x point) (* (/ -1 2 scale) (max 0 (- (vec/width bounds-host) (vec/width bounds-view)))))
+                 (- (.-y point) (* (/ -1 2 scale) (max 0 (- (vec/height bounds-host) (vec/height bounds-view))))))
+                point)
         multi-select? (use-key "shift")]
     ($ :svg.scene
       {:ref (:ref props)
@@ -551,14 +555,14 @@
         {:scale scale
          :on-translate
          (uix/use-callback
-          (fn [dx dy]
-            (if (and (= dx 0) (= dy 0))
+          (fn [delta]
+            (if (= delta vec/zero)
               (dispatch :selection/clear)
-              (dispatch :camera/translate (- dx) (- dy))))
-          [dispatch cx cy scale])}
+              (dispatch :camera/translate (vec/mul delta -1))))
+          [dispatch scale])}
         (if (and (= mode :select) multi-select?)
           ($ draw {:mode :select}))
-        ($ :g {:transform (str "scale(" scale ") translate(" (- cx) ", " (- cy) ")")}
+        ($ :g {:transform  (str "scale(" scale ") " (vec/to-translate (vec/rnd (vec/mul point -1))))}
           (:children props)))
       ($ hooks/create-portal {:name :multiselect}
         (fn [{:keys [ref]}]

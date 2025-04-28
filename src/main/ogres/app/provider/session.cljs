@@ -1,17 +1,16 @@
 (ns ogres.app.provider.session
   (:require [cognitect.transit :as transit]
             [datascript.core :as ds]
-            [datascript.transit :as dst]
             [goog.functions :refer [throttle]]
             [ogres.app.const :refer [SOCKET-URL]]
             [ogres.app.hooks :as hooks]
             [ogres.app.provider.idb :as idb]
             [ogres.app.provider.state :as state]
+            [ogres.app.serialize :refer [reader writer]]
+            [ogres.app.vec :as vec]
             [uix.core :as uix :refer [defui]]
             ["@msgpack/msgpack" :as MessagePack]))
 
-(def ^:private reader (transit/reader :json {:handlers dst/read-handlers}))
-(def ^:private writer (transit/writer :json {:handlers dst/write-handlers}))
 (def ^:private interval-heartbeat 20000)
 (def ^:private interval-reconnect 5000)
 
@@ -79,7 +78,7 @@
                        :user/camera} user]
                   {:db/id -1
                    :camera/scene scene
-                   :camera/point (or point [0 0])
+                   :camera/point (or point vec/zero)
                    :camera/scale (or scale 1)})}
                [:db/add [:db/ident :session] :session/host [:db/ident :user]]
                [:db/add [:db/ident :session] :session/conns [:user/uuid (:uuid data)]]]

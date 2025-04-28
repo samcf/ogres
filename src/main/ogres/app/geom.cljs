@@ -1,124 +1,93 @@
 (ns ogres.app.geom
   (:require [clojure.math :refer [floor ceil]]
             [ogres.app.const :refer [grid-size half-size]]
-            [ogres.app.util :refer [round]]))
+            [ogres.app.vec :as vec :refer [Vec2 Segment]]
+            [ogres.app.geom :as geom]))
 
 (def ^:const deg45->rad (/ js/Math.PI 4))
 (def ^:const deg45->sin (js/Math.sin deg45->rad))
 
-(defn euclidean-distance
-  "Returns the euclidean distance from [Ax Ay] to [Bx By]."
-  [ax ay bx by]
-  (js/Math.hypot (- bx ax) (- by ay)))
-
-(defn chebyshev-distance
-  "Returns the chebyshev distance from [Ax Ay] to [Bx By]."
-  [ax ay bx by]
-  (max (js/Math.abs (- ax bx))
-       (js/Math.abs (- ay by))))
-
 (defn clockwise-triangle?
-  "Returns true if the triangle {Ax Ay Bx By Cx Cy} is in
-   clockwise winding order, false otherwise."
-  [ax ay bx by cx cy]
-  (pos? (- (* (- bx ax) (- cy ay))
-           (* (- by ay) (- cx ax)))))
+  [a b c]
+  (> (- (* (- (.-x b) (.-x a)) (- (.-y c) (.-y a)))
+        (* (- (.-y b) (.-y a)) (- (.-x c) (.-x a)))) 0))
+
+(defn point-within-rect?
+  [point segment]
+  (and (< (.-x (.-a segment)) (.-x point) (.-x (.-b segment)))
+       (< (.-y (.-a segment)) (.-y point) (.-y (.-b segment)))))
 
 (defn point-within-circle?
-  "Returns true if the point {Ax Ay} is within the circle
-   {Cx Cy Radius}, false otherwise."
-  [cx cy radius ax ay]
-  (< (euclidean-distance ax ay cx cy) radius))
+  [point center radius]
+  (< (vec/dist center point) radius))
 
 (defn point-within-triangle?
-  "Returns true if the point {Sx Sy} is within the triangle
-   {Ax Ay Bx By Cx Cy} (in clockwise order), false otherwise."
-  [ax ay bx by cx cy sx sy]
-  (and (clockwise-triangle? ax ay bx by sx sy)
-       (clockwise-triangle? cx cy ax ay sx sy)
-       (clockwise-triangle? bx by cx cy sx sy)))
+  [a b c v]
+  (and (clockwise-triangle? a b v)
+       (clockwise-triangle? c a v)
+       (clockwise-triangle? b c v)))
 
-(defn line-points
-  "Returns a vector of points as [Ax Ay Bx By Cx Cy Dx Dy] for each
-   corner of the oriented rectangle defined by the line {Ax Ay Bx By}
-   in clock-wise winding order."
-  [ax ay bx by ln]
-  (if (= ay by)
-    [ax (+ ay ln) bx (+ ay ln) bx (- ay ln) ax (- ay ln)]
-    (let [ma (/ (- bx ax) (- ay by))
-          mb (js/Math.sqrt (inc (* ma ma)))
-          dx (* ln (/ mb))
-          dy (* ln (/ ma mb))
-          si (js/Math.sign (- ay by))]
-      [(+ ax (* dx si -1))
-       (+ ay (* dy si -1))
-       (+ bx (* dx si -1))
-       (+ by (* dy si -1))
-       (+ bx (* dx si))
-       (+ by (* dy si))
-       (+ ax (* dx si))
-       (+ ay (* dy si))])))
+(defn line-points [segment]
+  (let [ln half-size
+        av (.-a segment)
+        bv (.-b segment)
+        ax (.-x (.-a segment))
+        ay (.-y (.-a segment))
+        bx (.-x (.-b segment))
+        by (.-y (.-b segment))]
+    (if (= ay by)
+      [(vec/shift av 0 ln)
+       (vec/shift bv 0 ln)
+       (vec/shift bv 0 (- ay ln))
+       (vec/shift av 0 (- ay ln))]
+      (let [ma (/ (- bx ax) (- ay by))
+            mb (js/Math.sqrt (inc (* ma ma)))
+            si (js/Math.sign (- ay by))
+            dv (Vec2. (* ln si (/ mb)) (* ln si (/ ma mb)))]
+        [(vec/add av (vec/mul dv -1))
+         (vec/add bv (vec/mul dv -1))
+         (vec/add bv dv)
+         (vec/add av dv)]))))
 
-(defn rect-points
-  "Returns a vector of points as [Ax Ay Bx By Cx Cy Dx Dy] for each corner
-   of the axis-aligned rectangle defined by the top-left corner {Ax Ay} in
-   clock-wise winding order."
-  [[ax ay]]
-  [ax ay (+ ax grid-size) ay (+ ax grid-size) (+ ay grid-size) ax (+ ay grid-size)])
-
-(defn cone-points
-  "Returns a vector of points as [Ax Ay Bx By Cx Cy] for each vertex of the
-   isosceles triangle given as the segment {Ax Ay Bx By} which defines its
-   altitude."
-  [ax ay bx by]
-  (let [alt (js/Math.hypot (- bx ax) (- by ay))
+(defn cone-points [segment]
+  (let [src (.-a segment)
+        dst (.-b segment)
+        alt (vec/dist src dst)
         hyp (js/Math.hypot alt (/ alt 2))
-        rad (js/Math.atan2 (- by ay) (- bx ax))]
-    [ax
-     ay
-     (+ ax (* hyp (js/Math.cos (- rad 0.46))))
-     (+ ay (* hyp (js/Math.sin (- rad 0.46))))
-     (+ ax (* hyp (js/Math.cos (+ rad 0.46))))
-     (+ ay (* hyp (js/Math.sin (+ rad 0.46))))]))
+        rad (vec/heading (vec/sub dst src))
+        ax (* hyp (js/Math.cos (- rad 0.46)))
+        ay (* hyp (js/Math.sin (- rad 0.46)))
+        bx (* hyp (js/Math.cos (+ rad 0.46)))
+        by (* hyp (js/Math.sin (+ rad 0.46)))]
+    [src (vec/add src (Vec2. ax ay)) (vec/add src (Vec2. bx by))]))
 
-(defn point-within-rect
-  "Returns true if the point [Ax Ay] is within the given bounding
-   rectangle [Bx By Cx Cy], false otherwise."
-  [[ax ay] [bx by cx cy]]
-  (and (> ax bx) (> ay by) (< ax cx) (< ay cy)))
+(defn tile-points [point]
+  [point
+   (vec/shift point grid-size 0)
+   (vec/shift point grid-size)
+   (vec/shift point 0 grid-size)])
 
-(defn rect-intersects-rect
-  "Returns true if any of the 4 corners of [Ax Ay Bx by] are within the
-   rect [Cx Cy Dx Dy]. Each rect must be given as (Min, Max)."
-  [[ax ay bx by] bounds]
-  (some (fn [point] (point-within-rect point bounds))
-        [[ax ay] [bx ay] [bx by] [ax by]]))
+(defn rect-intersects-rect [a b]
+  (not (or (< (.-x (.-b a)) (.-x (.-a b)))
+           (< (.-x (.-b b)) (.-x (.-a a)))
+           (< (.-y (.-b a)) (.-y (.-a b)))
+           (< (.-y (.-b b)) (.-y (.-a a))))))
+
+(defn bounding-rect-rf
+  ([] vec/zero-segment)
+  ([s] s)
+  ([s v]
+   (if (identical? s vec/zero-segment)
+     (Segment. v v)
+     (Segment.
+      (Vec2. (min (.-x (.-a s)) (.-x v)) (min (.-y (.-a s)) (.-y v)))
+      (Vec2. (max (.-x (.-b s)) (.-x v)) (max (.-y (.-b s)) (.-y v)))))))
 
 (defn bounding-rect
-  "Returns an axis-aligned minimum bounding rectangle (AABB) of the set of
-   points given in the form of [Ax Ay Bx By [...]] as points [Ax Ay Bx By]
-   where A is the top-left corner and B is the bottom-right corner."
-  [[ax ay :as points]]
-  (loop [points points min-x ax min-y ay max-x ax max-y ay]
-    (if (seq points)
-      (let [[x y] points]
-        (recur (rest (rest points)) (min min-x x) (min min-y y) (max max-x x) (max max-y y)))
-      [min-x min-y max-x max-y])))
+  [points]
+  (reduce bounding-rect-rf (bounding-rect-rf) points))
 
-(defn alignment-xf
-  "Returns a transducer which expects a collection of points in the
-   form of [Ax Ay Bx By ...] and aligns those points to the nearest
-   grid intersection given a drag delta (dx dy)."
-  [dx dy]
-  (comp (partition-all 2)
-        (mapcat
-         (fn [[x y]]
-           [(round (+ x dx) grid-size)
-            (round (+ y dy) grid-size)]))))
-
-(defn ^:private clockwise?
-  "Returns true if the given polygon has a clockwise winding order, false
-   otherwise. Points must be given in the form of [Ax Ay Bx By [...]]."
+(defn clockwise?
   [[ax ay :as xs]]
   (loop [[bx by cx cy :as xs] xs sum 0]
     (if (some? cx)
@@ -126,193 +95,172 @@
       (neg? (+ (* (- ax bx) (+ ay by)) sum)))))
 
 (defn reorient
-  "Returns the given polygon in its clockwise winding order."
   [xs]
   (if (clockwise? xs) xs
       (into [] cat (reverse (partition 2 xs)))))
 
-(defn ^:private tile-edge
-  [ax ay bx by cx cy]
-  (cond (= cy ay) 0
-        (= cx bx) 1
-        (= cy by) 2
-        (= cx ax) 3))
+(defn tile-edge [a b c]
+  (cond (= (.-y c) (.-y a)) 0
+        (= (.-x c) (.-x b)) 1
+        (= (.-y c) (.-y b)) 2
+        (= (.-x c) (.-x a)) 3))
 
-(def ^:private tile-edge-path
-  [[+1 +0 +0 +1]
-   [+0 +1 -1 +0]
-   [-1 +0 +0 -1]
-   [+0 -1 +1 +0]])
+(def tile-edge-path
+  [(Segment. (Vec2.  1 0) (Vec2. 0 1))
+   (Segment. (Vec2.  0 1) (Vec2. -1 0))
+   (Segment. (Vec2. -1 0) (Vec2. 0 -1))
+   (Segment. (Vec2. 0 -1) (Vec2. 1 0))])
 
-(defn ^:private path-around-tiles
+(defn path-around-tiles
   [points]
   (if (not (seq points)) []
-      (let [xs (into  [] (comp (partition-all 2) (mapcat rect-points)) points)
-            vs (into #{} (partition-all 2) xs)
-            [ax ay bx by] (bounding-rect xs)
-            [sx sy] (first (filter (fn [[_ y]] (= y ay)) vs))]
-        (loop [nx sx ny sy rs (transient []) ed 0]
-          (if (and (= nx sx) (= ny sy) (> (count rs) 0)) (persistent! rs)
-              (let [[ex ey fx fy] (tile-edge-path ed)
-                    cx (+ nx (* ex grid-size))
-                    cy (+ ny (* ey grid-size))]
-                (if (contains? vs [cx cy])
-                  (recur cx cy (conj! rs cx cy) (or (tile-edge ax ay bx by cx cy) ed))
-                  (let [dx (+ nx (* fx grid-size))
-                        dy (+ ny (* fy grid-size))]
-                    (recur dx dy (conj! rs dx dy) (or (tile-edge ax ay bx by dx dy) ed))))))))))
+      (let [corners (into [] (mapcat tile-points) points)
+            visited (into #{} corners)
+            bounds (bounding-rect corners)
+            src (.-a bounds)
+            dst (.-b bounds)
+            start (first (filter (fn [v] (= (.-y v) (.-y src))) visited))]
+        (loop [n start rs (transient []) ed 0]
+          (if (and (= n start) (> (count rs) 0)) (persistent! rs)
+              (let [s (tile-edge-path ed)
+                    c (vec/add (vec/mul (.-a s) grid-size) n)]
+                (if (contains? visited c)
+                  (recur c (conj! rs c) (or (tile-edge src dst c) ed))
+                  (let [d (vec/add (vec/mul (.-b s) grid-size) n)]
+                    (recur d (conj! rs d) (or (tile-edge src dst d) ed))))))))))
 
 (defn tile-path-circle
-  [ax ay rd]
+  [center radius]
   (let [sz grid-size
-        ln (* rd deg45->sin)
-        cx (round floor (- ax rd) sz)
-        cy (round floor (- ay rd) sz)
-        dx (round ceil  (+ ax rd) sz)
-        dy (round ceil  (+ ay rd) sz)
-        ex (round ceil  (- ax ln) sz)
-        ey (round ceil  (- ay ln) sz)
-        fx (round floor (+ ax ln) sz)
-        fy (round floor (+ ay ln) sz)]
-    (loop [px cx py cy rs (transient [])]
-      (cond (> px dx) (path-around-tiles (persistent! rs))
-            (> py dy) (recur (+ px sz) cy rs)
-              ;; points found within the inscribed square can be omitted
-              ;; since they definitionally lie within the circle.
-            (and (= py ey) (>= px ex) (< px fx)
-                 (not (and (= ex fx) (= ey fy)))
-                 (not (and (= px ex) (= py ey)))
-                 (not (and (= px ex) (= py fy)))
-                 (not (and (= px (- fx sz)) (= py ey)))
-                 (not (and (= px (- fx sz)) (= py fy))))
-            (recur px fy rs)
-            (point-within-circle? ax ay rd (+ px half-size) (+ py half-size))
-            (recur px (+ py sz) (conj! rs px py))
-            :else
-            (recur px (+ py sz) rs)))))
+        hs half-size
+        ln (* radius deg45->sin)
+        av (vec/rnd (vec/shift center (- radius)) sz floor)
+        bv (vec/rnd (vec/shift center radius) sz ceil)
+        cv (vec/rnd (vec/shift center (- ln)) sz ceil)
+        dv (vec/rnd (vec/shift center ln) sz floor)]
+    (loop [x (.-x av) y (.-y av) rs (transient [])]
+      (let [t (Vec2. x y)]
+        (cond (> x (.-x bv)) (path-around-tiles (persistent! rs))
+              (> y (.-y bv)) (recur (+ x sz) (.-y av) rs)
+              (and (= y (.-y cv)) (>= x (.-x cv)) (< x (.-x dv))
+                   (not (= cv dv))
+                   (not (= cv t))
+                   (not (and (= x (.-x cv)) (= y (.-y dv))))
+                   (not (and (= x (- (.-x dv) sz)) (= y (.-y cv))))
+                   (not (and (= x (- (.-x dv) sz)) (= y (.-y dv)))))
+              (recur x (.-y dv) rs)
+              (point-within-circle? (vec/shift t hs) center radius)
+              (recur x (+ y sz) (conj! rs t))
+              :else
+              (recur x (+ y sz) rs))))))
 
 (defn tile-path-cone
-  [[ax ay bx by cx cy :as xs]]
-  (let [[yx yy zx zy] (bounding-rect xs)
-        sz grid-size
-        dx (round floor yx sz)
-        dy (round floor yy sz)
-        ex (round ceil  zx sz)
-        ey (round ceil  zy sz)]
-    (loop [px dx py dy rs (transient [])]
-      (cond (> px ex) (path-around-tiles (persistent! rs))
-            (> py ey)
-            (recur (+ px sz) dy rs)
-            (or (point-within-triangle? ax ay bx by cx cy (+ px 14) (+ py 14))
-                (point-within-triangle? ax ay bx by cx cy (+ px 56) (+ py 14))
-                (point-within-triangle? ax ay bx by cx cy (+ px 14) (+ py 56))
-                (point-within-triangle? ax ay bx by cx cy (+ px 56) (+ py 56)))
-            (recur px (+ py sz) (conj! rs px py))
-            :else
-            (recur px (+ py sz) rs)))))
+  [[a b c :as xs]]
+  (let [sz grid-size
+        rt (bounding-rect xs)
+        tl (vec/rnd (.-a rt) sz floor)
+        br (vec/rnd (.-b rt) sz ceil)]
+    (loop [x (.-x tl) y (.-y tl) rs (transient [])]
+      (let [t (Vec2. x y)]
+        (cond (> x (.-x br)) (path-around-tiles (persistent! rs))
+              (> y (.-y br))
+              (recur (+ x sz) (.-y tl) rs)
+              (or (point-within-triangle? a b c (vec/shift t 14 14))
+                  (point-within-triangle? a b c (vec/shift t 56 14))
+                  (point-within-triangle? a b c (vec/shift t 14 56))
+                  (point-within-triangle? a b c (vec/shift t 56 56)))
+              (recur x (+ y sz) (conj! rs t))
+              :else
+              (recur x (+ y sz) rs))))))
 
 (defn tile-path-line
-  [[ax ay bx by cx cy dx dy :as xs]]
-  (let [[ex ey fx fy] (bounding-rect xs)
-        sz grid-size
-        hz half-size
-        ex (round floor ex sz)
-        ey (round floor ey sz)
-        fx (round ceil  fx sz)
-        fy (round ceil  fy sz)]
-    (loop [px ex py ey rs (transient [])]
-      (cond (> px fx) (path-around-tiles (persistent! rs))
-            (> py fy) (recur (+ px sz) ey rs)
-            (or (point-within-triangle? ax ay bx by cx cy (+ px hz) (+ py hz))
-                (point-within-triangle? ax ay cx cy dx dy (+ px hz) (+ py hz)))
-            (recur px (+ py sz) (conj! rs px py))
-            :else
-            (recur px (+ py sz) rs)))))
+  [[a b c d :as xs]]
+  (let [sz grid-size
+        rt (bounding-rect xs)
+        tl (vec/rnd (.-a rt) sz floor)
+        br (vec/rnd (.-b rt) sz ceil)]
+    (loop [x (.-x tl) y (.-y tl) rs (transient [])]
+      (let [t (vec/shift (Vec2. x y) half-size)]
+        (cond (> x (.-x br)) (path-around-tiles (persistent! rs))
+              (> y (.-y br)) (recur (+ x sz) (.-y tl) rs)
+              (or (point-within-triangle? a b c t)
+                  (point-within-triangle? a c d t))
+              (recur x (+ y sz) (conj! rs (Vec2. x y)))
+              :else
+              (recur x (+ y sz) rs))))))
 
 (defmulti object-bounding-rect
-  "Returns an axis-aligned minimum bounding rectangle (AABB) of the given
-   object in the form of [Ax Ay Bx By] where A is the top-left corner and B
-   is the bottom-right corner."
   :object/type)
 
 ;; Tokens are defined by their position {A} and size.
 (defmethod object-bounding-rect :token/token
-  [{[ax ay] :object/point size :token/size}]
-  (let [rd (/ (* (or size 5) grid-size) 10)]
-    [(- ax rd) (- ay rd)
-     (+ ax rd) (+ ay rd)]))
+  [{src :object/point size :token/size}]
+  (let [rad (/ (* (or size 5) grid-size) 10)]
+    (Segment. (vec/shift src (- rad)) (vec/shift src rad))))
 
 ;; Circles are defined by points {A, B} where A is the center and B is
 ;; some point on the circumference.
 (defmethod object-bounding-rect :shape/circle
-  [{[ax ay] :object/point [bx by] :shape/points}]
-  (let [rd (chebyshev-distance 0 0 bx by)]
-    [(- ax rd) (- ay rd)
-     (+ ax rd) (+ ay rd)]))
+  [{src :object/point [dst] :shape/points}]
+  (let [rad (vec/dist-cheb dst)]
+    (Segment. (vec/shift src (- rad)) (vec/shift src rad))))
 
 ;; Cones are isosceles triangles defined by points {A, B} where A is
 ;; the apex and B is the center of the base.
 (defmethod object-bounding-rect :shape/cone
-  [{[ax ay] :object/point [bx by] :shape/points}]
-  (bounding-rect (cone-points ax ay (+ ax bx) (+ ay by))))
+  [{src :object/point [dst] :shape/points}]
+  (let [dst (vec/add dst src)]
+    (bounding-rect (cone-points (Segment. src dst)))))
 
 ;; Rectangles are defined by points {A, B} where A and B are opposite and
 ;; opposing corners, such as top-left and bottom-right.
 (defmethod object-bounding-rect :shape/rect
-  [{[ax ay] :object/point [bx by] :shape/points}]
-  (bounding-rect [ax ay (+ ax bx) (+ ay by)]))
+  [{src :object/point [dst] :shape/points}]
+  (let [dst (vec/add dst src)]
+    (bounding-rect (list src dst))))
 
 ;; Polygons are defined by points {A, B, C, [...]} where each point is
 ;; adjacent to its neighbors.
 (defmethod object-bounding-rect :shape/poly
-  [{[ax ay] :object/point points :shape/points}]
-  (let [xf (comp (partition-all 2) (mapcat (fn [[bx by]] [(+ ax bx) (+ ay by)])))]
-    (bounding-rect (into [ax ay] xf points))))
+  [{src :object/point points :shape/points}]
+  (let [xfr (map (fn [v] (vec/add src v)))]
+    (bounding-rect (list* src (sequence xfr points)))))
 
 ;; Lines are defined by points {A, B}, opposite ends of the segment.
 (defmethod object-bounding-rect :shape/line
-  [{[ax ay] :object/point [bx by] :shape/points}]
-  (bounding-rect (line-points ax ay (+ ax bx) (+ ay by) half-size)))
+  [{src :object/point [dst] :shape/points}]
+  (let [dst (vec/add dst src)]
+    (bounding-rect (line-points (Segment. src dst)))))
 
 ;; Notes are defined by the point {A} and is fixed square bound.
 (defmethod object-bounding-rect :note/note
-  [{[ax ay] :object/point}]
-  (bounding-rect [ax ay (+ ax 42) (+ ay 42)]))
+  [{src :object/point}]
+  (Segment. src (vec/shift src 42)))
 
 (defmulti object-tile-path
-  "Returns a path in the form of [Ax Ay [Bx By ...]] of a perimeter around
-   the given object. This perimeter is aligned with the grid tiles. This
-   is useful for illustrating, for example, which tiles are affected by
-   a circle of arbitrary position and radius."
-  (fn [object _ _ _ _]
+  (fn [object _ _]
     (:object/type object)))
 
 (defmethod object-tile-path :default [] [])
 
 (defmethod object-tile-path :shape/circle
-  [{[ax ay] :object/point [bx by] :shape/points} dx dy]
-  (let [ax (+ ax dx)
-        ay (+ ay dy)
-        bx (+ bx ax)
-        by (+ by ay)
-        rd (chebyshev-distance ax ay bx by)]
-    (tile-path-circle ax ay rd)))
+  [{src :object/point [dst] :shape/points} delta]
+  (let [src (vec/add src delta)
+        dst (vec/add dst src)
+        rad (vec/dist-cheb src dst)]
+    (tile-path-circle src rad)))
 
 (defmethod object-tile-path :shape/cone
-  [{[ax ay] :object/point [bx by] :shape/points} dx dy]
-  (let [ax (+ ax dx)
-        ay (+ ay dy)
-        bx (+ bx ax)
-        by (+ by ay)]
-    (tile-path-cone (cone-points ax ay bx by))))
+  [{src :object/point [dst] :shape/points} delta]
+  (let [src (vec/add src delta)
+        dst (vec/add dst src)]
+    (tile-path-cone (cone-points (Segment. src dst)))))
 
 (defmethod object-tile-path :shape/line
-  [{[ax ay] :object/point [bx by] :shape/points} dx dy]
-  (let [ax (+ ax dx)
-        ay (+ ay dy)
-        bx (+ bx ax)
-        by (+ by ay)]
-    (tile-path-line (line-points ax ay bx by half-size))))
+  [{src :object/point [dst] :shape/points} delta]
+  (let [src (vec/add src delta)
+        dst (vec/add dst src)]
+    (tile-path-line (line-points (Segment. src dst)))))
 
 (defn object-alignment [entity]
   (case (:object/type entity)

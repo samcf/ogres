@@ -1,8 +1,10 @@
 (ns ogres.app.component.panel-tokens
   (:require [goog.object :as object :refer [getValueByKeys]]
             [ogres.app.component :refer [icon image pagination fullscreen-dialog]]
+            [ogres.app.geom :as geom]
             [ogres.app.hooks :as hooks]
             [ogres.app.util :refer [separate]]
+            [ogres.app.vec :as vec]
             [uix.core :as uix :refer [defui $]]
             [uix.dom :refer [create-portal]]
             [clojure.string :as str]
@@ -37,7 +39,7 @@
       [:image/hash]}]}])
 
 (def ^:private query-bounds
-  [[:bounds/self :default [0 0 0 0]]])
+  [[:bounds/self :default vec/zero-segment]])
 
 (defui ^:private draggable
   [{:keys [id children]}]
@@ -165,22 +167,19 @@
 (defui form []
   (let [dispatch (hooks/use-dispatch)
         results  (hooks/use-query query-bounds [:db/ident :user])
-        {[bx by bw bh] :bounds/self} results
+        {bounds :bounds/self} results
         on-create
         (uix/use-callback
          (fn [hash element delta]
-           (let [rect (.getBoundingClientRect element)
-                 tw (.-width rect)
-                 th (.-height rect)
-                 tx (.-x rect)
-                 ty (.-y rect)
-                 dx (.-x delta)
-                 dy (.-y delta)
-                 mx (- (+ tx dx (/ tw 2)) bx)
-                 my (- (+ ty dy (/ th 2)) by)]
-             (if (and (<= bx mx (+ bx bw)) (<= by my (+ by bh)))
-               (dispatch :token/create mx my (if (not= hash "default") hash)))))
-         [dispatch bx by bw bh])]
+           (let [token (vec/DOMRect->Segment (.getBoundingClientRect element))
+                 point (-> (vec/add (.-a token) delta)
+                           (vec/add (vec/sub (vec/midpoint token) (.-a token)))
+                           (vec/sub (.-a bounds)))]
+             (if (geom/point-within-rect? point bounds)
+               (if (= hash "default")
+                 (dispatch :token/create point nil)
+                 (dispatch :token/create point hash)))))
+         [dispatch bounds])]
     ($ dnd-context
       #js {"onDragEnd"
            (uix/use-callback

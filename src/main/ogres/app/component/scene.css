@@ -236,6 +236,7 @@
 
 .scene-grid-path {
   fill: none;
+  shape-rendering: crispEdges;
   stroke-dasharray: 2px;
   stroke-opacity: 0.6;
   stroke-width: 1px;

@@ -1,5 +1,6 @@
 (ns ogres.app.provider.shortcut
   (:require [ogres.app.hooks :as hooks]
+            [ogres.app.vec :as vec :refer [Vec2]]
             [uix.core :refer [defui]]))
 
 (defn ^:private allowed? [event]
@@ -97,7 +98,7 @@
                 attrs (.. js/document -activeElement -dataset)]
             (cond (or (.. data -originalEvent -altKey)
                       (= (.-type attrs) "scene"))
-                  (dispatch :camera/translate (* dx 140) (* dy 140))
+                  (dispatch :camera/translate (vec/mul (Vec2. dx dy) 140))
                   (or (= (.-type attrs) "token")
                       (= (.-type attrs) "shape")
                       (= (.-type attrs) "note"))

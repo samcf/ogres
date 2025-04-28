@@ -4,7 +4,7 @@
 (defui ^:private pattern-solid
   [props]
   ($ :pattern {:id (:id props) :pattern-units "userSpaceOnUse" :width 10 :height 10}
-    ($ :rect {:x 0 :y 0 :width 10 :height 10 :stroke "none"})))
+    ($ :rect {:width 10 :height 10 :stroke "none"})))
 
 (defui ^:private pattern-lines
   [props]

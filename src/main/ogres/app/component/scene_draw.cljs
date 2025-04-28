@@ -13,55 +13,61 @@
                       useDndMonitor use-dnd-monitor
                       useDraggable  use-draggable}]))
 
-(defn ^:private align-identity
-  ([a] a)
-  ([a b] (Segment. a b)))
+(defmulti align-identity type)
+(defmethod align-identity Vec2 [a] a)
+(defmethod align-identity Segment [s] s)
 
-(defn ^:private align-grid
-  ([a]   (vec/round a grid-size))
-  ([a b] (Segment. (align-grid a) (align-grid b))))
+(defmulti align-grid type)
+(defmethod align-grid Vec2 [a]
+  (vec/rnd a grid-size))
+(defmethod align-grid Segment [s]
+  (vec/map align-grid s))
 
-(defn ^:private align-grid-half
-  ([a]   (vec/round a half-size))
-  ([a b] (Segment. (align-grid-half a) (align-grid-half b))))
+(defmulti align-grid-half type)
+(defmethod align-grid-half Vec2 [a] (vec/rnd a half-size))
+(defmethod align-grid-half Segment [s]
+  (vec/map align-grid-half s))
 
-(defn ^:private align-line
-  ([a] (align-grid-half a))
-  ([a b]
-   (let [src (align-grid-half a)
-         dir (vec/sub b src)
-         len (vec/dist vec/zero dir)]
-     (if (= len 0)
-       (Segment. src src)
-       (let [dst (-> (vec/div dir len) (vec/mul (util/round len grid-size)) (vec/add src))]
-         (Segment. src dst))))))
+(defmulti align-line type)
+(defmethod align-line Vec2 [a] (align-grid-half a))
+(defmethod align-line Segment [s]
+  (let [src (align-grid-half (.-a s))
+        dir (vec/sub (.-b s) src)
+        len (vec/dist vec/zero dir)]
+    (if (= len 0)
+      (Segment. src src)
+      (let [dst (-> (vec/div dir len) (vec/mul (util/round len grid-size)) (vec/add src))]
+        (Segment. src dst)))))
 
-(defn ^:private align-cone
-  ([a] (align-grid a))
-  ([a b]
-   (let [src (align-grid a)
-         dir (vec/sub b src)
-         len (vec/dist vec/zero dir)]
-     (if (= len 0)
-       (Segment. src src)
-       (let [dst (-> (vec/div dir len) (vec/mul (util/round len grid-size)) (vec/add src))]
-         (Segment. src dst))))))
+(defmulti align-cone type)
+(defmethod align-cone Vec2 [a] (align-grid a))
+(defmethod align-cone Segment [s]
+  (let [src (align-grid (.-a s))
+        dir (vec/sub (.-b s) src)
+        len (vec/dist vec/zero dir)]
+    (if (= len 0)
+      (Segment. src src)
+      (let [dst (-> (vec/div dir len) (vec/mul (util/round len grid-size)) (vec/add src))]
+        (Segment. src dst)))))
 
-(defn ^:private proj-camera [a o t x]
+(defmulti proj-camera type)
+(defmethod proj-camera Vec2 [a o t x]
   (vec/add (vec/div (vec/sub a o) x) t))
+(defmethod proj-camera Segment [s o t x]
+  (vec/map (fn [v] (proj-camera v o t x)) s))
 
-(defn ^:private proj-canvas [a t x]
+(defmulti proj-canvas type)
+(defmethod proj-canvas Vec2 [a t x]
   (vec/mul (vec/sub a t) x))
+(defmethod proj-canvas Segment [s t x]
+  (vec/map (fn [v] (proj-canvas v t x)) s))
 
 (def ^:private points->poly
   (completing into (fn [xs] (join " " xs))))
 
 (defn ^:private points->canvas [t x]
-  (comp
-   (partition-all 2)
-   (map (fn [[x y]] (Vec2. x y)))
-   (map (fn [v] (proj-canvas v t x)))
-   (map (fn [v] [(.-x v) (.-y v)]))))
+  (comp (map (fn [v] (proj-canvas v t x)))
+        (map seq)))
 
 (defn ^:private px->ft [len]
   (let [ft (* (/ len grid-size) 5)
@@ -73,9 +79,8 @@
   [{:keys [attrs children]}]
   ($ :text.scene-text attrs children))
 
-(defui ^:private anchor
-  []
-  ($ :<>
+(defui ^:private anchor [props]
+  ($ :g {:transform (:transform props)}
     ($ :circle.scene-draw-anchor {:r 4})
     ($ :circle.scene-draw-anchor-ring {:r 6})))
 
@@ -118,73 +123,63 @@
       (children segment cursor))))
 
 (def ^:private query
-  [[:bounds/self :default [0 0 0 0]]
+  [[:bounds/self :default vec/zero-segment]
    {:user/camera
     [[:camera/scale :default 1]
-     [:camera/point :default [0 0]]
+     [:camera/point :default vec/zero]
      {:camera/scene
       [[:scene/grid-align :default false]
+       [:scene/grid-origin :default vec/zero]
        [:scene/grid-size :default grid-size]
-       [:scene/grid-origin :default [0 0]]
        [:scene/show-object-outlines :default true]]}]}])
 
 (defui ^:private draw-segment [props]
   (let [{:keys [children on-release tile-path align-fn]
          :or {on-release :default align-fn align-identity}} props
         result (hooks/use-query query)
-        {[ox oy] :bounds/self
-         {[tx ty] :camera/point
+        {bounds :bounds/self
+         {shift :camera/point
           scale :camera/scale
           {grid-paths :scene/show-object-outlines
            grid-align :scene/grid-align}
           :camera/scene}
          :user/camera} result
         align (if grid-align align-fn align-identity)
-        basis (Vec2. ox oy)
-        shift (Vec2. tx ty)]
+        basis (.-a bounds)]
     ($ draw-segment-drag
       {:use-cursor (contains? props :align-fn)
        :on-release
-       (uix/use-callback
-        (fn [segment]
-          (let [a (proj-camera (.-a segment) basis shift scale)
-                b (proj-camera (.-b segment) basis shift scale)]
-            (on-release (align a b))))
-        [on-release align basis shift scale])}
-      (uix/use-callback
-       (fn [segment cursor]
-         (cond (some? segment)
-               (let [seg (align
-                          (proj-camera (.-a segment) basis shift scale)
-                          (proj-camera (.-b segment) basis shift scale))]
-                 ($ :<>
-                   (if (and (fn? tile-path) grid-paths)
-                     (let [path (tile-path seg)]
-                       ($ :polygon.scene-draw-tile-path
-                         {:points (transduce (points->canvas shift scale) points->poly [] path)})))
-                   (children
-                    seg
-                    (Segment.
-                     (proj-canvas (.-a seg) shift scale)
-                     (proj-canvas (.-b seg) shift scale)))))
-               (and grid-align (some? cursor))
-               (let [v (-> cursor (proj-camera basis shift scale) (align) (proj-canvas shift scale))]
-                 ($ :g {:transform (vec/to-translate v)}
-                   ($ anchor)))))
-       [children grid-paths grid-align tile-path align basis shift scale]))))
+       (fn [segment]
+         (on-release
+          (align (proj-camera segment basis shift scale))))}
+      (fn [segment cursor]
+        (cond (some? segment)
+              (let [segment (align (proj-camera segment basis shift scale))]
+                ($ :<>
+                  (if (and (fn? tile-path) grid-paths)
+                    (let [path (tile-path segment)]
+                      ($ :polygon.scene-draw-tile-path
+                        {:points (transduce (points->canvas shift scale) points->poly [] path)})))
+                  (children segment (proj-canvas segment shift scale))))
+              (and grid-align (some? cursor))
+              ($ anchor
+                {:transform
+                 (-> (proj-camera cursor basis shift scale)
+                     (align)
+                     (proj-canvas shift scale)
+                     (vec/to-translate))}))))))
 
 (defui ^:private polygon
   [{:keys [on-create]}]
   (let [result (hooks/use-query query)
-        {[ox oy] :bounds/self
-         {[tx ty] :camera/point
+        {bounds :bounds/self
+         {shift :camera/point
           scale :camera/scale
           {align? :scene/grid-align} :camera/scene} :user/camera} result
         [points set-points] (uix/use-state [])
         [cursor set-cursor] (uix/use-state nil)
         closing? (and (seq points) (some? cursor) (< (vec/dist (first points) cursor) 32))
-        basis (Vec2. ox oy)
-        shift (Vec2. tx ty)]
+        basis (.-a bounds)]
     ($ :<>
       ($ :rect.scene-draw-surface
         {:on-pointer-down
@@ -194,32 +189,30 @@
          (fn [event]
            (-> (Vec2. (.-clientX event) (.-clientY event))
                (proj-camera basis shift scale)
-               (vec/round (if align? half-size 1))
+               (vec/rnd (if align? half-size 1))
                (set-cursor)))
          :on-click
          (fn [event]
            (if (not closing?)
              (set-points (conj points cursor))
-             (let [xs (geom/reorient (mapcat (fn [v] [(.-x v) (.-y v)]) points))]
+             (let [xs (geom/reorient (mapcat (fn [v] [(.-x v) (.-y v)]) points))
+                   xf (comp (partition-all 2) (map (fn [[x y]] (Vec2. x y))))]
                (set-points [])
                (set-cursor nil)
-               (on-create event xs))))})
+               (on-create event (into [] xf xs)))))})
       (if (and align? (not closing?) (some? cursor))
-        (let [point (proj-canvas cursor shift scale)]
-          ($ :g {:transform (vec/to-translate point)}
-            ($ anchor))))
+        ($ anchor {:transform (vec/to-translate (proj-canvas cursor shift scale))}))
       (if (seq points)
-        (let [point (proj-canvas (first points) shift scale)]
-          ($ :circle.scene-draw-point-ring
-            {:cx (.-x point) :cy (.-y point) :r 6})))
+        ($ :circle.scene-draw-point-ring
+          {:transform (vec/to-translate (proj-canvas (first points) shift scale)) :r 6}))
       (for [point points :let [point (proj-canvas point shift scale)]]
         ($ :circle.scene-draw-point
-          {:key point :cx (.-x point) :cy (.-y point) :r 4}))
+          {:key point :transform (vec/to-translate point) :r 4}))
       (if (and (seq points) (some? cursor))
         ($ :polygon.scene-draw-shape
           {:points
            (transduce
-            (comp (map (fn [v] (proj-canvas v (Vec2. tx ty) scale)))
+            (comp (map (fn [v] (proj-canvas v shift scale)))
                   (map (fn [v] [(.-x v) (.-y v)])))
             points->poly []
             (if (not closing?) (conj points cursor) points))})))))
@@ -227,133 +220,102 @@
 (defui ^:private draw-select []
   (let [dispatch (hooks/use-dispatch)]
     ($ draw-segment
-      {:on-release
-       (uix/use-callback
-        (fn [s]
-          (dispatch :selection/from-rect (seq s))) [dispatch])}
-      (uix/use-callback
-       (fn [_ canvas]
-         (let [a (.-a canvas) b (.-b canvas)]
-           ($ hooks/use-portal {:name :multiselect}
-             ($ :path.scene-draw-shape
-               {:d (join " " [\M (.-x a) (.-y a) \H (.-x b) \V (.-y b) \H (.-x a) \Z])})))) []))))
+      {:on-release (fn [s] (dispatch :selection/from-rect s))}
+      (fn [_ canvas]
+        (let [a (.-a canvas) b (.-b canvas)]
+          ($ hooks/use-portal {:name :multiselect}
+            ($ :path.scene-draw-shape
+              {:d (join " " [\M (.-x a) (.-y a) \H (.-x b) \V (.-y b) \H (.-x a) \Z])})))))))
 
 (defui ^:private draw-ruler []
   ($ draw-segment
     {:align-fn align-grid-half}
-    (uix/use-callback
-     (fn [camera canvas]
-       (let [a (.-a canvas) b (.-b canvas)]
-         ($ :<>
-           ($ :line.scene-draw-shape
-             {:x1 (.-x a)
-              :y1 (.-y a)
-              :x2 (.-x b)
-              :y2 (.-y b)})
-           ($ :g {:transform (vec/to-translate a)}
-             ($ anchor))
-           ($ :g {:transform (vec/to-translate b)}
-             ($ anchor))
-           ($ text
-             {:attrs
-              {:x (- (.-x b) 48)
-               :y (- (.-y b) 8)
-               :fill "white"}}
-             (str (px->ft (vec/dist-cheb camera)) "ft."))))) [])))
+    (fn [camera canvas]
+      (let [a (.-a canvas) b (.-b canvas)]
+        ($ :<>
+          ($ :line.scene-draw-shape
+            {:x1 (.-x a)
+             :y1 (.-y a)
+             :x2 (.-x b)
+             :y2 (.-y b)})
+          ($ anchor {:transform (vec/to-translate a)})
+          ($ anchor {:transform (vec/to-translate b)})
+          ($ text
+            {:attrs
+             {:x (- (.-x b) 48)
+              :y (- (.-y b) 8)}}
+            (str (px->ft (vec/dist-cheb camera)) "ft.")))))))
 
 (defui ^:private draw-circle []
   (let [dispatch (hooks/use-dispatch)]
     ($ draw-segment
       {:align-fn align-grid
-       :on-release
-       (uix/use-callback
-        (fn [s]
-          (dispatch :shape/create :circle (seq s))) [dispatch])
+       :on-release (fn [s] (dispatch :shape/create :circle (seq s)))
        :tile-path
-       (uix/use-callback
-        (fn [s]
-          (let [r (vec/dist-cheb s)]
-            (geom/tile-path-circle (.-x (.-a s)) (.-y (.-a s)) r))) [])}
-      (uix/use-callback
-       (fn [camera canvas]
-         (let [src (.-a canvas)]
-           ($ :<>
-             ($ :circle.scene-draw-shape
-               {:cx (.-x src)
-                :cy (.-y src)
-                :r (vec/dist-cheb canvas)})
-             ($ text {:attrs {:x (.-x src) :y (.-y src) :fill "white"}}
-               (str (px->ft (vec/dist-cheb camera)) "ft. radius"))))) []))))
+       (fn [s]
+         (let [r (vec/dist-cheb s)]
+           (geom/tile-path-circle (.-a s) r)))}
+      (fn [camera canvas]
+        (let [src (.-a canvas)]
+          ($ :<>
+            ($ :circle.scene-draw-shape
+              {:transform (vec/to-translate src) :r (vec/dist-cheb canvas)})
+            ($ text {:attrs {:x (.-x src) :y (.-y src) :fill "white"}}
+              (str (px->ft (vec/dist-cheb camera)) "ft. radius"))))))))
 
 (defui ^:private draw-rect []
   (let [dispatch (hooks/use-dispatch)]
     ($ draw-segment
       {:align-fn align-grid
-       :on-release
-       (uix/use-callback
-        (fn [s]
-          (dispatch :shape/create :rect (seq s))) [dispatch])}
-      (uix/use-callback
-       (fn [camera canvas]
-         (let [a (.-a camera) b (.-b camera)
-               c (.-a canvas) d (.-b canvas)]
-           ($ :<>
-             ($ :path.scene-draw-shape
-               {:d (join " " [\M (.-x c) (.-y c) \H (.-x d) \V (.-y d) \H (.-x c) \Z])})
-             ($ text {:attrs {:x (+ (.-x c) 8) :y (- (.-y c) 8) :fill "white"}}
-               (let [v (vec/abs (vec/sub a b))]
-                 (str (px->ft (.-x v)) "ft. x "
-                      (px->ft (.-y v)) "ft.")))))) []))))
+       :on-release (fn [s] (dispatch :shape/create :rect (seq s)))}
+      (fn [camera canvas]
+        (let [a (.-a camera) b (.-b camera)
+              c (.-a canvas) d (.-b canvas)]
+          ($ :<>
+            ($ :path.scene-draw-shape
+              {:d (join " " [\M (.-x c) (.-y c) \H (.-x d) \V (.-y d) \H (.-x c) \Z])})
+            ($ text {:attrs {:x (+ (.-x c) 8) :y (- (.-y c) 8) :fill "white"}}
+              (let [v (vec/abs (vec/sub a b))]
+                (str (px->ft (.-x v)) "ft. x "
+                     (px->ft (.-y v)) "ft.")))))))))
 
 (defui ^:private draw-line []
   (let [dispatch (hooks/use-dispatch)]
     ($ draw-segment
       {:align-fn align-line
-       :on-release
-       (uix/use-callback
-        (fn [s]
-          (dispatch :shape/create :line (seq s))) [dispatch])
+       :on-release (fn [s] (dispatch :shape/create :line (seq s)))
        :tile-path
-       (uix/use-callback
-        (fn [s]
-          (let [a (.-a s) b (.-b s)]
-            (-> (geom/line-points (.-x a) (.-y a) (.-x b) (.-y b) half-size)
-                (geom/tile-path-line)))) [])}
-      (uix/use-callback
-       (fn [camera canvas]
-         (let [a (.-a camera) b (.-b camera)
-               c (.-a canvas) d (.-b canvas)]
-           ($ :<>
-             (let [scale (/ (abs (- (.-x d) (.-x c))) (abs (- (.-x b) (.-x a))))]
-               (if (not (js/isNaN scale))
-                 (let [xs (geom/line-points (.-x c) (.-y c) (.-x d) (.-y d) (* scale half-size))]
-                   ($ :polygon.scene-draw-shape
-                     {:points (transduce (partition-all 2) points->poly [] xs)}))))
-             ($ text {:attrs {:x (+ (.-x c) 8) :y (- (.-y c) 8) :fill "white"}}
-               (str (px->ft (vec/dist camera)) "ft."))))) []))))
+       (fn [s]
+         (geom/tile-path-line (geom/line-points s)))}
+      (fn [camera canvas]
+        ($ :<>
+          (let [points (geom/line-points canvas)]
+            ($ :polygon.scene-draw-shape
+              {:points (join " " (mapcat seq points))}))
+          ($ text
+            {:attrs
+             {:x (.-x (.-a canvas))
+              :y (.-y (.-a canvas))}}
+            (str (px->ft (vec/dist camera)) "ft.")))))))
 
 (defui ^:private draw-cone []
   (let [dispatch (hooks/use-dispatch)]
     ($ draw-segment
       {:align-fn align-cone
-       :on-release
-       (uix/use-callback
-        (fn [s]
-          (dispatch :shape/create :cone (seq s))) [dispatch])
+       :on-release (fn [s] (dispatch :shape/create :cone (seq s)))
        :tile-path
-       (uix/use-callback
-        (fn [s]
-          (let [a (.-a s) b (.-b s)]
-            (-> (geom/cone-points (.-x a) (.-y a) (.-x b) (.-y b))
-                (geom/tile-path-cone)))) [])}
-      (uix/use-callback
-       (fn [camera canvas]
-         (let [c (.-a canvas) d (.-b canvas)]
-           ($ :<>
-             ($ :polygon.scene-draw-shape
-               {:points (join " " (geom/cone-points (.-x c) (.-y c) (.-x d) (.-y d)))})
-             ($ text {:attrs {:x (+ (.-x d) 16) :y (+ (.-y d) 16) :fill "white"}}
-               (str (px->ft (vec/dist camera)) "ft."))))) []))))
+       (fn [s]
+         (geom/tile-path-cone (geom/cone-points s)))}
+      (fn [camera canvas]
+        ($ :<>
+          (let [points (geom/cone-points canvas)]
+            ($ :polygon.scene-draw-shape
+              {:points (join " " (mapcat seq points))}))
+          ($ text
+            {:attrs
+             {:x (+ (.-x (.-b canvas)) 16)
+              :y (+ (.-y (.-b canvas)) 16)}}
+            (str (px->ft (vec/dist camera)) "ft.")))))))
 
 (defui ^:private draw-poly []
   (let [dispatch (hooks/use-dispatch)]
@@ -367,20 +329,19 @@
     ($ polygon
       {:on-create
        (fn [_ points]
-         (dispatch :mask/create points))})))
+         (dispatch :mask/create (mapcat seq points)))})))
 
 (defui ^:private draw-grid []
   (let [dispatch (hooks/use-dispatch)
-        {[ox oy] :bounds/self
-         {[tx ty] :camera/point
+        {bounds :bounds/self
+         {shift :camera/point
           scale   :camera/scale
           {prev-size :scene/grid-size
-           [px py] :scene/grid-origin}
+           prev-origin :scene/grid-origin}
           :camera/scene} :user/camera} (hooks/use-query query)
         [origin set-origin] (uix/use-state nil)
         [size     set-size] (uix/use-state prev-size)
-        basis (Vec2. ox oy)
-        shift (Vec2. tx ty)
+        basis (.-a bounds)
         on-shift (fn [a] (fn [] (set-origin (fn [b] (vec/add a b)))))]
     ($ :g.grid-align
       ($ :rect.scene-draw-surface
@@ -402,11 +363,17 @@
               ($ :form
                 {:on-submit
                  (fn [event]
+                   (prn prev-origin)
                    (.preventDefault event)
-                   (let [point (-> (vec/sub origin basis) (vec/div scale) (vec/add shift)
-                                   (vec/add (Vec2. px py)) (vec/abs) (vec/mod grid-size)
-                                   (vec/round 0.25))]
-                     (dispatch :scene/apply-grid-options [(.-x point) (.-y point)] size)))}
+                   (dispatch
+                    :scene/apply-grid-options
+                    (-> (vec/sub origin basis)
+                        (vec/div scale)
+                        (vec/add shift)
+                        (vec/add (or prev-origin vec/zero))
+                        (vec/abs)
+                        (vec/mod grid-size)
+                        (vec/rnd 0.25)) size))}
                 ($ :fieldset.grid-align-origin
                   ($ :button
                     {:type "button" :data-name "up" :on-click (on-shift (Vec2. 0 -1))}
@@ -420,7 +387,7 @@
                   ($ :button
                     {:type "button" :data-name "left" :on-click (on-shift (Vec2. -1 0))}
                     ($ icon {:name "arrow-left-short" :size 20}))
-                  (if (and (not= px 0) (not= py 0))
+                  (if (not= prev-origin vec/zero)
                     ($ :button
                       {:type "button" :data-name "clear" :data-tooltip "Reset"
                        :on-click (fn [] (dispatch :scene/reset-grid-origin))}
@@ -449,7 +416,8 @@
     ($ :rect.scene-draw-surface
       {:on-click
        (fn [event]
-         (dispatch :note/create (.-clientX event) (.-clientY event)))})))
+         (let [point (Vec2. (.-clientX event) (.-clientY event))]
+           (dispatch :note/create point)))})))
 
 (defui draw [{:keys [mode] :as props}]
   ($ dnd-context
