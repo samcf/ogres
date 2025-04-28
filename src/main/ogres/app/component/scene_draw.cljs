@@ -149,28 +149,25 @@
     ($ draw-segment-drag
       {:use-cursor (contains? props :align-fn)
        :on-release
-       (uix/use-callback
-        (fn [segment]
-          (on-release (align (proj-camera segment basis shift scale))))
-        [on-release align basis shift scale])}
-      (uix/use-callback
-       (fn [segment cursor]
-         (cond (some? segment)
-               (let [segment (align (proj-camera segment basis shift scale))]
-                 ($ :<>
-                   (if (and (fn? tile-path) grid-paths)
-                     (let [path (tile-path segment)]
-                       ($ :polygon.scene-draw-tile-path
-                         {:points (transduce (points->canvas shift scale) points->poly [] path)})))
-                   (children segment (proj-canvas segment shift scale))))
-               (and grid-align (some? cursor))
-               ($ anchor
-                 {:transform
-                  (-> (proj-camera cursor basis shift scale)
-                      (align)
-                      (proj-canvas shift scale)
-                      (vec/to-translate))})))
-       [children grid-paths grid-align tile-path align basis shift scale]))))
+       (fn [segment]
+         (on-release
+          (align (proj-camera segment basis shift scale))))}
+      (fn [segment cursor]
+        (cond (some? segment)
+              (let [segment (align (proj-camera segment basis shift scale))]
+                ($ :<>
+                  (if (and (fn? tile-path) grid-paths)
+                    (let [path (tile-path segment)]
+                      ($ :polygon.scene-draw-tile-path
+                        {:points (transduce (points->canvas shift scale) points->poly [] path)})))
+                  (children segment (proj-canvas segment shift scale))))
+              (and grid-align (some? cursor))
+              ($ anchor
+                {:transform
+                 (-> (proj-camera cursor basis shift scale)
+                     (align)
+                     (proj-canvas shift scale)
+                     (vec/to-translate))}))))))
 
 (defui ^:private polygon
   [{:keys [on-create]}]
@@ -223,126 +220,102 @@
 (defui ^:private draw-select []
   (let [dispatch (hooks/use-dispatch)]
     ($ draw-segment
-      {:on-release
-       (uix/use-callback
-        (fn [s]
-          (dispatch :selection/from-rect s)) [dispatch])}
-      (uix/use-callback
-       (fn [_ canvas]
-         (let [a (.-a canvas) b (.-b canvas)]
-           ($ hooks/use-portal {:name :multiselect}
-             ($ :path.scene-draw-shape
-               {:d (join " " [\M (.-x a) (.-y a) \H (.-x b) \V (.-y b) \H (.-x a) \Z])})))) []))))
+      {:on-release (fn [s] (dispatch :selection/from-rect s))}
+      (fn [_ canvas]
+        (let [a (.-a canvas) b (.-b canvas)]
+          ($ hooks/use-portal {:name :multiselect}
+            ($ :path.scene-draw-shape
+              {:d (join " " [\M (.-x a) (.-y a) \H (.-x b) \V (.-y b) \H (.-x a) \Z])})))))))
 
 (defui ^:private draw-ruler []
   ($ draw-segment
     {:align-fn align-grid-half}
-    (uix/use-callback
-     (fn [camera canvas]
-       (let [a (.-a canvas) b (.-b canvas)]
-         ($ :<>
-           ($ :line.scene-draw-shape
-             {:x1 (.-x a)
-              :y1 (.-y a)
-              :x2 (.-x b)
-              :y2 (.-y b)})
-           ($ anchor {:transform (vec/to-translate a)})
-           ($ anchor {:transform (vec/to-translate b)})
-           ($ text
-             {:attrs
-              {:x (- (.-x b) 48)
-               :y (- (.-y b) 8)}}
-             (str (px->ft (vec/dist-cheb camera)) "ft."))))) [])))
+    (fn [camera canvas]
+      (let [a (.-a canvas) b (.-b canvas)]
+        ($ :<>
+          ($ :line.scene-draw-shape
+            {:x1 (.-x a)
+             :y1 (.-y a)
+             :x2 (.-x b)
+             :y2 (.-y b)})
+          ($ anchor {:transform (vec/to-translate a)})
+          ($ anchor {:transform (vec/to-translate b)})
+          ($ text
+            {:attrs
+             {:x (- (.-x b) 48)
+              :y (- (.-y b) 8)}}
+            (str (px->ft (vec/dist-cheb camera)) "ft.")))))))
 
 (defui ^:private draw-circle []
   (let [dispatch (hooks/use-dispatch)]
     ($ draw-segment
       {:align-fn align-grid
-       :on-release
-       (uix/use-callback
-        (fn [s]
-          (dispatch :shape/create :circle (seq s))) [dispatch])
+       :on-release (fn [s] (dispatch :shape/create :circle (seq s)))
        :tile-path
-       (uix/use-callback
-        (fn [s]
-          (let [r (vec/dist-cheb s)]
-            (geom/tile-path-circle (.-a s) r))) [])}
-      (uix/use-callback
-       (fn [camera canvas]
-         (let [src (.-a canvas)]
-           ($ :<>
-             ($ :circle.scene-draw-shape
-               {:transform (vec/to-translate src) :r (vec/dist-cheb canvas)})
-             ($ text {:attrs {:x (.-x src) :y (.-y src) :fill "white"}}
-               (str (px->ft (vec/dist-cheb camera)) "ft. radius"))))) []))))
+       (fn [s]
+         (let [r (vec/dist-cheb s)]
+           (geom/tile-path-circle (.-a s) r)))}
+      (fn [camera canvas]
+        (let [src (.-a canvas)]
+          ($ :<>
+            ($ :circle.scene-draw-shape
+              {:transform (vec/to-translate src) :r (vec/dist-cheb canvas)})
+            ($ text {:attrs {:x (.-x src) :y (.-y src) :fill "white"}}
+              (str (px->ft (vec/dist-cheb camera)) "ft. radius"))))))))
 
 (defui ^:private draw-rect []
   (let [dispatch (hooks/use-dispatch)]
     ($ draw-segment
       {:align-fn align-grid
-       :on-release
-       (uix/use-callback
-        (fn [s]
-          (dispatch :shape/create :rect (seq s))) [dispatch])}
-      (uix/use-callback
-       (fn [camera canvas]
-         (let [a (.-a camera) b (.-b camera)
-               c (.-a canvas) d (.-b canvas)]
-           ($ :<>
-             ($ :path.scene-draw-shape
-               {:d (join " " [\M (.-x c) (.-y c) \H (.-x d) \V (.-y d) \H (.-x c) \Z])})
-             ($ text {:attrs {:x (+ (.-x c) 8) :y (- (.-y c) 8) :fill "white"}}
-               (let [v (vec/abs (vec/sub a b))]
-                 (str (px->ft (.-x v)) "ft. x "
-                      (px->ft (.-y v)) "ft.")))))) []))))
+       :on-release (fn [s] (dispatch :shape/create :rect (seq s)))}
+      (fn [camera canvas]
+        (let [a (.-a camera) b (.-b camera)
+              c (.-a canvas) d (.-b canvas)]
+          ($ :<>
+            ($ :path.scene-draw-shape
+              {:d (join " " [\M (.-x c) (.-y c) \H (.-x d) \V (.-y d) \H (.-x c) \Z])})
+            ($ text {:attrs {:x (+ (.-x c) 8) :y (- (.-y c) 8) :fill "white"}}
+              (let [v (vec/abs (vec/sub a b))]
+                (str (px->ft (.-x v)) "ft. x "
+                     (px->ft (.-y v)) "ft.")))))))))
 
 (defui ^:private draw-line []
   (let [dispatch (hooks/use-dispatch)]
     ($ draw-segment
       {:align-fn align-line
-       :on-release
-       (uix/use-callback
-        (fn [s]
-          (dispatch :shape/create :line (seq s))) [dispatch])
+       :on-release (fn [s] (dispatch :shape/create :line (seq s)))
        :tile-path
-       (uix/use-callback
-        (fn [s]
-          (geom/tile-path-line (geom/line-points s))) [])}
-      (uix/use-callback
-       (fn [camera canvas]
-         ($ :<>
-           (let [points (geom/line-points canvas)]
-             ($ :polygon.scene-draw-shape
-               {:points (join " " (mapcat seq points))}))
-           ($ text
-             {:attrs
-              {:x (.-x (.-a canvas))
-               :y (.-y (.-a canvas))}}
-             (str (px->ft (vec/dist camera)) "ft.")))) []))))
+       (fn [s]
+         (geom/tile-path-line (geom/line-points s)))}
+      (fn [camera canvas]
+        ($ :<>
+          (let [points (geom/line-points canvas)]
+            ($ :polygon.scene-draw-shape
+              {:points (join " " (mapcat seq points))}))
+          ($ text
+            {:attrs
+             {:x (.-x (.-a canvas))
+              :y (.-y (.-a canvas))}}
+            (str (px->ft (vec/dist camera)) "ft.")))))))
 
 (defui ^:private draw-cone []
   (let [dispatch (hooks/use-dispatch)]
     ($ draw-segment
       {:align-fn align-cone
-       :on-release
-       (uix/use-callback
-        (fn [s]
-          (dispatch :shape/create :cone (seq s))) [dispatch])
+       :on-release (fn [s] (dispatch :shape/create :cone (seq s)))
        :tile-path
-       (uix/use-callback
-        (fn [s]
-          (geom/tile-path-cone (geom/cone-points s))) [])}
-      (uix/use-callback
-       (fn [camera canvas]
-         ($ :<>
-           (let [points (geom/cone-points canvas)]
-             ($ :polygon.scene-draw-shape
-               {:points (join " " (mapcat seq points))}))
-           ($ text
-             {:attrs
-              {:x (+ (.-x (.-b canvas)) 16)
-               :y (+ (.-y (.-b canvas)) 16)}}
-             (str (px->ft (vec/dist camera)) "ft.")))) []))))
+       (fn [s]
+         (geom/tile-path-cone (geom/cone-points s)))}
+      (fn [camera canvas]
+        ($ :<>
+          (let [points (geom/cone-points canvas)]
+            ($ :polygon.scene-draw-shape
+              {:points (join " " (mapcat seq points))}))
+          ($ text
+            {:attrs
+             {:x (+ (.-x (.-b canvas)) 16)
+              :y (+ (.-y (.-b canvas)) 16)}}
+            (str (px->ft (vec/dist camera)) "ft.")))))))
 
 (defui ^:private draw-poly []
   (let [dispatch (hooks/use-dispatch)]
