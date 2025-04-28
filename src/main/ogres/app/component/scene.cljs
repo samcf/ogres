@@ -535,15 +535,16 @@
               (dispatch :camera/translate (vec/mul delta -1))))
           [dispatch scale])}
         (if (and (= mode :select) multi-select?)
-          ($ draw {:mode :select}))
+          ($ :g.scene-draw {:data-type "select"}
+            ($ draw {:mode :select})))
         ($ :g {:transform  (str "scale(" scale ") " (vec/to-translate (vec/rnd (vec/mul point -1))))}
           (:children props)))
       ($ hooks/create-portal {:name :multiselect}
         (fn [{:keys [ref]}]
-          ($ :g.scene-draw.scene-draw-select
-            {:ref ref :style {:outline "none"} :tab-index -1})))
+          ($ :g.scene-draw
+            {:ref ref :data-type "select" :tab-index -1})))
       (if (contains? draw-modes mode)
-        ($ :g.scene-draw {:class (str "scene-draw-" (name mode))}
+        ($ :g.scene-draw {:data-type (name mode)}
           ($ draw {:key mode :mode mode :node nil}))))))
 
 (defui ^:private scene-transition [props]

@@ -40,14 +40,20 @@
   stroke: var(--scene-stroke);
 }
 
-.scene-draw-select .scene-draw-shape {
-  fill-opacity: 0.1;
-  fill: var(--scene-stroke);
-  stroke-dasharray: 0;
-  stroke-dashoffset: 0;
-  stroke-opacity: 0.45;
-  stroke-width: 1px;
-  stroke: var(--scene-stroke);
+.scene-draw[data-type="select"] {
+  .scene-draw-surface {
+    cursor: auto;
+  }
+
+  .scene-draw-shape {
+    fill-opacity: 0.1;
+    fill: var(--scene-stroke);
+    stroke-dasharray: 0;
+    stroke-dashoffset: 0;
+    stroke-opacity: 0.45;
+    stroke-width: 1px;
+    stroke: var(--scene-stroke);
+  }
 }
 
 .grid-align-path {
