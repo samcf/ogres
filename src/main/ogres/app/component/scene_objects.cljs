@@ -366,12 +366,7 @@
           :user/camera} :root/user
          {conns :session/conns} :root/session} result
         portal (uix/use-ref)
-        screen (Segment.
-                point
-                (vec/add
-                 (Vec2.
-                  (/ (vec/width bounds) scale)
-                  (/ (vec/height bounds) scale)) point))
+        screen (Segment. point (vec/add point (vec/div (.-b (vec/rebase bounds)) scale)))
         notes  (sort compare-objects notes)
         shapes (sort compare-objects shapes)
         tokens (sort compare-tokens (sequence (tokens-xf type) tokens))
