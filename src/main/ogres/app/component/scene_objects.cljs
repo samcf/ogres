@@ -274,6 +274,38 @@
                    (dispatch :objects/translate-selected dx dy)
                    (dispatch :objects/translate id dx dy))))) [dispatch])})))
 
+(defui ^:private object-hint [props]
+  (let [{{point :object/point type :object/type :as entity} :entity
+         portal :portal
+         delta :delta
+         is-outline :is-outline
+         is-aligned :is-aligned} props
+        is-aligning (and is-aligned (not= delta vec/zero))]
+    ($ :<>
+      (if (and (= type :token/token) is-aligning)
+        (let [rect (vec/rnd (vec/add (geom/object-bounding-rect entity) delta) grid-size)]
+          (dom/create-portal
+           ($ :rect.scene-object-align
+             {:width (vec/width rect)
+              :height (vec/height rect)
+              :transform (vec/to-translate (.-a rect))}) portal)))
+      (if (= (namespace type) "shape")
+        (let [align-to (geom/object-alignment entity)
+              aligned (vec/rnd (vec/add point delta) (if is-aligning align-to 1))]
+          (dom/create-portal
+           ($ :<>
+             (if is-outline
+               (let [path (geom/object-tile-path entity (vec/sub aligned point))]
+                 (if (seq path)
+                   ($ :polygon.scene-object-tiles
+                     {:points (join " " (mapcat seq path))}))))
+             (if is-aligning
+               ($ :g.scene-object-ghost
+                 {:transform (vec/to-translate aligned)}
+                 ($ :circle.scene-object-anchor {:r 3})
+                 ($ :circle.scene-object-anchor-ring {:r 5})
+                 ($ shape {:entity entity})))) portal))))))
+
 (def ^:private query
   [{:root/user
     [:user/type
@@ -383,8 +415,7 @@
                               drag-x (getValueByKeys drag "transform" "x")
                               drag-y (getValueByKeys drag "transform" "y")
                               local (Vec2. (or drag-x 0) (or drag-y 0))
-                              delta (or remote local)
-                              spec? (and align? (not= delta vec/zero))]
+                              delta (or remote local)]
                           ($ :g.scene-object
                             {:ref (.-setNodeRef drag)
                              :transform (vec/to-translate (vec/add point delta))
@@ -395,30 +426,14 @@
                              :data-color (:user/color user)
                              :data-type (name type)
                              :data-id id}
-                            (if (and spec? (= type :token) (deref portal))
-                              (let [bounds (vec/rnd (vec/add rect delta) grid-size)]
-                                (dom/create-portal
-                                 ($ :rect.scene-object-align
-                                   {:width (vec/width bounds)
-                                    :height (vec/height bounds)
-                                    :transform (vec/to-translate (.-a bounds))}) (deref portal))))
-                            (if (and (= type :shape) (deref portal))
-                              (let [align-to (geom/object-alignment entity)
-                                    aligned (vec/rnd (vec/add point delta) (if spec? align-to 1))]
-                                (dom/create-portal
-                                 ($ :<>
-                                   (if outline?
-                                     (let [path (geom/object-tile-path entity (vec/sub aligned point))]
-                                       (if (seq path)
-                                         ($ :polygon.scene-object-tiles
-                                           {:points (join " " (mapcat seq path))}))))
-                                   (if spec?
-                                     ($ :g.scene-object-ghost
-                                       {:transform (vec/to-translate aligned)}
-                                       ($ :circle.scene-object-anchor {:r 3})
-                                       ($ :circle.scene-object-anchor-ring {:r 5})
-                                       ($ shape {:entity entity})))) (deref portal))))
-                            ($ object {:entity entity}))))))))))))
+                            ($ object {:entity entity})
+                            (if-let [portal (deref portal)]
+                              ($ object-hint
+                                {:entity entity
+                                 :portal portal
+                                 :delta delta
+                                 :is-outline outline?
+                                 :is-aligned align?})))))))))))))
       ($ hooks/use-portal {:name :selected}
         (let [bounds (transduce bound-xf geom/bounding-rect-rf entities)]
           ($ drag-local-fn {:id "selected" :disabled (some dragging selected)}
@@ -441,45 +456,27 @@
                     (for [entity entities
                           :let [{id :db/id point :object/point} entity
                                 node (uix/create-ref)
-                                user (dragging id)
-                                type (keyword (namespace (:object/type entity)))]]
+                                user (dragging id)]]
                       ($ CSSTransition {:key id :nodeRef node :timeout 256}
                         ($ :g.scene-object-transition {:ref node}
                           (if (selected id)
                             ($ drag-remote-fn {:user (:user/uuid user) :point point}
                               (fn [remote]
-                                (let [delta (or remote local)
-                                      spec? (and align? (not= delta vec/zero))]
+                                (let [delta (or remote local)]
                                   ($ :g.scene-object
                                     {:transform (vec/to-translate (vec/add point (or remote vec/zero)))
                                      :data-drag-remote (some? user)
                                      :data-drag-local (.-isDragging drag)
                                      :data-color (:user/color user)
                                      :data-id id}
-                                    (if (and spec? (= type :token) (deref portal))
-                                      (let [bounds (-> (geom/object-bounding-rect entity) (vec/add delta) (vec/rnd grid-size))]
-                                        (dom/create-portal
-                                         ($ :rect.scene-object-align
-                                           {:width (vec/width bounds)
-                                            :height (vec/height bounds)
-                                            :transform (vec/to-translate (.-a bounds))}) (deref portal))))
-                                    (if (and (= type :shape) (deref portal))
-                                      (let [align-to (geom/object-alignment entity)
-                                            aligned (vec/rnd (vec/add point delta) (if spec? align-to 1))]
-                                        (dom/create-portal
-                                         ($ :<>
-                                           (if outline?
-                                             (let [path (geom/object-tile-path entity (vec/sub aligned point))]
-                                               (if (seq path)
-                                                 ($ :polygon.scene-object-tiles
-                                                   {:points (join " " (mapcat seq path))}))))
-                                           (if spec?
-                                             ($ :g.scene-object-ghost
-                                               {:transform (vec/to-translate aligned)}
-                                               ($ :circle.scene-object-anchor {:r 3})
-                                               ($ :circle.scene-object-anchor-ring {:r 5})
-                                               ($ shape {:entity entity})))) (deref portal))))
-                                    ($ object {:entity entity}))))))))))
+                                    ($ object {:entity entity})
+                                    (if-let [portal (deref portal)]
+                                      ($ object-hint
+                                        {:entity entity
+                                         :portal portal
+                                         :delta delta
+                                         :is-outline outline?
+                                         :is-aligned align?})))))))))))
                   (let [sz 400
                         tx (-> (+ (.-x (.-a bounds)) (.-x (.-b bounds))) (* scale) (- sz) (/ 2) int)
                         ty (-> (+ (.-y (.-b bounds)) 24) (* scale) (- 24) int)
