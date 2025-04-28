@@ -105,3 +105,8 @@
 (defmulti map (fn [_ v] (type v)))
 (defmethod map Vec2 [f v] (Vec2. (f (.-x v)) (f (.-y v))))
 (defmethod map Segment [f s] (Segment. (f (.-a s)) (f (.-b s))))
+
+(defn DOMRect->Segment [rect]
+  (Segment.
+   (Vec2. (.-left rect) (.-top rect))
+   (Vec2. (.-right rect) (.-bottom rect))))

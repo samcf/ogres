@@ -5,16 +5,10 @@
             [ogres.app.hooks :as hooks]
             [ogres.app.provider.state :as state]
             [ogres.app.serialize :refer [reader writer]]
-            [ogres.app.vec :refer [Vec2 Segment]]
+            [ogres.app.vec :as vec]
             [uix.core :as uix :refer [defui $]]))
 
 (def ^:private context (uix/create-context))
-
-(defn ^:private bounds->segment [bounds]
-  (Segment.
-   (Vec2. (.-x bounds) (.-y bounds))
-   (Vec2. (+ (.-x bounds) (.-width bounds))
-          (+ (.-y bounds) (.-height bounds)))))
 
 (defui ^:private initialize
   "Registers a DataScript listener in order to manage the view window, the
@@ -68,8 +62,8 @@
                     (throttle
                      (fn []
                        (if-let [element (.. target -document (querySelector ".layout-scene"))]
-                         (let [rect (.getBoundingClientRect element)]
-                           (dispatch :bounds/change type (bounds->segment rect))))) 100)) [dispatch type target])
+                         (let [rect (vec/DOMRect->Segment (.getBoundingClientRect element))]
+                           (dispatch :bounds/change type rect)))) 100)) [dispatch type target])
         [observer] (uix/use-state (js/ResizeObserver. handler))
         [scene set-scene] (uix/use-state nil)]
     (hooks/use-event-listener "resize" handler)

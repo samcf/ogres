@@ -4,7 +4,7 @@
             [ogres.app.geom :as geom]
             [ogres.app.hooks :as hooks]
             [ogres.app.util :refer [separate]]
-            [ogres.app.vec :as vec :refer [Vec2]]
+            [ogres.app.vec :as vec]
             [uix.core :as uix :refer [defui $]]
             [uix.dom :refer [create-portal]]
             [clojure.string :as str]
@@ -171,13 +171,9 @@
         on-create
         (uix/use-callback
          (fn [hash element delta]
-           (let [start (.getBoundingClientRect element)
-                 start (vec/Segment.
-                        (Vec2. (.-left start) (.-top start))
-                        (Vec2. (.-right start) (.-bottom start)))
-                 delta (Vec2. (.-x delta) (.-y delta))
-                 point (-> (vec/add (.-a start) delta)
-                           (vec/add (vec/sub (vec/midpoint start) (.-a start)))
+           (let [token (vec/DOMRect->Segment (.getBoundingClientRect element))
+                 point (-> (vec/add (.-a token) delta)
+                           (vec/add (vec/sub (vec/midpoint token) (.-a token)))
                            (vec/sub (.-a bounds)))]
              (if (geom/point-within-rect? point bounds)
                (if (= hash "default")
