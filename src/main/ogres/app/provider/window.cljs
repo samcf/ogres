@@ -15,7 +15,7 @@
                      (fn []
                        (if-let [element (.. target -document (querySelector ".layout-scene"))]
                          (let [rect (vec/DOMRect->Segment (.getBoundingClientRect element))]
-                           (dispatch :bounds/change rect)))) 100)) [dispatch target])
+                           (dispatch :user/change-bounds rect)))) 100)) [dispatch target])
         [observer] (uix/use-state (js/ResizeObserver. handler))
         [scene set-scene] (uix/use-state nil)]
     (hooks/use-event-listener "resize" handler)

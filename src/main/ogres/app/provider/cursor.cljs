@@ -4,7 +4,7 @@
             [ogres.app.vec :as vec :refer [Vec2]]))
 
 (def ^:private handler-query
-  [[:bounds/self :default vec/zero-segment]
+  [[:user/bounds :default vec/zero-segment]
    {:user/camera
     [[:camera/scale :default 1]
      [:camera/point :default vec/zero]]}])
@@ -12,7 +12,7 @@
 (defui listeners []
   (let [publish (hooks/use-publish)
         result  (hooks/use-query handler-query)
-        {bounds :bounds/self
+        {bounds :user/bounds
          {point :camera/point
           scale :camera/scale} :user/camera} result]
     (hooks/use-event-listener js/window "pointermove"

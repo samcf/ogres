@@ -304,7 +304,7 @@
 (def ^:private query
   [{:root/user
     [:user/type
-     [:bounds/self :default vec/zero-segment]
+     [:user/bounds :default vec/zero-segment]
      {:user/camera
       [:db/id
        :camera/selected
@@ -352,7 +352,7 @@
 (defui objects []
   (let [[_ set-ready] (uix/use-state false)
         result (hooks/use-query query [:db/ident :root])
-        {{bounds :bounds/self
+        {{bounds :user/bounds
           type :user/type
           {point :camera/point
            scale :camera/scale

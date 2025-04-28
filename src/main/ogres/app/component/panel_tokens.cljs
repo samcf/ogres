@@ -39,7 +39,7 @@
       [:image/hash]}]}])
 
 (def ^:private query-bounds
-  [[:bounds/self :default vec/zero-segment]])
+  [[:user/bounds :default vec/zero-segment]])
 
 (defui ^:private draggable
   [{:keys [id children]}]
@@ -167,7 +167,7 @@
 (defui form []
   (let [dispatch (hooks/use-dispatch)
         results  (hooks/use-query query-bounds [:db/ident :user])
-        {bounds :bounds/self} results
+        {bounds :user/bounds} results
         on-create
         (uix/use-callback
          (fn [hash element delta]

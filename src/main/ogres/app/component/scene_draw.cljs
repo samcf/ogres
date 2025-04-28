@@ -123,7 +123,7 @@
       (children segment cursor))))
 
 (def ^:private query
-  [[:bounds/self :default vec/zero-segment]
+  [[:user/bounds :default vec/zero-segment]
    {:user/camera
     [[:camera/scale :default 1]
      [:camera/point :default vec/zero]
@@ -137,7 +137,7 @@
   (let [{:keys [children on-release tile-path align-fn]
          :or {on-release :default align-fn align-identity}} props
         result (hooks/use-query query)
-        {bounds :bounds/self
+        {bounds :user/bounds
          {shift :camera/point
           scale :camera/scale
           {grid-paths :scene/show-object-outlines
@@ -172,7 +172,7 @@
 (defui ^:private polygon
   [{:keys [on-create]}]
   (let [result (hooks/use-query query)
-        {bounds :bounds/self
+        {bounds :user/bounds
          {shift :camera/point
           scale :camera/scale
           {align? :scene/grid-align} :camera/scene} :user/camera} result
@@ -333,7 +333,7 @@
 
 (defui ^:private draw-grid []
   (let [dispatch (hooks/use-dispatch)
-        {bounds :bounds/self
+        {bounds :user/bounds
          {shift :camera/point
           scale   :camera/scale
           {prev-size :scene/grid-size

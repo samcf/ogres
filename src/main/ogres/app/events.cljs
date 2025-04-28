@@ -183,7 +183,7 @@
      (case (count args)
        0 [[:db.fn/call event-tx-fn event 1]]
        1 (let [[scale] args
-               bounds (or (:bounds/self user) vec/zero-segment)]
+               bounds (or (:user/bounds user) vec/zero-segment)]
            [[:db.fn/call event-tx-fn event scale (vec/midpoint bounds)]])
        (let [[next-scale point] args
              {{id :db/id scale :camera/scale camera :camera/point} :user/camera} user]
@@ -202,7 +202,7 @@
   event-tx-fn :camera/zoom-delta
   [data _ mx my delta trackpad?]
   (let [user (ds/entity data [:db/ident :user])
-        bound (or (:bounds/self user) vec/zero-segment)
+        bound (or (:user/bounds user) vec/zero-segment)
         scale (linear -400 400 -0.50 0.50)
         delta (if trackpad? (scale (* -1 8 delta)) (scale (* -1 2 delta)))
         point (vec/sub (Vec2. mx my) (.-a bound))
@@ -574,10 +574,10 @@
    [:db.fn/call assoc-camera :camera/draw-mode :select :camera/selected -1]
    [:db.fn/call assoc-scene :scene/shapes -1]])
 
-(defmethod event-tx-fn :bounds/change
+(defmethod event-tx-fn :user/change-bounds
   [_ _ bounds]
   [[:db/add -1 :db/ident :user]
-   [:db/add -1 :bounds/self bounds]])
+   [:db/add -1 :user/bounds bounds]])
 
 (defmethod event-tx-fn :selection/from-rect
   [data _ rect]
@@ -859,11 +859,11 @@
   event-tx-fn :session/focus
   [data]
   (let [select-w [:camera/scene [:camera/point :default vec/zero] [:camera/scale :default 1]]
-        select-l [:db/id [:bounds/self :default vec/zero-segment]
+        select-l [:db/id [:user/bounds :default vec/zero-segment]
                   {:user/cameras [:camera/scene] :user/camera select-w}]
         select-s [{:session/host select-l} {:session/conns select-l}]
         result   (ds/pull data select-s [:db/ident :session])
-        {{bounds :bounds/self
+        {{bounds :user/bounds
           {point :camera/point} :user/camera
           host :user/camera} :session/host
          conns :session/conns} result
@@ -875,7 +875,7 @@
                                          (= (:db/id (:camera/scene conn))
                                             (:db/id (:camera/scene host))))) (first) (:db/id))
                      next  (or prev next)
-                     point (vec/sub center (vec/div (vec/midpoint (:bounds/self conn)) scale))]]
+                     point (vec/sub center (vec/div (vec/midpoint (:user/bounds conn)) scale))]]
            [{:db/id (:db/id conn) :user/camera next :user/cameras next}
             {:db/id next
              :camera/point point
@@ -930,7 +930,7 @@
 (def ^:private clipboard-paste-select
   [{:root/user
     [[:user/clipboard :default []]
-     [:bounds/self :default vec/zero-segment]
+     [:user/bounds :default vec/zero-segment]
      {:user/camera
       [:db/id
        [:camera/scale :default 1]
@@ -949,7 +949,7 @@
   [data]
   (let [result (ds/pull data clipboard-paste-select [:db/ident :root])
         {{clipboard :user/clipboard
-          screen :bounds/self
+          screen :user/bounds
           {camera :db/id
            scale :camera/scale
            point :camera/point
@@ -1021,7 +1021,7 @@
   event-tx-fn :note/create
   [data _ point]
   (let [user (ds/entity data [:db/ident :user])
-        {bounds :bounds/self
+        {bounds :user/bounds
          {camera :db/id
           {scene :db/id} :camera/scene
           shift :camera/point
