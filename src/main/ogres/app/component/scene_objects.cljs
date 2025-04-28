@@ -141,24 +141,19 @@
     nil))
 
 (defui ^:private object-shape [props]
-  (let [entity (:entity props)
-        {id :db/id
-         type :object/type
-         color :shape/color
-         pattern-name :shape/pattern
-         point :object/point} entity
-        bounds (geom/object-bounding-rect entity)]
-    ($ :g.scene-shape {:data-color color}
+  (let [{{id :db/id shape-pattern :shape/pattern :as entity} :entity} props]
+    ($ :g.scene-shape {:data-color (:shape/color entity)}
       ($ :defs.scene-shape-defs
-        ($ pattern {:id (str "shape-pattern-" id) :name pattern-name}))
-      (if (not= type :shape/rect)
-        ($ :rect.scene-shape-bounds
-          {:width (vec/width bounds)
-           :height (vec/height bounds)
-           :transform (vec/to-translate (vec/sub (.-a bounds) point))}))
+        ($ pattern {:id (str "shape-pattern-" id) :name shape-pattern}))
+      (if (not= (:object/type entity) :shape/rect)
+        (let [bounds (geom/object-bounding-rect entity)]
+          ($ :rect.scene-shape-bounds
+            {:width (vec/width bounds)
+             :height (vec/height bounds)
+             :transform (vec/to-translate (vec/sub (.-a bounds) (:object/point entity)))})))
       ($ :g.scene-shape-path
         {:fill (str "url(#shape-pattern-" id ")")
-         :fill-opacity (if (= pattern-name :solid) 0.40 0.80)}
+         :fill-opacity (if (= shape-pattern :solid) 0.40 0.80)}
         ($ shape props)))))
 
 (defui ^:private object-token [props]
