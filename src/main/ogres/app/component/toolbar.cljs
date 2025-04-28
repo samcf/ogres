@@ -25,7 +25,6 @@
    "scene-grid"   {:label "Grid alignment tool." :args [:camera/change-mode :grid]}
    "scene-ruler"  {:label "Measure distance." :args [:camera/change-mode :ruler]}
    "scene-select" {:label "Hold shift to select multiple tokens." :args [:camera/change-mode :select]}
-   "scene-window" {:label "Open the player window." :args [:share/initiate]}
    "zoom-in"      {:label "Zoom in." :args [:camera/zoom-in]}
    "zoom-out"     {:label "Zoom out." :args [:camera/zoom-out]}
    "zoom-reset"   {:label "Reset to 100% zoom." :args [:camera/zoom-reset]}
@@ -43,7 +42,6 @@
   [:session/_host
    :user/clipboard
    [:user/type :default :conn]
-   [:user/sharing? :default false]
    {:user/camera
     [:camera/selected
      [:camera/draw-mode :default :select]
@@ -54,7 +52,6 @@
         dispatch  (hooks/use-dispatch)
         result    (hooks/use-query query)
         {type      :user/type
-         share?    :user/sharing?
          {scale    :camera/scale
           mode     :camera/draw-mode
           selected :camera/selected} :user/camera} result
@@ -121,7 +118,5 @@
           ($ icon {:name "eye-fill"}))
         ($ action {:name "mask-hide"}
           ($ icon {:name "eye-slash-fill"}))
-        ($ action {:name "scene-window" :aria-pressed share?}
-          ($ icon {:name "pip" :size 22}))
         ($ action {:name "scene-grid" :aria-pressed (= mode :grid)}
           ($ icon {:name "compass"}))))))

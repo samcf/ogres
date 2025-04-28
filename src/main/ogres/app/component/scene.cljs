@@ -357,22 +357,6 @@
           ($ Transition {:key id :nodeRef node :timeout 240}
             ($ token {:node node :data data})))))))
 
-(defui ^:private player-window-bounds []
-  (let [{host :bounds/host
-         view :bounds/view}
-        (hooks/use-query
-         [[:bounds/host :default vec/zero-segment]
-          [:bounds/view :default vec/zero-segment]])
-        point
-        (vec/sub
-         (vec/midpoint (vec/rebase host))
-         (vec/midpoint (vec/rebase view)))]
-    ($ :g.scene-bounds {:transform (vec/to-translate point)}
-      ($ :rect
-        {:width (vec/width view)
-         :height (vec/height view)
-         :rx 8}))))
-
 (def ^:private player-cursors-query
   [{:root/user [{:user/camera [:camera/scene]}]}
    {:root/session
@@ -512,9 +496,6 @@
 
 (def ^:private scene-query
   [:user/type
-   :user/sharing?
-   [:bounds/host :default vec/zero-segment]
-   [:bounds/view :default vec/zero-segment]
    {:user/camera
     [:db/id
      [:camera/point :default vec/zero]
@@ -530,18 +511,11 @@
 
 (defui ^:private scene-content [props]
   (let [dispatch (hooks/use-dispatch)
-        {user        :user/type
-         bounds-host :bounds/host
-         bounds-view :bounds/view
+        {user :user/type
          {scene :camera/scene
           scale :camera/scale
           mode  :camera/draw-mode
           point :camera/point} :user/camera} (:data props)
-        point (if (= user :view)
-                (Vec2.
-                 (- (.-x point) (* (/ -1 2 scale) (max 0 (- (vec/width bounds-host) (vec/width bounds-view)))))
-                 (- (.-y point) (* (/ -1 2 scale) (max 0 (- (vec/height bounds-host) (vec/height bounds-view))))))
-                point)
         multi-select? (use-key "shift")]
     ($ :svg.scene
       {:ref (:ref props)
@@ -570,9 +544,7 @@
             {:ref ref :style {:outline "none"} :tab-index -1})))
       (if (contains? draw-modes mode)
         ($ :g.scene-draw {:class (str "scene-draw-" (name mode))}
-          ($ draw {:key mode :mode mode :node nil})))
-      (if (and (= user :host) (:user/sharing? (:data props)))
-        ($ player-window-bounds)))))
+          ($ draw {:key mode :mode mode :node nil}))))))
 
 (defui ^:private scene-transition [props]
   (let [id   (-> props :data :user/camera :camera/scene :db/id)

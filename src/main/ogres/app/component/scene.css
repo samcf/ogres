@@ -225,15 +225,6 @@
   }
 }
 
-.scene-bounds rect {
-  fill: transparent;
-  pointer-events: none;
-  shape-rendering: crispEdges;
-  stroke-dasharray: 6px;
-  stroke-width: 1;
-  stroke: var(--scene-stroke);
-}
-
 .scene-grid-path {
   fill: none;
   shape-rendering: crispEdges;

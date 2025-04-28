@@ -80,7 +80,7 @@
        (fn [hashes] (write :delete hashes)) [write]))))
 
 (def ^:private ignored-attrs
-  #{:user/type :user/ready :user/sharing? :session/status})
+  #{:user/type :user/ready :session/status})
 
 (defui ^:private persistence [{:keys [type]}]
   (let [conn  (uix/use-context context)
@@ -128,7 +128,7 @@
   [{:keys [children type] :or {type :host}}]
   (let [[conn] (uix/use-state (ds/conn-from-db (initial-data type)))]
     ($ context {:value conn}
-      (if (or (= type :host) (= type :view))
+      (if (= type :host)
         ($ persistence {:type type}))
       ($ listeners)
       children)))

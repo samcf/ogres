@@ -193,11 +193,5 @@
         border-radius: 9px;
       }
     }
-
-    &[data-user="view"] {
-      grid-template-areas: "canvas";
-      grid-template-rows: 1fr;
-      grid-template-columns: 1fr;
-    }
   }
 }

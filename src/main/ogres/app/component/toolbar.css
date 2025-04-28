@@ -166,10 +166,6 @@
     grid-area: sel;
   }
 
-  [name="scene-window"] {
-    grid-area: plw;
-  }
-
   [name="zoom-in"] {
     grid-area: zin;
   }
@@ -218,7 +214,7 @@
       grid-template-rows: repeat(2, 1fr);
       grid-template-areas:
         "sel cut cop pst rul not fcs crc rct con ply lne"
-        "zot zrt zrt zrt zin msk mtg mrm msh mhi plw grd";
+        "zot zrt zrt zrt zin msk mtg mrm msh mhi grd .";
     }
 
     &[data-user="conn"] .toolbar-actions {

@@ -574,19 +574,10 @@
    [:db.fn/call assoc-camera :camera/draw-mode :select :camera/selected -1]
    [:db.fn/call assoc-scene :scene/shapes -1]])
 
-(defmethod event-tx-fn :share/initiate [] [])
-
-(defmethod event-tx-fn :share/toggle
-  [_ _ open?]
-  [{:db/ident :user :user/sharing? open?}])
-
 (defmethod event-tx-fn :bounds/change
-  [data _ w-type bounds]
-  (let [user (ds/entity data [:db/ident :user])]
-    [[:db/add -1 :db/ident :user]
-     (if (= w-type (:user/type user))
-       [:db/add -1 :bounds/self bounds])
-     [:db/add -1 (keyword :bounds w-type) bounds]]))
+  [_ _ bounds]
+  [[:db/add -1 :db/ident :user]
+   [:db/add -1 :bounds/self bounds]])
 
 (defmethod event-tx-fn :selection/from-rect
   [data _ rect]

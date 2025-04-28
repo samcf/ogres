@@ -28,10 +28,6 @@
             ($ :.layout-toolbar ($ toolbar))
             ($ :.layout-players ($ players))
             ($ :.layout-panel   ($ panel/container)))
-          (and (= type :view) ready)
-          ($ :.layout
-            {:data-user "view" :data-expanded expanded}
-            ($ :.layout-scene ($ scene)))
           (and (= type :conn) (= status :connected) ready)
           ($ :.layout
             {:data-user "conn" :data-expanded expanded}
