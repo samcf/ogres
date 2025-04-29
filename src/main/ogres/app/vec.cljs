@@ -1,7 +1,5 @@
 (ns ogres.app.vec
-  (:refer-clojure :exclude [abs max mod map])
-  (:require
-   [ogres.app.vec :as vec]))
+  (:refer-clojure :exclude [abs max mod map]))
 
 (declare zero)
 
