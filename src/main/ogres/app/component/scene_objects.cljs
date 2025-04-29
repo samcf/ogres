@@ -256,18 +256,17 @@
           (uix/use-callback
            (fn [data]
              (let [event (.-activatorEvent data)
-                   id (.. data -active -id)
-                   dx (.. data -delta -x)
-                   dy (.. data -delta -y)
-                   sh (.-shiftKey event)]
-               (if (and (= dx 0) (= dy 0))
-                 (if (= id "selected")
+                   ident (.. data -active -id)
+                   delta (Vec2. (.. data -delta -x) (.. data -delta -y))
+                   shift (.-shiftKey event)]
+               (if (= delta vec/zero)
+                 (if (= ident "selected")
                    (let [id (.. event -target (closest "[data-id]") -dataset -id)]
-                     (dispatch :objects/select (js/Number id) sh))
-                   (dispatch :objects/select id sh))
-                 (if (= id "selected")
-                   (dispatch :objects/translate-selected dx dy)
-                   (dispatch :objects/translate id dx dy))))) [dispatch])})))
+                     (dispatch :objects/select (js/Number id) shift))
+                   (dispatch :objects/select ident shift))
+                 (if (= ident "selected")
+                   (dispatch :objects/translate-selected delta)
+                   (dispatch :objects/translate ident delta))))) [dispatch])})))
 
 (defui ^:private object-hint [props]
   (let [{{point :object/point type :object/type :as entity} :entity

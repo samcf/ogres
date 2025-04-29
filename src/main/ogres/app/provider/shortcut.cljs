@@ -9,10 +9,10 @@
          (not (instance? js/HTMLTextAreaElement element)))))
 
 (def ^:private key->vector
-  {"arrowleft"  [-1 0]
-   "arrowup"    [0 -1]
-   "arrowright" [1 0]
-   "arrowdown"  [0 1]})
+  {"arrowleft"  (Vec2. -1 0)
+   "arrowup"    (Vec2. 0 -1)
+   "arrowright" (Vec2. 1 0)
+   "arrowdown"  (Vec2. 0 1)})
 
 (def ^:private key->mode
   {\1 :circle
@@ -94,17 +94,17 @@
     (hooks/use-shortcut ["arrowleft" "arrowup" "arrowright" "arrowdown"]
       (fn [data]
         (if (allowed? (.-originalEvent data))
-          (let [[dx dy] (key->vector (.-key data))
+          (let [delta (key->vector (.-key data))
                 attrs (.. js/document -activeElement -dataset)]
             (cond (or (.. data -originalEvent -altKey)
                       (= (.-type attrs) "scene"))
-                  (dispatch :camera/translate (vec/mul (Vec2. dx dy) 140))
+                  (dispatch :camera/translate (vec/mul delta 140))
                   (or (= (.-type attrs) "token")
                       (= (.-type attrs) "shape")
                       (= (.-type attrs) "note"))
-                  (dispatch :objects/translate (js/Number (.-id attrs)) (* dx 70) (* dy 70))
+                  (dispatch :objects/translate (js/Number (.-id attrs)) (vec/mul delta 70))
                   (= (.-activeElement js/document) (.-body js/document))
-                  (dispatch :objects/translate-selected (* dx 70) (* dy 70)))))))
+                  (dispatch :objects/translate-selected (vec/mul delta 70)))))))
 
     ;; Cut, copy, and paste objects.
     (hooks/use-shortcut [\c \x \v]

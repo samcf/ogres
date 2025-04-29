@@ -431,9 +431,9 @@
 
 ;; --- Objects ---
 (defmethod event-tx-fn :objects/translate
-  ^{:doc "Translates the object given by id by the delta dx and dy."}
-  [_ _ id dx dy]
-  [[:db.fn/call event-tx-fn :objects/translate-many #{id} dx dy]])
+  ^{:doc "Translates the object given by id by the given delta."}
+  [_ _ id delta]
+  [[:db.fn/call event-tx-fn :objects/translate-many #{id} delta]])
 
 (def ^:private translate-many-select
   [:db/id
@@ -443,19 +443,18 @@
    :token/size])
 
 (defmethod event-tx-fn :objects/translate-many
-  ^{:doc "Translates the objects given by idxs by the delta dx and dy,
+  ^{:doc "Translates the objects given by idxs by the given delta,
           possibly aligning them to the grid if the appropriate scene
           option is enabled."}
-  [data _ idxs dx dy]
+  [data _ idxs delta]
   (let [result (ds/entity data [:db/ident :user])
-        align? (-> result :user/camera :camera/scene :scene/grid-align)
-        delta (Vec2. dx dy)]
+        align? (-> result :user/camera :camera/scene :scene/grid-align)]
     (into [[:db/retract [:db/ident :user] :user/dragging]]
           (for [entity (ds/pull-many data translate-many-select idxs)
                 :let [{id :db/id point :object/point} entity]]
             (cond
               (and align? (= (:object/type entity) :token/token))
-              (let [bounds (-> (geom/object-bounding-rect entity) (vec/add delta) (vec/rnd grid-size))]
+              (let [bounds (vec/rnd (vec/add (geom/object-bounding-rect entity) delta) grid-size)]
                 {:db/id id :object/point (vec/midpoint bounds)})
               (and align? (not= (:object/type entity) :note/note))
               (let [round (geom/object-alignment entity)]
@@ -464,12 +463,12 @@
               {:db/id id :object/point (vec/add point delta)})))))
 
 (defmethod event-tx-fn :objects/translate-selected
-  ^{:doc "Translate the currently selected objects by the delta dx and dy."}
-  [data _ dx dy]
+  ^{:doc "Translate the currently selected objects by the given delta."}
+  [data _ delta]
   (let [select [{:user/camera [{:camera/selected [:db/id :object/point]}]}]
         result (ds/pull data select [:db/ident :user])
         {{selected :camera/selected} :user/camera} result]
-    [[:db.fn/call event-tx-fn :objects/translate-many (into #{} (map :db/id) selected) dx dy]]))
+    [[:db.fn/call event-tx-fn :objects/translate-many (into #{} (map :db/id) selected) delta]]))
 
 (defmethod event-tx-fn :objects/select
   ^{:doc "Joins or removes the object given by id to the current selection,
