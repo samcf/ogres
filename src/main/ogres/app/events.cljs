@@ -248,12 +248,15 @@
           then switches them to it."}
   event-tx-fn :scenes/create
   []
-  [{:db/ident    :root
-    :root/scenes {:db/id -1 :db/empty true}
-    :root/user
-    {:db/ident :user
-     :user/camera -2
-     :user/cameras {:db/id -2 :camera/scene -1}}}])
+  [[:db/add -1 :db/ident :root]
+   [:db/add -1 :root/scenes -2]
+   [:db/add -2 :db/empty true]
+   [:db/add -1 :root/user -3]
+   [:db/add -3 :db/ident :user]
+   [:db/add -3 :user/camera -4]
+   [:db/add -3 :user/cameras -4]
+   [:db/add -4 :camera/scene -2]
+   [:db/add -4 :camera/point vec/zero]])
 
 (defmethod
   ^{:doc "Switches to the given scene by the given camera identifier."}
