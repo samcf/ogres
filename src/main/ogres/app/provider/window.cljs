@@ -4,9 +4,8 @@
             [ogres.app.vec :as vec :refer [Vec2 Segment]]
             [uix.core :as uix :refer [defui $]]))
 
-(defui ^:private register-bounds [_]
-  (let [[retry set-retry] (uix/use-state 0)
-        dispatch (hooks/use-dispatch)
+(defui ^:private register-bounds [{:keys [ref]}]
+  (let [dispatch (hooks/use-dispatch)
         listener
         (uix/use-memo
          (fn []
@@ -16,17 +15,19 @@
                     rct (.-contentRect ent)
                     trg (.-target ent)
                     src (Vec2. (.-offsetLeft trg) (.-offsetTop trg))
-                    dst (vec/shift src (.-width rct) (.-height rct))
-                    bnd (vec/rnd (Segment. src dst))]
-                (dispatch :user/change-bounds bnd))) 256)) [dispatch])
+                    dst (vec/shift src (.-width rct) (.-height rct))]
+                (dispatch :user/change-bounds (vec/rnd (Segment. src dst))))) 256)) [dispatch])
         [observer] (uix/use-state (js/ResizeObserver. listener))]
     (uix/use-effect
      (fn []
-       (if-let [element (js/document.querySelector ".layout-scene")]
-         (do (.observe observer element)
-             (fn [] (.unobserve observer element)))
-         (do (set-retry inc)
-             (fn [])))) [observer retry])))
+       (.observe observer ref)
+       (fn [] (.unobserve observer ref))) [ref observer])))
 
-(defui listeners []
-  ($ register-bounds))
+(def context (uix/create-context))
+
+(defui provider [{:keys [children]}]
+  (let [[ref set-ref] (uix/use-state nil)]
+    ($ context {:value set-ref}
+      (if (some? ref)
+        ($ register-bounds {:ref ref}))
+      children)))

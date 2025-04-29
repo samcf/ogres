@@ -6,7 +6,8 @@
             [ogres.app.component.scenes :refer [scenes]]
             [ogres.app.component.toolbar :refer [toolbar]]
             [ogres.app.component.players :refer [players]]
-            [uix.core :refer [defui $]]))
+            [ogres.app.provider.window :as window]
+            [uix.core :as uix :refer [defui $]]))
 
 (def ^:private query
   [[:user/ready :default false]
@@ -19,19 +20,22 @@
         {type     :user/type
          ready    :user/ready
          status   :session/status
-         expanded :panel/expanded} result]
+         expanded :panel/expanded} result
+        node (uix/use-context window/context)]
     (cond (and (= type :host) ready)
           ($ :.layout
             {:data-user "host" :data-expanded expanded}
             ($ :.layout-scenes  ($ scenes))
-            ($ :.layout-scene   ($ scene))
+            ($ :.layout-scene {:ref node}
+              ($ scene))
             ($ :.layout-toolbar ($ toolbar))
             ($ :.layout-players ($ players))
             ($ :.layout-panel   ($ panel/container)))
           (and (= type :conn) (= status :connected) ready)
           ($ :.layout
             {:data-user "conn" :data-expanded expanded}
-            ($ :.layout-scene   ($ scene))
+            ($ :.layout-scene {:ref node}
+              ($ scene))
             ($ :.layout-toolbar ($ toolbar))
             ($ :.layout-players ($ players))
             ($ :.layout-panel   ($ panel/container)))

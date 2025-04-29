@@ -37,12 +37,12 @@
             ($ provider.release/provider
               ($ provider.image/provider
                 ($ provider.portal/provider
-                  ($ provider.window/listeners)
-                  ($ provider.shortcut/listeners)
-                  ($ provider.session/listeners)
-                  ($ provider.cursor/listeners)
-                  ($ error-boundary
-                    ($ layout)))))))))))
+                  ($ provider.window/provider
+                    ($ provider.shortcut/listeners)
+                    ($ provider.session/listeners)
+                    ($ provider.cursor/listeners)
+                    ($ error-boundary
+                      ($ layout))))))))))))
 
 (defn ^:export main []
   (let [elem (.querySelector js/document "#root")
