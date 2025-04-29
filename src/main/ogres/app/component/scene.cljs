@@ -91,18 +91,7 @@
            size :scene/grid-size} :camera/scene} :user/camera} result
         transform
         (str (vec/to-translate (vec/rnd (vec/mul origin -1)))
-             " scale(" (/ grid-size size) ")")
-        node (uix/use-ref)]
-    ;; Safari has issues with rendering an `<image ...> immediately after it is
-    ;; defined. One way to fix this is to update its `class` attribute after
-    ;; a small delay. (#146)
-    (uix/use-layout-effect
-     (fn []
-       (.setTimeout
-        js/window
-        (fn []
-          (if-let [node (deref node)]
-            (.. node -classList (add "__SAFARI_FIX")))) 128)) [])
+             " scale(" (/ grid-size size) ")")]
     ($ :defs
       ($ :filter {:id "scene-image-filter" :filterRes 1 :color-interpolation-filters "sRGB"}
         ($ :feColorMatrix {:in "SourceGraphic" :type "saturate" :values 0.2 :result "Next"})
@@ -114,7 +103,7 @@
         ($ image {:hash hash}
           (fn [url]
             ($ :image
-              {:id "scene-image" :ref node :href url :width width :height height :transform transform}))))
+              {:id "scene-image" :href url :width width :height height :transform transform}))))
       ($ :rect {:id "scene-image-cover" :width width :height height :transform transform})
       ($ :clipPath {:id "scene-image-clip"}
         ($ :use {:href "#scene-image-cover"})))))
