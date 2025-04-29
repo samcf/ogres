@@ -157,7 +157,7 @@
   [data _ delta]
   (let [{{id :db/id point :camera/point scale :camera/scale} :user/camera}
         (ds/entity data [:db/ident :user])]
-    [{:db/id id :camera/point (vec/add point (vec/div delta (or scale 1)))}]))
+    [{:db/id id :camera/point (vec/add (or point vec/zero) (vec/div delta (or scale 1)))}]))
 
 (defmethod
   ^{:doc "Changes the camera draw mode to the given value. The draw mode is
@@ -310,7 +310,6 @@
                  :user/cameras
                  {:db/id idx
                   :camera/scene host-scn
-                  :camera/point vec/zero
                   :camera/scale 1}})))
       :else
       [[:db/retractEntity (:db/id camera)]
