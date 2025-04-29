@@ -1,27 +1,33 @@
 {
-  "name": "ogres.app",
-  "version": "0.0.1",
+  "name": "ogres-tabletop",
+  "description": "Free and open source virtual tabletop that runs in the browser.",
   "private": true,
-  "peerDependencies": {
-    "process": "^0.11.10"
+  "homepage": "https://ogres.app",
+  "license": "AGPL-3.0-only",
+  "author": {
+    "name": "Sam Ferrell",
+    "email": "mail@samcf.me",
+    "url": "https://github.com/samcf"
   },
-  "devDependencies": {
-    "esbuild": "^0.25.0",
-    "react-refresh": "^0.14.0",
-    "shadow-cljs": "^3.0.3"
+  "repository": "github:samcf/ogres",
+  "scripts": {
+    "build": "npx shadow-cljs release app",
+    "start": "npx shadow-cljs watch app test",
+    "style": "npx esbuild src/main/ogres/app/resource/root.css --outfile=web/release/ogres.app.css --loader:.svg=dataurl --bundle --minify --watch"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.0.8",
     "@msgpack/msgpack": "^3.0.0-beta2",
     "@rwh/keystrokes": "^1.5.4",
     "@rwh/react-keystrokes": "^1.5.4",
+    "process": "^0.11.10",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-transition-group": "^4.4.5"
   },
-  "scripts": {
-    "build": "npx shadow-cljs release app",
-    "start": "npx shadow-cljs watch app test",
-    "style": "npx esbuild src/main/ogres/app/resource/root.css --outfile=web/release/ogres.app.css --loader:.svg=dataurl --bundle --minify --watch"
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "react-refresh": "^0.14.0",
+    "shadow-cljs": "^3.0.3"
   }
 }
