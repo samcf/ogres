@@ -370,6 +370,7 @@
                         (vec/div scale)
                         (vec/add shift)
                         (vec/add (or prev-origin vec/zero))
+                        (vec/mul (/ prev-size size))
                         (vec/abs)
                         (vec/mod grid-size)
                         (vec/rnd 0.25)) size))}
