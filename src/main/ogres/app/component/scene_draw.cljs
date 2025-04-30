@@ -363,7 +363,6 @@
               ($ :form
                 {:on-submit
                  (fn [event]
-                   (prn prev-origin)
                    (.preventDefault event)
                    (dispatch
                     :scene/apply-grid-options
