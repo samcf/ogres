@@ -70,9 +70,18 @@
      (.querySelector js/document "#root"))))
 
 (defui ^:private gallery [props]
-  (let [name (:name props)
-        dynamic-id (str name "-" "trash")
-        option (use-droppable #js {"id" dynamic-id})]
+  (let [trash-key (str (:name props) "-trash")
+        trash-drag (use-droppable #js {"id" trash-key})
+        [trash-active set-trash-active] (uix/use-state false)]
+    (use-dnd-monitor
+     #js {"onDragCancel" (fn [] (set-trash-active false))
+          "onDragEnd" (fn [] (set-trash-active false))
+          "onDragOver"
+          (fn [event]
+            (if (not= (.-id (.-active event)) "default")
+              (if (and (.-over event) (= (.-id (.-over event)) trash-key))
+                (set-trash-active true)
+                (set-trash-active false))))})
     ($ :<>
       (for [[idx data] (sequence (map-indexed vector) (:data props))]
         (cond (map? data)
@@ -108,7 +117,9 @@
               (= data :placeholder)
               ($ :.token-gallery-item {:key idx :data-type "placeholder"})))
       ($ :.token-gallery-item
-        {:ref (.-setNodeRef option) :data-type "trash"}
+        {:ref (.-setNodeRef trash-drag)
+         :data-type "trash"
+         :data-active trash-active}
         ($ icon {:name "trash3-fill" :size 26})))))
 
 (defui ^:private paginated
@@ -136,21 +147,40 @@
   (let [result (hooks/use-query query-form [:db/ident :root])
         {data :root/token-images
          {type :user/type} :root/user} result
+        [active set-active] (uix/use-state nil)
         [pub prv] (separate (comp #{:public} :image/scope) data)
         data-pub  (into [:default] (reverse pub))
         data-prv  (vec (reverse prv))
         drop-pub  (use-droppable #js {"id" "scope-pub"})
         drop-prv  (use-droppable #js {"id" "scope-prv"})]
+    (use-dnd-monitor
+     #js {"onDragCancel" (fn [] (set-active nil))
+          "onDragEnd" (fn [] (set-active nil))
+          "onDragOver"
+          (fn [event]
+            (if (not= (.-id (.-active event)) "default")
+              (let [dx (.-x (.-delta event))
+                    dy (.-y (.-delta event))]
+                (if (or (not= dx 0) (not= dy 0))
+                  (if (.-over event)
+                    (set-active (.-id (.-over event)))
+                    (set-active nil))))))})
     ($ :.form-tokens
       (if (= type :host)
         ($ :<>
           ($ :header ($ :h2 "Tokens"))
           ($ :fieldset.fieldset.token-gallery
-            {:ref (.-setNodeRef drop-pub) :data-type "host" :data-scope "public"}
+            {:ref (.-setNodeRef drop-pub)
+             :data-type "host"
+             :data-scope "public"
+             :data-active (= active "scope-pub")}
             ($ :legend "Public")
             ($ paginated {:name "tokens-public" :data data-pub :limit 10}))
           ($ :fieldset.fieldset.token-gallery
-            {:ref (.-setNodeRef drop-prv) :data-type "host" :data-scope "private"}
+            {:ref (.-setNodeRef drop-prv)
+             :data-type "host"
+             :data-scope "private"
+             :data-active (= active "scope-prv")}
             ($ :legend "Private")
             ($ paginated {:name "tokens-private" :data data-prv :limit 20}))
           ($ :.form-notice
@@ -160,7 +190,10 @@
         ($ :<>
           ($ :header ($ :h2 "Tokens"))
           ($ :fieldset.fieldset.token-gallery
-            {:ref (.-setNodeRef drop-pub) :data-type "conn" :data-scope "public"}
+            {:ref (.-setNodeRef drop-pub)
+             :data-type "conn"
+             :data-scope "public"
+             :data-active (= active "scope-pub")}
             ($ :legend "Tokens")
             ($ paginated {:name "tokens-public" :data data-pub :limit 30})))))))
 

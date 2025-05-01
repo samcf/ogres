@@ -35,6 +35,11 @@
     }
   }
 
+  &[data-active="true"] {
+    outline: 2px solid var(--outline-color);
+    outline-offset: 2px;
+  }
+
   nav {
     grid-column: 1 / 6;
     justify-self: center;
@@ -97,6 +102,11 @@
     svg {
       color: var(--color-blues-900);
     }
+  }
+
+  &[data-type="trash"][data-active="true"] {
+    outline: 2px solid var(--outline-color);
+    outline-offset: 2px;
   }
 
   &[data-type="default"],
