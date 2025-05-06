@@ -81,28 +81,34 @@
     :or   {values    (constantly (list))
            on-change identity
            on-close  identity}}]
-  (let [input-ref (uix/use-ref)
-        [input-val set-input-val]
-        (uix/use-state
-         (fn []
-           (let [vs (values :token/label)]
-             (if (= (count vs) 1) (first vs) ""))))]
-    (uix/use-effect #(.select @input-ref) [])
+  (let [[dirty set-dirty] (uix/use-state false)
+        input (uix/use-ref)
+        label (let [vs (values :token/label)]
+                (if (= (count vs) 1) (first vs) ""))]
+    (uix/use-effect
+     (fn [] (.select @input)) [])
     ($ :form
       {:on-submit
        (fn [event]
          (.preventDefault event)
-         (on-change :token/change-label input-val)
+         (let [value (.. event -target -elements -label -value)]
+           (on-change :token/change-label value)
+           (on-close)))
+       :on-blur
+       (fn [event]
+         (when dirty
+           (on-change :token/change-label (.-value (.-target event))))
          (on-close))}
       ($ :input.text.text-ghost
         {:type "text"
-         :ref input-ref
-         :value input-val
-         :auto-focus true
+         :name "label"
          :placeholder "Change token label"
-         :on-change #(set-input-val (.. %1 -target -value))})
-      ($ :button {:type "submit"}
-        ($ icon {:name "check"})))))
+         :default-value label
+         :ref input
+         :auto-focus true
+         :on-change
+         (fn []
+           (set-dirty true))}))))
 
 (defui ^:private token-form-details
   [{:keys [on-change values]
