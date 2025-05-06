@@ -2,14 +2,13 @@
   pointer-events: none;
 }
 
-.scene-objects-bounds {
+.scene-objects-bounds,
+.scene-shape-bounds {
   fill: transparent;
   pointer-events: none;
-  rx: 3;
-  ry: 3;
   shape-rendering: crispEdges;
-  stroke-dasharray: 3px 1px;
-  stroke-opacity: 0.6;
+  stroke-dasharray: 6px 2px;
+  stroke-opacity: 0.8;
   stroke-width: 1px;
   stroke: var(--scene-stroke);
 }
@@ -125,15 +124,6 @@
 .scene-shape-bounds {
   animation: ring-rotate 640ms linear infinite;
   display: none;
-  fill: transparent;
-  pointer-events: none;
-  rx: 3;
-  ry: 3;
-  shape-rendering: crispEdges;
-  stroke-dasharray: 6px 2px;
-  stroke-opacity: 0.8;
-  stroke-width: 1px;
-  stroke: var(--scene-stroke);
 }
 
 .scene-token {
