@@ -4,6 +4,7 @@
             [ogres.app.const :refer [grid-size half-size]]
             [ogres.app.geom :as geom]
             [ogres.app.hooks :as hooks]
+            [ogres.app.matrix :as matrix]
             [ogres.app.util :as util]
             [ogres.app.vec :as vec :refer [Segment Vec2]]
             [uix.core :as uix :refer [defui $]]
@@ -133,9 +134,9 @@
           :camera/scene}
          :user/camera} result
         align (if grid-align align-fn align-identity)
-        basis (vec/scale (vec/translate vec/identity point) (/ scale))
-        camera (vec/translate basis (vec/mul (.-a bounds) -1))
-        invert (vec/inverse basis)]
+        basis  (matrix/scale (matrix/translate matrix/identity point) (/ scale))
+        camera (matrix/translate basis (vec/mul (.-a bounds) -1))
+        invert (matrix/inverse basis)]
     ($ draw-segment-drag
       {:use-cursor (contains? props :align-fn)
        :on-release
@@ -163,9 +164,9 @@
         [points set-points] (uix/use-state [])
         [cursor set-cursor] (uix/use-state nil)
         closing? (and (seq points) (some? cursor) (< (vec/dist (first points) cursor) 32))
-        basis (vec/scale (vec/translate vec/identity point) (/ scale))
-        camera (vec/translate basis (vec/mul (.-a bounds) -1))
-        invert (vec/inverse basis)]
+        basis  (matrix/scale (matrix/translate matrix/identity point) (/ scale))
+        camera (matrix/translate basis (vec/mul (.-a bounds) -1))
+        invert (matrix/inverse basis)]
     ($ :<>
       ($ :rect.scene-draw-surface
         {:on-pointer-down

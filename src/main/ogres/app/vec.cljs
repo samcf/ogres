@@ -1,8 +1,7 @@
 (ns ogres.app.vec
-  (:refer-clojure :exclude [abs max mod map identity]))
+  (:refer-clojure :exclude [abs max mod map]))
 
 (declare zero)
-(declare identity)
 
 (defn ^:private to-string-vec2 [x y]
   (str "#vec2[" x "," y "]"))
@@ -11,9 +10,6 @@
   (str "#segment["
        "(" (or (.-x a) "nil") "," (or (.-y a) "nil") ") "
        "(" (or (.-x b) "nil") "," (or (.-y b) "nil") ")]"))
-
-(defn ^:private to-string-matrix [m]
-  (str "#matrix[" (.-a m) "," (.-b m) "," (.-c m) "," (.-d m) "," (.-e m) "," (.-f m) "]"))
 
 (defprotocol IVec2
   (abs [a])
@@ -35,11 +31,6 @@
   (height [s])
   (midpoint [s])
   (rebase [s]))
-
-(defprotocol IMatrix
-  (inverse [m])
-  (scale [m s])
-  (translate [m v] [m x y]))
 
 (deftype Vec2 [x y]
   Object
@@ -137,44 +128,8 @@
   (rebase [_]
     (Segment. zero (sub b a))))
 
-(deftype Matrix [m]
-  Object
-  (toString [_]
-    (.toString m))
-  cljs.core/IPrintWithWriter
-  (-pr-writer [_ writer _]
-    (-write writer (to-string-matrix m)))
-  IEquiv
-  (-equiv [_ ^Matrix b]
-    (and (instance? Matrix b)
-         (= (.-a m) (.-a (.-m b)))
-         (= (.-b m) (.-b (.-m b)))
-         (= (.-c m) (.-c (.-m b)))
-         (= (.-d m) (.-d (.-m b)))
-         (= (.-e m) (.-e (.-m b)))
-         (= (.-f m) (.-f (.-m b)))))
-  IHash
-  (-hash [_]
-    (hash [(.-a m) (.-b m) (.-c m) (.-d m) (.-e m) (.-f m)]))
-  IFn
-  (-invoke [m a]
-    (transform a m))
-  ISeqable
-  (-seq [_]
-    (list (.-a m) (.-b m) (.-c m) (.-d m) (.-e m) (.-f m)))
-  IMatrix
-  (inverse [_]
-    (Matrix. (.inverse m)))
-  (scale [_ s]
-    (Matrix. (.scale m s)))
-  (translate [_ v]
-    (Matrix. (.translate m (.-x v) (.-y v))))
-  (translate [_ x y]
-    (Matrix. (.translate m x y))))
-
 (def zero (Vec2. 0 0))
 (def zero-segment (Segment. zero zero))
-(def identity (Matrix. (js/DOMMatrixReadOnly.)))
 
 (defn DOMRect->Segment [rect]
   (Segment.
