@@ -90,8 +90,8 @@
            origin :scene/grid-origin
            size :scene/grid-size} :camera/scene} :user/camera} result
         transform
-        (str (vec/to-translate (vec/rnd (vec/mul origin -1)))
-             " scale(" (/ grid-size size) ")")]
+        (str (vec/rnd (vec/mul origin -1)) " "
+             "scale(" (/ grid-size size) ")")]
     ($ :defs
       ($ :filter {:id "scene-image-filter" :filterRes 1 :color-interpolation-filters "sRGB"}
         ($ :feColorMatrix {:in "SourceGraphic" :type "saturate" :values 0.2 :result "Next"})
@@ -526,7 +526,7 @@
         (if (and (= mode :select) multi-select?)
           ($ :g.scene-draw {:data-type "select"}
             ($ draw {:mode :select})))
-        ($ :g {:transform  (str "scale(" scale ") " (vec/to-translate (vec/rnd (vec/mul point -1))))}
+        ($ :g {:transform  (str "scale(" scale ") " (vec/rnd (vec/mul point -1)))}
           (:children props)))
       ($ hooks/create-portal {:name :multiselect}
         (fn [{:keys [ref]}]

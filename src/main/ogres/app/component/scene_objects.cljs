@@ -150,7 +150,7 @@
           ($ :rect.scene-shape-bounds
             {:width (vec/width bounds)
              :height (vec/height bounds)
-             :transform (vec/to-translate (vec/sub (.-a bounds) (:object/point entity)))})))
+             :transform (vec/sub (.-a bounds) (:object/point entity))})))
       ($ :g.scene-shape-path
         {:fill (str "url(#shape-pattern-" id ")")
          :fill-opacity (if (= shape-pattern :solid) 0.40 0.80)}
@@ -282,7 +282,7 @@
            ($ :rect.scene-object-align
              {:width (vec/width rect)
               :height (vec/height rect)
-              :transform (vec/to-translate (.-a rect))}) portal)))
+              :transform (.-a rect)}) portal)))
       (if (= (namespace type) "shape")
         (let [align-to (geom/object-alignment entity)
               aligned (vec/rnd (vec/add point delta) (if is-aligning align-to 1))]
@@ -295,7 +295,7 @@
                      {:points (join " " (mapcat seq path))}))))
              (if is-aligning
                ($ :g.scene-object-ghost
-                 {:transform (vec/to-translate aligned)}
+                 {:transform aligned}
                  ($ :circle.scene-object-anchor {:r 3})
                  ($ :circle.scene-object-anchor-ring {:r 5})
                  ($ shape {:entity entity})))) portal))))))
@@ -407,7 +407,7 @@
                               delta (or remote local)]
                           ($ :g.scene-object
                             {:ref (.-setNodeRef drag)
-                             :transform (vec/to-translate (vec/add point delta))
+                             :transform (vec/add point delta)
                              :tab-index (if (and (not locked?) seen) 0 -1)
                              :on-pointer-down (or drag-fn stop-propagation)
                              :data-drag-remote (some? user)
@@ -433,14 +433,14 @@
                     local (Vec2. (or drag-x 0) (or drag-y 0))]
                 ($ :g.scene-objects.scene-objects-selected
                   {:ref (.-setNodeRef drag)
-                   :transform (vec/to-translate local)
+                   :transform local
                    :on-pointer-down (or drag-fn stop-propagation)
                    :data-drag-local (.-isDragging drag)}
                   (if (> (count selected) 1)
                     ($ :rect.scene-objects-bounds
                       {:width (vec/width bounds)
                        :height (vec/height bounds)
-                       :transform (vec/to-translate (.-a bounds))}))
+                       :transform (.-a bounds)}))
                   ($ TransitionGroup {:component nil}
                     (for [entity entities
                           :let [{id :db/id point :object/point} entity
@@ -453,7 +453,7 @@
                               (fn [remote]
                                 (let [delta (or remote local)]
                                   ($ :g.scene-object
-                                    {:transform (vec/to-translate (vec/add point (or remote vec/zero)))
+                                    {:transform (vec/add point (or remote vec/zero))
                                      :data-drag-remote (some? user)
                                      :data-drag-local (.-isDragging drag)
                                      :data-color (:user/color user)

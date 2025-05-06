@@ -23,5 +23,5 @@
   {vec/Vec2 (t/write-handler (constantly "Vec2")    write-handler-vec)
    vec/Segment (t/write-handler (constantly "Segment") write-handler-segment)})
 
-(def writer (t/writer :json {:handlers (merge t-ds/write-handlers write-handlers)}))
-(def reader (t/reader :json {:handlers (merge t-ds/read-handlers read-handlers)}))
+(defonce writer (t/writer :json {:handlers (merge t-ds/write-handlers write-handlers)}))
+(defonce reader (t/reader :json {:handlers (merge t-ds/read-handlers read-handlers)}))
