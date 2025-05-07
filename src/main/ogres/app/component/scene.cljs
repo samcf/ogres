@@ -19,10 +19,16 @@
              :rename {DndContext dnd-context useDraggable use-draggable}]))
 
 (defn ^:private token-light-xf [user]
-  (comp (filter (fn [{radius :token/light flags :token/flags}]
-                  (and (> radius 0) (or (= user :host) (not (flags :hidden))))))
-        (map (fn [{point :object/point radius :token/light}]
-               [(.-x point) (.-y point) (+ (/ (* radius grid-size) 5) grid-size)]))))
+  (comp (filter
+         (fn [token]
+           (and (> (:token/light token) 0)
+                (or (not (:object/hidden token))
+                    (= user :host)))))
+        (map
+         (fn [token]
+           [(.-x (:object/point token))
+            (.-y (:object/point token))
+            (+ (/ (* (:token/light token) grid-size) 5) grid-size)]))))
 
 (def ^:private mask-area-xf
   (comp (filter :mask/enabled?) (map :mask/vecs)))
@@ -120,9 +126,9 @@
          [:mask/enabled? :default true]]}
        {:scene/tokens
         [:db/id
-         [:token/flags :default #{}]
-         [:token/light :default 15]
-         [:object/point :default vec/zero]]}]}]}])
+         [:object/point :default vec/zero]
+         [:object/hidden :default false]
+         [:token/light :default 15]]}]}]}])
 
 (defui ^:private mask-defs []
   (let [result (hooks/use-query mask-defs-query)
@@ -256,18 +262,19 @@
 (defn ^:private token-conditions [data]
   (let [xform (comp (map key) (filter (complement #{:initiative})))
         order (into [:initiative] xform condition->icon)
-        exclu #{:player :hidden :dead}]
+        exclu #{:player :dead}]
     (take 4 (filter (difference (token-flags data) exclu) order))))
 
 (defui ^:private token [{:keys [node data]}]
   (let [radius (- half-size 2)
-        scale  (/ (:token/size data) 5)
-        hash   (:image/hash (:image/thumbnail (:token/image data)))
-        fill   (if (some? hash)
-                 (str "token-face-" hash)
-                 "token-face-default")]
+        scale (/ (:token/size data) 5)
+        hash (:image/hash (:image/thumbnail (:token/image data)))
+        fill (if (some? hash) (str "token-face-" hash) "token-face-default")]
     ($ :g.scene-token
-      {:ref node :id (str "token" (:db/id data)) :data-flags (token-flags-attr data)}
+      {:ref node
+       :id (str "token" (:db/id data))
+       :data-flags (token-flags-attr data)
+       :data-hidden (:object/hidden data)}
       (let [radius (:token/aura-radius data)
             radius (if (> radius 0) (+ (* grid-size (/ radius 5)) (* scale half-size)) 0)]
         ($ :circle.scene-token-aura {:style {:r radius}}))
@@ -295,6 +302,7 @@
         [:db/id
          [:initiative/suffix :default nil]
          [:object/point :default vec/zero]
+         [:object/hidden :default false]
          [:token/flags :default #{}]
          [:token/label :default ""]
          [:token/size :default 5]

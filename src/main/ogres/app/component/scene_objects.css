@@ -131,7 +131,7 @@
     transition: transform 60ms ease-out;
   }
 
-  &[data-flags*="hidden"] {
+  &[data-hidden="true"] {
     opacity: 0.5;
   }
 

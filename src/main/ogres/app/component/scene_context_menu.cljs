@@ -228,12 +228,12 @@
        (fn []
          ($ :<>
            (if (= type :host)
-             (let [on (every? (comp boolean :hidden :token/flags) data)]
+             (let [on (every? :object/hidden data)]
                ($ :button
                  {:type "button"
                   :data-selected on
                   :data-tooltip (if on "Reveal" "Hide")
-                  :on-click #(dispatch :token/change-flag idxs :hidden (not on))}
+                  :on-click (fn [] (dispatch :objects/change-hidden idxs (not on)))}
                  ($ icon {:name (if on "eye-slash-fill" "eye-fill")}))))
            ($ :button
              {:type "button" :data-tooltip "Remove"

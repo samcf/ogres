@@ -14,6 +14,7 @@
        :initiative/played
        {:scene/initiative
         [:db/id
+         :object/hidden
          :token/label
          :token/flags
          :initiative/roll
@@ -124,10 +125,8 @@
          suffix :initiative/suffix
          {{hash :image/hash} :image/thumbnail} :token/image} entity
         playing (= (:db/id curr) (:db/id entity))
-        played  (boolean (some #{{:db/id id}} went))
-        hidden  (and (= type :conn)
-                     (contains? flags :hidden)
-                     (not (contains? flags :player)))]
+        played (boolean (some #{{:db/id id}} went))
+        hidden (and (= type :conn) (:object/hidden entity))]
     ($ :li.initiative-token
       {:data-playing playing
        :data-played played

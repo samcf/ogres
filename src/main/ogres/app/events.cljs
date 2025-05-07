@@ -492,6 +492,13 @@
     [[:db/add id :object/hidden (not (:object/hidden entity))]]))
 
 (defmethod
+  ^{:doc "Change the visibility of the given objects."}
+  event-tx-fn :objects/change-hidden
+  [_ _ idxs value]
+  (for [id idxs]
+    [:db/add id :object/hidden value]))
+
+(defmethod
   ^{:doc "Removes the objects given by idxs."}
   event-tx-fn :objects/remove
   [_ _ idxs]
@@ -595,12 +602,12 @@
       :camera/draw-mode :select
       :camera/selected
       (for [entity (concat shapes tokens notes)
-            :let   [{id :db/id flags :token/flags} entity]
+            :let   [{id :db/id} entity]
             :let   [object (geom/object-bounding-rect entity)]
             :when  (and (geom/rect-intersects-rect object bounds)
                         (not (locked id))
                         (or (= type :host) (not (:object/locked entity)))
-                        (or (= type :host) (not (contains? flags :hidden))))]
+                        (or (= type :host) (not (:object/hidden entity))))]
         {:db/id id})}]))
 
 (defmethod event-tx-fn :selection/clear

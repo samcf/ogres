@@ -61,8 +61,7 @@
   [user]
   (filter
    (fn [token]
-     (or (= user :host)
-         (not (contains? (:token/flags token) :hidden))))))
+     (or (= user :host) (not (:object/hidden token))))))
 
 (defn ^:private objects-xf [user]
   (filter (fn [entity] (or (= user :host) (not (:object/hidden entity))))))
@@ -316,7 +315,7 @@
           [:db/id
            [:object/type :default :token/token]
            [:object/point :default vec/zero]
-           [:token/flags :default #{}]
+           [:object/hidden :default false]
            [:token/label :default ""]
            [:token/size :default 5]
            [:token/light :default 15]
