@@ -5,6 +5,7 @@
             [ogres.app.component.panel-lobby :as lobby]
             [ogres.app.component.panel-scene :as scene]
             [ogres.app.component.panel-tokens :as tokens]
+            [ogres.app.component.panel-props :as props]
             [ogres.app.hooks :as hooks]
             [uix.core :refer [defui $]]))
 
@@ -33,11 +34,12 @@
   {:data       {:icon "wrench-adjustable-circle" :label "Manage local data"}
    :initiative {:icon "hourglass-split" :label "Initiative"}
    :lobby      {:icon "people-fill" :label "Online options"}
-   :scene      {:icon "images" :label "Scene options"}
-   :tokens     {:icon "person-circle" :label "Tokens"}})
+   :scene      {:icon "easel" :label "Scene options"}
+   :tokens     {:icon "person-circle" :label "Token images"}
+   :props      {:icon "images" :label "Prop images"}})
 
 (def ^:private panel-forms
-  {:host [:tokens :scene :initiative :lobby :data]
+  {:host [:tokens :scene :props :initiative :lobby :data]
    :conn [:tokens :initiative :lobby]})
 
 (def ^:private components
@@ -45,7 +47,8 @@
    :initiative {:form initiative/form :footer initiative/footer}
    :lobby      {:form lobby/form :footer lobby/footer}
    :scene      {:form scene/form}
-   :tokens     {:form tokens/form :footer tokens/footer}})
+   :tokens     {:form tokens/form :footer tokens/footer}
+   :props      {:form props/gallery :footer props/upload}})
 
 (def ^:private query
   [[:user/type :default :conn]
@@ -79,7 +82,7 @@
                  :value key
                  :checked (and expanded selected)
                  :on-change #(dispatch :user/select-panel key)})
-              ($ icon {:name (:icon data) :size 20}))))
+              ($ icon {:name (:icon data) :size 22}))))
         ($ :li.panel-tabs-control
           {:role "tab" :on-click #(dispatch :user/toggle-panel)}
           ($ :button {:type "button" :aria-label "Collapse or expand"}

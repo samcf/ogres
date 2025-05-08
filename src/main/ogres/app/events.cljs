@@ -1076,3 +1076,27 @@
     [[:db/add id :note/label label]
      [:db/add id :note/description desc]
      [:db/retract (:db/id (:user/camera user)) :camera/selected id]]))
+
+;; --- Props Images ---
+
+(defmethod event-tx-fn :props-images/create-many
+  [_ _ images]
+  (prn images)
+  (into
+   [{:db/ident :root
+     :root/props-images
+     (for [[{:keys [hash name size width height]} _] images]
+       {:image/hash hash
+        :image/name name
+        :image/size size
+        :image/width width
+        :image/height height})}] cat
+   (for [[image thumbnail] images]
+     (if (= (:hash image) (:hash thumbnail))
+       [{:image/hash (:hash image) :image/thumbnail [:image/hash (:hash image)]}]
+       [{:image/hash (:hash thumbnail)
+         :image/name (:name thumbnail)
+         :image/size (:size thumbnail)
+         :image/width (:width thumbnail)
+         :image/height (:height thumbnail)}
+        {:image/hash (:hash image) :image/thumbnail [:image/hash (:hash thumbnail)]}]))))

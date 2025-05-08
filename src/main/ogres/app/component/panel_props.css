@@ -1,0 +1,14 @@
+.props-gallery {
+}
+
+.props-gallery-page {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+}
+
+.props-gallery-image {
+  background-size: contain;
+  aspect-ratio: 1;
+}
