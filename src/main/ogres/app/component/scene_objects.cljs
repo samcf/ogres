@@ -1,6 +1,5 @@
 (ns ogres.app.component.scene-objects
   (:require [clojure.string :refer [join]]
-            [goog.object :refer [getValueByKeys]]
             [ogres.app.component :refer [icon]]
             [ogres.app.component.scene-context-menu :refer [context-menu]]
             [ogres.app.component.scene-pattern :refer [pattern]]
@@ -231,11 +230,23 @@
                    :default-value (:note/description entity)}))
               ($ :input {:type "submit" :hidden true}))))))))
 
+(defui ^:private object-prop [props]
+  (let [{{{hash :image/hash
+           width :image/width
+           height :image/height} :prop/image} :entity} props
+        url (hooks/use-image hash)]
+    ($ :g.scene-prop
+      ($ :image
+        {:width width
+         :height height
+         :href url}))))
+
 (defui ^:private object [props]
   (case (keyword (namespace (:object/type (:entity props))))
     :shape ($ object-shape props)
     :token ($ object-token props)
-    :note  ($ object-note props)))
+    :note  ($ object-note props)
+    :prop  ($ object-prop props)))
 
 (defn ^:private use-drag-listener []
   (let [dispatch (hooks/use-dispatch)]
@@ -329,6 +340,16 @@
            [:shape/points :default [vec/zero]]
            [:shape/color :default "red"]
            [:shape/pattern :default :solid]]}
+         {:scene/props
+          [:db/id
+           [:object/type :default :prop/prop]
+           [:object/point :default vec/zero]
+           [:object/hidden :default false]
+           [:object/locked :default false]
+           {:prop/image
+            [:image/hash
+             [:image/width :default 0]
+             [:image/height :default 0]]}]}
          {:scene/notes
           [:db/id
            [:object/type :default :note/note]
@@ -348,10 +369,11 @@
       [:db/ident :user/uuid :user/color :user/dragging]}]}])
 
 (defui objects []
-  (let [[_ set-ready] (uix/use-state false)
+  (let [dispatch (hooks/use-dispatch)
+        [_ set-ready] (uix/use-state false)
         result (hooks/use-query query [:db/ident :root])
         {{bounds :user/bounds
-          type :user/type
+          user-type :user/type
           {point :camera/point
            scale :camera/scale
            selected :camera/selected
@@ -359,6 +381,7 @@
             align? :scene/grid-align
             shapes :scene/shapes
             tokens :scene/tokens
+            props :scene/props
             notes :scene/notes}
            :camera/scene}
           :user/camera} :root/user
@@ -367,8 +390,8 @@
         screen (Segment. point (vec/add point (vec/div (.-b (vec/rebase bounds)) scale)))
         notes  (sort compare-objects notes)
         shapes (sort compare-objects shapes)
-        tokens (sort compare-tokens (sequence (tokens-xf type) tokens))
-        entities (into [] (objects-xf type) (into tokens (into shapes notes)))
+        tokens (sort compare-tokens (sequence (tokens-xf user-type) tokens))
+        entities (into [] (objects-xf user-type) (into tokens (into (into (seq props) shapes) notes)))
         selected (into #{} (map :db/id) selected)
         dragging (into {} user-drag-xf conns)
         bound-xf (comp (filter (comp selected :db/id))
@@ -386,33 +409,39 @@
       ($ TransitionGroup {:component nil}
         (for [entity entities
               :let [{id :db/id point :object/point} entity
-                    locked? (and (= type :conn) (:object/locked entity))
+                    lock (or (:object/locked entity)
+                             (and (= user-type :conn)
+                                  (or (= (:object/type entity) :note/note)
+                                      (= (:object/type entity) :prop/prop))))
                     node (uix/create-ref)
                     user (dragging id)
                     rect (geom/object-bounding-rect entity)
-                    seen (geom/rect-intersects-rect rect screen)
-                    type (keyword (namespace (:object/type entity)))]]
+                    seen (geom/rect-intersects-rect rect screen)]]
           ($ CSSTransition {:key id :nodeRef node :timeout 256}
             ($ :g.scene-object-transition {:ref node}
               (if (not (selected id))
                 ($ drag-remote-fn {:user (:user/uuid user) :point point}
                   (fn [remote]
-                    ($ drag-local-fn {:id id :disabled (or user locked?)}
-                      (fn [drag]
-                        (let [drag-fn (getValueByKeys drag "listeners" "onPointerDown")
-                              drag-x (getValueByKeys drag "transform" "x")
-                              drag-y (getValueByKeys drag "transform" "y")
+                    ($ drag-local-fn {:id id :disabled (or (contains? dragging id) lock)}
+                      (fn [^js/Object drag]
+                        (let [drag-fn (and (.-listeners drag) (.-onPointerDown (.-listeners drag)))
+                              drag-x (and (.-transform drag) (.-x (.-transform drag)))
+                              drag-y (and (.-transform drag) (.-y (.-transform drag)))
                               local (Vec2. (or drag-x 0) (or drag-y 0))
                               delta (or remote local)]
                           ($ :g.scene-object
                             {:ref (.-setNodeRef drag)
                              :transform (vec/add point delta)
-                             :tab-index (if (and (not locked?) seen) 0 -1)
-                             :on-pointer-down (or drag-fn stop-propagation)
+                             :tab-index (if (and (not lock) seen) 0 -1)
+                             :on-pointer-down drag-fn
+                             :on-double-click
+                             (fn []
+                               (if (and (not= user-type :conn) lock)
+                                 (dispatch :objects/select (:db/id entity))))
                              :data-drag-remote (some? user)
                              :data-drag-local (.-isDragging drag)
                              :data-color (:user/color user)
-                             :data-type (name type)
+                             :data-type (name (keyword (namespace (:object/type entity))))
                              :data-id id}
                             ($ object {:entity entity})
                             (if-let [portal (deref portal)]
@@ -423,17 +452,25 @@
                                  :is-outline outline?
                                  :is-aligned align?})))))))))))))
       ($ hooks/use-portal {:name :selected}
-        (let [bounds (transduce bound-xf geom/bounding-rect-rf entities)]
-          ($ drag-local-fn {:id "selected" :disabled (some dragging selected)}
-            (fn [drag]
-              (let [drag-fn (getValueByKeys drag "listeners" "onPointerDown")
-                    drag-x (getValueByKeys drag "transform" "x")
-                    drag-y (getValueByKeys drag "transform" "y")
+        (let [select (filter (comp selected :db/id) entities)
+              bounds (transduce bound-xf geom/bounding-rect-rf entities)
+              locked (or (some dragging selected)
+                         (and (= (count selected) 1) (:object/locked (first select)))
+                         (and (= user-type :conn)
+                              (some
+                               (fn [entity]
+                                 (or (= (:object/type entity) :note/note)
+                                     (= (:object/type entity) :prop/prop))) select)))]
+          ($ drag-local-fn {:id "selected" :disabled locked}
+            (fn [^js/Object drag]
+              (let [drag-fn (and (.-listeners drag) (.-onPointerDown (.-listeners drag)))
+                    drag-x (and (.-transform drag) (.-x (.-transform drag)))
+                    drag-y (and (.-transform drag) (.-y (.-transform drag)))
                     local (Vec2. (or drag-x 0) (or drag-y 0))]
                 ($ :g.scene-objects.scene-objects-selected
                   {:ref (.-setNodeRef drag)
                    :transform local
-                   :on-pointer-down (or drag-fn stop-propagation)
+                   :on-pointer-down drag-fn
                    :data-drag-local (.-isDragging drag)}
                   (if (> (count selected) 1)
                     ($ :rect.scene-objects-bounds
@@ -473,4 +510,4 @@
                       {:x tx :y ty :width sz :height sz :transform tf}
                       ($ context-menu
                         {:data (sequence (filter (comp selected :db/id)) entities)
-                         :type type}))))))))))))
+                         :type user-type}))))))))))))

@@ -499,6 +499,15 @@
     [:db/add id :object/hidden value]))
 
 (defmethod
+  ^{:doc ""}
+  event-tx-fn :objects/change-locked
+  [data _ idxs value]
+  (let [{{id :db/id} :user/camera} (ds/entity data [:db/ident :user])]
+    (cond-> (for [id idxs] [:db/add id :object/locked value])
+      (true? value)
+      (into [[:db/retract id :camera/selected]]))))
+
+(defmethod
   ^{:doc "Removes the objects given by idxs."}
   event-tx-fn :objects/remove
   [_ _ idxs]
@@ -592,22 +601,24 @@
   (let [result (ds/entity data [:db/ident :root])
         {{{{tokens :scene/tokens
             shapes :scene/shapes
-            notes  :scene/notes} :camera/scene
+            notes  :scene/notes
+            props  :scene/props} :camera/scene
            camera :db/id} :user/camera
           type :user/type} :root/user
          {conns :session/conns} :root/session} result
         bounds (geom/bounding-rect (seq rect))
-        locked (into #{} (comp (mapcat :user/dragging) (map :db/id)) conns)]
+        occupied (into #{} (comp (mapcat :user/dragging) (map :db/id)) conns)]
     [{:db/id camera
       :camera/draw-mode :select
       :camera/selected
-      (for [entity (concat shapes tokens notes)
+      (for [entity (concat shapes tokens notes props)
             :let   [{id :db/id} entity]
             :let   [object (geom/object-bounding-rect entity)]
-            :when  (and (geom/rect-intersects-rect object bounds)
-                        (not (locked id))
-                        (or (= type :host) (not (:object/locked entity)))
-                        (or (= type :host) (not (:object/hidden entity))))]
+            :when  (and (not (occupied id))
+                        (not (and (= type :conn) (:object/hidden entity)))
+                        (not (and (= type :conn) (= (:object/type entity) :note/note)))
+                        (not (and (= type :conn) (= (:object/type entity) :prop/prop)))
+                        (geom/rect-intersects-rect object bounds))]
         {:db/id id})}]))
 
 (defmethod event-tx-fn :selection/clear
@@ -1081,7 +1092,6 @@
 
 (defmethod event-tx-fn :props-images/create-many
   [_ _ images]
-  (prn images)
   (into
    [{:db/ident :root
      :root/props-images
@@ -1100,3 +1110,14 @@
          :image/width (:width thumbnail)
          :image/height (:height thumbnail)}
         {:image/hash (:hash image) :image/thumbnail [:image/hash (:hash thumbnail)]}]))))
+
+(defmethod event-tx-fn :props/create
+  [data _ point hash]
+  (let [{{{camera-id :db/id
+           {scene-id :db/id} :camera/scene} :user/camera} :root/user}
+        (ds/entity data [:db/ident :root])]
+    [[:db/add -1 :object/point point]
+     [:db/add -1 :object/type :prop/prop]
+     [:db/add -1 :prop/image [:image/hash hash]]
+     [:db/add camera-id :camera/selected -1]
+     [:db/add scene-id :scene/props -1]]))

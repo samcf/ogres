@@ -1,6 +1,3 @@
-.props-gallery {
-}
-
 .props-gallery-page {
   display: grid;
   gap: 4px;
@@ -9,6 +6,14 @@
 }
 
 .props-gallery-image {
-  background-size: contain;
   aspect-ratio: 1;
+  background-repeat: no-repeat;
+  background-size: contain;
+  cursor: grab;
+}
+
+.props-gallery-overlay-content {
+  cursor: grab;
+  max-width: 380px;
+  opacity: 0.8;
 }
