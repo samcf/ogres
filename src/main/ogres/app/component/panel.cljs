@@ -48,7 +48,7 @@
    :lobby      {:form lobby/form :footer lobby/footer}
    :scene      {:form scene/form}
    :tokens     {:form tokens/form :footer tokens/footer}
-   :props      {:form props/gallery :footer props/upload}})
+   :props      {:form props/panel :footer props/footer}})
 
 (def ^:private query
   [[:user/type :default :conn]

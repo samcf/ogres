@@ -17,6 +17,7 @@
    :image/thumbnail   {:db/valueType :db.type/ref :db/isComponent true}
    :initiative/played {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :initiative/turn   {:db/valueType :db.type/ref}
+   :prop/image        {:db/valueType :db.type/ref}
    :root/scene-images {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :root/scenes       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :root/session      {:db/valueType :db.type/ref :db/isComponent true}

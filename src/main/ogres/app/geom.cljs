@@ -236,6 +236,10 @@
   [{src :object/point}]
   (Segment. src (vec/shift src 42)))
 
+(defmethod object-bounding-rect :prop/prop
+  [{src :object/point {w :image/width h :image/height} :prop/image}]
+  (Segment. src (vec/shift src w h)))
+
 (defmulti object-tile-path
   (fn [object _ _]
     (:object/type object)))

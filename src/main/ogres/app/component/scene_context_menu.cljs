@@ -308,10 +308,44 @@
              (fn [event & args]
                (apply dispatch event (map :db/id data) args))}))))))
 
+(defui context-menu-prop [props]
+  (let [dispatch (hooks/use-dispatch)
+        data (:data props)
+        idxs (map :db/id data)]
+    ($ context-menu-fn
+      {:render-toolbar
+       (fn [{:keys [selected on-change]}]
+         ($ :button
+           {:type "button"
+            :data-selected (= selected :style)
+            :data-tooltip "Style"
+            :on-click #(on-change :style)}
+           ($ icon {:name "palette-fill"})))
+       :render-aside
+       (fn []
+         ($ :<>
+           (if (every? :object/locked data)
+             ($ :button
+               {:type "button"
+                :data-tooltip "Unlock"
+                :on-click (fn [] (dispatch :objects/change-locked idxs false))}
+               ($ icon {:name "lock"}))
+             ($ :button
+               {:type "button"
+                :data-tooltip "Lock"
+                :on-click (fn [] (dispatch :objects/change-locked idxs true))}
+               ($ icon {:name "unlock"})))
+           ($ :button
+             {:type "button" :data-tooltip "Remove" :style {:margin-left "auto"}
+              :on-click #(dispatch :selection/remove)}
+             ($ icon {:name "trash3-fill"}))))}
+      (fn [{:keys []}]))))
+
 (defui context-menu [props]
   (let [types (into #{} (map (comp keyword namespace :object/type)) (:data props))]
     (if (= (count types) 1)
       (case (first types)
         :shape ($ context-menu-shape props)
         :token ($ context-menu-token props)
+        :prop  ($ context-menu-prop  props)
         nil))))
