@@ -213,14 +213,16 @@
          {"/ws" actions}
          {:listener-fn create-listener}))}})))
 
-(defn create-dev-server []
-  (-> (create-server)
-      (merge {:env :dev ::server/join? false})
-      (server/dev-interceptors)
-      (server/create-server)))
+(defn create-dev-server
+  ([] (create-dev-server {}))
+  ([opts] ; Modified to accept opts
+   (-> (create-server opts) ; Modified to pass opts
+       (merge {:env :dev ::server/join? false})
+       (server/dev-interceptors)
+       (server/create-server))))
 
-(defn ^:export run-development [& _args]
-  (let [server (create-dev-server)]
+(defn ^:export run-development [args-map] ; Modified to use args-map
+  (let [server (create-dev-server args-map)] ; Modified to pass args-map
     (println "Starting the development server on port" (::server/port server))
     (server/start server)))
 
