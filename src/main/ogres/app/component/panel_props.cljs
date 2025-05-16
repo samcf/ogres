@@ -4,8 +4,7 @@
             [ogres.app.vec :as vec :refer [Vec2]]
             [uix.core :as uix :refer [defui $]]
             [uix.dom :refer [create-portal]]
-            ["@dnd-kit/core" :as dnd]
-            ["@dnd-kit/modifiers" :as modifiers]))
+            ["@dnd-kit/core" :as dnd]))
 
 (def ^:private query
   [{:root/props-images
@@ -35,8 +34,7 @@
           "onDragEnd"   (fn [_]     (set-active nil))})
     (create-portal
      ($ dnd/DragOverlay
-       {:modifiers #js [modifiers/snapCenterToCursor]
-        :drop-animation nil}
+       {:drop-animation nil}
        ($ :img.props-gallery-overlay-content
          {:src url}))
      js/document.body)))
@@ -55,12 +53,10 @@
     ($ dnd/DndContext
       #js {"onDragEnd"
            (fn [event]
-             (let [initial (.. event -active -rect -current -initial)
-                   initial (Vec2. (.-left initial) (.-top initial))
-                   delta   (Vec2. (.-x (.-delta event)) (.-y (.-delta event)))
-                   _       (vec/add initial delta)
-                   image   (.. event -active -data -current -hash)]
-               (dispatch :props/create (Vec2. 0 0) image)))}
+             (let [bound (vec/DOMRect->Segment (.getBoundingClientRect (.. event -activatorEvent -target)))
+                   delta (Vec2. (.-x (.-delta event)) (.-y (.-delta event)))
+                   image (.. event -active -data -current -hash)]
+               (dispatch :props/create (vec/add (.-a bound) delta) image)))}
       ($ gallery)
       ($ overlay))))
 

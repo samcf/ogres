@@ -4,6 +4,7 @@
             [clojure.string :refer [trim]]
             [ogres.app.const :refer [grid-size half-size]]
             [ogres.app.geom :as geom]
+            [ogres.app.matrix :as matrix]
             [ogres.app.vec :as vec :refer [Vec2]]))
 
 (def ^:private suffix-max-xf
@@ -1113,11 +1114,21 @@
 
 (defmethod event-tx-fn :props/create
   [data _ point hash]
-  (let [{{{camera-id :db/id
-           {scene-id :db/id} :camera/scene} :user/camera} :root/user}
-        (ds/entity data [:db/ident :root])]
-    [[:db/add -1 :object/point point]
-     [:db/add -1 :object/type :prop/prop]
-     [:db/add -1 :prop/image [:image/hash hash]]
-     [:db/add camera-id :camera/selected -1]
-     [:db/add scene-id :scene/props -1]]))
+  (let [{{bounds :user/bounds
+          {camera-point :camera/point
+           camera-scale :camera/scale
+           camera-id :db/id
+           {scene-id :db/id}
+           :camera/scene}
+          :user/camera} :root/user}
+        (ds/entity data [:db/ident :root])
+        xform (-> (matrix/translate matrix/identity camera-point)
+                  (matrix/scale (/ (or camera-scale 1)))
+                  (matrix/translate (vec/mul (.-a bounds) -1)))]
+    (if (geom/point-within-rect? point bounds)
+      [[:db/add -1 :object/point (xform point)]
+       [:db/add -1 :object/type :prop/prop]
+       [:db/add -1 :prop/image [:image/hash hash]]
+       [:db/add camera-id :camera/selected -1]
+       [:db/add scene-id :scene/props -1]]
+      [])))
