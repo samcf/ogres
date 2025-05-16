@@ -402,3 +402,30 @@
 .scene-note-anchor:hover + .scene-note-nav > .scene-note-navinner {
   transform: translate(0);
 }
+
+.scene-objects[data-locked="false"],
+.scene-object[data-drag-local="true"],
+.scene-object[data-locked="false"] {
+  --scene-object-cursor: pointer;
+}
+
+.scene-objects-selected[data-locked="false"],
+.scene-object[data-drag-local="true"] {
+  --scene-object-stroke: var(--scene-stroke);
+  --scene-object-stroke-width: 1px;
+}
+
+.scene-prop {
+  rect {
+    animation: ring-rotate 640ms linear infinite;
+    fill: none;
+    shape-rendering: crispEdges;
+    stroke-dasharray: 6px 2px;
+    stroke-width: var(--scene-object-stroke-width, 0px);
+    stroke: var(--scene-object-stroke);
+  }
+
+  image {
+    cursor: var(--scene-object-cursor, default);
+  }
+}

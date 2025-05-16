@@ -236,6 +236,7 @@
            height :image/height} :prop/image} :entity} props
         url (hooks/use-image hash)]
     ($ :g.scene-prop
+      ($ :rect {:width width :height height})
       ($ :image
         {:width width
          :height height
@@ -410,6 +411,7 @@
         (for [entity entities
               :let [{id :db/id point :object/point} entity
                     lock (or (:object/locked entity)
+                             (contains? dragging id)
                              (and (= user-type :conn)
                                   (or (= (:object/type entity) :note/note)
                                       (= (:object/type entity) :prop/prop))))
@@ -422,7 +424,7 @@
               (if (not (selected id))
                 ($ drag-remote-fn {:user (:user/uuid user) :point point}
                   (fn [remote]
-                    ($ drag-local-fn {:id id :disabled (or (contains? dragging id) lock)}
+                    ($ drag-local-fn {:id id :disabled lock}
                       (fn [^js/Object drag]
                         (let [drag-fn (and (.-listeners drag) (.-onPointerDown (.-listeners drag)))
                               drag-x (and (.-transform drag) (.-x (.-transform drag)))
@@ -440,6 +442,7 @@
                                  (dispatch :objects/select (:db/id entity))))
                              :data-drag-remote (some? user)
                              :data-drag-local (.-isDragging drag)
+                             :data-locked (boolean lock)
                              :data-color (:user/color user)
                              :data-type (name (keyword (namespace (:object/type entity))))
                              :data-id id}
@@ -471,7 +474,8 @@
                   {:ref (.-setNodeRef drag)
                    :transform local
                    :on-pointer-down drag-fn
-                   :data-drag-local (.-isDragging drag)}
+                   :data-drag-local (.-isDragging drag)
+                   :data-locked locked}
                   (if (> (count selected) 1)
                     ($ :rect.scene-objects-bounds
                       {:width (vec/width bounds)
