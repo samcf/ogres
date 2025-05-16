@@ -62,9 +62,6 @@
    (fn [token]
      (or (= user :host) (not (:object/hidden token))))))
 
-(defn ^:private objects-xf [user]
-  (filter (fn [entity] (or (= user :host) (not (:object/hidden entity))))))
-
 (defn ^:private use-cursor-point
   "Defines a React state hook which returns a point [Ax Ay] of the
    given user's current cursor position, if available."
@@ -389,15 +386,22 @@
          {conns :session/conns} :root/session} result
         portal (uix/use-ref)
         screen (Segment. point (vec/add point (vec/div (.-b (vec/rebase bounds)) scale)))
-        notes  (sort compare-objects notes)
-        shapes (sort compare-objects shapes)
-        tokens (sort compare-tokens (sequence (tokens-xf user-type) tokens))
-        entities (into [] (objects-xf user-type) (into tokens (into (into (seq props) shapes) notes)))
         selected (into #{} (map :db/id) selected)
         dragging (into {} user-drag-xf conns)
-        bound-xf (comp (filter (comp selected :db/id))
-                       (map geom/object-bounding-rect)
-                       (mapcat seq))]
+        bound-xf
+        (comp (filter (comp selected :db/id))
+              (map geom/object-bounding-rect)
+              (mapcat seq))
+        entities
+        (into []
+              (filter
+               (fn [entity]
+                 (or (not (:object/hidden entity)) (= user-type :host))))
+              (concat
+               (sort compare-objects props)
+               (sort compare-objects shapes)
+               (sort compare-objects notes)
+               (sort compare-tokens (sequence (tokens-xf user-type) tokens))))]
 
     ;; automatically re-render once the portal ref is initialized.
     (uix/use-effect
