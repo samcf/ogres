@@ -410,8 +410,9 @@
 }
 
 .scene-objects-selected[data-locked="false"],
-.scene-object[data-drag-local="true"] {
-  --scene-object-stroke: var(--scene-stroke);
+.scene-object[data-drag-local="true"],
+.scene-object[data-drag-remote="true"] {
+  --scene-object-stroke: var(--color-session, var(--scene-stroke, white));
   --scene-object-stroke-width: 1px;
 }
 
