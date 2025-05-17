@@ -1,6 +1,7 @@
 (ns ogres.app.geom
   (:require [clojure.math :refer [floor ceil]]
-            [ogres.app.const :refer [grid-size half-size]]
+            [ogres.app.const :refer [grid-size half-size world-line-thickness]]
+            [ogres.app.const :refer [grid-size half-size world-line-thickness]]
             [ogres.app.vec :as vec :refer [Vec2 Segment]]))
 
 (def ^:const deg45->rad (/ js/Math.PI 4))
@@ -26,8 +27,8 @@
        (clockwise-triangle? c a v)
        (clockwise-triangle? b c v)))
 
-(defn line-points [segment]
-  (let [ln half-size
+(defn line-points [segment] ;; Segment is now expected to be in WORLD coordinates
+  (let [ln (/ world-line-thickness 2) 
         av (.-a segment)
         bv (.-b segment)
         ax (.-x (.-a segment))
@@ -35,10 +36,10 @@
         bx (.-x (.-b segment))
         by (.-y (.-b segment))]
     (if (= ay by)
-      [(vec/shift av 0 ln)
-       (vec/shift bv 0 ln)
-       (vec/shift bv 0 (- ay ln))
-       (vec/shift av 0 (- ay ln))]
+      [(Vec2. ax (+ ay ln)) ; Shifted up
+       (Vec2. bx (+ by ln)) ; Shifted up
+       (Vec2. bx (- by ln)) ; Shifted down
+       (Vec2. ax (- ay ln))] ; Shifted down
       (let [ma (/ (- bx ax) (- ay by))
             mb (js/Math.sqrt (inc (* ma ma)))
             si (js/Math.sign (- ay by))
