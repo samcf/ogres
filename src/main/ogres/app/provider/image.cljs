@@ -41,28 +41,20 @@
            (> cy cx)
            (create-thumbnail src len 0 0 cx cx))))
   ([^js/HTMLCanvasElement src len ax ay bx by]
-   (let [dst (js/document.createElement "canvas")
-         dsx (.getContext dst "2d")]
-     (set! (.-width dst) len)
-     (set! (.-height dst) len)
-     (set! (.-fillStyle dsx) "rgb(24, 33, 37)")
-     (.fillRect dsx 0 0 len len)
-     (.drawImage dsx src ax ay (- bx ax) (- by ay) 0 0 len len)
-     dst)))
+   (let [canvas (js/document.createElement "canvas")]
+     (set! (.-width canvas) len)
+     (set! (.-height canvas) len)
+     (.drawImage (.getContext canvas "2d") src ax ay (- bx ax) (- by ay) 0 0 len len)
+     canvas)))
 
 (defn ^:private create-canvas
   "Returns a <canvas> with the contents of the given image drawn on it."
   [^js/ImageBitmap image]
-  (let [cnv (js/document.createElement "canvas")
-        ctx (.getContext cnv "2d")
-        wdt (.-width image)
-        hgt (.-height image)]
-    (set! (.-width cnv) wdt)
-    (set! (.-height cnv) hgt)
-    (set! (.-fillStyle ctx) "rgb(24, 33, 37)")
-    (.fillRect ctx 0 0 wdt hgt)
-    (.drawImage ctx image 0 0 wdt hgt)
-    cnv))
+  (let [canvas (js/document.createElement "canvas")]
+    (set! (.-width canvas) (.-width image))
+    (set! (.-height canvas) (.-height image))
+    (.drawImage (.getContext canvas "2d") image 0 0 (.-width image) (.-height image))
+    canvas))
 
 (defn ^:private extract-image
   "Returns the image and metadata associated with the <canvas> element passed
@@ -90,14 +82,16 @@
      1. The filename
      2. The image extracted from the file
      3. The image, cropped and resized to be used as a thumbnail"
-  [^js/File file]
-  (.then (js/createImageBitmap file)
-         (fn [image]
-           (let [canvas (create-canvas image)]
-             (js/Promise.all
-              #js [(js/Promise.resolve (.-name file))
-                   (extract-image canvas)
-                   (extract-image (create-thumbnail canvas 256))])))))
+  ([^js/File file]
+   (process-file file "image/jpeg" 0.80))
+  ([^js/File file type quality]
+   (.then (js/createImageBitmap file)
+          (fn [image]
+            (let [canvas (create-canvas image)]
+              (js/Promise.all
+               #js [(js/Promise.resolve (.-name file))
+                    (extract-image canvas type quality)
+                    (extract-image (create-thumbnail canvas 256) type quality)]))))))
 
 (defn ^:private create-store-records
   "Returns a two-element vector containing the Javascript objects which
@@ -205,31 +199,31 @@
    them to storage and state."
   [{:keys [type]}]
   (let [dispatch (use-dispatch)
-        publish  (events/use-publish)
-        write    (idb/use-writer "images")
-        user     (state/use-query [:user/type] [:db/ident :user])]
-    (case (:user/type user)
-      :host
-      (uix/use-callback
-       (fn [files]
-         (-> (js/Promise.all (into-array (into [] (map process-file) files)))
-             (.then
-              (fn [files]
-                (let [records (sequence (mapcat create-store-records) files)]
-                  (.then (write :put records) (constantly files)))))
-             (.then
-              (fn [files]
-                (let [records (into [] (map create-state-records) files)]
-                  (case type
-                    :token (dispatch :token-images/create-many records :private)
-                    :scene (dispatch :scene-images/create-many records :private))))))) [dispatch write type])
-      :conn
-      (uix/use-callback
-       (fn [files]
-         (.then (js/Promise.all (into-array (into [] (map process-file) files)))
-                (fn [files]
-                  (doseq [[_ image _] files]
-                    (publish :image/create (:data image)))))) [publish]))))
+        publish (events/use-publish)
+        entity (state/use-query [:user/type])
+        write (idb/use-writer "images")
+        xform (if (= type :props)
+                (map (fn [file] (process-file file "image/webp" 0.80)))
+                (map process-file))]
+    (if (= (:user/type entity) :host)
+      (fn [files]
+        (-> (js/Promise.all (into-array (into [] xform files)))
+            (.then
+             (fn [files]
+               (let [records (sequence (mapcat create-store-records) files)]
+                 (.then (write :put records) (constantly files)))))
+            (.then
+             (fn [files]
+               (let [records (into [] (map create-state-records) files)]
+                 (case type
+                   :token (dispatch :token-images/create-many records :private)
+                   :scene (dispatch :scene-images/create-many records :private)
+                   :props (dispatch :props-images/create-many records :private)))))))
+      (fn [files]
+        (.then (js/Promise.all (into-array (into [] (map process-file) files)))
+               (fn [files]
+                 (doseq [[_ image _] files]
+                   (publish :image/create (:data image)))))))))
 
 (defn use-image
   "React hook which accepts a string that uniquely identifies an image
