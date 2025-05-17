@@ -1112,6 +1112,28 @@
          :image/height (:height thumbnail)}
         {:image/hash (:hash image) :image/thumbnail [:image/hash (:hash thumbnail)]}]))))
 
+(defmethod
+  ^{:doc ""}
+  event-tx-fn :props-images/remove-all
+  [data _ _]
+  (let [user (ds/entity data [:db/ident :user])
+        xfrm (comp (map :camera/scene) (mapcat :scene/props) (map :db/id))]
+    (into [[:db/retract [:db/ident :root] :root/props-images]]
+          (for [id (sequence xfrm (:user/cameras user))]
+            [:db/retractEntity id]))))
+
+(defmethod
+  ^{:doc ""}
+  event-tx-fn :props-images/remove
+  [data _ hash]
+  (let [user (ds/entity data [:db/ident :user])
+        xfrm (comp
+              (mapcat (comp :scene/props :camera/scene))
+              (filter (comp #{hash} :image/hash :prop/image)))]
+    (into [[:db/retractEntity [:image/hash hash]]]
+          (for [entity (sequence xfrm (:user/cameras user))]
+            [:db/retractEntity (:db/id entity)]))))
+
 (defmethod event-tx-fn :props/create
   [data _ point hash]
   (let [{{bounds :user/bounds
