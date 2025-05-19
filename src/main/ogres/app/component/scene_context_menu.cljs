@@ -314,13 +314,8 @@
         idxs (map :db/id data)]
     ($ context-menu-fn
       {:render-toolbar
-       (fn [{:keys [selected on-change]}]
-         ($ :button
-           {:type "button"
-            :data-selected (= selected :style)
-            :data-tooltip "Style"
-            :on-click #(on-change :style)}
-           ($ icon {:name "palette-fill"})))
+       (fn [{:keys [_selected _on-change]}]
+         nil)
        :render-aside
        (fn []
          ($ :<>
