@@ -1,6 +1,7 @@
 (ns ogres.app.geom
   (:require [clojure.math :refer [floor ceil]]
             [ogres.app.const :refer [grid-size half-size]]
+            [ogres.app.matrix :as matrix]
             [ogres.app.vec :as vec :refer [Vec2 Segment]]))
 
 (def ^:const deg45->rad (/ js/Math.PI 4))
@@ -237,8 +238,18 @@
   (Segment. src (vec/shift src 42)))
 
 (defmethod object-bounding-rect :prop/prop
-  [{src :object/point {w :image/width h :image/height} :prop/image}]
-  (Segment. src (vec/shift src w h)))
+  [{point :object/point
+    scale :object/scale
+    rotation :object/rotation
+    {width :image/width
+     height :image/height} :prop/image}]
+  (let [bound (Segment. point (vec/shift point width height))
+        xform (-> matrix/identity
+                  (matrix/translate (vec/midpoint bound))
+                  (matrix/scale scale)
+                  (matrix/rotate rotation)
+                  (matrix/translate (vec/mul (vec/midpoint bound) -1)))]
+    (xform bound)))
 
 (defmulti object-tile-path
   (fn [object _ _]

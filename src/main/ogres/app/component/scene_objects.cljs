@@ -6,13 +6,15 @@
             [ogres.app.const :refer [grid-size]]
             [ogres.app.geom :as geom]
             [ogres.app.hooks :as hooks]
+            [ogres.app.matrix :as matrix]
             [ogres.app.vec :as vec :refer [Vec2 Segment]]
             [react-transition-group :refer [TransitionGroup CSSTransition]]
             [uix.core :as uix :refer [defui $]]
             [uix.dom :as dom]
             ["@dnd-kit/core"
-             :refer [useDndMonitor useDraggable]
-             :rename {useDndMonitor use-dnd-monitor
+             :refer [useDndMonitor useDraggable DndContext]
+             :rename {DndContext dnd-context
+                      useDndMonitor use-dnd-monitor
                       useDraggable use-draggable}]))
 
 (def ^:private note-icons
@@ -227,17 +229,62 @@
                    :default-value (:note/description entity)}))
               ($ :input {:type "submit" :hidden true}))))))))
 
+(defui ^:private object-prop-edit [props]
+  (let [{{id :db/id
+          locked :object/locked
+          scale :object/scale
+          rotation :object/rotation
+          {width :image/width height :image/height} :prop/image
+          [{selected :camera/selected
+            camera-scale :camera/scale}] :camera/_selected}
+         :entity} props
+        bound (Segment. (Vec2. 0 0) (Vec2. width height))
+        xform (-> matrix/identity
+                  (matrix/translate (vec/midpoint bound))
+                  (matrix/scale scale)
+                  (matrix/rotate rotation)
+                  (matrix/translate (vec/mul (vec/midpoint bound) -1)))
+        rotate (use-draggable #js {"id" id})
+        rotate-f (and (.-listeners rotate) (.-onPointerDown (.-listeners rotate)))
+        rotate-x (and (.-transform rotate) (.-x (.-transform rotate)))
+        rotate-y (and (.-transform rotate) (.-y (.-transform rotate)))]
+    ($ :g.scene-prop {:transform xform}
+      ($ :g.scene-prop-image
+        (:children props))
+      (if (and (= (count selected) 1) (= (:db/id (first selected)) id) (not locked))
+        (let [sz (min (max (/ 8 scale camera-scale) 8) 92)
+              rd (min (max (/ 5 scale camera-scale) 5) 58)
+              hf (- (/ sz 2))]
+          ($ :<>
+            ($ :rect.scene-prop-anchor
+              {:x hf :y hf :width sz :height sz})
+            ($ :rect.scene-prop-anchor
+              {:x hf :y (+ height hf) :width sz :height sz})
+            ($ :rect.scene-prop-anchor
+              {:x (+ width hf) :y hf :width sz :height sz})
+            ($ :rect.scene-prop-anchor
+              {:x (+ width hf) :y (+ height hf) :width sz :height sz})
+            ($ :circle.scene-prop-anchor
+              {:ref (.-setNodeRef rotate)
+               :style {:cursor (if (.-isDragging rotate) "grabbing" "grab")}
+               :on-pointer-down rotate-f
+               :stroke-width (/ scale)
+               :cx (/ width 2)
+               :cy (* rd -3)
+               :r rd})))))))
+
 (defui ^:private object-prop [props]
   (let [{{{hash :image/hash
            width :image/width
-           height :image/height} :prop/image} :entity} props
+           height :image/height} :prop/image}
+         :entity} props
         url (hooks/use-image hash)]
-    ($ :g.scene-prop
-      ($ :rect {:width width :height height})
-      ($ :image
-        {:width width
-         :height height
-         :href url}))))
+    ($ dnd-context #js {}
+      ($ object-prop-edit props
+        ($ :image.scene-prop-image
+          {:width width :height height :href url})
+        ($ :rect.scene-prop-bound
+          {:width width :height height})))))
 
 (defui ^:private object [props]
   (case (keyword (namespace (:object/type (:entity props))))
@@ -342,12 +389,18 @@
           [:db/id
            [:object/type :default :prop/prop]
            [:object/point :default vec/zero]
+           [:object/scale :default 0.50]
+           [:object/rotation :default 15]
            [:object/hidden :default false]
            [:object/locked :default false]
            {:prop/image
             [:image/hash
              [:image/width :default 0]
-             [:image/height :default 0]]}]}
+             [:image/height :default 0]]}
+           {:camera/_selected
+            [[:camera/scale :default 1]
+             :camera/selected
+             {:user/_camera [:root/_user]}]}]}
          {:scene/notes
           [:db/id
            [:object/type :default :note/note]

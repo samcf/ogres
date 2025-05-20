@@ -416,17 +416,28 @@
   --scene-object-stroke-width: 1px;
 }
 
-.scene-prop {
-  rect {
-    animation: ring-rotate 640ms linear infinite;
-    fill: none;
-    shape-rendering: crispEdges;
-    stroke-dasharray: 6px 2px;
-    stroke-width: var(--scene-object-stroke-width, 0px);
-    stroke: var(--scene-object-stroke);
-  }
+.scene-prop-bound {
+  animation: ring-rotate 640ms linear infinite;
+  fill: none;
+  pointer-events: none;
+  shape-rendering: crispEdges;
+  stroke-dasharray: 6px 2px;
+  stroke-width: var(--scene-object-stroke-width, 0px);
+  stroke: var(--scene-object-stroke);
+}
 
-  image {
-    cursor: var(--scene-object-cursor, default);
-  }
+.scene-prop-image {
+  cursor: var(--scene-object-cursor, default);
+}
+
+.scene-prop-anchor {
+  shape-rendering: crispEdges;
+}
+
+.scene-prop-anchor:is(rect) {
+  fill: var(--scene-stroke);
+}
+
+.scene-prop-anchor:is(circle) {
+  fill: var(--scene-stroke);
 }
