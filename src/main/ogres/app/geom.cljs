@@ -67,6 +67,12 @@
    (vec/shift point grid-size)
    (vec/shift point 0 grid-size)])
 
+(defn rect-points [segment]
+  [(.-a segment)
+   (Vec2. (.-x (.-b segment)) (.-y (.-a segment)))
+   (Vec2. (.-x (.-a segment)) (.-y (.-b segment)))
+   (.-b segment)])
+
 (defn rect-intersects-rect [a b]
   (not (or (< (.-x (.-b a)) (.-x (.-a b)))
            (< (.-x (.-b b)) (.-x (.-a a)))
@@ -249,7 +255,7 @@
                   (matrix/scale scale)
                   (matrix/rotate rotation)
                   (matrix/translate (vec/mul (vec/midpoint bound) -1)))]
-    (xform bound)))
+    (bounding-rect (map xform (rect-points bound)))))
 
 (defmulti object-tile-path
   (fn [object _ _]
