@@ -313,14 +313,18 @@
          :size (/ 5 scale zoom)}))))
 
 (defui ^:private object-prop [props]
-  (let [{{{hash :image/hash
+  (let [{{id :db/id
+          locked :object/locked
+          {hash :image/hash
            width :image/width
            height :image/height} :prop/image
-          [{zoom :camera/scale}] :camera/_selected} :entity} props
+          [{selected :camera/selected
+            zoom :camera/scale}] :camera/_selected} :entity} props
         url-image (hooks/use-image hash)
         mod-scale (uix/use-memo (fn [] (modifiers/scale-fn zoom)) [zoom])
-        transform (geom/object-transform (:entity props))]
-    (if (seq (:camera/_selected (:entity props)))
+        transform (geom/object-transform (:entity props))
+        selected (into #{} (map :db/id) selected)]
+    (if (and (= #{id} selected) (not locked))
       ($ dnd-context
         #js {"modifiers" #js [mod-scale modifiers/trunc]}
         ($ object-prop-edit
