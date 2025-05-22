@@ -7,6 +7,7 @@
             [ogres.app.geom :as geom]
             [ogres.app.hooks :as hooks]
             [ogres.app.matrix :as matrix]
+            [ogres.app.modifiers :as modifiers]
             [ogres.app.vec :as vec :refer [Vec2 Segment]]
             [react-transition-group :refer [TransitionGroup CSSTransition]]
             [uix.core :as uix :refer [defui $]]
@@ -229,61 +230,108 @@
                    :default-value (:note/description entity)}))
               ($ :input {:type "submit" :hidden true}))))))))
 
+(defui ^:private object-prop-scale
+  [{:keys [point size]}]
+  (let [option #js {"id" (str "resize/" point) "data" #js {"type" "resize" "point" point}}
+        resize (use-draggable option)
+        handle (and (.-listeners resize) (.-onPointerDown (.-listeners resize)))]
+    ($ :rect.scene-prop-anchor
+      {:on-pointer-down handle
+       :x (- (.-x point) (/ size 2))
+       :y (- (.-y point) (/ size 2))
+       :width size
+       :height size})))
+
+(defui ^:private object-prop-rotate
+  [{:keys [point size]}]
+  (let [option #js {"id" "rotate" "data" #js {"type" "rotate" "point" point}}
+        rotate (use-draggable option)
+        handle (and (.-listeners rotate) (.-onPointerDown (.-listeners rotate)))]
+    ($ :circle.scene-prop-anchor
+      {:on-pointer-down handle
+       :cx (.-x point)
+       :cy (.-y point)
+       :r size})))
+
 (defui ^:private object-prop-edit [props]
   (let [{{id :db/id
-          locked :object/locked
           scale :object/scale
           rotation :object/rotation
-          {width :image/width height :image/height} :prop/image
-          [{selected :camera/selected
-            camera-scale :camera/scale}] :camera/_selected}
-         :entity} props
-        bound (Segment. (Vec2. 0 0) (Vec2. width height))
-        xform (-> matrix/identity
-                  (matrix/translate (vec/midpoint bound))
-                  (matrix/scale scale)
-                  (matrix/rotate rotation)
-                  (matrix/translate (vec/mul (vec/midpoint bound) -1)))
-        rotate (use-draggable #js {"id" id})
-        rotate-f (and (.-listeners rotate) (.-onPointerDown (.-listeners rotate)))
-        rotate-x (and (.-transform rotate) (.-x (.-transform rotate)))
-        rotate-y (and (.-transform rotate) (.-y (.-transform rotate)))]
-    ($ :g.scene-prop {:transform xform}
-      ($ :g.scene-prop-image
-        (:children props))
-      (if (and (= (count selected) 1) (= (:db/id (first selected)) id) (not locked))
-        (let [sz (min (max (/ 8 scale camera-scale) 8) 92)
-              rd (min (max (/ 5 scale camera-scale) 5) 58)
-              hf (- (/ sz 2))]
-          ($ :<>
-            ($ :rect.scene-prop-anchor
-              {:x hf :y hf :width sz :height sz})
-            ($ :rect.scene-prop-anchor
-              {:x hf :y (+ height hf) :width sz :height sz})
-            ($ :rect.scene-prop-anchor
-              {:x (+ width hf) :y hf :width sz :height sz})
-            ($ :rect.scene-prop-anchor
-              {:x (+ width hf) :y (+ height hf) :width sz :height sz})
-            ($ :circle.scene-prop-anchor
-              {:ref (.-setNodeRef rotate)
-               :style {:cursor (if (.-isDragging rotate) "grabbing" "grab")}
-               :on-pointer-down rotate-f
-               :stroke-width (/ scale)
-               :cx (/ width 2)
-               :cy (* rd -3)
-               :r rd})))))))
+          {width :image/width
+           height :image/height} :prop/image
+          [{zoom :camera/scale}] :camera/_selected} :entity
+         transform :transform} props
+        [scale set-scale] (uix/use-state scale)
+        [rotation set-rotation] (uix/use-state rotation)
+        dispatch (hooks/use-dispatch)
+        bounds (Segment. vec/zero (Vec2. width height))
+        center (vec/midpoint bounds)
+        get-scale
+        (fn [^js/Object event]
+          (let [data (.. event -active -data -current)
+                dx (.-x (.-delta event))
+                dy (.-y (.-delta event))]
+            (-> (vec/shift (transform (.-point data)) dx dy)
+                (vec/dist center)
+                (/ (vec/dist center)))))
+        get-rotation
+        (fn [^js/Object event]
+          (let [data (.. event -active -data -current)
+                dx (.-x (.-delta event))
+                dy (.-y (.-delta event))]
+            (-> (vec/shift (transform (.-point data)) dx dy)
+                (vec/sub center)
+                (vec/heading)
+                (* (/ 180 js/Math.PI))
+                (+ 90))))]
+    (use-dnd-monitor
+     #js {"onDragMove"
+          (fn [event]
+            (case (.. event -active -data -current -type)
+              "resize" (set-scale (get-scale event))
+              "rotate" (set-rotation (get-rotation event))))
+          "onDragEnd"
+          (fn [event]
+            (case (.. event -active -data -current -type)
+              "resize" (dispatch :object/change-scale id (get-scale event))
+              "rotate" (dispatch :object/change-rotation id (get-rotation event))))})
+    ($ :g.scene-prop
+      {:style
+       {:transform
+        (-> (matrix/translate matrix/identity center)
+            (matrix/scale scale)
+            (matrix/rotate rotation)
+            (matrix/translate (vec/mul center -1)))}}
+      (:children props)
+      (for [point (geom/rect-points bounds)]
+        ($ object-prop-scale
+          {:key point
+           :point point
+           :size (/ 8 scale zoom)}))
+      ($ object-prop-rotate
+        {:point (Vec2. (.-x center) (/ 26 scale zoom -1))
+         :size (/ 5 scale zoom)}))))
 
 (defui ^:private object-prop [props]
   (let [{{{hash :image/hash
            width :image/width
-           height :image/height} :prop/image}
-         :entity} props
-        url (hooks/use-image hash)]
-    ($ dnd-context #js {}
-      ($ object-prop-edit props
+           height :image/height} :prop/image
+          [{zoom :camera/scale}] :camera/_selected} :entity} props
+        url-image (hooks/use-image hash)
+        mod-scale (uix/use-memo (fn [] (modifiers/scale-fn zoom)) [zoom])
+        transform (geom/object-transform (:entity props))]
+    (if (seq (:camera/_selected (:entity props)))
+      ($ dnd-context
+        #js {"modifiers" #js [mod-scale modifiers/trunc]}
+        ($ object-prop-edit (assoc props :transform transform)
+          ($ :image.scene-prop-image
+            {:width width :height height :href url-image})
+          ($ :rect.scene-prop-bounds
+            {:width width :height height})))
+      ($ :g.scene-prop {:style {:transform transform}}
         ($ :image.scene-prop-image
-          {:width width :height height :href url})
-        ($ :rect.scene-prop-bound
+          {:width width :height height :href url-image})
+        ($ :rect.scene-prop-bounds
           {:width width :height height})))))
 
 (defui ^:private object [props]
@@ -389,8 +437,8 @@
           [:db/id
            [:object/type :default :prop/prop]
            [:object/point :default vec/zero]
-           [:object/scale :default 0.50]
-           [:object/rotation :default 15]
+           [:object/scale :default 1]
+           [:object/rotation :default 0]
            [:object/hidden :default false]
            [:object/locked :default false]
            {:prop/image

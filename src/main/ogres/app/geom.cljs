@@ -257,6 +257,21 @@
                   (matrix/translate (vec/mul (vec/midpoint bound) -1)))]
     (bounding-rect (map xform (rect-points bound)))))
 
+(defmulti object-transform :object/type)
+
+(defmethod object-transform :default []
+  matrix/identity)
+
+(defmethod object-transform :prop/prop
+  [{scale :object/scale rotation :object/rotation
+    {width :image/width height :image/height} :prop/image}]
+  (let [bounds (Segment. vec/zero (Vec2. width height))
+        center (vec/midpoint bounds)]
+    (-> (matrix/translate matrix/identity center)
+        (matrix/scale (or scale 1))
+        (matrix/rotate (or rotation 0))
+        (matrix/translate (vec/mul center -1)))))
+
 (defmulti object-tile-path
   (fn [object _ _]
     (:object/type object)))

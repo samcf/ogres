@@ -315,7 +315,11 @@
     ($ context-menu-fn
       {:render-toolbar
        (fn [{:keys [_selected _on-change]}]
-         nil)
+         ($ :button
+           {:type "button"
+            :data-tooltip "Reset size/rotation"
+            :on-click (fn [] (dispatch :objects/reset-transform idxs))}
+           ($ icon {:name "arrows-angle-expand"})))
        :render-aside
        (fn []
          ($ :<>

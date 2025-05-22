@@ -500,13 +500,35 @@
     [:db/add id :object/hidden value]))
 
 (defmethod
-  ^{:doc ""}
+  ^{:doc "Change the locked flag for the given objects."}
   event-tx-fn :objects/change-locked
   [data _ idxs value]
   (let [{{id :db/id} :user/camera} (ds/entity data [:db/ident :user])]
     (cond-> (for [id idxs] [:db/add id :object/locked value])
       (true? value)
       (into [[:db/retract id :camera/selected]]))))
+
+(defmethod
+  ^{:doc "Resets all transformations for the given objects."}
+  event-tx-fn :objects/reset-transform
+  [_ _ idxs]
+  (into
+   [] cat
+   (for [id idxs]
+     [[:db/retract id :object/scale]
+      [:db/retract id :object/rotation]])))
+
+(defmethod
+  ^{:doc "Change the scaling of the given object."}
+  event-tx-fn :object/change-scale
+  [_ _ id scale]
+  [[:db/add id :object/scale scale]])
+
+(defmethod
+  ^{:doc "Change the rotation of the given object."}
+  event-tx-fn :object/change-rotation
+  [_ _ id rotation]
+  [[:db/add id :object/rotation rotation]])
 
 (defmethod
   ^{:doc "Removes the objects given by idxs."}

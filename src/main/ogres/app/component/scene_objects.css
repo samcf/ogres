@@ -416,7 +416,7 @@
   --scene-object-stroke-width: 1px;
 }
 
-.scene-prop-bound {
+.scene-prop-bounds {
   animation: ring-rotate 640ms linear infinite;
   fill: none;
   pointer-events: none;
