@@ -323,7 +323,8 @@
     (if (seq (:camera/_selected (:entity props)))
       ($ dnd-context
         #js {"modifiers" #js [mod-scale modifiers/trunc]}
-        ($ object-prop-edit (assoc props :transform transform)
+        ($ object-prop-edit
+          (assoc props :key transform :transform transform)
           ($ :image.scene-prop-image
             {:width width :height height :href url-image})
           ($ :rect.scene-prop-bounds
