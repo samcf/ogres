@@ -21,6 +21,15 @@
 (def ^:private note-icons
   ["journal-bookmark-fill" "dice-5" "door-open" "geo-alt" "fire" "skull" "question-circle"])
 
+(defn ^:private resize-cursor [deg]
+  (cond (or (and (> deg 75)  (< deg 105))
+            (and (> deg 255) (< deg 285))) "ns-resize"
+        (or (and (> deg 345) (< deg 15))
+            (and (> deg 255) (< deg 285))) "ew-resize"
+        (or (and (> deg 15)  (< deg 75))
+            (and (> deg 195) (< deg 255))) "nwse-resize"
+        :else "nesw-resize"))
+
 (defn ^:private stop-propagation
   "Defines an event handler that ceases event propagation."
   [event]
@@ -230,28 +239,42 @@
                    :default-value (:note/description entity)}))
               ($ :input {:type "submit" :hidden true}))))))))
 
-(defui ^:private object-prop-scale
-  [{:keys [point size]}]
+(defui ^:private ^:memo object-prop-scale
+  [{:keys [point size heading]}]
   (let [option #js {"id" (str "resize/" point) "data" #js {"type" "resize" "point" point}}
         resize (use-draggable option)
-        handle (and (.-listeners resize) (.-onPointerDown (.-listeners resize)))]
-    ($ :rect.scene-prop-anchor
-      {:on-pointer-down handle
-       :x (- (.-x point) (/ size 2))
-       :y (- (.-y point) (/ size 2))
-       :width size
-       :height size})))
+        handle (and (.-listeners resize) (.-onPointerDown (.-listeners resize)))
+        cursor (resize-cursor heading)]
+    ($ :<>
+      (if (.-isDragging resize)
+        (dom/create-portal
+         ($ :.cursor-region
+           {:style {:cursor cursor}}) js/document.body))
+      ($ :rect.scene-prop-anchor
+        {:on-pointer-down handle
+         :style {:cursor cursor}
+         :x (- (.-x point) (/ size 2))
+         :y (- (.-y point) (/ size 2))
+         :width size
+         :height size}))))
 
-(defui ^:private object-prop-rotate
+(defui ^:private ^:memo object-prop-rotate
   [{:keys [point size]}]
   (let [option #js {"id" "rotate" "data" #js {"type" "rotate" "point" point}}
         rotate (use-draggable option)
-        handle (and (.-listeners rotate) (.-onPointerDown (.-listeners rotate)))]
-    ($ :circle.scene-prop-anchor
-      {:on-pointer-down handle
-       :cx (.-x point)
-       :cy (.-y point)
-       :r size})))
+        handle (and (.-listeners rotate) (.-onPointerDown (.-listeners rotate)))
+        cursor (if (.-isDragging rotate) "grabbing" "grab")]
+    ($ :<>
+      (if (.-isDragging rotate)
+        (dom/create-portal
+         ($ :.cursor-region
+           {:style {:cursor "grabbing"}}) js/document.body))
+      ($ :circle.scene-prop-anchor
+        {:on-pointer-down handle
+         :style {:cursor cursor}
+         :cx (.-x point)
+         :cy (.-y point)
+         :r size}))))
 
 (defui ^:private object-prop-edit [props]
   (let [{{id :db/id
@@ -282,7 +305,6 @@
             (-> (vec/shift (transform (.-point data)) dx dy)
                 (vec/sub center)
                 (vec/heading)
-                (* (/ 180 js/Math.PI))
                 (+ 90))))]
     (use-dnd-monitor
      #js {"onDragMove"
@@ -307,7 +329,8 @@
         ($ object-prop-scale
           {:key point
            :point point
-           :size (/ 8 scale zoom)}))
+           :size (/ 8 scale zoom)
+           :heading (vec/heading (vec/sub (transform point) center))}))
       ($ object-prop-rotate
         {:point (Vec2. (.-x center) (/ 26 scale zoom -1))
          :size (/ 5 scale zoom)}))))
