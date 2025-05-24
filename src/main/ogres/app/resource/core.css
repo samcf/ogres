@@ -106,3 +106,8 @@ a:visited {
 [data-color="purple"] {
   --color-session: var(--color-session-purple);
 }
+
+.cursor-region {
+  position: absolute;
+  inset: 0 0 0 0;
+}

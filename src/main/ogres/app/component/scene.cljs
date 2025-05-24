@@ -8,6 +8,7 @@
             [ogres.app.component.scene-pattern :refer [pattern]]
             [ogres.app.const :refer [grid-size half-size]]
             [ogres.app.hooks :as hooks]
+            [ogres.app.modifiers :as modifiers]
             [ogres.app.svg :refer [circle->path poly->path]]
             [ogres.app.util :refer [key-by]]
             [ogres.app.vec :as vec :refer [Vec2]]
@@ -62,23 +63,6 @@
   (cond-> ""
     (string? label) (str label)
     (number? suffix) (str " " (char (+ suffix 64)))))
-
-(defn ^:private dnd-modifier-int [params]
-  (let [dx (.. params -transform -x)
-        dy (.. params -transform -y)]
-    (js/Object.assign
-     #js {} (.-transform params)
-     #js {"x" (js/Math.trunc dx)
-          "y" (js/Math.trunc dy)})))
-
-(defn ^:private dnd-modifier-scale [scale]
-  (fn [params]
-    (let [dx (.. params -transform -x)
-          dy (.. params -transform -y)]
-      (js/Object.assign
-       #js {} (.-transform params)
-       #js {"x" (/ dx scale)
-            "y" (/ dy scale)}))))
 
 (def ^:private image-defs-query
   [{:user/camera
@@ -407,9 +391,9 @@
 (defui ^:private scene-camera
   [{:keys [scale on-translate children]
     :or   {on-translate identity}}]
-  (let [scale-fn (uix/use-memo (fn [] (dnd-modifier-scale scale)) [scale])]
+  (let [scale-fn (uix/use-memo (fn [] (modifiers/scale-fn scale)) [scale])]
     ($ dnd-context
-      #js {"modifiers" #js [dnd-modifier-int]
+      #js {"modifiers" #js [modifiers/trunc]
            "onDragEnd"
            (uix/use-callback
             (fn [data]
@@ -419,7 +403,7 @@
                  (Vec2. x y)))) [on-translate])}
       ($ scene-camera-draggable
         ($ dnd-context
-          #js {"modifiers" #js [scale-fn dnd-modifier-int]}
+          #js {"modifiers" #js [scale-fn modifiers/trunc]}
           children)))))
 
 (defui ^:private ^:memo scene-elements []

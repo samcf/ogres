@@ -1,6 +1,7 @@
 (ns ogres.app.geom
   (:require [clojure.math :refer [floor ceil]]
             [ogres.app.const :refer [grid-size half-size]]
+            [ogres.app.matrix :as matrix]
             [ogres.app.vec :as vec :refer [Vec2 Segment]]))
 
 (def ^:const deg45->rad (/ js/Math.PI 4))
@@ -65,6 +66,12 @@
    (vec/shift point grid-size 0)
    (vec/shift point grid-size)
    (vec/shift point 0 grid-size)])
+
+(defn rect-points [segment]
+  [(.-a segment)
+   (Vec2. (.-x (.-b segment)) (.-y (.-a segment)))
+   (Vec2. (.-x (.-a segment)) (.-y (.-b segment)))
+   (.-b segment)])
 
 (defn rect-intersects-rect [a b]
   (not (or (< (.-x (.-b a)) (.-x (.-a b)))
@@ -235,6 +242,35 @@
 (defmethod object-bounding-rect :note/note
   [{src :object/point}]
   (Segment. src (vec/shift src 42)))
+
+(defmethod object-bounding-rect :prop/prop
+  [{point :object/point
+    scale :object/scale
+    rotation :object/rotation
+    {width :image/width
+     height :image/height} :prop/image}]
+  (let [bound (Segment. point (vec/shift point width height))
+        xform (-> matrix/identity
+                  (matrix/translate (vec/midpoint bound))
+                  (matrix/scale scale)
+                  (matrix/rotate rotation)
+                  (matrix/translate (vec/mul (vec/midpoint bound) -1)))]
+    (bounding-rect (map xform (rect-points bound)))))
+
+(defmulti object-transform :object/type)
+
+(defmethod object-transform :default []
+  matrix/identity)
+
+(defmethod object-transform :prop/prop
+  [{scale :object/scale rotation :object/rotation
+    {width :image/width height :image/height} :prop/image}]
+  (let [bounds (Segment. vec/zero (Vec2. width height))
+        center (vec/midpoint bounds)]
+    (-> (matrix/translate matrix/identity center)
+        (matrix/scale (or scale 1))
+        (matrix/rotate (or rotation 0))
+        (matrix/translate (vec/mul center -1)))))
 
 (defmulti object-tile-path
   (fn [object _ _]

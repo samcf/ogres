@@ -4,6 +4,7 @@
             [clojure.string :refer [trim]]
             [ogres.app.const :refer [grid-size half-size]]
             [ogres.app.geom :as geom]
+            [ogres.app.matrix :as matrix]
             [ogres.app.vec :as vec :refer [Vec2]]))
 
 (def ^:private suffix-max-xf
@@ -499,6 +500,37 @@
     [:db/add id :object/hidden value]))
 
 (defmethod
+  ^{:doc "Change the locked flag for the given objects."}
+  event-tx-fn :objects/change-locked
+  [data _ idxs value]
+  (let [{{id :db/id} :user/camera} (ds/entity data [:db/ident :user])]
+    (cond-> (for [id idxs] [:db/add id :object/locked value])
+      (true? value)
+      (into [[:db/retract id :camera/selected]]))))
+
+(defmethod
+  ^{:doc "Resets all transformations for the given objects."}
+  event-tx-fn :objects/reset-transform
+  [_ _ idxs]
+  (into
+   [] cat
+   (for [id idxs]
+     [[:db/retract id :object/scale]
+      [:db/retract id :object/rotation]])))
+
+(defmethod
+  ^{:doc "Change the scaling of the given object."}
+  event-tx-fn :object/change-scale
+  [_ _ id scale]
+  [[:db/add id :object/scale scale]])
+
+(defmethod
+  ^{:doc "Change the rotation of the given object."}
+  event-tx-fn :object/change-rotation
+  [_ _ id rotation]
+  [[:db/add id :object/rotation rotation]])
+
+(defmethod
   ^{:doc "Removes the objects given by idxs."}
   event-tx-fn :objects/remove
   [_ _ idxs]
@@ -592,22 +624,24 @@
   (let [result (ds/entity data [:db/ident :root])
         {{{{tokens :scene/tokens
             shapes :scene/shapes
-            notes  :scene/notes} :camera/scene
+            notes  :scene/notes
+            props  :scene/props} :camera/scene
            camera :db/id} :user/camera
           type :user/type} :root/user
          {conns :session/conns} :root/session} result
         bounds (geom/bounding-rect (seq rect))
-        locked (into #{} (comp (mapcat :user/dragging) (map :db/id)) conns)]
+        occupied (into #{} (comp (mapcat :user/dragging) (map :db/id)) conns)]
     [{:db/id camera
       :camera/draw-mode :select
       :camera/selected
-      (for [entity (concat shapes tokens notes)
+      (for [entity (concat shapes tokens notes props)
             :let   [{id :db/id} entity]
             :let   [object (geom/object-bounding-rect entity)]
-            :when  (and (geom/rect-intersects-rect object bounds)
-                        (not (locked id))
-                        (or (= type :host) (not (:object/locked entity)))
-                        (or (= type :host) (not (:object/hidden entity))))]
+            :when  (and (not (occupied id))
+                        (not (and (= type :conn) (:object/hidden entity)))
+                        (not (and (= type :conn) (= (:object/type entity) :note/note)))
+                        (not (and (= type :conn) (= (:object/type entity) :prop/prop)))
+                        (geom/rect-intersects-rect object bounds))]
         {:db/id id})}]))
 
 (defmethod event-tx-fn :selection/clear
@@ -1076,3 +1110,69 @@
     [[:db/add id :note/label label]
      [:db/add id :note/description desc]
      [:db/retract (:db/id (:user/camera user)) :camera/selected id]]))
+
+;; --- Props Images ---
+
+(defmethod event-tx-fn :props-images/create-many
+  [_ _ images]
+  (into
+   [{:db/ident :root
+     :root/props-images
+     (for [[{:keys [hash name size width height]} _] images]
+       {:image/hash hash
+        :image/name name
+        :image/size size
+        :image/width width
+        :image/height height})}] cat
+   (for [[image thumbnail] images]
+     (if (= (:hash image) (:hash thumbnail))
+       [{:image/hash (:hash image) :image/thumbnail [:image/hash (:hash image)]}]
+       [{:image/hash (:hash thumbnail)
+         :image/name (:name thumbnail)
+         :image/size (:size thumbnail)
+         :image/width (:width thumbnail)
+         :image/height (:height thumbnail)}
+        {:image/hash (:hash image) :image/thumbnail [:image/hash (:hash thumbnail)]}]))))
+
+(defmethod
+  ^{:doc ""}
+  event-tx-fn :props-images/remove-all
+  [data _ _]
+  (let [user (ds/entity data [:db/ident :user])
+        xfrm (comp (map :camera/scene) (mapcat :scene/props) (map :db/id))]
+    (into [[:db/retract [:db/ident :root] :root/props-images]]
+          (for [id (sequence xfrm (:user/cameras user))]
+            [:db/retractEntity id]))))
+
+(defmethod
+  ^{:doc ""}
+  event-tx-fn :props-images/remove
+  [data _ hash]
+  (let [user (ds/entity data [:db/ident :user])
+        xfrm (comp
+              (mapcat (comp :scene/props :camera/scene))
+              (filter (comp #{hash} :image/hash :prop/image)))]
+    (into [[:db/retractEntity [:image/hash hash]]]
+          (for [entity (sequence xfrm (:user/cameras user))]
+            [:db/retractEntity (:db/id entity)]))))
+
+(defmethod event-tx-fn :props/create
+  [data _ point hash]
+  (let [{{bounds :user/bounds
+          {camera-point :camera/point
+           camera-scale :camera/scale
+           camera-id :db/id
+           {scene-id :db/id}
+           :camera/scene}
+          :user/camera} :root/user}
+        (ds/entity data [:db/ident :root])
+        xform (-> (matrix/translate matrix/identity camera-point)
+                  (matrix/scale (/ (or camera-scale 1)))
+                  (matrix/translate (vec/mul (.-a bounds) -1)))]
+    (if (geom/point-within-rect? point bounds)
+      [[:db/add -1 :object/point (xform point)]
+       [:db/add -1 :object/type :prop/prop]
+       [:db/add -1 :prop/image [:image/hash hash]]
+       [:db/add camera-id :camera/selected -1]
+       [:db/add scene-id :scene/props -1]]
+      [])))

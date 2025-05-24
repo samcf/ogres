@@ -3,6 +3,9 @@
 
 (declare zero)
 
+(def ^:private rad->deg (/ 180 js/Math.PI))
+(def ^:private tau (* 2 js/Math.PI))
+
 (defn ^:private to-string-vec2 [x y]
   (str "#vec2[" x "," y "]"))
 
@@ -64,7 +67,10 @@
   (div [_ n]
     (Vec2. (/ x n) (/ y n)))
   (heading [_]
-    (js/Math.atan2 y x))
+    (let [rad (js/Math.atan2 y x)]
+      (if (neg? rad)
+        (* rad->deg (+ rad tau))
+        (* rad->deg rad))))
   (max [_]
     (clojure.core/max x y))
   (mod [_ n]
