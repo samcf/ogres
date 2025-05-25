@@ -252,7 +252,8 @@
          ($ :.cursor-region
            {:style {:cursor cursor}}) js/document.body))
       ($ :rect.scene-prop-anchor
-        {:on-pointer-down handle
+        {:data-dragging (.-isDragging resize)
+         :on-pointer-down handle
          :style {:cursor cursor}
          :x (- (.-x point) (/ size 2))
          :y (- (.-y point) (/ size 2))
@@ -271,7 +272,8 @@
          ($ :.cursor-region
            {:style {:cursor "grabbing"}}) js/document.body))
       ($ :circle.scene-prop-anchor
-        {:on-pointer-down handle
+        {:data-dragging (.-isDragging rotate)
+         :on-pointer-down handle
          :style {:cursor cursor}
          :cx (.-x point)
          :cy (.-y point)
@@ -279,14 +281,14 @@
 
 (defui ^:private object-prop-edit [props]
   (let [{{id :db/id
-          scale :object/scale
-          rotation :object/rotation
+          object-scale :object/scale
+          object-rotation :object/rotation
           {width :image/width
            height :image/height} :prop/image
           [{zoom :camera/scale}] :camera/_selected} :entity
          transform :transform} props
-        [scale set-scale] (uix/use-state scale)
-        [rotation set-rotation] (uix/use-state rotation)
+        [scale set-scale] (uix/use-state object-scale)
+        [rotation set-rotation] (uix/use-state object-rotation)
         dispatch (hooks/use-dispatch)
         bounds (Segment. vec/zero (Vec2. width height))
         center (vec/midpoint bounds)
@@ -309,6 +311,11 @@
                        (+ 90))
                 rd (util/round dg 45)]
             (if (< (abs (- dg rd)) 5) rd dg)))]
+    (uix/use-effect
+     (fn []
+       (set-scale object-scale)
+       (set-rotation object-rotation))
+     [object-scale object-rotation])
     (use-dnd-monitor
      #js {"onDragMove"
           (fn [event]
@@ -356,7 +363,7 @@
       ($ dnd-context
         #js {"modifiers" #js [mod-scale modifiers/trunc]}
         ($ object-prop-edit
-          (assoc props :key transform :transform transform)
+          (assoc props :transform transform)
           ($ :image.scene-prop-image
             {:data-hidden hidden
              :width width

@@ -416,6 +416,10 @@
   --scene-object-stroke-width: 1px;
 }
 
+.scene-prop:not(:has([data-dragging="true"])) {
+  transition: transform 250ms ease-in-out;
+}
+
 .scene-prop-bounds {
   animation: ring-rotate 640ms linear infinite;
   fill: none;
