@@ -502,11 +502,8 @@
 (defmethod
   ^{:doc "Change the locked flag for the given objects."}
   event-tx-fn :objects/change-locked
-  [data _ idxs value]
-  (let [{{id :db/id} :user/camera} (ds/entity data [:db/ident :user])]
-    (cond-> (for [id idxs] [:db/add id :object/locked value])
-      (true? value)
-      (into [[:db/retract id :camera/selected]]))))
+  [_ _ idxs value]
+  (for [id idxs] [:db/add id :object/locked value]))
 
 (defmethod
   ^{:doc "Resets all transformations for the given objects."}
