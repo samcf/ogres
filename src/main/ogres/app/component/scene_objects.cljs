@@ -493,7 +493,7 @@
            [:object/type :default :note/note]
            [:object/point :default vec/zero]
            [:object/hidden :default true]
-           [:object/locked :default true]
+           [:object/locked :default false]
            [:note/icon :default "journal-bookmark-fill"]
            [:note/label :default ""]
            [:note/description :default ""]
