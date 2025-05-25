@@ -340,6 +340,7 @@
 
 (defui ^:private object-prop [props]
   (let [{{id :db/id
+          hidden :object/hidden
           locked :object/locked
           {hash :image/hash
            width :image/width
@@ -356,12 +357,18 @@
         ($ object-prop-edit
           (assoc props :key transform :transform transform)
           ($ :image.scene-prop-image
-            {:width width :height height :href url-image})
+            {:data-hidden hidden
+             :width width
+             :height height
+             :href url-image})
           ($ :rect.scene-prop-bounds
             {:width width :height height})))
       ($ :g.scene-prop {:style {:transform transform}}
         ($ :image.scene-prop-image
-          {:width width :height height :href url-image})
+          {:data-hidden hidden
+           :width width
+           :height height
+           :href url-image})
         ($ :rect.scene-prop-bounds
           {:width width :height height})))))
 

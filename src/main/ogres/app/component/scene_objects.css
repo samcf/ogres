@@ -430,6 +430,10 @@
   cursor: var(--scene-object-cursor, default);
 }
 
+.scene-prop-image[data-hidden="true"] {
+  opacity: 0.5;
+}
+
 .scene-prop-anchor {
   shape-rendering: crispEdges;
 }

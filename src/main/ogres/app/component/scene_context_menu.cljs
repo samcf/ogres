@@ -323,15 +323,30 @@
        :render-aside
        (fn []
          ($ :<>
+           (if (every? :object/hidden data)
+             ($ :button
+               {:type "button"
+                :data-tooltip "Reveal"
+                :data-selected true
+                :on-click (fn [] (dispatch :objects/change-hidden idxs false))}
+               ($ icon {:name "eye-slash-fill"}))
+             ($ :button
+               {:type "button"
+                :data-tooltip "Hide"
+                :data-selected false
+                :on-click (fn [] (dispatch :objects/change-hidden idxs true))}
+               ($ icon {:name "eye-fill"})))
            (if (every? :object/locked data)
              ($ :button
                {:type "button"
                 :data-tooltip "Unlock"
+                :data-selected true
                 :on-click (fn [] (dispatch :objects/change-locked idxs false))}
                ($ icon {:name "lock"}))
              ($ :button
                {:type "button"
                 :data-tooltip "Lock"
+                :data-selected false
                 :on-click (fn [] (dispatch :objects/change-locked idxs true))}
                ($ icon {:name "unlock"})))
            ($ :button
