@@ -1163,9 +1163,14 @@
            :camera/scene}
           :user/camera} :root/user}
         (ds/entity data [:db/ident :root])
-        xform (-> (matrix/translate matrix/identity camera-point)
-                  (matrix/scale (/ (or camera-scale 1)))
-                  (matrix/translate (vec/mul (.-a bounds) -1)))]
+        {width :image/width
+         height :image/height}
+        (ds/entity data [:image/hash hash])
+        xform
+        (-> (matrix/translate matrix/identity camera-point)
+            (matrix/translate (/ width -2) (/ height -2))
+            (matrix/scale (/ (or camera-scale 1)))
+            (matrix/translate (vec/mul (.-a bounds) -1)))]
     (if (geom/point-within-rect? point bounds)
       [[:db/add -1 :object/point (xform point)]
        [:db/add -1 :object/type :prop/prop]

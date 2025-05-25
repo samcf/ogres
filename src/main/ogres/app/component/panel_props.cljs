@@ -4,7 +4,8 @@
             [ogres.app.vec :as vec :refer [Vec2]]
             [uix.core :as uix :refer [defui $]]
             [uix.dom :refer [create-portal]]
-            ["@dnd-kit/core" :as dnd]))
+            ["@dnd-kit/core" :as dnd]
+            ["@dnd-kit/modifiers" :as modifiers]))
 
 (def ^:private query
   [{:root/props-images
@@ -34,7 +35,8 @@
           "onDragEnd"   (fn [_]     (set-active nil))})
     (create-portal
      ($ dnd/DragOverlay
-       {:drop-animation nil}
+       {:modifiers #js [modifiers/snapCenterToCursor]
+        :drop-animation nil}
        ($ :img.props-gallery-overlay-content
          {:src url}))
      js/document.body)))
