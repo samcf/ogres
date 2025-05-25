@@ -17,6 +17,7 @@
 (defprotocol IVec2
   (abs [a])
   (add [a b])
+  (angle [a])
   (dist [a] [a b])
   (dist-cheb [a] [a b])
   (div [a x])
@@ -56,6 +57,11 @@
     (Vec2. (clojure.core/abs x) (clojure.core/abs y)))
   (add [_ b]
     (Vec2. (+ x (.-x b)) (+ y (.-y b))))
+  (angle [_]
+    (let [rad (js/Math.atan2 y x)]
+      (if (neg? rad)
+        (* rad->deg (+ rad tau))
+        (* rad->deg rad))))
   (dist [_]
     (js/Math.hypot x y))
   (dist [a b]
@@ -67,10 +73,7 @@
   (div [_ n]
     (Vec2. (/ x n) (/ y n)))
   (heading [_]
-    (let [rad (js/Math.atan2 y x)]
-      (if (neg? rad)
-        (* rad->deg (+ rad tau))
-        (* rad->deg rad))))
+    (js/Math.atan2 y x))
   (max [_]
     (clojure.core/max x y))
   (mod [_ n]

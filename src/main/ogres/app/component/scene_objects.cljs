@@ -241,11 +241,11 @@
               ($ :input {:type "submit" :hidden true}))))))))
 
 (defui ^:private ^:memo object-prop-scale
-  [{:keys [point size heading]}]
+  [{:keys [point size angle]}]
   (let [option #js {"id" (str "resize/" point) "data" #js {"type" "resize" "point" point}}
         resize (use-draggable option)
         handle (and (.-listeners resize) (.-onPointerDown (.-listeners resize)))
-        cursor (resize-cursor heading)]
+        cursor (resize-cursor angle)]
     ($ :<>
       (if (.-isDragging resize)
         (dom/create-portal
@@ -305,7 +305,7 @@
                 dy (.-y (.-delta event))
                 dg (-> (vec/shift (transform (.-point data)) dx dy)
                        (vec/sub center)
-                       (vec/heading)
+                       (vec/angle)
                        (+ 90))
                 rd (util/round dg 45)]
             (if (< (abs (- dg rd)) 5) rd dg)))]
@@ -333,7 +333,7 @@
           {:key point
            :point point
            :size (/ 8 scale zoom)
-           :heading (vec/heading (vec/sub (transform point) center))}))
+           :angle (vec/angle (vec/sub (transform point) center))}))
       ($ object-prop-rotate
         {:point (Vec2. (.-x center) (/ 26 scale zoom -1))
          :size (/ 5 scale zoom)}))))
