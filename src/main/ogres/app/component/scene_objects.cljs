@@ -8,6 +8,7 @@
             [ogres.app.hooks :as hooks]
             [ogres.app.matrix :as matrix]
             [ogres.app.modifiers :as modifiers]
+            [ogres.app.util :as util]
             [ogres.app.vec :as vec :refer [Vec2 Segment]]
             [react-transition-group :refer [TransitionGroup CSSTransition]]
             [uix.core :as uix :refer [defui $]]
@@ -301,11 +302,13 @@
         (fn [^js/Object event]
           (let [data (.. event -active -data -current)
                 dx (.-x (.-delta event))
-                dy (.-y (.-delta event))]
-            (-> (vec/shift (transform (.-point data)) dx dy)
-                (vec/sub center)
-                (vec/heading)
-                (+ 90))))]
+                dy (.-y (.-delta event))
+                dg (-> (vec/shift (transform (.-point data)) dx dy)
+                       (vec/sub center)
+                       (vec/heading)
+                       (+ 90))
+                rd (util/round dg 45)]
+            (if (< (abs (- dg rd)) 5) rd dg)))]
     (use-dnd-monitor
      #js {"onDragMove"
           (fn [event]
