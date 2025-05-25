@@ -23,13 +23,16 @@
   ["journal-bookmark-fill" "dice-5" "door-open" "geo-alt" "fire" "skull" "question-circle"])
 
 (defn ^:private resize-cursor [deg]
-  (cond (or (and (> deg 75)  (< deg 105))
-            (and (> deg 255) (< deg 285))) "ns-resize"
-        (or (and (> deg 345) (< deg 15))
-            (and (> deg 255) (< deg 285))) "ew-resize"
-        (or (and (> deg 15)  (< deg 75))
-            (and (> deg 195) (< deg 255))) "nwse-resize"
-        :else "nesw-resize"))
+  (cond
+    (> deg 345) "ew-resize"
+    (> deg 285) "nesw-resize"
+    (> deg 255) "ns-resize"
+    (> deg 195) "nwse-resize"
+    (> deg 165) "ew-resize"
+    (> deg 105) "nesw-resize"
+    (> deg 75)  "ns-resize"
+    (> deg 15)  "nwse-resize"
+    (> deg 0)   "ew-resize"))
 
 (defn ^:private stop-propagation
   "Defines an event handler that ceases event propagation."
