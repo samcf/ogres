@@ -374,11 +374,11 @@
           {:width width :height height})))))
 
 (defui ^:private object [props]
-  (case (keyword (namespace (:object/type (:entity props))))
-    :shape ($ object-shape props)
-    :token ($ object-token props)
-    :note  ($ object-note props)
-    :prop  ($ object-prop props)))
+  (case (:object/type (:entity props))
+    :token/token ($ object-token props)
+    :note/note ($ object-note props)
+    :prop/prop ($ object-prop props)
+    ($ object-shape props)))
 
 (defn ^:private use-drag-listener []
   (let [dispatch (hooks/use-dispatch)]
