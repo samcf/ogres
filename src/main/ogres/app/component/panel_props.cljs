@@ -25,7 +25,8 @@
     ($ :button.props-gallery-image
       {:ref (.-setNodeRef opt)
        :style {:background-image (str "url(" url ")")}
-       :on-pointer-down (.. opt -listeners -onPointerDown)})))
+       :on-pointer-down (.. opt -listeners -onPointerDown)
+       :on-key-down (.. opt -listeners -onKeyDown)})))
 
 (defui ^:private ^:memo overlay []
   (let [[active set-active] (uix/use-state nil)
