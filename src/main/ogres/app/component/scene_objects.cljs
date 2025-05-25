@@ -346,12 +346,13 @@
            width :image/width
            height :image/height} :prop/image
           [{selected :camera/selected
+            [{user :root/_user}] :user/_camera
             zoom :camera/scale}] :camera/_selected} :entity} props
         url-image (hooks/use-image hash)
         mod-scale (uix/use-memo (fn [] (modifiers/scale-fn zoom)) [zoom])
         transform (geom/object-transform (:entity props))
         selected (into #{} (map :db/id) selected)]
-    (if (and (= #{id} selected) (not locked))
+    (if (and (some? user) (not locked) (= #{id} selected))
       ($ dnd-context
         #js {"modifiers" #js [mod-scale modifiers/trunc]}
         ($ object-prop-edit
