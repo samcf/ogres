@@ -503,7 +503,8 @@
   ^{:doc "Change the locked flag for the given objects."}
   event-tx-fn :objects/change-locked
   [_ _ idxs value]
-  (for [id idxs] [:db/add id :object/locked value]))
+  (for [id idxs]
+    [:db/add id :object/locked value]))
 
 (defmethod
   ^{:doc "Resets all transformations for the given objects."}
@@ -1110,7 +1111,11 @@
 
 ;; --- Props Images ---
 
-(defmethod event-tx-fn :props-images/create-many
+(defmethod
+  ^{:doc "Creates state representations of images used as props which
+          include metadata like image dimensions, filename, and their
+          thumbnails. Uniquely identified by their SHA-1 hash digest."}
+  event-tx-fn :props-images/create-many
   [_ _ images]
   (into
    [{:db/ident :root
@@ -1132,7 +1137,7 @@
         {:image/hash (:hash image) :image/thumbnail [:image/hash (:hash thumbnail)]}]))))
 
 (defmethod
-  ^{:doc ""}
+  ^{:doc "Removes all prop images as well as any props from all scenes."}
   event-tx-fn :props-images/remove-all
   [data _ _]
   (let [user (ds/entity data [:db/ident :user])
@@ -1142,7 +1147,8 @@
             [:db/retractEntity id]))))
 
 (defmethod
-  ^{:doc ""}
+  ^{:doc "Removes a prop image as well as any instances of that image
+          in all scenes."}
   event-tx-fn :props-images/remove
   [data _ hash]
   (let [user (ds/entity data [:db/ident :user])
@@ -1153,7 +1159,12 @@
           (for [entity (sequence xfrm (:user/cameras user))]
             [:db/retractEntity (:db/id entity)]))))
 
-(defmethod event-tx-fn :props/create
+;; --- Props ---
+
+(defmethod
+  ^{:doc "Creates a new prop image in the current scene at the given
+          screen-space point."}
+  event-tx-fn :props/create
   [data _ point hash]
   (let [{{bounds :user/bounds
           {camera-point :camera/point
