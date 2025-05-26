@@ -314,7 +314,7 @@
         idxs (map :db/id data)]
     ($ context-menu-fn
       {:render-toolbar
-       (fn [{:keys [_selected _on-change]}]
+       (fn []
          ($ :button
            {:type "button"
             :data-tooltip "Reset size/rotation"
