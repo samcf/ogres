@@ -929,6 +929,8 @@
    :object/type
    :object/hidden
    :object/locked
+   :object/scale
+   :object/rotation
    :note/icon
    :note/label
    :note/description
@@ -940,13 +942,16 @@
    :token/light
    :token/size
    :token/aura-radius
-   :token/image])
+   :token/image
+   :prop/image])
 
 (def ^:private clipboard-copy-select
   [{:user/camera
     [{:camera/selected
       (into clipboard-copy-attrs
-            [:db/id {:token/image [:image/hash]}])}]}])
+            [:db/id
+             {:prop/image [:image/hash]}
+             {:token/image [:image/hash]}])}]}])
 
 (defmethod
   ^{:doc "Copy the currently selected objects to the clipboard. Optionally
@@ -978,7 +983,8 @@
        {:camera/scene
         [:db/id
          [:scene/grid-align :default false]]}]}]}
-   {:root/token-images [:image/hash]}])
+   {:root/token-images [:image/hash]}
+   {:root/props-images [:image/hash]}])
 
 (defmethod
   ^{:doc "Creates objects on the current scene from the data stored in the
@@ -995,21 +1001,31 @@
            point :camera/point
            {scene :db/id align? :scene/grid-align}
            :camera/scene} :user/camera} :root/user
-         images :root/token-images} result
-        hashes (into #{} (map :image/hash) images)
+         token-images :root/token-images
+         props-images :root/props-images} result
+        props-hashes (into #{} (map :image/hash) props-images)
+        token-hashes (into #{} (map :image/hash) token-images)
+        pastable-xf
+        (filter
+         (fn [data]
+           (or (not= (:object/type data) :prop/prop)
+               (props-hashes (:image/hash (:prop/image data))))))
         bound (transduce (mapcat geom/object-bounding-rect) geom/bounding-rect-rf clipboard)
         delta (vec/sub
                (vec/add point (vec/div (vec/midpoint screen) scale))
                (vec/midpoint bound))]
-    (for [[idx copy] (sequence (indexed) clipboard)
-          :let [{src :object/point type :object/type} copy
-                hash (:image/hash (:token/image copy))
-                type (keyword (namespace type))
-                data (cond-> (assoc copy :db/id idx :object/point (vec/add src delta))
+    (for [[idx copy] (sequence (comp pastable-xf (indexed)) clipboard)
+          :let [{point :object/point
+                 {hash-prop :image/hash} :prop/image
+                 {hash-token :image/hash} :token/image} copy
+                type (keyword (namespace (:object/type copy)))
+                data (cond-> (assoc copy :db/id idx :object/point (vec/add point delta))
                        align?
-                       (assoc :object/point (vec/rnd (vec/add src delta) grid-size))
-                       (and (= type :token) (hashes hash))
-                       (assoc :token/image [:image/hash (hashes hash)])
+                       (assoc :object/point (vec/rnd (vec/add point delta) grid-size))
+                       (and (= type :prop) (props-hashes hash-prop))
+                       (assoc :prop/image [:image/hash (props-hashes hash-prop)])
+                       (and (= type :token) (token-hashes hash-token))
+                       (assoc :token/image [:image/hash (token-hashes hash-token)])
                        (and (= type :token) align?)
                        (assoc :object/point
                               (let [bounds (geom/object-bounding-rect copy)
@@ -1020,6 +1036,7 @@
        :camera/scene
        (cond-> {:db/id scene}
          (= type :note)  (assoc :scene/notes data)
+         (= type :prop)  (assoc :scene/props data)
          (= type :shape) (assoc :scene/shapes data)
          (= type :token) (assoc :scene/tokens data))})))
 
