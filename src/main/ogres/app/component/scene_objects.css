@@ -30,7 +30,7 @@
   outline: none;
   transition: transform 80ms linear;
 
-  &:focus-visible {
+  &:not([data-locked="true"]):focus-visible {
     border-radius: 3px;
     outline: 2px solid var(--outline-color);
   }
