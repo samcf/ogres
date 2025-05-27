@@ -1,0 +1,67 @@
+.props-gallery-page {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(4, 1fr);
+
+  &:has(:focus-visible) .props-gallery-fieldset:not(:has(:focus-visible)) {
+    opacity: 0.3;
+  }
+}
+
+.props-gallery-fieldset {
+  aspect-ratio: 1;
+  display: flex;
+  position: relative;
+
+  &:hover .props-gallery-remove {
+    visibility: visible;
+  }
+}
+
+.props-gallery-placeholder {
+  aspect-ratio: 1;
+  border: 1px dashed var(--color-blues-300);
+  border-radius: 3px;
+}
+
+.props-gallery-remove {
+  aspect-ratio: 1;
+  display: block;
+  display: flex;
+  inset: 4px 4px auto auto;
+  justify-content: center;
+  padding: 0;
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  visibility: hidden;
+}
+
+.props-gallery-image {
+  background-repeat: no-repeat;
+  background-size: cover;
+  border-radius: 3px;
+  border: 1px solid var(--color-blues-900);
+  cursor: grab;
+  flex: 1;
+
+  &:focus-visible {
+    outline: 2px dotted var(--outline-color);
+    outline-offset: 1px;
+  }
+}
+
+.props-gallery-overlay-content {
+  cursor: grab;
+  max-width: 380px;
+  opacity: 0.8;
+}
+
+.props-gallery-pagination {
+  display: flex;
+  margin: 8px 0;
+
+  nav {
+    margin: auto;
+  }
+}

@@ -10,6 +10,7 @@
 
 (defprotocol IMatrix
   (inverse [m])
+  (rotate [m d])
   (scale [m s])
   (translate [m v] [m x y]))
 
@@ -41,6 +42,8 @@
   IMatrix
   (inverse [_]
     (Matrix. (.inverse m)))
+  (rotate [_ d]
+    (Matrix. (.rotate m d)))
   (scale [_ s]
     (Matrix. (.scale m s)))
   (translate [_ v]

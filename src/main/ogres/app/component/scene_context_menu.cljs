@@ -308,10 +308,58 @@
              (fn [event & args]
                (apply dispatch event (map :db/id data) args))}))))))
 
+(defui context-menu-prop [props]
+  (let [dispatch (hooks/use-dispatch)
+        data (:data props)
+        idxs (map :db/id data)]
+    ($ context-menu-fn
+      {:render-toolbar
+       (fn []
+         ($ :button
+           {:type "button"
+            :data-tooltip "Reset size/rotation"
+            :on-click (fn [] (dispatch :objects/reset-transform idxs))}
+           ($ icon {:name "arrows-angle-expand"})))
+       :render-aside
+       (fn []
+         ($ :<>
+           (if (every? :object/hidden data)
+             ($ :button
+               {:type "button"
+                :data-tooltip "Reveal"
+                :data-selected true
+                :on-click (fn [] (dispatch :objects/change-hidden idxs false))}
+               ($ icon {:name "eye-slash-fill"}))
+             ($ :button
+               {:type "button"
+                :data-tooltip "Hide"
+                :data-selected false
+                :on-click (fn [] (dispatch :objects/change-hidden idxs true))}
+               ($ icon {:name "eye-fill"})))
+           (if (every? :object/locked data)
+             ($ :button
+               {:type "button"
+                :data-tooltip "Unlock"
+                :data-selected true
+                :on-click (fn [] (dispatch :objects/change-locked idxs false))}
+               ($ icon {:name "lock"}))
+             ($ :button
+               {:type "button"
+                :data-tooltip "Lock"
+                :data-selected false
+                :on-click (fn [] (dispatch :objects/change-locked idxs true))}
+               ($ icon {:name "unlock"})))
+           ($ :button
+             {:type "button" :data-tooltip "Remove" :style {:margin-left "auto"}
+              :on-click #(dispatch :selection/remove)}
+             ($ icon {:name "trash3-fill"}))))}
+      (fn [{:keys []}]))))
+
 (defui context-menu [props]
   (let [types (into #{} (map (comp keyword namespace :object/type)) (:data props))]
     (if (= (count types) 1)
       (case (first types)
         :shape ($ context-menu-shape props)
         :token ($ context-menu-token props)
+        :prop  ($ context-menu-prop  props)
         nil))))

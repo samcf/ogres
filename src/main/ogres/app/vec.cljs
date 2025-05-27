@@ -3,6 +3,9 @@
 
 (declare zero)
 
+(def ^:private rad->deg (/ 180 js/Math.PI))
+(def ^:private tau (* 2 js/Math.PI))
+
 (defn ^:private to-string-vec2 [x y]
   (str "#vec2[" x "," y "]"))
 
@@ -14,6 +17,7 @@
 (defprotocol IVec2
   (abs [a])
   (add [a b])
+  (angle [a])
   (dist [a] [a b])
   (dist-cheb [a] [a b])
   (div [a x])
@@ -53,6 +57,11 @@
     (Vec2. (clojure.core/abs x) (clojure.core/abs y)))
   (add [_ b]
     (Vec2. (+ x (.-x b)) (+ y (.-y b))))
+  (angle [_]
+    (let [rad (js/Math.atan2 y x)]
+      (if (neg? rad)
+        (* rad->deg (+ rad tau))
+        (* rad->deg rad))))
   (dist [_]
     (js/Math.hypot x y))
   (dist [a b]

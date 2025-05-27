@@ -58,6 +58,8 @@
     }
 
     .context-menu-main {
+      display: flex;
+      flex-direction: column;
       flex: 1;
       pointer-events: all;
 
@@ -78,6 +80,7 @@
       .context-menu-toolbar {
         border-radius: 3px 0 0 3px;
         border-width: 1px 0 1px 1px;
+        flex: 1;
       }
 
       .context-menu-form {

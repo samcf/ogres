@@ -135,6 +135,7 @@
   .form-session,
   .form-scenes,
   .form-tokens,
+  .form-props,
   .form-help {
     display: flex;
     flex-direction: column;
@@ -168,6 +169,16 @@
   gap: 4px;
 
   button {
+    flex: 1;
+  }
+}
+
+.form[data-form="props"] .form-footer {
+  display: flex;
+  gap: 4px;
+  justify-content: space-between;
+
+  button:first-child {
     flex: 1;
   }
 }
