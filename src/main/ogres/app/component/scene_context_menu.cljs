@@ -3,6 +3,7 @@
             [ogres.app.component :refer [icon]]
             [ogres.app.component.scene-pattern :refer [pattern]]
             [ogres.app.hooks :as hooks]
+            [ogres.app.util :as util]
             [uix.core :as uix :refer [defui $]]))
 
 (defn ^:private token-size [x]
@@ -43,8 +44,54 @@
    {:value :crosses :label "Crosses"}
    {:value :caps    :label "Caps"}])
 
+(defn ^:private prevent-default [event]
+  (.preventDefault event))
+
 (defn ^:private stop-propagation [event]
   (.stopPropagation event))
+
+(defui ^:private action-hide
+  [{:keys [value disabled on-change]
+    :or   {value false disabled false on-change prevent-default}}]
+  ($ :label.context-menu-action
+    {:data-tooltip (if value "Reveal" "Hide")}
+    ($ :input
+      {:type "checkbox"
+       :name "hidden"
+       :checked value
+       :disabled disabled
+       :aria-disabled disabled
+       :on-change
+       (fn [event]
+         (on-change (.-checked (.-target event))))})
+    ($ icon {:name (if value "eye-slash-fill" "eye-fill")})))
+
+(defui ^:private action-lock
+  [{:keys [value disabled on-change]
+    :or   {value false disabled false on-change prevent-default}}]
+  ($ :label.context-menu-action
+    {:data-tooltip (if value "Unlock" "Lock")}
+    ($ :input
+      {:type "checkbox"
+       :name "hidden"
+       :checked value
+       :disabled disabled
+       :aria-disabled disabled
+       :on-change
+       (fn [event]
+         (on-change (.-checked (.-target event))))})
+    ($ icon {:name (if value "lock" "unlock")})))
+
+(defui ^:private action-remove
+  [{:keys [disabled on-click]
+    :or   {disabled false on-click prevent-default}}]
+  ($ :button
+    {:type "button"
+     :disabled disabled
+     :data-tooltip "Remove"
+     :style {:margin-left "auto"}
+     :on-click (fn [] (on-click))}
+    ($ icon {:name "trash3-fill"})))
 
 (defui ^:private context-menu-fn
   [{:keys [render-toolbar render-aside children]
@@ -185,9 +232,10 @@
                    ((:on-change props) :token/change-flag value checked)))})
             ($ icon {:name icon-name})))))))
 
-(defui ^:private context-menu-token [{:keys [data type]}]
+(defui ^:private context-menu-token [props]
   (let [dispatch (hooks/use-dispatch)
-        idxs (map :db/id data)]
+        data     (:data props)
+        idxs     (into [] (map :db/id) data)]
     ($ context-menu-fn
       {:render-toolbar
        (fn [{:keys [selected on-change]}]
@@ -227,18 +275,16 @@
        :render-aside
        (fn []
          ($ :<>
-           (if (= type :host)
-             (let [on (every? :object/hidden data)]
-               ($ :button
-                 {:type "button"
-                  :data-selected on
-                  :data-tooltip (if on "Reveal" "Hide")
-                  :on-click (fn [] (dispatch :objects/change-hidden idxs (not on)))}
-                 ($ icon {:name (if on "eye-slash-fill" "eye-fill")}))))
-           ($ :button
-             {:type "button" :data-tooltip "Remove"
-              :on-click #(dispatch :objects/remove idxs)}
-             ($ icon {:name "trash3-fill"}))))}
+           ($ action-hide
+             {:value (every? :object/hidden data)
+              :disabled (not= (:user props) :host)
+              :on-change
+              (fn []
+                (dispatch :objects/toggle-hidden-selected))})
+           ($ action-remove
+             {:on-click
+              (fn []
+                (dispatch :objects/remove-selected))})))}
       (fn [{:keys [selected on-change]}]
         (let [props {:on-close  #(on-change nil)
                      :on-change #(apply dispatch %1 idxs %&)
@@ -293,10 +339,17 @@
            ($ icon {:name "palette-fill"})))
        :render-aside
        (fn []
-         ($ :button
-           {:type "button" :data-tooltip "Remove" :style {:margin-left "auto"}
-            :on-click #(dispatch :selection/remove)}
-           ($ icon {:name "trash3-fill"})))}
+         ($ :<>
+           ($ action-lock
+             {:value (every? :object/locked data)
+              :disabled (not= (:user props) :host)
+              :on-change
+              (fn []
+                (dispatch :objects/toggle-locked-selected))})
+           ($ action-remove
+             {:on-click
+              (fn []
+                (dispatch :objects/remove-selected))})))}
       (fn [{:keys [selected]}]
         (if (= selected :style)
           ($ shape-form-style
@@ -310,56 +363,42 @@
 
 (defui context-menu-prop [props]
   (let [dispatch (hooks/use-dispatch)
-        data (:data props)
-        idxs (map :db/id data)]
+        data     (:data props)]
     ($ context-menu-fn
       {:render-toolbar
        (fn []
          ($ :button
            {:type "button"
             :data-tooltip "Reset size/rotation"
-            :on-click (fn [] (dispatch :objects/reset-transform idxs))}
+            :on-click
+            (fn []
+              (dispatch :objects/reset-transform-selected))}
            ($ icon {:name "arrows-angle-expand"})))
        :render-aside
        (fn []
          ($ :<>
-           (if (every? :object/hidden data)
-             ($ :button
-               {:type "button"
-                :data-tooltip "Reveal"
-                :data-selected true
-                :on-click (fn [] (dispatch :objects/change-hidden idxs false))}
-               ($ icon {:name "eye-slash-fill"}))
-             ($ :button
-               {:type "button"
-                :data-tooltip "Hide"
-                :data-selected false
-                :on-click (fn [] (dispatch :objects/change-hidden idxs true))}
-               ($ icon {:name "eye-fill"})))
-           (if (every? :object/locked data)
-             ($ :button
-               {:type "button"
-                :data-tooltip "Unlock"
-                :data-selected true
-                :on-click (fn [] (dispatch :objects/change-locked idxs false))}
-               ($ icon {:name "lock"}))
-             ($ :button
-               {:type "button"
-                :data-tooltip "Lock"
-                :data-selected false
-                :on-click (fn [] (dispatch :objects/change-locked idxs true))}
-               ($ icon {:name "unlock"})))
-           ($ :button
-             {:type "button" :data-tooltip "Remove" :style {:margin-left "auto"}
-              :on-click #(dispatch :selection/remove)}
-             ($ icon {:name "trash3-fill"}))))}
+           ($ action-hide
+             {:value (every? :object/hidden data)
+              :disabled (not= (:user props) :host)
+              :on-change
+              (fn []
+                (dispatch :objects/toggle-hidden-selected))})
+           ($ action-lock
+             {:value (every? :object/locked data)
+              :disabled (not= (:user props) :host)
+              :on-change
+              (fn []
+                (dispatch :objects/toggle-locked-selected))})
+           ($ action-remove
+             {:on-click
+              (fn []
+                (dispatch :objects/remove-selected))})))}
       (fn [{:keys []}]))))
 
 (defui context-menu [props]
-  (let [types (into #{} (map (comp keyword namespace :object/type)) (:data props))]
-    (if (= (count types) 1)
-      (case (first types)
-        :shape ($ context-menu-shape props)
-        :token ($ context-menu-token props)
-        :prop  ($ context-menu-prop  props)
-        nil))))
+  (if (util/uniform-by (comp namespace :object/type) (:data props))
+    (case (namespace (:object/type (first (:data props))))
+      "prop"  ($ context-menu-prop  props)
+      "shape" ($ context-menu-shape props)
+      "token" ($ context-menu-token props)
+      nil)))

@@ -486,35 +486,40 @@
        {:db/id camera :camera/selected {:db/id id}})]))
 
 (defmethod
-  ^{:doc "Toggle the visibility of the given object."}
+  ^{:doc "Hide or reveal the given object."}
   event-tx-fn :objects/toggle-hidden
   [data _ id]
   (let [entity (ds/entity data id)]
     [[:db/add id :object/hidden (not (:object/hidden entity))]]))
 
 (defmethod
-  ^{:doc "Change the visibility of the given objects."}
-  event-tx-fn :objects/change-hidden
-  [_ _ idxs value]
-  (for [id idxs]
-    [:db/add id :object/hidden value]))
+  ^{:doc "Hides or reveals the currently selected objects."}
+  event-tx-fn :objects/toggle-hidden-selected
+  [data _]
+  (let [user (ds/entity data [:db/ident :user])
+        selected (:camera/selected (:user/camera user))]
+    (for [{id :db/id} selected]
+      [:db/add id :object/hidden (not (every? :object/hidden selected))])))
 
 (defmethod
-  ^{:doc "Change the locked flag for the given objects."}
-  event-tx-fn :objects/change-locked
-  [_ _ idxs value]
-  (for [id idxs]
-    [:db/add id :object/locked value]))
+  ^{:doc "Locks or unlocks the currently selected objects."}
+  event-tx-fn :objects/toggle-locked-selected
+  [data _]
+  (let [user (ds/entity data [:db/ident :user])
+        selected (:camera/selected (:user/camera user))]
+    (for [{id :db/id} selected]
+      [:db/add id :object/locked (not (every? :object/locked selected))])))
 
 (defmethod
-  ^{:doc "Resets all transformations for the given objects."}
-  event-tx-fn :objects/reset-transform
-  [_ _ idxs]
-  (into
-   [] cat
-   (for [id idxs]
-     [[:db/retract id :object/scale]
-      [:db/retract id :object/rotation]])))
+  ^{:doc "Resets all transformations for the currently selected objects."}
+  event-tx-fn :objects/reset-transform-selected
+  [data _]
+  (let [user (ds/entity data [:db/ident :user])]
+    (into
+     [] cat
+     (for [{id :db/id} (:camera/selected (:user/camera user))]
+       [[:db/retract id :object/scale]
+        [:db/retract id :object/rotation]]))))
 
 (defmethod
   ^{:doc "Change the scaling of the given object."}
@@ -534,6 +539,14 @@
   [_ _ idxs]
   (for [id idxs]
     [:db/retractEntity id]))
+
+(defmethod
+  ^{:doc "Removes all currently currently selected objects."}
+  event-tx-fn :objects/remove-selected
+  [data _]
+  (let [user (ds/entity data [:db/ident :user])]
+    (for [{id :db/id} (:camera/selected (:user/camera user))]
+      [:db/retractEntity id])))
 
 (defmethod
   ^{:doc "Updates the attribute for the objects given by idxs to the

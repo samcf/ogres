@@ -32,3 +32,11 @@
         aff ["B" "KB" "MB" "GB" "TB" "PB" "EB" "ZB" "YB"]]
     (str (.toFixed (/ bytes (js/Math.pow 1024, idx)) 2)
          (aff idx))))
+
+(defn uniform-by [f coll]
+  (let [val (f (first coll))]
+    (reduce
+     (fn [_ cur]
+       (if (not= (f cur) val)
+         (reduced false)
+         true)) true (rest coll))))

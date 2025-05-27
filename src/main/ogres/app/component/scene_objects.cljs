@@ -480,6 +480,7 @@
           [:db/id
            [:object/type :default :shape/circle]
            [:object/point :default vec/zero]
+           [:object/locked :default false]
            [:shape/points :default [vec/zero]]
            [:shape/color :default "red"]
            [:shape/pattern :default :solid]]}
@@ -661,12 +662,17 @@
                                          :delta delta
                                          :is-outline outline?
                                          :is-aligned align?})))))))))))
-                  (let [sz 400
-                        tx (-> (+ (.-x (.-a bounds)) (.-x (.-b bounds))) (* scale) (- sz) (/ 2) int)
-                        ty (-> (+ (.-y (.-b bounds)) 24) (* scale) (- 24) int)
-                        tf (str "scale(" (/ scale) ")")]
-                    ($ :foreignObject.context-menu-object
-                      {:x tx :y ty :width sz :height sz :transform tf}
-                      ($ context-menu
-                        {:data (sequence (filter (comp selected :db/id)) entities)
-                         :type user-type}))))))))))))
+                  (if (seq select)
+                    (let [sz 400
+                          xf (matrix/scale matrix/identity scale)
+                          bn (xf bounds)]
+                      ($ :foreignObject.context-menu-object
+                        {:x (.-x (vec/shift (vec/midpoint bn) (/ sz -2)))
+                         :y (.-y (.-b bn))
+                         :width sz
+                         :height sz
+                         :transform (matrix/inverse xf)
+                         :data-type (namespace (:object/type (first select)))}
+                        ($ context-menu
+                          {:data select
+                           :user user-type})))))))))))))

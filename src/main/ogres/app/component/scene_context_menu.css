@@ -57,6 +57,34 @@
       }
     }
 
+    .context-menu-action {
+      align-items: center;
+      aspect-ratio: 1;
+      border-radius: 2px;
+      color: var(--color-black-400);
+      display: flex;
+      justify-content: center;
+      width: 36px;
+
+      &:has(:checked) {
+        color: var(--color-danger-500);
+      }
+
+      &:has(:not(:disabled)) {
+        cursor: pointer;
+      }
+
+      &:has(:disabled) {
+        color: var(--color-black-500);
+      }
+
+      &:has(:focus-visible) {
+        outline: 1px solid var(--outline-color);
+        outline-offset: 1px;
+        z-index: 1;
+      }
+    }
+
     .context-menu-main {
       display: flex;
       flex-direction: column;
@@ -101,6 +129,10 @@
         pointer-events: all;
       }
     }
+  }
+
+  &:is([data-type="shape"]) .context-menu {
+    min-width: 340px;
   }
 
   .context-menu-form-label {
