@@ -470,6 +470,7 @@
            [:object/point :default vec/zero]
            [:object/hidden :default false]
            [:token/label :default ""]
+           [:token/flags :default #{}]
            [:token/size :default 5]
            [:token/light :default 15]
            [:token/aura-radius :default 0]
