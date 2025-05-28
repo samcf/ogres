@@ -163,6 +163,7 @@
    [:user/color :default "red"]
    [:user/label :default ""]
    [:user/description :default ""]
+   [:user/share-cursor :default true]
    [:session/status :default :initial]
    {:user/image
     [:image/hash
