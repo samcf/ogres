@@ -242,7 +242,7 @@
 }
 
 .scene-note-anchor {
-  background-color: var(--color-blues-900);
+  background-color: var(--color-blues-700);
   border-radius: 3px;
   cursor: pointer;
   padding: 8px;
@@ -260,7 +260,7 @@
 
 .scene-note-navinner {
   align-items: center;
-  background-color: var(--color-blues-900);
+  background-color: var(--color-blues-700);
   border-bottom-right-radius: 3px;
   border-top-right-radius: 3px;
   cursor: pointer;
@@ -284,7 +284,7 @@
 }
 
 .scene-note-body {
-  background-color: var(--color-blues-700);
+  background-color: var(--color-blues-800);
   border-radius: 0 0 3px 3px;
   display: flex;
   justify-content: center;
@@ -292,7 +292,7 @@
 }
 
 .scene-note-icons {
-  background-color: var(--color-blues-800);
+  background-color: var(--color-blues-00);
   border-bottom-left-radius: 3px;
   flex-direction: column;
   gap: 12px;
@@ -331,7 +331,7 @@
   flex-direction: column;
   flex: 1;
   gap: 14px;
-  padding: 12px 10px;
+  padding: 12px 10px 12px 0;
 
   fieldset {
     border-color: var(--color-blues-100);
@@ -348,7 +348,7 @@
   }
 
   legend {
-    background-color: var(--color-blues-700);
+    background-color: var(--color-blues-800);
     color: var(--color-blues-100);
   }
 

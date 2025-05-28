@@ -1105,8 +1105,7 @@
           (vec/shift -16)
           (vec/rnd))
       :object/hidden true
-      :object/locked false
-      :note/label "Note"}
+      :object/locked false}
      {:db/id scene :scene/notes -1}
      {:db/id camera :camera/selected -1 :camera/draw-mode :select}]))
 

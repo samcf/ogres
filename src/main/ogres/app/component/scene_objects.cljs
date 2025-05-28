@@ -187,7 +187,10 @@
             ($ icon {:name (:note/icon entity) :size 26}))
           ($ :.scene-note-nav
             ($ :.scene-note-navinner
-              ($ :.scene-note-label (:note/label entity))
+              ($ :.scene-note-label
+                (let [label (:note/label entity)]
+                  (if (and (some? label) (not= label ""))
+                    label "Unlabeled note")))
               ($ :.scene-note-control
                 {:on-pointer-down stop-propagation
                  :on-click (fn [] (dispatch :objects/toggle-hidden id))}
@@ -507,8 +510,8 @@
            [:object/hidden :default true]
            [:object/locked :default false]
            [:note/icon :default "journal-bookmark-fill"]
-           [:note/label :default ""]
            [:note/description :default ""]
+           :note/label
            {:camera/_selected
             [:camera/selected
              {:user/_camera
