@@ -25,6 +25,7 @@
   (max [a])
   (mod [a x])
   (mul [a x])
+  (normalize [a])
   (rnd [a] [a x] [a x f])
   (shift [a n] [a x y])
   (sub [a b])
@@ -34,7 +35,8 @@
   (width [s])
   (height [s])
   (midpoint [s])
-  (rebase [s]))
+  (rebase [s])
+  (extend [s x]))
 
 (deftype Vec2 [x y]
   Object
@@ -74,6 +76,10 @@
     (Vec2. (/ x n) (/ y n)))
   (heading [_]
     (js/Math.atan2 y x))
+  (normalize [a]
+    (let [m (dist a)]
+      (if (zero? m) a
+          (div a m))))
   (max [_]
     (clojure.core/max x y))
   (mod [_ n]
@@ -128,6 +134,8 @@
   (transform [_ m]
     (Segment. (transform a m) (transform b m)))
   ISegment
+  (extend [s x]
+    (add (.-b s) (mul (normalize (.-b (rebase s))) x)))
   (midpoint [_]
     (div (add a b) 2))
   (width [_]

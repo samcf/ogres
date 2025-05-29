@@ -64,9 +64,10 @@
     (if (< (abs (- ft rd)) 0.001) rd
         (.toFixed ft 1))))
 
-(defui ^:private text
-  [{:keys [attrs children]}]
-  ($ :text.scene-text attrs children))
+(defui ^:private text [props]
+  ($ :text.scene-text.scene-text-draw
+    (dissoc props :children)
+    (:children props)))
 
 (defui ^:private anchor [props]
   ($ :g {:transform (:transform props)}
@@ -224,11 +225,9 @@
              :y2 (.-y b)})
           ($ anchor {:transform a})
           ($ anchor {:transform b})
-          ($ text
-            {:attrs
-             {:x (- (.-x b) 48)
-              :y (- (.-y b) 8)}}
-            (str (px->ft (vec/dist-cheb camera)) "ft.")))))))
+          (let [point (vec/extend canvas 32)]
+            ($ text {:x (.-x point) :y (.-y point)}
+              (str (px->ft (vec/dist-cheb camera)) "ft."))))))))
 
 (defui ^:private draw-circle []
   (let [dispatch (hooks/use-dispatch)]
@@ -244,7 +243,7 @@
           ($ :<>
             ($ :circle.scene-draw-shape
               {:transform src :r (vec/dist-cheb canvas)})
-            ($ text {:attrs {:x (.-x src) :y (.-y src) :fill "white"}}
+            ($ text {:x (.-x src) :y (.-y src)}
               (str (px->ft (vec/dist-cheb camera)) "ft. radius"))))))))
 
 (defui ^:private draw-rect []
@@ -258,10 +257,11 @@
           ($ :<>
             ($ :path.scene-draw-shape
               {:d (join " " [\M (.-x c) (.-y c) \H (.-x d) \V (.-y d) \H (.-x c) \Z])})
-            ($ text {:attrs {:x (+ (.-x c) 8) :y (- (.-y c) 8) :fill "white"}}
-              (let [v (vec/abs (vec/sub a b))]
-                (str (px->ft (.-x v)) "ft. x "
-                     (px->ft (.-y v)) "ft.")))))))))
+            (let [point (vec/extend canvas 32)]
+              ($ text {:x (.-x point) :y (.-y point)}
+                (let [v (vec/abs (vec/sub a b))]
+                  (str (px->ft (.-x v)) "ft. x "
+                       (px->ft (.-y v)) "ft."))))))))))
 
 (defui ^:private draw-line []
   (let [dispatch (hooks/use-dispatch)]
@@ -277,11 +277,9 @@
             (let [points (geom/line-points canvas (* half-size scale))]
               ($ :polygon.scene-draw-shape
                 {:points (join " " (mapcat seq points))}))
-            ($ text
-              {:attrs
-               {:x (.-x (.-a canvas))
-                :y (.-y (.-a canvas))}}
-              (str (px->ft (vec/dist camera)) "ft."))))))))
+            (let [point (vec/extend canvas 32)]
+              ($ text {:x (.-x point) :y (.-y point)}
+                (str (px->ft (vec/dist camera)) "ft.")))))))))
 
 (defui ^:private draw-cone []
   (let [dispatch (hooks/use-dispatch)]
@@ -296,11 +294,9 @@
           (let [points (geom/cone-points canvas)]
             ($ :polygon.scene-draw-shape
               {:points (join " " (mapcat seq points))}))
-          ($ text
-            {:attrs
-             {:x (+ (.-x (.-b canvas)) 16)
-              :y (+ (.-y (.-b canvas)) 16)}}
-            (str (px->ft (vec/dist camera)) "ft.")))))))
+          (let [point (vec/extend canvas 32)]
+            ($ text {:x (.-x point) :y (.-y point)}
+              (str (px->ft (vec/dist camera)) "ft."))))))))
 
 (defui ^:private draw-poly []
   (let [dispatch (hooks/use-dispatch)]

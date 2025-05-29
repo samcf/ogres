@@ -55,6 +55,11 @@
   stroke: var(--scene-text-outline);
 }
 
+.scene-text-draw {
+  dominant-baseline: middle;
+  text-anchor: middle;
+}
+
 /* Scene Lighting */
 .scene[data-user="host"] {
   .scene-mask {
