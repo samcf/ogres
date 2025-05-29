@@ -272,15 +272,16 @@
        (fn [s]
          (geom/tile-path-line (geom/line-points s)))}
       (fn [camera canvas]
-        ($ :<>
-          (let [points (geom/line-points canvas)]
-            ($ :polygon.scene-draw-shape
-              {:points (join " " (mapcat seq points))}))
-          ($ text
-            {:attrs
-             {:x (.-x (.-a canvas))
-              :y (.-y (.-a canvas))}}
-            (str (px->ft (vec/dist camera)) "ft.")))))))
+        (let [scale (/ (vec/dist canvas) (vec/dist camera))]
+          ($ :<>
+            (let [points (geom/line-points canvas (* half-size scale))]
+              ($ :polygon.scene-draw-shape
+                {:points (join " " (mapcat seq points))}))
+            ($ text
+              {:attrs
+               {:x (.-x (.-a canvas))
+                :y (.-y (.-a canvas))}}
+              (str (px->ft (vec/dist camera)) "ft."))))))))
 
 (defui ^:private draw-cone []
   (let [dispatch (hooks/use-dispatch)]

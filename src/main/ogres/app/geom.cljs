@@ -27,27 +27,30 @@
        (clockwise-triangle? c a v)
        (clockwise-triangle? b c v)))
 
-(defn line-points [segment]
-  (let [ln half-size
-        av (.-a segment)
-        bv (.-b segment)
-        ax (.-x (.-a segment))
-        ay (.-y (.-a segment))
-        bx (.-x (.-b segment))
-        by (.-y (.-b segment))]
-    (if (= ay by)
-      [(vec/shift av 0 ln)
-       (vec/shift bv 0 ln)
-       (vec/shift bv 0 (- ay ln))
-       (vec/shift av 0 (- ay ln))]
-      (let [ma (/ (- bx ax) (- ay by))
-            mb (js/Math.sqrt (inc (* ma ma)))
-            si (js/Math.sign (- ay by))
-            dv (Vec2. (* ln si (/ mb)) (* ln si (/ ma mb)))]
-        [(vec/add av (vec/mul dv -1))
-         (vec/add bv (vec/mul dv -1))
-         (vec/add bv dv)
-         (vec/add av dv)]))))
+(defn line-points
+  ([segment]
+   (line-points segment half-size))
+  ([segment width]
+   (let [ln width
+         av (.-a segment)
+         bv (.-b segment)
+         ax (.-x (.-a segment))
+         ay (.-y (.-a segment))
+         bx (.-x (.-b segment))
+         by (.-y (.-b segment))]
+     (if (= ay by)
+       [(vec/shift av 0 ln)
+        (vec/shift bv 0 ln)
+        (vec/shift bv 0 (- ay ln))
+        (vec/shift av 0 (- ay ln))]
+       (let [ma (/ (- bx ax) (- ay by))
+             mb (js/Math.sqrt (inc (* ma ma)))
+             si (js/Math.sign (- ay by))
+             dv (Vec2. (* ln si (/ mb)) (* ln si (/ ma mb)))]
+         [(vec/add av (vec/mul dv -1))
+          (vec/add bv (vec/mul dv -1))
+          (vec/add bv dv)
+          (vec/add av dv)])))))
 
 (defn cone-points [segment]
   (let [src (.-a segment)
