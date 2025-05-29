@@ -13,19 +13,16 @@ server {
         try_files $uri $uri/index.html =404;
     }
 
-    # Release build
-    location /play/release/${VERSION} {
+    # Local release builds
+    location /release/ {
         alias /usr/share/nginx/app/web/release/;
+        try_files $uri $uri/ @fallback;
     }
 
-    # Release build (for watch-mode development?)
-    location /release/${VERSION} {
-        alias /usr/share/nginx/app/web/release/;
-    }
-
-    # Past release bundles supplied from Github Pages
-    location /release {
+    # Fallback to release bundles supplied from Github Pages
+    location @fallback {
         root /usr/share/nginx/html;
+        try_files $uri $uri/ =404;
     }
 
     # Backend
