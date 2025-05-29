@@ -2,8 +2,8 @@
  :dev-http {8080 ["web" "site/web"]}
  :builds   {:app {:target           :esm
                   :compiler-options {:infer-externs :auto :externs ["datascript/externs.js"]}
-                  :output-dir       "web/release"
-                  :asset-path       "release"
+                  :output-dir       #shadow/env ["OUTPUT_DIR" :default "web/release"]
+                  :asset-path       #shadow/env ["ASSET_PATH" :default "release"]
                   :devtools         {:preloads [ogres.app.preload]}
                   :modules          {:ogres.app {:entries [ogres.app.core] :init-fn ogres.app.core/main}}}
             :test {:target    :node-test

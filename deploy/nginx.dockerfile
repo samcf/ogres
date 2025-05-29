@@ -7,5 +7,6 @@ FROM nginx:alpine
 ARG SERVER_SOCKET_URL
 ENV SERVER_SOCKET_URL=${SERVER_SOCKET_URL:-"http://backend:8090/ws"}
 ARG VERSION
-ENV VERSION=${VERSION:-"dev"}
+ENV VERSION=${VERSION}
 COPY --from=website /website /usr/share/nginx/html
+RUN if [ -n "$VERSION" ]; then echo "$VERSION" >> /usr/share/nginx/html/releases.txt; fi
