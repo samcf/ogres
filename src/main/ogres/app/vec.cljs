@@ -1,18 +1,11 @@
 (ns ogres.app.vec
   (:refer-clojure :exclude [abs max mod map]))
 
-(declare zero)
-
 (def ^:private rad->deg (/ 180 js/Math.PI))
 (def ^:private tau (* 2 js/Math.PI))
 
-(defn ^:private to-string-vec2 [x y]
+(defn ^:private to-string [x y]
   (str "#vec2[" x "," y "]"))
-
-(defn ^:private to-string-segment [a b]
-  (str "#segment["
-       "(" (or (.-x a) "nil") "," (or (.-y a) "nil") ") "
-       "(" (or (.-x b) "nil") "," (or (.-y b) "nil") ")]"))
 
 (defprotocol IVec2
   (abs [a])
@@ -31,20 +24,13 @@
   (sub [a b])
   (transform [a m]))
 
-(defprotocol ISegment
-  (width [s])
-  (height [s])
-  (midpoint [s])
-  (rebase [s])
-  (extend [s x]))
-
 (deftype Vec2 [x y]
   Object
   (toString [_]
     (str "translate(" x ", " y ")"))
   cljs.core/IPrintWithWriter
   (-pr-writer [_ writer _]
-    (-write writer (to-string-vec2 x y)))
+    (-write writer (to-string x y)))
   IEquiv
   (-equiv [_ v]
     (and (instance? Vec2 v) (= (.-x v) x) (= (.-y v) y)))
@@ -102,53 +88,4 @@
     (let [t (.matrixTransform (js/DOMPointReadOnly. x y) (.-m m))]
       (Vec2. (.-x t) (.-y t)))))
 
-(deftype Segment [a b]
-  Object
-  (toString [_]
-    (to-string-segment a b))
-  cljs.core/IPrintWithWriter
-  (-pr-writer [_ writer _]
-    (-write writer (to-string-segment a b)))
-  IEquiv
-  (-equiv [_ s]
-    (and (instance? Segment s) (= (.-a s) a) (= (.-b s) b)))
-  IHash
-  (-hash [_]
-    (hash [a b]))
-  ISeqable
-  (-seq [_]
-    (list a b))
-  IVec2
-  (dist [_]
-    (dist a b))
-  (dist-cheb [_]
-    (dist-cheb a b))
-  (add [_ v]
-    (Segment. (add a v) (add b v)))
-  (rnd [_]
-    (Segment. (rnd a) (rnd b)))
-  (rnd [_ n]
-    (Segment. (rnd a n) (rnd b n)))
-  (rnd [_ n f]
-    (Segment. (rnd a n f) (rnd b n f)))
-  (transform [_ m]
-    (Segment. (transform a m) (transform b m)))
-  ISegment
-  (extend [s x]
-    (add (.-b s) (mul (normalize (.-b (rebase s))) x)))
-  (midpoint [_]
-    (div (add a b) 2))
-  (width [_]
-    (clojure.core/abs (- (.-x b) (.-x a))))
-  (height [_]
-    (clojure.core/abs (- (.-y b) (.-y a))))
-  (rebase [_]
-    (Segment. zero (sub b a))))
-
 (def zero (Vec2. 0 0))
-(def zero-segment (Segment. zero zero))
-
-(defn DOMRect->Segment [rect]
-  (Segment.
-   (Vec2. (.-left rect) (.-top rect))
-   (Vec2. (.-right rect) (.-bottom rect))))

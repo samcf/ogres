@@ -1,10 +1,11 @@
 (ns ogres.app.provider.cursor
   (:require [ogres.app.hooks :as hooks]
-            [uix.core :as uix :refer [defui]]
-            [ogres.app.vec :as vec :refer [Vec2]]))
+            [ogres.app.segment :as seg]
+            [ogres.app.vec :as vec :refer [Vec2]]
+            [uix.core :as uix :refer [defui]]))
 
 (def ^:private handler-query
-  [[:user/bounds :default vec/zero-segment]
+  [[:user/bounds :default seg/zero]
    {:user/camera
     [[:camera/scale :default 1]
      [:camera/point :default vec/zero]]}])

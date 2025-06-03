@@ -6,7 +6,8 @@
             [ogres.app.hooks :as hooks]
             [ogres.app.matrix :as matrix]
             [ogres.app.util :as util]
-            [ogres.app.vec :as vec :refer [Segment Vec2]]
+            [ogres.app.segment :as seg :refer [Segment]]
+            [ogres.app.vec :as vec :refer [Vec2]]
             [uix.core :as uix :refer [defui $]]
             ["@dnd-kit/core"
              :refer  [DndContext useDraggable useDndMonitor]
@@ -113,7 +114,7 @@
       (children segment cursor))))
 
 (def ^:private query
-  [[:user/bounds :default vec/zero-segment]
+  [[:user/bounds :default seg/zero]
    {:user/camera
     [[:camera/scale :default 1]
      [:camera/point :default vec/zero]
@@ -225,7 +226,7 @@
              :y2 (.-y b)})
           ($ anchor {:transform a})
           ($ anchor {:transform b})
-          (let [point (vec/extend canvas 32)]
+          (let [point (seg/extend canvas 32)]
             ($ text {:x (.-x point) :y (.-y point)}
               (str (px->ft (vec/dist-cheb camera)) "ft."))))))))
 
@@ -257,7 +258,7 @@
           ($ :<>
             ($ :path.scene-draw-shape
               {:d (join " " [\M (.-x c) (.-y c) \H (.-x d) \V (.-y d) \H (.-x c) \Z])})
-            (let [point (vec/extend canvas 32)]
+            (let [point (seg/extend canvas 32)]
               ($ text {:x (.-x point) :y (.-y point)}
                 (let [v (vec/abs (vec/sub a b))]
                   (str (px->ft (.-x v)) "ft. x "
@@ -277,7 +278,7 @@
             (let [points (geom/line-points canvas (* half-size scale))]
               ($ :polygon.scene-draw-shape
                 {:points (join " " (mapcat seq points))}))
-            (let [point (vec/extend canvas 32)]
+            (let [point (seg/extend canvas 32)]
               ($ text {:x (.-x point) :y (.-y point)}
                 (str (px->ft (vec/dist camera)) "ft.")))))))))
 
@@ -294,7 +295,7 @@
           (let [points (geom/cone-points canvas)]
             ($ :polygon.scene-draw-shape
               {:points (join " " (mapcat seq points))}))
-          (let [point (vec/extend canvas 32)]
+          (let [point (seg/extend canvas 32)]
             ($ text {:x (.-x point) :y (.-y point)}
               (str (px->ft (vec/dist camera)) "ft."))))))))
 

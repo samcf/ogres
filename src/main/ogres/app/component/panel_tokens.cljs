@@ -4,6 +4,7 @@
             [ogres.app.geom :as geom]
             [ogres.app.hooks :as hooks]
             [ogres.app.util :refer [separate]]
+            [ogres.app.segment :as seg]
             [ogres.app.vec :as vec]
             [uix.core :as uix :refer [defui $]]
             [uix.dom :refer [create-portal]]
@@ -39,7 +40,7 @@
       [:image/hash]}]}])
 
 (def ^:private query-bounds
-  [[:user/bounds :default vec/zero-segment]])
+  [[:user/bounds :default seg/zero]])
 
 (defui ^:private draggable
   [{:keys [id children]}]
@@ -204,9 +205,9 @@
         on-create
         (uix/use-callback
          (fn [hash element delta]
-           (let [token (vec/DOMRect->Segment (.getBoundingClientRect element))
+           (let [token (seg/DOMRect-> (.getBoundingClientRect element))
                  point (-> (vec/add (.-a token) delta)
-                           (vec/add (vec/sub (vec/midpoint token) (.-a token)))
+                           (vec/add (vec/sub (seg/midpoint token) (.-a token)))
                            (vec/sub (.-a bounds)))]
              (if (geom/point-within-rect? point bounds)
                (if (= hash "default")

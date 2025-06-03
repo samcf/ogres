@@ -2,7 +2,8 @@
   (:require [clojure.math :refer [floor ceil]]
             [ogres.app.const :refer [grid-size half-size]]
             [ogres.app.matrix :as matrix]
-            [ogres.app.vec :as vec :refer [Vec2 Segment]]))
+            [ogres.app.segment :as seg :refer [Segment]]
+            [ogres.app.vec :as vec :refer [Vec2]]))
 
 (def ^:const deg45->rad (/ js/Math.PI 4))
 (def ^:const deg45->sin (js/Math.sin deg45->rad))
@@ -83,10 +84,10 @@
            (< (.-y (.-b b)) (.-y (.-a a))))))
 
 (defn bounding-rect-rf
-  ([] vec/zero-segment)
+  ([] seg/zero)
   ([s] s)
   ([s v]
-   (if (identical? s vec/zero-segment)
+   (if (identical? s seg/zero)
      (Segment. v v)
      (Segment.
       (Vec2. (min (.-x (.-a s)) (.-x v)) (min (.-y (.-a s)) (.-y v)))
@@ -254,10 +255,10 @@
      height :image/height} :prop/image}]
   (let [bound (Segment. point (vec/shift point width height))
         xform (-> matrix/identity
-                  (matrix/translate (vec/midpoint bound))
+                  (matrix/translate (seg/midpoint bound))
                   (matrix/scale scale)
                   (matrix/rotate rotation)
-                  (matrix/translate (vec/mul (vec/midpoint bound) -1)))]
+                  (matrix/translate (vec/mul (seg/midpoint bound) -1)))]
     (bounding-rect (map xform (rect-points bound)))))
 
 (defmulti object-transform :object/type)
@@ -269,7 +270,7 @@
   [{scale :object/scale rotation :object/rotation
     {width :image/width height :image/height} :prop/image}]
   (let [bounds (Segment. vec/zero (Vec2. width height))
-        center (vec/midpoint bounds)]
+        center (seg/midpoint bounds)]
     (-> (matrix/translate matrix/identity center)
         (matrix/scale (or scale 1))
         (matrix/rotate (or rotation 0))

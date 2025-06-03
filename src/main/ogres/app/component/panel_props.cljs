@@ -1,6 +1,7 @@
 (ns ogres.app.component.panel-props
   (:require [ogres.app.component :refer [icon pagination]]
             [ogres.app.hooks :as hooks]
+            [ogres.app.segment :as seg]
             [ogres.app.vec :as vec :refer [Vec2]]
             [uix.core :as uix :refer [defui $]]
             [uix.dom :refer [create-portal]]
@@ -83,7 +84,7 @@
     ($ dnd/DndContext
       #js {"onDragEnd"
            (fn [event]
-             (let [bound (vec/DOMRect->Segment (.getBoundingClientRect (.. event -activatorEvent -target)))
+             (let [bound (seg/DOMRect-> (.getBoundingClientRect (.. event -activatorEvent -target)))
                    delta (Vec2. (.-x (.-delta event)) (.-y (.-delta event)))
                    image (.. event -active -data -current -hash)]
                (dispatch :props/create (vec/add (.-a bound) delta) image)))}

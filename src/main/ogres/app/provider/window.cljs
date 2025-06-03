@@ -1,7 +1,8 @@
 (ns ogres.app.provider.window
   (:require [goog.functions :refer [throttle]]
             [ogres.app.hooks :as hooks]
-            [ogres.app.vec :as vec :refer [Vec2 Segment]]
+            [ogres.app.segment :refer [Segment]]
+            [ogres.app.vec :as vec :refer [Vec2]]
             [uix.core :as uix :refer [defui $]]))
 
 (defui ^:private register-bounds [{:keys [ref]}]

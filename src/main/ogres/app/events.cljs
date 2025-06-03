@@ -5,6 +5,7 @@
             [ogres.app.const :refer [grid-size half-size]]
             [ogres.app.geom :as geom]
             [ogres.app.matrix :as matrix]
+            [ogres.app.segment :as seg]
             [ogres.app.vec :as vec :refer [Vec2]]))
 
 (def ^:private suffix-max-xf
@@ -184,8 +185,8 @@
      (case (count args)
        0 [[:db.fn/call event-tx-fn event 1]]
        1 (let [[scale] args
-               bounds (or (:user/bounds user) vec/zero-segment)]
-           [[:db.fn/call event-tx-fn event scale (vec/midpoint bounds)]])
+               bounds (or (:user/bounds user) seg/zero)]
+           [[:db.fn/call event-tx-fn event scale (seg/midpoint bounds)]])
        (let [[next-scale point] args
              {{id :db/id scale :camera/scale camera :camera/point} :user/camera} user]
          [{:db/id id
@@ -203,7 +204,7 @@
   event-tx-fn :camera/zoom-delta
   [data _ mx my delta trackpad?]
   (let [user (ds/entity data [:db/ident :user])
-        bound (or (:user/bounds user) vec/zero-segment)
+        bound (or (:user/bounds user) seg/zero)
         scale (linear -400 400 -0.50 0.50)
         delta (if trackpad? (scale (* -1 8 delta)) (scale (* -1 2 delta)))
         point (vec/sub (Vec2. mx my) (.-a bound))
@@ -456,7 +457,7 @@
             (cond
               (and align? (= (:object/type entity) :token/token))
               (let [bounds (vec/rnd (vec/add (geom/object-bounding-rect entity) delta) grid-size)]
-                {:db/id id :object/point (vec/midpoint bounds)})
+                {:db/id id :object/point (seg/midpoint bounds)})
               (and align? (not= (:object/type entity) :note/note))
               (let [round (geom/object-alignment entity)]
                 {:db/id id :object/point (vec/rnd (vec/add point delta) round)})
@@ -912,7 +913,7 @@
   event-tx-fn :session/focus
   [data]
   (let [select-w [:camera/scene [:camera/point :default vec/zero] [:camera/scale :default 1]]
-        select-l [:db/id [:user/bounds :default vec/zero-segment]
+        select-l [:db/id [:user/bounds :default seg/zero]
                   {:user/cameras [:camera/scene] :user/camera select-w}]
         select-s [{:session/host select-l} {:session/conns select-l}]
         result   (ds/pull data select-s [:db/ident :session])
@@ -921,14 +922,14 @@
           host :user/camera} :session/host
          conns :session/conns} result
         scale (:camera/scale host)
-        center (vec/add point (vec/div (vec/midpoint bounds) scale))]
+        center (vec/add point (vec/div (seg/midpoint bounds) scale))]
     (->> (for [[next conn] (sequence (indexed) conns)
                :let [prev (->> (:user/cameras conn)
                                (filter (fn [conn]
                                          (= (:db/id (:camera/scene conn))
                                             (:db/id (:camera/scene host))))) (first) (:db/id))
                      next  (or prev next)
-                     point (vec/sub center (vec/div (vec/midpoint (:user/bounds conn)) scale))]]
+                     point (vec/sub center (vec/div (seg/midpoint (:user/bounds conn)) scale))]]
            [{:db/id (:db/id conn) :user/camera next :user/cameras next}
             {:db/id next
              :camera/point point
@@ -988,7 +989,7 @@
 (def ^:private clipboard-paste-select
   [{:root/user
     [[:user/clipboard :default []]
-     [:user/bounds :default vec/zero-segment]
+     [:user/bounds :default seg/zero]
      {:user/camera
       [:db/id
        [:camera/scale :default 1]
@@ -1025,8 +1026,8 @@
                (props-hashes (:image/hash (:prop/image data))))))
         bound (transduce (mapcat geom/object-bounding-rect) geom/bounding-rect-rf clipboard)
         delta (vec/sub
-               (vec/add point (vec/div (vec/midpoint screen) scale))
-               (vec/midpoint bound))]
+               (vec/add point (vec/div (seg/midpoint screen) scale))
+               (seg/midpoint bound))]
     (for [[idx copy] (sequence (comp pastable-xf (indexed)) clipboard)
           :let [{point :object/point
                  {hash-prop :image/hash} :prop/image
@@ -1043,7 +1044,7 @@
                        (assoc :object/point
                               (let [bounds (geom/object-bounding-rect copy)
                                     aligns (vec/rnd (vec/add bounds delta) grid-size)]
-                                (vec/midpoint aligns))))]]
+                                (seg/midpoint aligns))))]]
       {:db/id camera
        :camera/selected idx
        :camera/scene

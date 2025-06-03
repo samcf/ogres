@@ -8,8 +8,9 @@
             [ogres.app.hooks :as hooks]
             [ogres.app.matrix :as matrix]
             [ogres.app.modifiers :as modifiers]
+            [ogres.app.segment :as seg :refer [Segment]]
             [ogres.app.util :as util]
-            [ogres.app.vec :as vec :refer [Vec2 Segment]]
+            [ogres.app.vec :as vec :refer [Vec2]]
             [react-transition-group :refer [TransitionGroup CSSTransition]]
             [uix.core :as uix :refer [defui $]]
             [uix.dom :as dom]
@@ -159,8 +160,8 @@
       (if (not= (:object/type entity) :shape/rect)
         (let [bounds (geom/object-bounding-rect entity)]
           ($ :rect.scene-shape-bounds
-            {:width (vec/width bounds)
-             :height (vec/height bounds)
+            {:width (seg/width bounds)
+             :height (seg/height bounds)
              :transform (vec/sub (.-a bounds) (:object/point entity))})))
       ($ :g.scene-shape-path
         {:fill (str "url(#shape-pattern-" id ")")
@@ -297,7 +298,7 @@
         [rotation set-rotation] (uix/use-state object-rotation)
         dispatch (hooks/use-dispatch)
         bounds (Segment. vec/zero (Vec2. width height))
-        center (vec/midpoint bounds)
+        center (seg/midpoint bounds)
         get-scale
         (fn [^js/Object event]
           (let [data (.. event -active -data -current)
@@ -435,8 +436,8 @@
         (let [rect (vec/rnd (vec/add (geom/object-bounding-rect entity) delta) grid-size)]
           (dom/create-portal
            ($ :rect.scene-object-align
-             {:width (vec/width rect)
-              :height (vec/height rect)
+             {:width (seg/width rect)
+              :height (seg/height rect)
               :transform (.-a rect)}) portal)))
       (if (= (namespace type) "shape")
         (let [align-to (geom/object-alignment entity)
@@ -458,7 +459,7 @@
 (def ^:private query
   [{:root/user
     [:user/type
-     [:user/bounds :default vec/zero-segment]
+     [:user/bounds :default seg/zero]
      {:user/camera
       [:db/id
        :camera/selected
@@ -540,7 +541,7 @@
           :user/camera} :root/user
          {conns :session/conns} :root/session} result
         portal (uix/use-ref)
-        screen (Segment. point (vec/add point (vec/div (.-b (vec/rebase bounds)) scale)))
+        screen (Segment. point (vec/add point (vec/div (.-b (seg/rebase bounds)) scale)))
         selected (into #{} (map :db/id) selected)
         dragging (into {} user-drag-xf conns)
         bound-xf
@@ -637,8 +638,8 @@
                    :data-locked locked}
                   (if (> (count selected) 1)
                     ($ :rect.scene-objects-bounds
-                      {:width (vec/width bounds)
-                       :height (vec/height bounds)
+                      {:width (seg/width bounds)
+                       :height (seg/height bounds)
                        :transform (.-a bounds)}))
                   ($ TransitionGroup {:component nil}
                     (for [entity entities
@@ -670,7 +671,7 @@
                           xf (matrix/scale matrix/identity scale)
                           bn (xf bounds)]
                       ($ :foreignObject.context-menu-object
-                        {:x (.-x (vec/shift (vec/midpoint bn) (/ sz -2)))
+                        {:x (.-x (vec/shift (seg/midpoint bn) (/ sz -2)))
                          :y (.-y (.-b bn))
                          :width sz
                          :height sz
