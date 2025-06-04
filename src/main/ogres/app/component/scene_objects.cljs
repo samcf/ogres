@@ -237,8 +237,7 @@
                   {:type "text"
                    :name "label"
                    :auto-complete "off"
-                   :default-value (:note/label entity)
-                   :placeholder "Spider's Ballroom"}))
+                   :default-value (:note/label entity)}))
               ($ :fieldset.fieldset
                 ($ :legend "Description")
                 ($ :textarea
