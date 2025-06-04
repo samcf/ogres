@@ -4,13 +4,14 @@ services:
       context: .
       dockerfile: ./deploy/frontend.dockerfile
       args:
-        # The release tag for the client build (by default the client uses `latest`).
-        # - For a different build, supply the following param: `/play?r={VERSION}`.
-        VERSION: "dev"
         # Mode must be either "release" (for production) or "watch" (for development)
         MODE: "release"
+        # The release tag for the client build (which can be accessed via `/play?r=VERSION`)
+        # - Note: Only applicable for MODE `release`.
+        VERSION: "dev"
         # The URL that will be accessed by the user's browser
-        # - When running in production, you likely want to use `wss://{YOUR_DOMAIN}/ws`
+        # - When run in production, you will likely want to use `wss://{YOUR_DOMAIN}/ws`,
+        #   with the Nginx container behind a SSL-terminated reverse proxy.
         SERVER_SOCKET_URL: "ws://0.0.0.0:8080/ws"
     volumes:
       - frontend:/build
@@ -30,20 +31,22 @@ services:
       context: .
       dockerfile: ./deploy/backend.dockerfile
     expose:
-    # The websocket connection exposed by the server
-    - "8090"
+      # The websocket connection exposed by the server
+      - "8090"
 
   nginx:
     build:
       context: .
       dockerfile: ./deploy/nginx.dockerfile
       args:
-        VERSION: "dev"
+        # When specified, the VERSION argument will be appended to `releases.txt`
+        # - NOTE: This will prompt the client that an upgrade is available to VERSION.
+        # VERSION: "dev"
         # The URL to the server's websocket, which will be proxied by nginx
         SERVER_SOCKET_URL: "http://backend:8090/ws"
     volumes:
-        - ./deploy/docker-nginx.template:/etc/nginx/templates/default.conf.template:ro
-        - frontend:/usr/share/nginx/app
+      - ./deploy/docker-nginx.template:/etc/nginx/templates/default.conf.template:ro
+      - frontend:/usr/share/nginx/app
     ports:
       - "8080:80"
 
