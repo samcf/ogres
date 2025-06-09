@@ -30,7 +30,7 @@
               ($ scene))
             ($ :.layout-toolbar ($ toolbar))
             ($ :.layout-players ($ players))
-            ($ :.layout-panel   ($ panel/container)))
+            ($ :.layout-panel   ($ panel/panel)))
           (and (= type :conn) (= status :connected) ready)
           ($ :.layout
             {:data-user "conn" :data-expanded expanded}
@@ -38,7 +38,7 @@
               ($ scene))
             ($ :.layout-toolbar ($ toolbar))
             ($ :.layout-players ($ players))
-            ($ :.layout-panel   ($ panel/container)))
+            ($ :.layout-panel   ($ panel/panel)))
           (and (= type :conn) (= status :disconnected))
           ($ :.layout-error
             ($ :.layout-error-content

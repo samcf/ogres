@@ -16,7 +16,7 @@
 (def ^:private confirm-restore
   "Delete all your local data and restore this application using the provided backup?")
 
-(defui form []
+(defui ^:memo panel []
   (let [[file-name set-file-name] (uix/use-state nil)
         releases (uix/use-context release/context)
         dispatch (hooks/use-dispatch)

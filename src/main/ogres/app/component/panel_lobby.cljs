@@ -6,6 +6,43 @@
             [ogres.app.provider.release :as release]
             [uix.core :as uix :refer [defui $]]))
 
+(def ^:private query-tokens
+  [{:root/user
+    [[:user/type :default :conn]]}
+   {:root/token-images
+    [:image/hash
+     :image/name
+     :image/scope
+     {:image/thumbnail
+      [:image/hash]}]}])
+
+(def ^:private query-user
+  [:user/uuid
+   [:user/type :default :conn]
+   [:user/color :default "red"]
+   [:user/label :default ""]
+   [:user/description :default ""]
+   [:user/share-cursor :default true]
+   [:session/status :default :initial]
+   {:user/image
+    [:image/hash
+     {:image/thumbnail
+      [:image/hash]}]}])
+
+(def ^:private query-panel
+  [{:root/user query-user}
+   {:root/session
+    [:session/room
+     {:session/host [:user/uuid :user/color]}
+     [:session/share-cursors :default true]
+     {:session/conns query-user}]}])
+
+(def ^:private query-actions
+  [{:root/user
+    [[:user/type :default :conn]
+     [:session/status :default :initial]]}
+   {:root/session [:session/room]}])
+
 (defn ^:private players-xf [uuid]
   (comp (filter (comp (complement #{uuid}) :user/uuid))
         (filter (comp #{:conn} :user/type))))
@@ -39,22 +76,12 @@
       ($ icon {:name "camera-fill" :size 16})
       "Upload image")))
 
-(def ^:private tokens-query
-  [{:root/user
-    [[:user/type :default :conn]]}
-   {:root/token-images
-    [:image/hash
-     :image/name
-     :image/scope
-     {:image/thumbnail
-      [:image/hash]}]}])
-
 (defui ^:private tokens
   [{:keys [selected on-change]}]
   (let [[page set-page] (uix/use-state 1)
         {{user-type :user/type} :root/user
          tokens :root/token-images}
-        (hooks/use-query tokens-query [:db/ident :root])
+        (hooks/use-query query-tokens [:db/ident :root])
         limit  10
         tokens (into [] (tokens-xf user-type) tokens)
         pages  (js/Math.ceil (/ (count tokens) limit))
@@ -157,31 +184,10 @@
                  (fn [hash]
                    (dispatch :user/change-image uuid hash))}))))))))
 
-(def ^:private user-query
-  [:user/uuid
-   [:user/type :default :conn]
-   [:user/color :default "red"]
-   [:user/label :default ""]
-   [:user/description :default ""]
-   [:user/share-cursor :default true]
-   [:session/status :default :initial]
-   {:user/image
-    [:image/hash
-     {:image/thumbnail
-      [:image/hash]}]}])
-
-(def ^:private form-query
-  [{:root/user user-query}
-   {:root/session
-    [:session/room
-     {:session/host [:user/uuid :user/color]}
-     [:session/share-cursors :default true]
-     {:session/conns user-query}]}])
-
-(defui form []
+(defui ^:memo panel []
   (let [releases (uix/use-context release/context)
         dispatch (hooks/use-dispatch)
-        result   (hooks/use-query form-query [:db/ident :root])
+        result   (hooks/use-query query-panel [:db/ident :root])
         user     (:root/user result)
         {{room-code :session/room} :root/session
          {user-type :user/type
@@ -259,15 +265,9 @@
            the 'Start online game' button and sharing the room code
            or URL with them.")))))
 
-(def ^:private footer-query
-  [{:root/user
-    [[:user/type :default :conn]
-     [:session/status :default :initial]]}
-   {:root/session [:session/room]}])
-
-(defui footer []
+(defui ^:memo actions []
   (let [dispatch (hooks/use-dispatch)
-        result   (hooks/use-query footer-query [:db/ident :root])
+        result   (hooks/use-query query-actions [:db/ident :root])
         {{status :session/status type :user/type} :root/user
          {room-key :session/room} :root/session} result]
     ($ :<>

@@ -106,7 +106,7 @@
       "select it. "
       ($ :strong "Removing images ") "will also remove them from all scenes.")))
 
-(defui ^:memo footer []
+(defui ^:memo actions []
   (let [dispatch (hooks/use-dispatch)
         upload (hooks/use-image-uploader {:type :props})
         input (uix/use-ref)]

@@ -4,7 +4,7 @@
             [ogres.app.hooks :as hooks]
             [uix.core :as uix :refer [defui $]]))
 
-(def ^:private query-form
+(def ^:private query
   [:user/type
    {:user/camera
     [{:camera/scene
@@ -25,7 +25,7 @@
           [{:image/thumbnail
             [:image/hash]}]}]}]}]}])
 
-(def ^:private query-footer
+(def ^:private query-actions
   [{:user/camera
     [{:camera/scene
       [{:scene/initiative
@@ -187,9 +187,9 @@
         ($ icon {:name "heart-fill" :size 40}))
       ($ :.initiative-token-health-label))))
 
-(defui form []
+(defui ^:memo panel []
   (let [dispatch (hooks/use-dispatch)
-        result   (hooks/use-query query-form)
+        result   (hooks/use-query query)
         {{{tokens :scene/initiative
            rounds :initiative/rounds} :camera/scene}
          :user/camera} result]
@@ -219,9 +219,9 @@
               (for [entity (sort initiative-order tokens)]
                 ($ token {:key (:db/id entity) :entity entity :context result})))))))
 
-(defui footer []
+(defui ^:memo actions []
   (let [dispatch (hooks/use-dispatch)
-        result   (hooks/use-query query-footer)
+        result   (hooks/use-query query-actions)
         {{{rounds :initiative/rounds
            played :initiative/played
            tokens :scene/initiative}

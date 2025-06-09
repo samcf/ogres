@@ -9,7 +9,12 @@
             [ogres.app.hooks :as hooks]
             [uix.core :refer [defui $]]))
 
-(def ^:private status-query
+(def ^:private query
+  [[:user/type :default :conn]
+   [:panel/selected :default :tokens]
+   [:panel/expanded :default true]])
+
+(def ^:private query-status
   [{:root/user [:user/type [:session/status :default :initial]]
     :root/session [:session/conns :session/room]}])
 
@@ -18,7 +23,7 @@
 
 (defui status []
   (let [dispatch (hooks/use-dispatch)
-        result (hooks/use-query status-query [:db/ident :root])
+        result (hooks/use-query query-status [:db/ident :root])
         {{type :user/type status :session/status} :root/user
          {code  :session/room
           conns :session/conns} :root/session} result
@@ -30,7 +35,7 @@
       :disconnected ($ :button.button {:disabled true} status-icon "Disconnected")
       ($ :button.button {:disabled true} status-icon "Status not known"))))
 
-(def ^:private panel-data
+(def ^:private data
   {:data       {:icon "wrench-adjustable-circle" :label "Manage local data"}
    :initiative {:icon "hourglass-split" :label "Initiative"}
    :lobby      {:icon "people-fill" :label "Online options"}
@@ -38,30 +43,24 @@
    :tokens     {:icon "person-circle" :label "Token images"}
    :props      {:icon "images" :label "Prop images"}})
 
-(def ^:private panel-forms
+(def ^:private forms
   {:host [:tokens :scene :props :initiative :lobby :data]
    :conn [:tokens :initiative :lobby]})
 
 (def ^:private components
-  {:data       {:form data/form}
-   :initiative {:form initiative/form :footer initiative/footer}
-   :lobby      {:form lobby/form :footer lobby/footer}
-   :scene      {:form scene/form}
-   :tokens     {:form tokens/form :footer tokens/footer}
-   :props      {:form props/panel :footer props/footer}})
+  {:data       {:form data/panel}
+   :initiative {:form initiative/panel :footer initiative/actions}
+   :lobby      {:form lobby/panel :footer lobby/actions}
+   :scene      {:form scene/panel}
+   :tokens     {:form tokens/panel :footer tokens/actions}
+   :props      {:form props/panel :footer props/actions}})
 
-(def ^:private query
-  [[:user/type :default :conn]
-   [:panel/selected :default :tokens]
-   [:panel/expanded :default true]])
-
-(defui container []
+(defui ^:memo panel []
   (let [dispatch (hooks/use-dispatch)
         result   (hooks/use-query query)
         {type :user/type
          selected :panel/selected
-         expanded :panel/expanded} result
-        forms (panel-forms type)]
+         expanded :panel/expanded} result]
     ($ :.panel
       {:data-expanded expanded}
       (if expanded
@@ -71,7 +70,7 @@
         {:role "tablist"
          :aria-controls "form-panel"
          :aria-orientation "vertical"}
-        (for [[key data] (map (juxt identity panel-data) forms)
+        (for [[key data] (map (juxt identity data) (forms type))
               :let [selected (= selected key)]]
           ($ :li.panel-tabs-tab
             {:key key :role "tab" :aria-selected (and expanded selected)}

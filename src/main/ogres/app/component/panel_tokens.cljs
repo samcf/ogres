@@ -17,12 +17,20 @@
                       useDraggable  use-draggable
                       useDroppable  use-droppable}]))
 
-(defn ^:private scopes [type]
-  (if (= type :host)
-    #{:public :private}
-    #{:public}))
+(def ^:private query-editor
+  [{:root/user [:user/type]}
+   {:root/token-images
+    [:image/hash
+     :image/scope
+     :image/name
+     :image/size
+     :image/width
+     :image/height
+     :image/thumbnail-rect
+     {:image/thumbnail
+      [:image/hash :image/size]}]}])
 
-(def ^:private query-footer
+(def ^:private query-actions
   [{:root/user [:user/type]}
    {:root/token-images
     [:image/hash
@@ -30,7 +38,7 @@
      {:image/thumbnail
       [:image/hash]}]}])
 
-(def ^:private query-form
+(def ^:private query-tokens
   [{:root/user [:user/type]}
    {:root/token-images
     [:image/hash
@@ -41,6 +49,11 @@
 
 (def ^:private query-bounds
   [[:user/bounds :default seg/zero]])
+
+(defn ^:private scopes [type]
+  (if (= type :host)
+    #{:public :private}
+    #{:public}))
 
 (defui ^:private draggable
   [{:keys [id children]}]
@@ -145,7 +158,7 @@
            :on-change set-page})))))
 
 (defui tokens []
-  (let [result (hooks/use-query query-form [:db/ident :root])
+  (let [result (hooks/use-query query-tokens [:db/ident :root])
         {data :root/token-images
          {type :user/type} :root/user} result
         [active set-active] (uix/use-state nil)
@@ -198,7 +211,7 @@
             ($ :legend "Tokens")
             ($ paginated {:name "tokens-public" :data data-pub :limit 30})))))))
 
-(defui form []
+(defui ^:memo panel []
   (let [dispatch (hooks/use-dispatch)
         results  (hooks/use-query query-bounds [:db/ident :user])
         {bounds :user/bounds} results
@@ -406,22 +419,9 @@
             ($ icon {:name "crop" :size 16})
             "Crop and Resize"))))))
 
-(def ^:private modal-query
-  [{:root/user [:user/type]}
-   {:root/token-images
-    [:image/hash
-     :image/scope
-     :image/name
-     :image/size
-     :image/width
-     :image/height
-     :image/thumbnail-rect
-     {:image/thumbnail
-      [:image/hash :image/size]}]}])
-
 (defui ^:private token-editor [props]
   (let [publish (hooks/use-publish)
-        {user :root/user images :root/token-images} (hooks/use-query modal-query [:db/ident :root])
+        {user :root/user images :root/token-images} (hooks/use-query query-editor [:db/ident :root])
         [selected set-selected] (uix/use-state nil)
         [page set-page] (uix/use-state 1)
         limit 20
@@ -474,10 +474,10 @@
             {:on-click (:on-close props)}
             "Exit"))))))
 
-(defui footer []
+(defui ^:memo actions []
   (let [[editing set-editing] (uix/use-state false)
         dispatch (hooks/use-dispatch)
-        result   (hooks/use-query query-footer [:db/ident :root])
+        result   (hooks/use-query query-actions [:db/ident :root])
         {{type :user/type} :root/user
          images :root/token-images} result
         upload   (hooks/use-image-uploader {:type :token})

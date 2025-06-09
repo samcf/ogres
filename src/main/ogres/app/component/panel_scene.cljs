@@ -6,6 +6,31 @@
             [ogres.app.util :refer [display-size]]
             [uix.core :as uix :refer [defui $]]))
 
+(def ^:private query
+  [{:root/scene-images
+    [:image/hash
+     :image/name
+     :image/size
+     {:image/thumbnail
+      [:image/hash]}]}
+   {:root/user
+    [{:user/camera
+      [:db/id
+       :camera/label
+       {:camera/scene
+        [:db/id
+         [:scene/grid-size :default grid-size]
+         [:scene/show-grid :default true]
+         [:scene/grid-align :default false]
+         [:scene/dark-mode :default false]
+         [:scene/show-object-outlines :default true]
+         [:scene/lighting :default :revealed]
+         {:scene/image
+          [:image/hash
+           :image/name
+           {:image/thumbnail
+            [:image/hash]}]}]}]}]}])
+
 (def ^:private options-vis
   [["Revealed" :revealed "sun-fill"]
    ["Obscured" :dimmed "cloud-sun-fill"]
@@ -62,37 +87,12 @@
             {:on-click (fn [] (on-close) (dispatch :scene/change-image (:image/hash data)))}
             "Change background"))))))
 
-(def ^:private form-query
-  [{:root/scene-images
-    [:image/hash
-     :image/name
-     :image/size
-     {:image/thumbnail
-      [:image/hash]}]}
-   {:root/user
-    [{:user/camera
-      [:db/id
-       :camera/label
-       {:camera/scene
-        [:db/id
-         [:scene/grid-size :default grid-size]
-         [:scene/show-grid :default true]
-         [:scene/grid-align :default false]
-         [:scene/dark-mode :default false]
-         [:scene/show-object-outlines :default true]
-         [:scene/lighting :default :revealed]
-         {:scene/image
-          [:image/hash
-           :image/name
-           {:image/thumbnail
-            [:image/hash]}]}]}]}]}])
-
-(defui form []
+(defui ^:memo panel []
   (let [[preview set-preview] (uix/use-state nil)
         dispatch (hooks/use-dispatch)
         upload   (hooks/use-image-uploader {:type :scene})
         input    (uix/use-ref)
-        data     (hooks/use-query form-query [:db/ident :root])
+        data     (hooks/use-query query [:db/ident :root])
         {{{scene :camera/scene} :user/camera
           camera :user/camera} :root/user} data
         [page set-page] (uix/use-state 1)]
