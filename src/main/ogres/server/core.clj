@@ -1,11 +1,12 @@
 (ns ogres.server.core
   (:gen-class)
-  (:import [java.io ByteArrayOutputStream ByteArrayInputStream]
+  (:refer-clojure :exclude [send])
+  (:import [clojure.lang IPersistentMap]
+           [java.io ByteArrayOutputStream ByteArrayInputStream]
            [java.nio ByteBuffer]
            [java.util UUID]
            [org.msgpack.core MessagePack])
-  (:require [clojure.core.async :as async]
-            [clojure.string :refer [upper-case]]
+  (:require [clojure.string :refer [upper-case]]
             [cognitect.transit :as transit]
             [datascript.core :as ds]
             [datascript.transit :refer [read-handlers write-handlers]]
@@ -15,34 +16,25 @@
 
 (def sessions (atom {}))
 
-(def conns-chans-xf
-  (comp (map val) (map :chan) (filter identity)))
-
-(defn start-ws-conn [session chan]
-  (async/go-loop []
-    (if-let [message (and (.isOpen session) (async/<! chan))]
-      (do (condp instance? message
-            String     (.sendText   (.getAsyncRemote session) message)
-            ByteBuffer (.sendBinary (.getAsyncRemote session) message))
-          (recur))
-      (.close session))))
+(def conns-sessions-xf
+  (comp (map val) (map :session) (filter identity)))
 
 (defn room-create-key []
-  (let [keys (:rooms @sessions)]
+  (let [keys (:rooms (deref sessions))]
     (loop []
       (let [code (->> (datascript.core/squuid) (str) (take-last 4) (apply str) (upper-case))]
         (if (contains? keys code) (recur) code)))))
 
 (defn room-create
-  [sessions room conn chan]
+  [sessions room conn session]
   (-> sessions
-      (update-in [:conns conn] assoc :chan chan :room room)
+      (update-in [:conns conn] assoc :session session :room room)
       (update-in [:rooms room] assoc :conns #{conn} :host conn)))
 
 (defn room-join
-  [sessions room conn chan]
+  [sessions room conn session]
   (-> sessions
-      (update-in [:conns conn] assoc :chan chan :room room)
+      (update-in [:conns conn] assoc :session session :room room)
       (update-in [:rooms room :conns] conj conn)))
 
 (defn room-leave
@@ -68,68 +60,82 @@
     (transit/write writer value)
     (.toString stream)))
 
+(defn send [session message]
+  (when (.isOpen session)
+    (condp instance? message
+      IPersistentMap (.sendText   (.getAsyncRemote session) (marshall message))
+      String         (.sendText   (.getAsyncRemote session) message)
+      ByteBuffer     (.sendBinary (.getAsyncRemote session) message))))
+
+(defn send-many [sessions message]
+  (condp instance? message
+    IPersistentMap
+    (let [serialized (marshall message)]
+      (doseq [session sessions]
+        (.sendText (.getAsyncRemote session) serialized)))
+    String
+    (doseq [session sessions]
+      (.sendText (.getAsyncRemote session) message))
+    ByteBuffer
+    (doseq [session sessions]
+      (.sendBinary (.getAsyncRemote session) message))))
+
 (defn handle-root [_request]
   {:status 405})
 
-(defn handle-ws [request]
-  (let [{:keys [params]} request
-        sessions (deref sessions)]
-    (cond (and (:host params) (:join params))
+(defn handle-ws [{{host :host join :join} :params}]
+  (let [data (deref sessions)]
+    (cond (and host join)
           {:status 400}
-          (and (:host params) (get-in sessions [:rooms (:host params)]))
+          (and host (get-in data [:rooms host]))
           {:status 403}
-          (and (:join params) (nil? (get-in sessions [:rooms (upper-case (:join params))])))
+          (and join (nil? (get-in data [:rooms (upper-case join)])))
           {:status 404})))
 
 (defn handle-ws-open [session _]
-  (.setMaxTextMessageBufferSize   session 1e7)
+  (.setMaxTextMessageBufferSize session 1e7)
   (.setMaxBinaryMessageBufferSize session 1e7)
   (let [params (.getRequestParameterMap session)
         host (some-> params (.get "host") (.get 0))
         join (some-> params (.get "join") (.get 0) (upper-case))
-        uuid (random-uuid)
-        chan (async/chan)]
-    (start-ws-conn session chan)
+        uuid (random-uuid)]
     (cond (some? host)
-          (do (swap! sessions room-create host uuid chan)
-              (async/>!! chan (marshall {:type :event :src uuid :dst uuid :data {:name :session/created :room host :uuid uuid}})))
+          (do (swap! sessions room-create host uuid session)
+              (send session {:type :event :src uuid :dst uuid :data {:name :session/created :room host :uuid uuid}}))
           (some? join)
-          (let [sessions (swap! sessions room-join join uuid chan)]
-            (async/>!! chan (marshall {:type :event :src uuid :dst uuid :data {:name :session/joined :room join :uuid uuid}}))
-            (let [conns (disj (get-in sessions [:rooms join :conns]) uuid)
-                  chans (into [] conns-chans-xf (select-keys (:conns sessions) conns))]
-              (doseq [chan chans]
-                (async/>!! chan (marshall {:type :event :src uuid :data {:name :session/join :room join :uuid uuid}})))))
+          (let [sessions (swap! sessions room-join join uuid session)]
+            (send session {:type :event :src uuid :dst uuid :data {:name :session/joined :room join :uuid uuid}})
+            (let [conns (disj (get-in sessions [:rooms join :conns]) uuid)]
+              (send-many
+               (sequence conns-sessions-xf (select-keys (:conns sessions) conns))
+               {:type :event :src uuid :data {:name :session/join :room join :uuid uuid}})))
           :else
           (let [room (room-create-key)]
-            (swap! sessions room-create room uuid chan)
-            (async/>!! chan (marshall {:type :event :src uuid :dst uuid :data {:name :session/created :room room :uuid uuid}}))))
+            (swap! sessions room-create room uuid session)
+            (send session {:type :event :src uuid :dst uuid :data {:name :session/created :room room :uuid uuid}})))
     uuid))
 
 (defn handle-ws-close [uuid _ _]
-  (let [sess @sessions
-        room (get-in sess [:conns uuid :room])
-        self (get-in sess [:conns uuid :chan])
-        host (get-in sess [:rooms room :host])
-        rest (->> (disj (get-in sess [:rooms room :conns]) uuid)
-                  (select-keys (:conns sess))
-                  (into [] conns-chans-xf))]
+  (let [data (deref sessions)
+        room (get-in data [:conns uuid :room])
+        self (get-in data [:conns uuid :session])
+        host (get-in data [:rooms room :host])
+        rest (->> (disj (get-in data [:rooms room :conns]) uuid)
+                  (select-keys (:conns data))
+                  (into [] conns-sessions-xf))]
 
-    ;; The connection has been closed; close the associated channel.
-    (async/close! self)
+    ;; The connection has been closed; close the associated session.
+    (.close self)
 
     (if (= uuid host)
       ;; The host has left, destroying the session entirely. Find and close
       ;; all remaining connections.
-      (doseq [chan rest]
-        (async/close! chan))
+      (doseq [session rest]
+        (.close session))
 
       ;; Notify all other connections in the same session that a connection
       ;; has been closed.
-      (doseq [chan rest]
-        (->> {:type :event :data {:name :session/leave :uuid uuid}}
-             (marshall)
-             (async/>!! chan))))
+      (send-many rest {:type :event :data {:name :session/leave :uuid uuid}}))
 
     ;; Update the sessions to remove the closing connection, potentially
     ;; also removing the room and closing all related connections within.
@@ -139,17 +145,16 @@
   (prn error))
 
 (defn handle-ws-text [uuid message]
-  (let [sessions (deref sessions)
-        room     (uuid->room sessions uuid)]
-    (if room
+  (let [sessions (deref sessions)]
+    (if-let [room (uuid->room sessions uuid)]
       (let [stream (ByteArrayInputStream. (.getBytes message))
             reader (transit/reader stream :json {:handlers read-handlers})
             decode (transit/read reader)
             recips (if (uuid? (:dst decode)) #{(:dst decode)} (disj (:conns room) uuid))
-            xf     (comp (map (:conns sessions)) (map :chan) (filter identity))]
-        (doseq [chan (sequence xf recips)]
-          (async/>!! chan message)))
-      (async/close! (get-in sessions [:conns uuid :chan])))))
+            xf     (comp (map (:conns sessions)) (map :session) (filter identity))]
+        (send-many (sequence xf recips) message))
+      (when-let [session [:conns uuid :session]]
+        (.close session)))))
 
 (defn handle-ws-binary [uuid message]
   (let [data (deref sessions)]
@@ -159,11 +164,9 @@
         (loop [idx 0]
           (if (< idx max-keys)
             (if (= (.unpackString unpacker) "dst")
-              (let [dest (UUID/fromString (.unpackString unpacker))
-                    chan (get-in data [:conns dest :chan])]
-                (when (some? chan)
-                  (.close unpacker)
-                  (async/>!! chan (.asReadOnlyBuffer message))))
+              (let [dest (UUID/fromString (.unpackString unpacker))]
+                (when-let [session (get-in data [:conns dest :session])]
+                  (send session message)))
               (do (.skipValue unpacker)
                   (recur (inc idx))))))
         (.close unpacker)))))
@@ -186,7 +189,7 @@
            ["/ws" :get [handle-ws upgrade-ws]]})
        (jetty/create-connector nil))))
 
-(defn run-development [opts]
+(defn ^:export run-development [opts]
   (conn/start! (create-connector opts)))
 
 (defn -main [port]
