@@ -4,7 +4,6 @@
   (:import [clojure.lang IPersistentMap]
            [java.io ByteArrayOutputStream ByteArrayInputStream]
            [java.nio ByteBuffer]
-           [java.util UUID]
            [org.msgpack.core MessagePack])
   (:require [clojure.string :refer [upper-case]]
             [cognitect.transit :as transit]
@@ -98,7 +97,7 @@
   (let [params (.getRequestParameterMap session)
         host (some-> params (.get "host") (.get 0))
         join (some-> params (.get "join") (.get 0) (upper-case))
-        uuid (random-uuid)]
+        uuid (.getId session)]
     (cond (some? host)
           (do (swap! sessions room-create host uuid session)
               (send session {:type :event :src uuid :dst uuid :data {:name :session/created :room host :uuid uuid}}))
@@ -113,10 +112,11 @@
           (let [room (room-create-key)]
             (swap! sessions room-create room uuid session)
             (send session {:type :event :src uuid :dst uuid :data {:name :session/created :room room :uuid uuid}})))
-    uuid))
+    session))
 
-(defn handle-ws-close [uuid _ _]
+(defn handle-ws-close [session _ _]
   (let [data (deref sessions)
+        uuid (.getId session)
         room (get-in data [:conns uuid :room])
         self (get-in data [:conns uuid :session])
         host (get-in data [:rooms room :host])
@@ -144,27 +144,29 @@
 (defn handle-ws-error [_ _ error]
   (prn error))
 
-(defn handle-ws-text [uuid message]
-  (let [sessions (deref sessions)]
-    (if-let [room (uuid->room sessions uuid)]
+(defn handle-ws-text [session message]
+  (let [data (deref sessions)
+        uuid (.getId session)]
+    (if-let [room (uuid->room data uuid)]
       (let [stream (ByteArrayInputStream. (.getBytes message))
             reader (transit/reader stream :json {:handlers read-handlers})
             decode (transit/read reader)
             recips (if (uuid? (:dst decode)) #{(:dst decode)} (disj (:conns room) uuid))
-            xf     (comp (map (:conns sessions)) (map :session) (filter identity))]
+            xf     (comp (map (:conns data)) (map :session) (filter identity))]
         (send-many (sequence xf recips) message))
       (when-let [session [:conns uuid :session]]
         (.close session)))))
 
-(defn handle-ws-binary [uuid message]
-  (let [data (deref sessions)]
+(defn handle-ws-binary [session message]
+  (let [data (deref sessions)
+        uuid (.getId session)]
     (if (uuid->room data uuid)
       (let [unpacker (MessagePack/newDefaultUnpacker message)
             max-keys (.unpackMapHeader unpacker)]
         (loop [idx 0]
           (if (< idx max-keys)
             (if (= (.unpackString unpacker) "dst")
-              (let [dest (UUID/fromString (.unpackString unpacker))]
+              (let [dest (.unpackString unpacker)]
                 (when-let [session (get-in data [:conns dest :session])]
                   (send session message)))
               (do (.skipValue unpacker)
