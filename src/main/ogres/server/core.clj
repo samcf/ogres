@@ -11,6 +11,7 @@
             [datascript.transit :refer [read-handlers write-handlers]]
             [io.pedestal.connector :as conn]
             [io.pedestal.http.jetty :as jetty]
+            [io.pedestal.log :as log]
             [io.pedestal.websocket :as ws]))
 
 (def sessions (atom {}))
@@ -139,7 +140,7 @@
     (swap! sessions room-leave uuid)))
 
 (defn handle-ws-error [_ _ error]
-  (prn error))
+  (log/error :message (.getMessage error)))
 
 (defn handle-ws-text [session message]
   (let [data (deref sessions)
