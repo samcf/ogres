@@ -13,5 +13,4 @@
            org.msgpack/msgpack-core              {:mvn/version "0.9.8"}
            org.slf4j/slf4j-simple                {:mvn/version "2.0.17"}
            thheller/shadow-cljs                  {:mvn/version "3.0.3"}}
- :aliases {:server/dev {:exec-fn ogres.server.core/run-development}
-           :uberjar    {:extra-deps {com.github.seancorfield/depstar {:mvn/version "2.1.303"}}}}}
+ :aliases {:uberjar {:extra-deps {com.github.seancorfield/depstar {:mvn/version "2.1.303"}}}}}
