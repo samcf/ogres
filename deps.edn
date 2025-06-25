@@ -13,4 +13,10 @@
            org.msgpack/msgpack-core              {:mvn/version "0.9.8"}
            org.slf4j/slf4j-simple                {:mvn/version "2.0.17"}
            thheller/shadow-cljs                  {:mvn/version "3.0.3"}}
- :aliases {:uberjar {:extra-deps {com.github.seancorfield/depstar {:mvn/version "2.1.303"}}}}}
+ :aliases {:uberjar {:extra-deps {com.github.seancorfield/depstar {:mvn/version "2.1.303"}}}
+           :with-otlp
+           {:jvm-opts
+            ["-javaagent:grafana-opentelemetry-java.jar"
+             "-Dotel.resource.attributes=service.name=ogres-server,service.namespace=ogres-server-group,deployment.environment=production,process.command_args=none"
+             "-Dotel.exporter.otlp.endpoint=https://otlp-gateway-prod-us-west-0.grafana.net/otlp"
+             "-Dotel.exporter.otlp.protocol=http/protobuf"]}}}

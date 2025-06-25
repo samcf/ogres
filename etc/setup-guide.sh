@@ -38,3 +38,10 @@ systemctl restart ogres.app.service
 nginx -s stop
 sudo certbot renew
 nginx -c ogres.app.conf
+
+# setup grafana instrumentation by setting this environment variable
+# for authentication and ensure that the grafana agent JAR exists
+# within the same directory as the server JAR.
+export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic <Key>"
+wget https://github.com/grafana/grafana-opentelemetry-java/releases/latest/download/grafana-opentelemetry-java.jar
+scp grafana-opentelemetry-java.jar "$dst":/srv/ogres.server
