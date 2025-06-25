@@ -12,11 +12,34 @@
             [io.pedestal.connector :as conn]
             [io.pedestal.http.jetty :as jetty]
             [io.pedestal.log :as log]
+            [io.pedestal.metrics :as metrics]
             [io.pedestal.websocket :as ws]))
 
 (def state! (atom {}))
 (def opts-reader {:handlers read-handlers})
 (def opts-writer {:handlers write-handlers})
+
+(metrics/gauge
+ :ogres.server.conns/count
+ {::metrics/description "The number of connections persisted in state."}
+ (fn [] (count (:conns (deref state!)))))
+
+(metrics/gauge
+ :ogres.server.rooms/count
+ {::metrics/description "The number of rooms persisted in state."}
+ (fn [] (count (:rooms (deref state!)))))
+
+(def stat-size-message!
+  (metrics/histogram
+   :ogres.server.message/size
+   {::metrics/description "The size of an event forward to one or more connections."
+    ::metrics/unit "By"}))
+
+(def stat-size-image!
+  (metrics/histogram
+   :ogres.server.image/size
+   {::metrics/description "The size of an image forwarded to another connection."
+    ::metrics/unit "By"}))
 
 (defn room-create-key []
   (let [keys (:rooms (deref state!))]
@@ -143,6 +166,7 @@
   (log/error :message (.getMessage error)))
 
 (defn handle-ws-text [session message]
+  (stat-size-message! (.length message))
   (let [data (deref state!)
         uuid (.getId session)]
     (if (uuid->room data uuid)
@@ -154,6 +178,7 @@
           (send-many (uuid->conns data uuid) message))))))
 
 (defn handle-ws-binary [session message]
+  (stat-size-image! (.remaining message))
   (let [data (deref state!)
         uuid (.getId session)]
     (if (uuid->room data uuid)
