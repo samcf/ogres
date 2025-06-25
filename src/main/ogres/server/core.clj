@@ -14,12 +14,12 @@
             [io.pedestal.log :as log]
             [io.pedestal.websocket :as ws]))
 
-(def sessions (atom {}))
+(def state! (atom {}))
 (def opts-reader {:handlers read-handlers})
 (def opts-writer {:handlers write-handlers})
 
 (defn room-create-key []
-  (let [keys (:rooms (deref sessions))]
+  (let [keys (:rooms (deref state!))]
     (loop []
       (let [code (->> (datascript.core/squuid) (str) (take-last 4) (apply str) (upper-case))]
         (if (contains? keys code) (recur) code)))))
@@ -86,7 +86,7 @@
   {:status 405})
 
 (defn handle-ws [{{host :host join :join} :params}]
-  (let [data (deref sessions)]
+  (let [data (deref state!)]
     (cond (and host join)
           {:status 400}
           (and host (get-in data [:rooms host]))
@@ -102,20 +102,20 @@
         join (some-> params (.get "join") (.get 0) (upper-case))
         uuid (.getId session)]
     (cond (some? host)
-          (do (swap! sessions room-create host uuid session)
+          (do (swap! state! room-create host uuid session)
               (send session {:type :event :src uuid :dst uuid :data {:name :session/created :room host :uuid uuid}}))
           (some? join)
-          (let [data (swap! sessions room-join join uuid session)]
+          (let [data (swap! state! room-join join uuid session)]
             (send session {:type :event :src uuid :dst uuid :data {:name :session/joined :room join :uuid uuid}})
             (send-many (uuid->conns data uuid) {:type :event :src uuid :data {:name :session/join :room join :uuid uuid}}))
           :else
           (let [room (room-create-key)]
-            (swap! sessions room-create room uuid session)
+            (swap! state! room-create room uuid session)
             (send session {:type :event :src uuid :dst uuid :data {:name :session/created :room room :uuid uuid}})))
     session))
 
 (defn handle-ws-close [session _ _]
-  (let [data (deref sessions)
+  (let [data (deref state!)
         uuid (.getId session)
         room (get-in data [:conns uuid :room])
         room (get-in data [:rooms room])
@@ -137,13 +137,13 @@
 
     ;; Update the sessions to remove the closing connection, potentially
     ;; also removing the room and closing all related connections within.
-    (swap! sessions room-leave uuid)))
+    (swap! state! room-leave uuid)))
 
 (defn handle-ws-error [_ _ error]
   (log/error :message (.getMessage error)))
 
 (defn handle-ws-text [session message]
-  (let [data (deref sessions)
+  (let [data (deref state!)
         uuid (.getId session)]
     (if (uuid->room data uuid)
       (let [stream (ByteArrayInputStream. (.getBytes message))
@@ -154,7 +154,7 @@
           (send-many (uuid->conns data uuid) message))))))
 
 (defn handle-ws-binary [session message]
-  (let [data (deref sessions)
+  (let [data (deref state!)
         uuid (.getId session)]
     (if (uuid->room data uuid)
       (let [unpacker (MessagePack/newDefaultUnpacker message)
