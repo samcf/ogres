@@ -200,7 +200,8 @@
     :on-close  handle-ws-close
     :on-error  handle-ws-error
     :on-text   handle-ws-text
-    :on-binary handle-ws-binary}))
+    :on-binary handle-ws-binary
+    :idle-timeout-ms (* 1000 60 3)}))
 
 (defn create-connector
   ([] (create-connector {}))
