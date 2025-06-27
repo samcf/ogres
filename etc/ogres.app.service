@@ -5,9 +5,15 @@ After=syslog.target network.target
 [Service]
 Type=simple
 Restart=always
-ExecStart=/usr/bin/java -cp /srv/ogres.server/OgreServer.jar clojure.main -m ogres.server.core 8080
-ExecStop=/bin/kill -15 $MAINPID
 SuccessExitStatus=143
+EnvironmentFile=/srv/ogres.server/env.conf
+ExecStop=/bin/kill -15 $MAINPID
+ExecStart=/usr/bin/java \
+    -javaagent:/srv/ogres.server/grafana-opentelemetry-java.jar \
+    -Dotel.resource.attributes=service.name=ogres-server,service.namespace=ogres-server-group,deployment.environment=production,process.command_args=none \
+    -Dotel.exporter.otlp.endpoint=https://otlp-gateway-prod-us-west-0.grafana.net/otlp \
+    -Dotel.exporter.otlp.protocol=http/protobuf \
+    -jar /srv/ogres.server/OgreServer.jar -m ogres.server.core 8080
 
 [Install]
 WantedBy=multi-user.target

@@ -35,7 +35,7 @@ npm run style
 
 # optionally, start the application server necessary
 # for hosting online sessions
-clojure -X:server/dev
+clojure -M -m ogres.server.core 5000
 ```
 
 ## Run your own server
