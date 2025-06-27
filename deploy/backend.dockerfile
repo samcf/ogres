@@ -28,4 +28,4 @@ COPY --from=builder --chown=clojure:clojure /build/ogres-server.jar /service/ogr
 EXPOSE 8090
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["java", "-jar", "/service/OgreServer.jar", "-m", "ogres.server.core", "8090"]
+CMD ["java", "-jar", "/service/ogres-server.jar", "8090"]
