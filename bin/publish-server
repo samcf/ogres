@@ -7,9 +7,10 @@ set -o errexit -o nounset
 # Example
 # $ sh bin/publish-server root@0.0.0.0
 
-src="OgreServer.jar"
+src="target/ogres-server.jar"
 dst=$1
 
-clojure -A:uberjar -m hf.depstar.uberjar "$src"
+clojure -T:build clean
+clojure -T:build uber :out "$src"
 scp "$src" "$dst":/srv/ogres.server
 ssh "$dst" systemctl restart ogres.app.service

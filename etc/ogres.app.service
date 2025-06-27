@@ -13,7 +13,7 @@ ExecStart=/usr/bin/java \
     -Dotel.resource.attributes=service.name=ogres-server,service.namespace=ogres-server-group,deployment.environment=production,process.command_args=none \
     -Dotel.exporter.otlp.endpoint=https://otlp-gateway-prod-us-west-0.grafana.net/otlp \
     -Dotel.exporter.otlp.protocol=http/protobuf \
-    -jar /srv/ogres.server/OgreServer.jar -m ogres.server.core 8080
+    -jar /srv/ogres.server/ogres-server.jar 8080
 
 [Install]
 WantedBy=multi-user.target

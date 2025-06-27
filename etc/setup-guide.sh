@@ -23,8 +23,8 @@ nginx -s stop
 nginx -c ogres.app.conf
 
 # build the server uberjar locally and copy it to the server
-clojure -A:uberjar -m hf.depstar.uberjar OgreServer.jar
-scp OgreServer.jar "$dst":/srv/ogres.server
+clojure -T:build uber :out target/ogres-server.jar
+scp target/ogres-server.jar "$dst":/srv/ogres.server
 
 # copy the ogres.app service configuration to the server, enable and start
 # the service with systemctl
