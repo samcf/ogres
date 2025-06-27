@@ -4,7 +4,7 @@ FROM clojure:temurin-21-tools-deps-bookworm AS builder
 RUN mkdir -p /build
 WORKDIR /build
 COPY ./ /build
-RUN clojure -A:uberjar -m hf.depstar.uberjar OgreServer.jar
+RUN clojure -T:build uber :out ogres-server.jar
 
 FROM eclipse-temurin:21-alpine AS final
 RUN apk add --no-cache dumb-init
@@ -23,7 +23,7 @@ RUN mkdir -p /service && chown -R clojure. /service
 
 USER clojure
 WORKDIR /service
-COPY --from=builder --chown=clojure:clojure /build/OgreServer.jar /service/OgreServer.jar
+COPY --from=builder --chown=clojure:clojure /build/ogres-server.jar /service/ogres-server.jar
 
 EXPOSE 8090
 
