@@ -39,9 +39,12 @@ nginx -s stop
 sudo certbot renew
 nginx -c ogres.app.conf
 
-# setup grafana instrumentation by setting this environment variable
-# for authentication and ensure that the grafana agent JAR exists
-# within the same directory as the server JAR.
-export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic <Key>"
+# instrumentation is performed by grafana with otlp. download the grafana
+# java agent and put it in the same directory as the application jar.
 wget https://github.com/grafana/grafana-opentelemetry-java/releases/latest/download/grafana-opentelemetry-java.jar
 scp grafana-opentelemetry-java.jar "$dst":/srv/ogres.server
+
+# create a file with the OTEL_EXPORTER_OTLP_HEADERS in it with the
+# authorization secret. replace <Key> with the secret provided by
+# grafana.
+echo "OTEL_EXPORTER_OTLP_HEADERS=\"Authorization=Basic <Key>\"" >> /srv/ogres.server/env.conf
