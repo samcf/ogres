@@ -271,51 +271,50 @@
           removes all scene cameras for any connected users and switches them
           to whichever scene the host is now on."}
   event-tx-fn :scenes/remove
-  [data _ id]
-  (let [camera  (ds/entity data id)
-        user    (ds/entity data [:db/ident :user])
-        session (ds/entity data [:db/ident :session])]
-    (cond
-      (= (count (:user/cameras user)) 1)
-      (into [[:db/retractEntity (:db/id camera)]
-             [:db/retractEntity (:db/id (:camera/scene camera))]
-             {:db/ident :root
-              :root/scenes {:db/id -2 :db/empty true}
-              :root/user
-              {:db/ident :user
-               :user/camera -1
-               :user/cameras
-               {:db/id -1
-                :camera/scene -2
-                :camera/point vec/zero}}}]
-            (for [[idx conn] (sequence (indexed 3 2) (:session/conns session))]
-              {:db/id (:db/id conn)
-               :user/camera idx
-               :user/cameras
-               {:db/id idx
-                :camera/scene -2
-                :camera/point vec/zero
-                :camera/scale 1}}))
-      (= id (:db/id (:user/camera user)))
-      (let [host-cam (first (filter (comp (complement #{id}) :db/id) (:user/cameras user)))
-            host-scn (:db/id (:camera/scene host-cam))]
-        (into [[:db/retractEntity (:db/id camera)]
-               [:db/retractEntity (:db/id (:camera/scene camera))]
-               {:db/ident :user :user/camera {:db/id (:db/id host-cam)}}]
-              (for [[tmp conn] (sequence (indexed) (:session/conns session))
-                    :let [cam (->> (:user/cameras conn)
-                                   (filter (comp #{host-scn} :db/id :camera/scene))
-                                   (first))
-                          idx (or (:db/id cam) tmp)]]
-                {:db/id (:db/id conn)
-                 :user/camera idx
-                 :user/cameras
-                 {:db/id idx
-                  :camera/scene host-scn
-                  :camera/scale 1}})))
-      :else
-      [[:db/retractEntity (:db/id camera)]
-       [:db/retractEntity (:db/id (:camera/scene camera))]])))
+  [data _ camera-id]
+  (let [root (ds/entity data [:db/ident :root])
+        user (ds/entity data [:db/ident :user])
+        prev-cam (ds/entity data camera-id)
+        prev-scn (:db/id (:camera/scene prev-cam))]
+    (conj
+     (if (= (:db/id (:user/camera user)) (:db/id prev-cam))
+       (if-let [next-scn (:db/id (first (remove (comp #{prev-scn} :db/id) (:root/scenes root))))]
+         (if-let [next-cam (:db/id (first (filter (comp #{next-scn} :db/id :camera/scene) (:user/cameras user))))]
+           [[:db/add (:db/id user) :user/camera next-cam]]
+           [[:db/add (:db/id user) :user/camera -1]
+            [:db/add (:db/id user) :user/cameras -1]
+            [:db/add -1 :camera/scene next-scn]
+            [:db/add -1 :camera/point vec/zero]])
+         [[:db/add (:db/id root) :root/scenes -2]
+          [:db/add (:db/id user) :user/camera -1]
+          [:db/add (:db/id user) :user/cameras -1]
+          [:db/add -1 :camera/scene -2]
+          [:db/add -1 :camera/point vec/zero]
+          [:db/add -2 :db/empty true]]) [])
+     [:db.fn/call event-tx-fn :scenes/sync-with-user prev-scn]
+     [:db/retractEntity prev-scn]
+     [:db/retractEntity camera-id])))
+
+(defmethod
+  ^{:doc "Find all players that are currently viewing the given scene and
+          move them to the scene being viewd by the current user."}
+  event-tx-fn
+  :scenes/sync-with-user
+  [data _ prev-scn]
+  (let [next-scn (-> (ds/entity data [:db/ident :user]) :user/camera :camera/scene :db/id)]
+    (->> (for [conn (:session/conns (ds/entity data [:db/ident :session]))
+               :let [curr-scn (-> conn :user/camera :camera/scene :db/id)]
+               :when (= curr-scn prev-scn)
+               :let [curr-cam (first (filter (comp #{curr-scn} :db/id :camera/scene) (:user/cameras conn)))]]
+           (if-let [next-cam (first (filter (comp #{next-scn} :db/id :camera/scene) (:user/cameras conn)))]
+             [[:db/retractEntity (:db/id curr-cam)]
+              [:db/add (:db/id conn) :user/camera (:db/id next-cam)]]
+             [[:db/retractEntity (:db/id curr-cam)]
+              [:db/add (:db/id conn) :user/cameras -3]
+              [:db/add (:db/id conn) :user/camera -3]
+              [:db/add -3 :camera/scene next-scn]
+              [:db/add -3 :camera/point vec/zero]]))
+         (apply concat))))
 
 ;; -- Scene Images --
 (defmethod event-tx-fn :scene-images/create-many
