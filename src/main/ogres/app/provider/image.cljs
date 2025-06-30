@@ -17,21 +17,14 @@
       (map (fn [s] (.. s (toString 16) (padStart 2 "0"))))
       (join "")))
 
-;(defn ^:private create-hash
-;  "Returns a Promise which resolves with a hash string for the
-;   image data given as a Blob object."
-;  [^js/Blob image]
-;  (-> (.arrayBuffer image)
-;      (.then (fn [buf] (js/crypto.subtle.digest hash-fn buf)))
-;      (.then (fn [dig] (js/Uint8Array. dig)))
-;      (.then decode-digest)))
-
 (defn ^:private create-hash
+  "Returns a Promise which resolves with a hash string for the
+   image data given as a Blob object."
   [^js/Blob image]
-  (js/Promise.resolve
-    ;; Use something unique-ish but consistent — e.g., a fixed string or random ID
-    (str "fake-hash-" (random-uuid))))
-
+  (-> (.arrayBuffer image)
+      (.then (fn [buf] (js/crypto.subtle.digest hash-fn buf)))
+      (.then (fn [dig] (js/Uint8Array. dig)))
+      (.then decode-digest)))
 
 (defn ^:private create-thumbnail
   "Returns a <canvas> element with the contents of the src <canvas> cropped
