@@ -61,7 +61,7 @@
    given an image type and quality ratio in the form of a map whose keys are
    'data', 'hash', 'width', and 'height'."
   ([^js/HTMLCanvasElement canvas]
-   (extract-image canvas "image/jpeg" 0.80))
+   (extract-image canvas "image/webp" 0.80))
   ([^js/HTMLCanvasElement canvas type quality]
    (js/Promise.
     (fn [resolve]
