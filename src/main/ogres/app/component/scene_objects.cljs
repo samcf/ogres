@@ -634,7 +634,7 @@
                    :transform local
                    :on-pointer-down drag-fn
                    :data-drag-local (.-isDragging drag)
-                   :data-locked locked}
+                   :data-locked (boolean locked)}
                   (if (> (count selected) 1)
                     ($ :rect.scene-objects-bounds
                       {:width (seg/width bounds)
