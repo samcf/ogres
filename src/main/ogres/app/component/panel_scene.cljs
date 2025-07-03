@@ -8,7 +8,8 @@
 
 (def ^:private query
   [{:root/scene-images
-    [:image/hash
+    [:db/id
+     :image/hash
      :image/name
      :image/size
      {:image/thumbnail
@@ -49,43 +50,75 @@
       (-> filename (replace filename-re "") (replace  #"\s{2,}" " "))
       "Untitled scene")))
 
-(defui ^:private scene-preview [{:keys [data on-close]}]
-  (let [dispatch (hooks/use-dispatch)]
+(def ^:private query-scenes
+  [{:root/scene-images
+    [:db/id
+     :image/hash
+     :image/name
+     :image/size
+     {:image/thumbnail
+      [:image/hash]}]}])
+
+(defui ^:private scene-editor [{:keys [id on-change on-close]}]
+  (let [[page set-page] (uix/use-state 1)
+        result (hooks/use-query query-scenes [:db/ident :root])
+        scene  (first (filter (comp #{id} :db/id) (:root/scene-images result)))]
     ($ fullscreen-dialog
       {:on-close on-close}
-      ($ :.scene-gallery-preview
-        ($ image {:hash (:image/hash data)}
-          (fn [url]
-            ($ :figure.scene-gallery-preview-details
-              {:style {:background-image (str "url(" url ")")}}
-              ($ :dl
-                ($ :dt "Filename")
-                ($ :dd (:image/name data))
-                ($ :dt "Size")
-                ($ :dd (display-size (:image/size data)))
-                (if (> (:image/size data) filesize-limit)
-                  ($ :<>
-                    ($ :dt ($ icon {:name "exclamation-triangle-fill" :size 12}) "Warning")
-                    ($ :dd
-                      "This image exceeds the maximum image filesize (8MB)"
-                      " that can be used for multiplayer games."
-                      " Decreasing its dimensions, converting it to a JPG,"
-                      " and lowering its image quality may help.")))))))
-        ($ :.scene-gallery-preview-footer
-          ($ :button.button.button-danger
-            {:style {:margin-right "auto"}
-             :on-click
-             (fn []
-               (let [thumbnail (:image/hash (:image/thumbnail data))]
-                 (on-close)
-                 (dispatch :scene-images/remove (:image/hash data) thumbnail)))}
-            ($ icon {:name "trash3-fill" :size 16}))
-          ($ :button.button.button-neutral
+      ($ :.scene-editor
+        ($ :.scene-editor-workspace
+          ($ image {:hash (:image/hash scene)}
+            (fn [url]
+              ($ :img.scene-editor-image
+                {:src url})))
+          ($ :dl
+            ($ :dt "Filename")
+            ($ :dd (:image/name scene))
+            ($ :dt "Size")
+            ($ :dd (display-size (:image/size scene)))
+            (if (> (:image/size scene) filesize-limit)
+              ($ :<>
+                ($ :dt ($ icon {:name "exclamation-triangle-fill" :size 12}) "Warning")
+                ($ :dd
+                  "This image exceeds the maximum image filesize (8MB)"
+                  " that can be used for multiplayer games."
+                  " Reducing its dimensions and lowering its image quality "
+                  " may help.")))))
+        ($ :.scene-editor-gallery
+          (let [scenes (vec (:root/scene-images result))
+                limit  12
+                pages  (js/Math.ceil (/ (count scenes) limit))
+                start  (max (* (dec (min page pages)) limit) 0)
+                end    (min (+ start limit) (count scenes))
+                window (subvec scenes start end)]
+            ($ :.scene-editor-gallery-paginated
+              ($ :.scene-editor-gallery-thumbnails
+                (for [scene window
+                      :let [thumb (:image/hash (:image/thumbnail scene))
+                            check (= (:db/id scene) id)]]
+                  ($ image {:key thumb :hash thumb}
+                    (fn [url]
+                      ($ :label
+                        {:style {:background-image (str "url(" url ")")}}
+                        ($ :input
+                          {:type "radio"
+                           :name "scene-image-editor"
+                           :value (:db/id scene)
+                           :checked check
+                           :on-change
+                           (fn [event]
+                             (on-change (js/Number (.. event -target -value))))}))))))
+              (if (> pages 1)
+                ($ pagination
+                  {:name "scenes-editor"
+                   :label "Scene editor images pages"
+                   :class-name "dark"
+                   :pages pages
+                   :value page
+                   :on-change set-page}))))
+          ($ :button.token-editor-button
             {:on-click on-close}
-            "Close")
-          ($ :button.button.button-primary
-            {:on-click (fn [] (on-close) (dispatch :scene/change-image (:image/hash data)))}
-            "Change background"))))))
+            "Exit"))))))
 
 (defui ^:memo panel []
   (let [[preview set-preview] (uix/use-state nil)
@@ -149,7 +182,7 @@
                          :on-click
                          (fn [event]
                            (.stopPropagation event)
-                           (set-preview hash))}
+                           (set-preview (:db/id data)))}
                         ($ icon {:name "zoom-in" :size 18}))
                       ($ :button.button.button-danger
                         {:type "button"
@@ -169,7 +202,7 @@
                            :on-click
                            (fn [event]
                              (.stopPropagation event)
-                             (set-preview hash))}
+                             (set-preview (:db/id data)))}
                           ($ icon {:name "exclamation-triangle-fill" :size 18}))))))
                 ($ :.scene-gallery-thumbnail {:key idx :data-type "placeholder"}))))
           ($ :fieldset.scene-gallery-form
@@ -194,9 +227,10 @@
                  :value (min page pgs)
                  :on-change set-page})))
           (if (some? preview)
-            (let [data (first (filter (comp #{preview} :image/hash) (:root/scene-images data)))]
-              ($ scene-preview
-                {:data data :on-close (fn [] (set-preview nil))})))))
+            ($ scene-editor
+              {:id preview
+               :on-change set-preview
+               :on-close (fn [] (set-preview nil))}))))
       ($ :fieldset.fieldset
         ($ :legend "Tile size ( px )")
         ($ :input.text.text-ghost
