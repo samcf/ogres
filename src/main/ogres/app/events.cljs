@@ -819,6 +819,20 @@
      :image/width (:width thumb)
      :image/height (:height thumb)}}])
 
+(defmethod
+  ^{:doc ""}
+  event-tx-fn
+  :token-images/change-default-label
+  [_ _ hash label]
+  [[:db/add [:image/hash hash] :token-image/default-label label]])
+
+(defmethod
+  ^{:doc ""}
+  event-tx-fn
+  :token-images/change-url
+  [_ _ hash url]
+  [[:db/add [:image/hash hash] :token-image/url url]])
+
 ;; --- Masks ---
 (defmethod
   ^{:doc "Sets the current scene to be entirely masked by default. This is

@@ -252,6 +252,10 @@
   flex: 1;
   gap: 12px;
   padding: 1vw;
+
+  .token-editor-button {
+    margin-top: auto;
+  }
 }
 
 .token-editor-gallery-paginated {
@@ -308,6 +312,28 @@
     margin: 0;
     opacity: 0;
     width: 0;
+  }
+}
+
+.token-editor-options {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 10px;
+  width: 100%;
+
+  .fieldset {
+    border: 1px solid var(--color-blues-100);
+  }
+
+  legend {
+    background-color: var(--color-blues-700);
+    color: var(--color-paper-900);
+  }
+
+  input[type="text"] {
+    color: var(--color-paper-500);
   }
 }
 
