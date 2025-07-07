@@ -22,7 +22,9 @@
          :initiative/health
          :camera/_selected
          {:token/image
-          [{:image/thumbnail
+          [:token-image/url
+           :image/scope
+           {:image/thumbnail
             [:image/hash]}]}]}]}]}])
 
 (def ^:private query-actions
@@ -165,7 +167,16 @@
           ($ :.initiative-token-label label))
         ($ :.initiative-token-flags
           (if (seq flags)
-            (join ", " (mapv (comp capitalize name) flags)))))
+            (join ", " (mapv (comp capitalize name) flags))))
+        (if-let [url (:token-image/url (:token/image entity))]
+          (if (or (= type :host) (= (:image/scope (:token/image entity)) :public))
+            (if-let [url (js/URL.parse url)]
+              ($ :a.initiative-token-url
+                {:href (.-href url) :target "_blank"}
+                (str (.-hostname url)
+                     (if (not= (.-pathname url) "/")
+                       (.-pathname url))))
+              ($ :.initiative-token-url url)))))
       (if (or (= type :host) (contains? flags :player))
         ($ form-hp
           {:value (:initiative/health entity)

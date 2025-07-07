@@ -559,30 +559,35 @@
 ;; --- Tokens ---
 (defmethod
   ^{:doc "Creates a new token on the current scene at the screen coordinates
-          given by `sx` and `sy`. These coordinates are converted to the
+          at the given point. These coordinates are converted to the
           scene coordinate space."}
   event-tx-fn :token/create
   [data _ point hash]
-  (let [{{camera-id :db/id
+  (let [user  (ds/entity data [:db/ident :user])
+        image (ds/entity data [:image/hash hash])
+        {{camera :db/id
           shift :camera/point
           scale :camera/scale
-          {scene-id :db/id
-           align? :scene/grid-align} :camera/scene} :user/camera}
-        (ds/entity data [:db/ident :user])
-        next (vec/add (vec/div point (or scale 1)) shift)]
-    [(cond-> {:db/id -1 :object/type :token/token}
-       (some? hash) (assoc :token/image {:image/hash hash})
-       (not align?) (assoc :object/point next)
-       align?       (assoc :object/point
-                           (-> (vec/shift next (- half-size))
-                               (vec/rnd grid-size)
-                               (vec/shift half-size))))
-     {:db/id camera-id
-      :camera/selected -1
-      :camera/draw-mode :select
-      :camera/scene
-      {:db/id scene-id
-       :scene/tokens -1}}]))
+          {scene :db/id
+           align? :scene/grid-align} :camera/scene} :user/camera} user
+        point (vec/add (vec/div point (or scale 1)) shift)]
+    (cond->
+     [[:db/add scene :scene/tokens -1]
+      [:db/add camera :camera/selected -1]
+      [:db/add camera :camera/draw-mode :select]
+      [:db/add -1 :object/type :token/token]]
+      (some? image)
+      (conj [:db/add -1 :token/image (:db/id image)])
+      (and (some? image) (some? (:token-image/default-label image)))
+      (conj [:db/add -1 :token/label (:token-image/default-label image)])
+      (not align?)
+      (conj [:db/add -1 :object/point point])
+      align?
+      (conj
+       [:db/add -1 :object/point
+        (-> (vec/shift point (- half-size))
+            (vec/rnd grid-size)
+            (vec/shift half-size))]))))
 
 (defmethod event-tx-fn :token/change-flag
   [data _ idxs flag add?]
@@ -818,6 +823,34 @@
      :image/size (.-size (:data thumb))
      :image/width (:width thumb)
      :image/height (:height thumb)}}])
+
+(defmethod
+  ^{:doc ""}
+  event-tx-fn
+  :token-images/change-default-label
+  [_ _ hash label]
+  (let [value (trim label)]
+    (if (= value "")
+      [[:db/retract [:image/hash hash] :token-image/default-label]]
+      [[:db/add [:image/hash hash] :token-image/default-label label]])))
+
+(defmethod
+  ^{:doc ""}
+  event-tx-fn
+  :token-images/change-url
+  [_ _ hash url]
+  (let [value (trim url)]
+    (if (= value "")
+      [[:db/retract [:image/hash hash] :token-image/url]]
+      [[:db/add [:image/hash hash] :token-image/url value]])))
+
+(defmethod
+  ^{:doc ""}
+  event-tx-fn
+  :token-images/change-details
+  [_ _ hash default-label url]
+  [[:db.fn/call event-tx-fn :token-images/change-default-label hash default-label]
+   [:db.fn/call event-tx-fn :token-images/change-url hash url]])
 
 ;; --- Masks ---
 (defmethod

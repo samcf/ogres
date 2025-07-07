@@ -28,7 +28,9 @@
      :image/height
      :image/thumbnail-rect
      {:image/thumbnail
-      [:image/hash :image/size]}]}])
+      [:image/hash :image/size]}
+     :token-image/default-label
+     :token-image/url]}])
 
 (def ^:private query-actions
   [{:root/user [:user/type]}
@@ -420,7 +422,8 @@
             "Crop and Resize"))))))
 
 (defui ^:private token-editor [props]
-  (let [publish (hooks/use-publish)
+  (let [dispatch (hooks/use-dispatch)
+        publish (hooks/use-publish)
         {user :root/user images :root/token-images} (hooks/use-query query-editor [:db/ident :root])
         [selected set-selected] (uix/use-state nil)
         [page set-page] (uix/use-state 1)
@@ -429,15 +432,16 @@
         pages (js/Math.ceil (/ (count data) limit))
         start (max (* (dec (min page pages)) limit) 0)
         end   (min (+ start limit) (count data))
-        part  (subvec data start end)]
+        part  (subvec data start end)
+        token (first (filter (comp #{selected} :image/hash) data))]
     ($ fullscreen-dialog
       {:on-close (:on-close props)}
       ($ :.token-editor
-        (if-let [entity (first (filter (comp #{selected} :image/hash) data))]
+        (if token
           ($ :.token-editor-workspace
             ($ editor
-              {:key (:image/hash entity)
-               :image entity
+              {:key (:image/hash token)
+               :image token
                :on-change
                (fn [hash bounds]
                  (case (:user/type user)
@@ -470,6 +474,42 @@
                :value page
                :on-change set-page
                :class-name "dark"}))
+          (if token
+            ($ :form.token-editor-options
+              {:key selected
+               :on-submit
+               (fn [event]
+                 (let [data (js/FormData. (.-target event))]
+                   (.preventDefault event)
+                   (dispatch
+                    :token-images/change-details
+                    selected
+                    (.get data "label")
+                    (.get data "url"))
+                   ((:on-close props))))
+               :on-blur
+               (fn [event]
+                 (let [value (.. event -target -value)]
+                   (condp = (.. event -target -name)
+                     "label" (dispatch :token-images/change-default-label selected value)
+                     "url"   (dispatch :token-images/change-url selected value))))}
+              ($ :fieldset.fieldset
+                ($ :legend "Default Label")
+                ($ :input.text.text-ghost
+                  {:type "text"
+                   :name "label"
+                   :default-value (:token-image/default-label token)
+                   :spell-check false
+                   :auto-complete "off"}))
+              ($ :fieldset.fieldset
+                ($ :legend "URL")
+                ($ :input.text.text-ghost
+                  {:type "text"
+                   :name "url"
+                   :default-value (:token-image/url token)
+                   :spell-check false
+                   :auto-complete "off"}))
+              ($ :button {:type "submit" :hidden true})))
           ($ :button.token-editor-button
             {:on-click (:on-close props)}
             "Exit"))))))

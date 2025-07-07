@@ -271,7 +271,15 @@
                 :data-tooltip "Dead"
                 :data-selected on
                 :on-click #(dispatch :token/change-dead idxs (not on))}
-               ($ icon {:name "skull"})))))
+               ($ icon {:name "skull"})))
+           (let [xfr (comp :token-image/url :token/image)
+                 url (js/URL.parse (xfr (first data)))]
+             (if (and (some? url)
+                      (util/uniform-by xfr data)
+                      (or (= (:user props) :host)
+                          (every? (comp #{:public} :image/scope :token/image) data)))
+               ($ :a {:href (.-href url) :target "_blank" :data-tooltip "Open link"}
+                 ($ icon {:name "box-arrow-up-right"}))))))
        :render-aside
        (fn []
          ($ :<>
