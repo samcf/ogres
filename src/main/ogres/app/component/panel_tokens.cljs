@@ -479,7 +479,14 @@
               {:key selected
                :on-submit
                (fn [event]
-                 (.preventDefault event))
+                 (let [data (js/FormData. (.-target event))]
+                   (.preventDefault event)
+                   (dispatch
+                    :token-images/change-details
+                    selected
+                    (.get data "label")
+                    (.get data "url"))
+                   ((:on-close props))))
                :on-blur
                (fn [event]
                  (let [value (.. event -target -value)]
@@ -501,7 +508,8 @@
                    :name "url"
                    :default-value (:token-image/url token)
                    :spell-check false
-                   :auto-complete "off"}))))
+                   :auto-complete "off"}))
+              ($ :button {:type "submit" :hidden true})))
           ($ :button.token-editor-button
             {:on-click (:on-close props)}
             "Exit"))))))

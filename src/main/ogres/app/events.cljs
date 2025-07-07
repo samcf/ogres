@@ -829,14 +829,28 @@
   event-tx-fn
   :token-images/change-default-label
   [_ _ hash label]
-  [[:db/add [:image/hash hash] :token-image/default-label label]])
+  (let [value (trim label)]
+    (if (= value "")
+      [[:db/retract [:image/hash hash] :token-image/default-label]]
+      [[:db/add [:image/hash hash] :token-image/default-label label]])))
 
 (defmethod
   ^{:doc ""}
   event-tx-fn
   :token-images/change-url
   [_ _ hash url]
-  [[:db/add [:image/hash hash] :token-image/url url]])
+  (let [value (trim url)]
+    (if (= value "")
+      [[:db/retract [:image/hash hash] :token-image/url]]
+      [[:db/add [:image/hash hash] :token-image/url value]])))
+
+(defmethod
+  ^{:doc ""}
+  event-tx-fn
+  :token-images/change-details
+  [_ _ hash default-label url]
+  [[:db.fn/call event-tx-fn :token-images/change-default-label hash default-label]
+   [:db.fn/call event-tx-fn :token-images/change-url hash url]])
 
 ;; --- Masks ---
 (defmethod
