@@ -277,7 +277,7 @@
              (if (and (some? url)
                       (util/uniform-by xfr data)
                       (or (= (:user props) :host)
-                          (every? (comp #{:public} :image/scope :token/image) data)))
+                          (every? (comp :image/public :token/image) data)))
                ($ :a {:href (.-href url) :target "_blank" :data-tooltip "Open link"}
                  ($ icon {:name "box-arrow-up-right"}))))))
        :render-aside

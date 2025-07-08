@@ -775,33 +775,35 @@
 
 ;; --- Token Images ---
 (defmethod event-tx-fn :token-images/create-many
-  [_ _ images scope]
-  (into [{:db/ident :root
-          :root/token-images
-          (for [[{:keys [hash name size width height]} _] images]
-            {:image/hash hash
-             :image/name name
-             :image/size size
-             :image/scope scope
-             :image/width width
-             :image/height height})}] cat
-        (for [[image thumbnail] images]
-          (if (= (:hash image) (:hash thumbnail))
-            [{:image/hash (:hash image) :image/thumbnail [:image/hash (:hash image)]}]
-            [{:image/hash (:hash thumbnail)
-              :image/name (:name thumbnail)
-              :image/size (:size thumbnail)
-              :image/width (:width thumbnail)
-              :image/height (:height thumbnail)}
-             {:image/hash (:hash image) :image/thumbnail [:image/hash (:hash thumbnail)]}]))))
+  ([_ event images]
+   [[:db.fn/call event-tx-fn event images false]])
+  ([_ _ images public?]
+   (into [{:db/ident :root
+           :root/token-images
+           (for [[{:keys [hash name size width height]} _] images]
+             {:image/hash hash
+              :image/name name
+              :image/size size
+              :image/public public?
+              :image/width width
+              :image/height height})}] cat
+         (for [[image thumbnail] images]
+           (if (= (:hash image) (:hash thumbnail))
+             [{:image/hash (:hash image) :image/thumbnail [:image/hash (:hash image)]}]
+             [{:image/hash (:hash thumbnail)
+               :image/name (:name thumbnail)
+               :image/size (:size thumbnail)
+               :image/width (:width thumbnail)
+               :image/height (:height thumbnail)}
+              {:image/hash (:hash image) :image/thumbnail [:image/hash (:hash thumbnail)]}])))))
 
 (defmethod
-  ^{:doc "Change the scope of the token image by the given hash to the
-          given scope, typically `:public` or `:private`."}
+  ^{:doc "Change the visibility of the given token image to public (true)
+          or private (false)."}
   event-tx-fn :token-images/change-scope
-  [_ _ hash scope]
+  [_ _ hash public?]
   [[:db/add -1 :image/hash hash]
-   [:db/add -1 :image/scope scope]])
+   [:db/add -1 :image/public public?]])
 
 (defmethod event-tx-fn :token-images/remove
   [_ _ image thumb]

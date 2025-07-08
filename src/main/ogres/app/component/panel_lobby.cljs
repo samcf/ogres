@@ -12,7 +12,7 @@
    {:root/token-images
     [:image/hash
      :image/name
-     :image/scope
+     :image/public
      {:image/thumbnail
       [:image/hash]}]}])
 
@@ -50,7 +50,7 @@
 (defn ^:private tokens-xf [user-type]
   (if (= user-type :host)
     (map identity)
-    (filter (comp #{:public} :image/scope))))
+    (filter :image/public)))
 
 (defn ^:private session-url [room-key]
   (let [params (js/URLSearchParams. #js {"r" VERSION "join" room-key})

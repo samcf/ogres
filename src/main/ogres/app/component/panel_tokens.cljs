@@ -21,7 +21,7 @@
   [{:root/user [:user/type]}
    {:root/token-images
     [:image/hash
-     :image/scope
+     :image/public
      :image/name
      :image/size
      :image/width
@@ -36,7 +36,7 @@
   [{:root/user [:user/type]}
    {:root/token-images
     [:image/hash
-     :image/scope
+     :image/public
      {:image/thumbnail
       [:image/hash]}]}])
 
@@ -45,7 +45,7 @@
    {:root/token-images
     [:image/hash
      :image/name
-     :image/scope
+     :image/public
      {:image/thumbnail
       [:image/hash]}]}])
 
@@ -54,8 +54,7 @@
 
 (defn ^:private scopes [type]
   (if (= type :host)
-    #{:public :private}
-    #{:public}))
+    any? true?))
 
 (defui ^:private draggable
   [{:keys [id children]}]
@@ -164,7 +163,7 @@
         {data :root/token-images
          {type :user/type} :root/user} result
         [active set-active] (uix/use-state nil)
-        [pub prv] (separate (comp #{:public} :image/scope) data)
+        [pub prv] (separate :image/public data)
         data-pub  (into [:default] (reverse pub))
         data-prv  (vec (reverse prv))
         drop-pub  (use-droppable #js {"id" "scope-pub"})
@@ -239,9 +238,9 @@
                 (if (and (some? drop) (not= drag "default"))
                   (cond
                     (= drop "scope-pub")
-                    (dispatch :token-images/change-scope drag :public)
+                    (dispatch :token-images/change-scope drag true)
                     (= drop "scope-prv")
-                    (dispatch :token-images/change-scope drag :private)
+                    (dispatch :token-images/change-scope drag false)
                     (str/includes? drop "trash")
                     (dispatch :token-images/remove drag nail))
                   (let [target (.. event -activatorEvent -target)
@@ -428,7 +427,7 @@
         [selected set-selected] (uix/use-state nil)
         [page set-page] (uix/use-state 1)
         limit 20
-        data  (vec (reverse (filter (comp (scopes (:user/type user)) :image/scope) images)))
+        data  (vec (reverse (filter (comp (scopes (:user/type user)) :image/public) images)))
         pages (js/Math.ceil (/ (count data) limit))
         start (max (* (dec (min page pages)) limit) 0)
         end   (min (+ start limit) (count data))
@@ -539,7 +538,7 @@
       ($ :button.button.button-neutral
         {:type "button"
          :title "Crop"
-         :disabled (not (seq (filter (comp (scopes type) :image/scope) images)))
+         :disabled (not (seq (filter (comp (scopes type) :image/public) images)))
          :on-click (partial set-editing not)}
         ($ icon {:name "crop" :size 18})
         "Edit images")

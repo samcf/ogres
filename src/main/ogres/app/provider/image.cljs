@@ -161,7 +161,7 @@
                 (dispatch
                  :token-images/create-many
                  [[(create-state-record filename image)
-                   (create-state-record filename thumbnail)]] :public))))) [write dispatch]))
+                   (create-state-record filename thumbnail)]] true))))) [write dispatch]))
     (events/use-subscribe :image/cache
       (uix/use-callback
        (fn [image]
@@ -216,9 +216,9 @@
              (fn [files]
                (let [records (into [] (map create-state-records) files)]
                  (case type
-                   :token (dispatch :token-images/create-many records :private)
-                   :scene (dispatch :scene-images/create-many records :private)
-                   :props (dispatch :props-images/create-many records :private)))))))
+                   :token (dispatch :token-images/create-many records)
+                   :scene (dispatch :scene-images/create-many records)
+                   :props (dispatch :props-images/create-many records)))))))
       (fn [files]
         (.then (js/Promise.all (into-array (into [] (map process-file) files)))
                (fn [files]

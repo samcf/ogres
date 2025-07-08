@@ -23,7 +23,7 @@
          :camera/_selected
          {:token/image
           [:token-image/url
-           :image/scope
+           :image/public
            {:image/thumbnail
             [:image/hash]}]}]}]}]}])
 
@@ -169,7 +169,7 @@
           (if (seq flags)
             (join ", " (mapv (comp capitalize name) flags))))
         (if-let [url (:token-image/url (:token/image entity))]
-          (if (or (= type :host) (= (:image/scope (:token/image entity)) :public))
+          (if (or (= type :host) (:image/public (:token/image entity)))
             (if-let [url (js/URL.parse url)]
               ($ :a.initiative-token-url
                 {:href (.-href url) :target "_blank"}
