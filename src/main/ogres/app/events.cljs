@@ -64,10 +64,6 @@
 (defn ^:private constrain [n min max]
   (clojure.core/max (clojure.core/min n max) min))
 
-(defn ^:private mode-allowed? [mode type]
-  (not (and (contains? #{:mask :mask-toggle :mask-remove :grid :note} mode)
-            (not= type :host))))
-
 (defn ^:private initiative-order [a b]
   (let [f (juxt :initiative/roll :db/id)]
     (compare (f b) (f a))))
@@ -169,7 +165,7 @@
   event-tx-fn :camera/change-mode
   [data _ mode]
   (let [user (ds/entity data [:db/ident :user])]
-    (if (mode-allowed? mode (:user/type user))
+    (if (or (:user/host user) (not (#{:mask :mask-toggle :mask-remove :grid :note} mode)))
       [{:db/id (:db/id (:user/camera user)) :camera/draw-mode mode}]
       [])))
 
@@ -643,7 +639,7 @@
             notes  :scene/notes
             props  :scene/props} :camera/scene
            camera :db/id} :user/camera
-          type :user/type} :root/user
+          host :user/host} :root/user
          {conns :session/conns} :root/session} result
         bounds (geom/bounding-rect (seq rect))
         occupied (into #{} (comp (mapcat :user/dragging) (map :db/id)) conns)]
@@ -654,9 +650,9 @@
             :let   [{id :db/id} entity]
             :let   [object (geom/object-bounding-rect entity)]
             :when  (and (not (occupied id))
-                        (not (and (= type :conn) (:object/hidden entity)))
-                        (not (and (= type :conn) (= (:object/type entity) :note/note)))
-                        (not (and (= type :conn) (= (:object/type entity) :prop/prop)))
+                        (not (and (not host) (:object/hidden entity)))
+                        (not (and (not host) (= (:object/type entity) :note/note)))
+                        (not (and (not host) (= (:object/type entity) :prop/prop)))
                         (geom/rect-intersects-rect object bounds))]
         {:db/id id})}]))
 

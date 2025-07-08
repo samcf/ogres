@@ -6,8 +6,8 @@
 (def ^:private truncation-limit 5)
 
 (defn ^:private conns-xf [self]
-  (comp (filter (comp #{:conn} :user/type))
-        (filter (comp (complement #{(:user/uuid self)}) :user/uuid))
+  (comp (filter (comp not :user/host))
+        (filter (comp not #{(:user/uuid self)} :user/uuid))
         (filter
          (fn [user]
            (= (:db/id (:camera/scene (:user/camera user)))
@@ -16,7 +16,7 @@
 (def ^:private query-user
   [:user/uuid
    :user/color
-   :user/type
+   :user/host
    :user/label
    :user/description
    {:user/image
@@ -40,10 +40,10 @@
     ($ :.players
       {:data-truncated
        (> (count users)
-          (if (= (:user/type self) :host)
+          (if (:user/host self)
             truncation-limit
             (dec truncation-limit)))}
-      (if (= (:user/type self) :conn)
+      (if (not (:user/host self))
         (let [{:user/keys [color label description image]} self]
           ($ :.player-tile {:data-editable true}
             ($ :.player-tile-color {:data-color color})

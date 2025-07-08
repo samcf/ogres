@@ -200,12 +200,12 @@
   [{:keys [type]}]
   (let [dispatch (use-dispatch)
         publish (events/use-publish)
-        entity (state/use-query [:user/type])
+        entity (state/use-query [:user/host])
         write (idb/use-writer "images")
         xform (if (= type :props)
                 (map (fn [file] (process-file file "image/webp" 0.80)))
                 (map process-file))]
-    (if (= (:user/type entity) :host)
+    (if (:user/host entity)
       (fn [files]
         (-> (js/Promise.all (into-array (into [] xform files)))
             (.then

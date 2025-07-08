@@ -11,18 +11,18 @@
 
 (def ^:private query
   [[:user/ready :default false]
-   [:user/type :default :conn]
+   [:user/host :default true]
    [:panel/expanded :default true]
    [:session/status :default :none]])
 
 (defui ^:memo layout []
   (let [result (hooks/use-query query)
-        {type     :user/type
+        {host     :user/host
          ready    :user/ready
          status   :session/status
          expanded :panel/expanded} result
         node (uix/use-context window/context)]
-    (cond (and (= type :host) ready)
+    (cond (and host ready)
           ($ :.layout
             {:data-user "host" :data-expanded expanded}
             ($ :.layout-scenes  ($ scenes))
@@ -31,7 +31,7 @@
             ($ :.layout-toolbar ($ toolbar))
             ($ :.layout-players ($ players))
             ($ :.layout-panel   ($ panel/panel)))
-          (and (= type :conn) (= status :connected) ready)
+          (and (not host) (= status :connected) ready)
           ($ :.layout
             {:data-user "conn" :data-expanded expanded}
             ($ :.layout-scene {:ref node}
@@ -39,7 +39,7 @@
             ($ :.layout-toolbar ($ toolbar))
             ($ :.layout-players ($ players))
             ($ :.layout-panel   ($ panel/panel)))
-          (and (= type :conn) (= status :disconnected))
+          (and (not host) (= status :disconnected))
           ($ :.layout-error
             ($ :.layout-error-content
               ($ :div {:style {:margin-top 4 :color "hsl(6, 73%, 60%)"}}

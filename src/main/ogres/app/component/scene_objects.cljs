@@ -74,10 +74,10 @@
   "Defines a transducer which expects a collection of token entities
    and returns only the elements suitable for rendering given the
    user type."
-  [user]
+  [host]
   (filter
    (fn [token]
-     (or (= user :host) (not (:object/hidden token))))))
+     (or host (not (:object/hidden token))))))
 
 (defn ^:private use-cursor-point
   "Defines a React state hook which returns a point [Ax Ay] of the
@@ -457,7 +457,7 @@
 
 (def ^:private query
   [{:root/user
-    [:user/type
+    [:user/host
      [:user/bounds :default seg/zero]
      {:user/camera
       [:db/id
@@ -516,7 +516,7 @@
             [:camera/selected
              {:user/_camera
               [{:root/_user
-                [[:user/type :default :host]]}]}]}]}]}]}]
+                [[:user/host :default true]]}]}]}]}]}]}]
     :root/session
     [{:session/conns
       [:db/ident :user/uuid :user/color :user/dragging]}]}])
@@ -526,7 +526,7 @@
         [_ set-ready] (uix/use-state false)
         result (hooks/use-query query [:db/ident :root])
         {{bounds :user/bounds
-          user-type :user/type
+          host :user/host
           {point :camera/point
            scale :camera/scale
            selected :camera/selected
@@ -551,12 +551,12 @@
         (into []
               (filter
                (fn [entity]
-                 (or (not (:object/hidden entity)) (= user-type :host))))
+                 (or host (not (:object/hidden entity)))))
               (concat
                (sort compare-objects props)
                (sort compare-objects shapes)
                (sort compare-objects notes)
-               (sort compare-tokens (sequence (tokens-xf user-type) tokens))))]
+               (sort compare-tokens (sequence (tokens-xf host) tokens))))]
 
     ;; automatically re-render once the portal ref is initialized.
     (uix/use-effect
@@ -571,7 +571,7 @@
               :let [{id :db/id point :object/point} entity
                     lock (or (:object/locked entity)
                              (contains? dragging id)
-                             (and (= user-type :conn)
+                             (and (not host)
                                   (or (= (:object/type entity) :note/note)
                                       (= (:object/type entity) :prop/prop))))
                     node (uix/create-ref)
@@ -597,7 +597,7 @@
                              :on-pointer-down drag-fn
                              :on-double-click
                              (fn []
-                               (if (and (not= user-type :conn) lock)
+                               (if (and host lock)
                                  (dispatch :objects/select (:db/id entity))))
                              :data-drag-remote (some? user)
                              :data-drag-local (.-isDragging drag)
@@ -618,7 +618,7 @@
               bounds (transduce bound-xf geom/bounding-rect-rf entities)
               locked (or (some dragging selected)
                          (and (= (count selected) 1) (:object/locked (first select)))
-                         (and (= user-type :conn)
+                         (and (not host)
                               (some
                                (fn [entity]
                                  (or (= (:object/type entity) :note/note)
@@ -678,4 +678,4 @@
                          :data-type (namespace (:object/type (first select)))}
                         ($ context-menu
                           {:data select
-                           :user user-type})))))))))))))
+                           :host host})))))))))))))

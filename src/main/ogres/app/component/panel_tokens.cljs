@@ -18,7 +18,7 @@
                       useDroppable  use-droppable}]))
 
 (def ^:private query-editor
-  [{:root/user [:user/type]}
+  [{:root/user [:user/host]}
    {:root/token-images
     [:image/hash
      :image/public
@@ -33,7 +33,7 @@
      :token-image/url]}])
 
 (def ^:private query-actions
-  [{:root/user [:user/type]}
+  [{:root/user [:user/host]}
    {:root/token-images
     [:image/hash
      :image/public
@@ -41,7 +41,7 @@
       [:image/hash]}]}])
 
 (def ^:private query-tokens
-  [{:root/user [:user/type]}
+  [{:root/user [:user/host]}
    {:root/token-images
     [:image/hash
      :image/name
@@ -51,10 +51,6 @@
 
 (def ^:private query-bounds
   [[:user/bounds :default seg/zero]])
-
-(defn ^:private scopes [type]
-  (if (= type :host)
-    any? true?))
 
 (defui ^:private draggable
   [{:keys [id children]}]
@@ -161,7 +157,7 @@
 (defui tokens []
   (let [result (hooks/use-query query-tokens [:db/ident :root])
         {data :root/token-images
-         {type :user/type} :root/user} result
+         {host :user/host} :root/user} result
         [active set-active] (uix/use-state nil)
         [pub prv] (separate :image/public data)
         data-pub  (into [:default] (reverse pub))
@@ -181,7 +177,7 @@
                     (set-active (.-id (.-over event)))
                     (set-active nil))))))})
     ($ :.form-tokens
-      (if (= type :host)
+      (if host
         ($ :<>
           ($ :header ($ :h2 "Tokens"))
           ($ :fieldset.fieldset.token-gallery
@@ -427,7 +423,7 @@
         [selected set-selected] (uix/use-state nil)
         [page set-page] (uix/use-state 1)
         limit 20
-        data  (vec (reverse (filter (comp (scopes (:user/type user)) :image/public) images)))
+        data  (vec (reverse (filter (comp (if (:user/host user) any? true?) :image/public) images)))
         pages (js/Math.ceil (/ (count data) limit))
         start (max (* (dec (min page pages)) limit) 0)
         end   (min (+ start limit) (count data))
@@ -443,9 +439,9 @@
                :image token
                :on-change
                (fn [hash bounds]
-                 (case (:user/type user)
-                   :host (publish :image/change-thumbnail hash bounds)
-                   :conn (publish :image/change-thumbnail-request hash bounds)))}))
+                 (if (:user/host user)
+                   (publish :image/change-thumbnail hash bounds)
+                   (publish :image/change-thumbnail-request hash bounds)))}))
           ($ :.token-editor-placeholder
             ($ icon {:name "crop" :size 64})
             "Select an image to crop and resize." ($ :br)
@@ -517,7 +513,7 @@
   (let [[editing set-editing] (uix/use-state false)
         dispatch (hooks/use-dispatch)
         result   (hooks/use-query query-actions [:db/ident :root])
-        {{type :user/type} :root/user
+        {{host :user/host} :root/user
          images :root/token-images} result
         upload   (hooks/use-image-uploader {:type :token})
         input    (uix/use-ref)]
@@ -538,7 +534,7 @@
       ($ :button.button.button-neutral
         {:type "button"
          :title "Crop"
-         :disabled (not (seq (filter (comp (scopes type) :image/public) images)))
+         :disabled (not (seq (filter (comp (if host any? true?) :image/public) images)))
          :on-click (partial set-editing not)}
         ($ icon {:name "crop" :size 18})
         "Edit images")
@@ -546,7 +542,7 @@
         {:type "button"
          :title "Remove all tokens"
          :aria-label "Remove all tokens"
-         :disabled (or (= type :conn) (not (seq images)))
+         :disabled (or (not host) (not (seq images)))
          :on-click
          (fn []
            (let [xf (mapcat (juxt :image/hash (comp :image/hash :image/thumbnail)))]

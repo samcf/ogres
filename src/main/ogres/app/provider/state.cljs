@@ -40,7 +40,7 @@
    :user/image        {:db/valueType :db.type/ref}
    :user/uuid         {:db/unique :db.unique/identity}})
 
-(defn initial-data [type]
+(defn initial-data [host]
   (ds/db-with
    (ds/empty-db schema)
    [[:db/add -1 :db/ident :root]
@@ -54,7 +54,7 @@
     [:db/add -3 :user/color "red"]
     [:db/add -3 :user/camera -4]
     [:db/add -3 :user/cameras -4]
-    [:db/add -3 :user/type type]
+    [:db/add -3 :user/host host]
     [:db/add -3 :panel/selected :tokens]
     [:db/add -4 :camera/scene -2]
     [:db/add -4 :camera/point vec/zero]
@@ -83,9 +83,9 @@
        (fn [hashes] (write :delete hashes)) [write]))))
 
 (def ^:private ignored-attrs
-  #{:user/type :user/ready :session/status})
+  #{:user/host :user/ready :session/status})
 
-(defui ^:private persistence [{:keys [type]}]
+(defui ^:private persistence [{:keys [host]}]
   (let [conn  (uix/use-context context)
         read  (idb/use-reader "app")
         write (idb/use-writer "app")]
@@ -114,7 +114,7 @@
      (fn []
        (let [tx-data
              [[:db/add [:db/ident :user] :user/ready true]
-              [:db/add [:db/ident :user] :user/type type]]]
+              [:db/add [:db/ident :user] :user/host host]]]
          (.then (read VERSION)
                 (fn [record]
                   (if (nil? record)
@@ -128,11 +128,10 @@
 (defui provider
   "Provides a DataScript in-memory database to the application and causes
    re-renders when transactions are performed."
-  [{:keys [children type] :or {type :host}}]
-  (let [[conn] (uix/use-state (ds/conn-from-db (initial-data type)))]
+  [{:keys [children host] :or {host true}}]
+  (let [[conn] (uix/use-state (ds/conn-from-db (initial-data host)))]
     ($ context {:value conn}
-      (if (= type :host)
-        ($ persistence {:type type}))
+      (if host ($ persistence {:host host}))
       ($ listeners)
       children)))
 

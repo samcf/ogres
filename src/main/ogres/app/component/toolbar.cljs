@@ -41,7 +41,7 @@
 (def ^:private query
   [:session/_host
    :user/clipboard
-   [:user/type :default :conn]
+   [:user/host :default true]
    {:user/camera
     [:camera/selected
      [:camera/draw-mode :default :select]
@@ -51,7 +51,7 @@
   (let [[focused set-focused] (uix/use-state nil)
         dispatch  (hooks/use-dispatch)
         result    (hooks/use-query query)
-        {type      :user/type
+        {host      :user/host
          {scale    :camera/scale
           mode     :camera/draw-mode
           selected :camera/selected} :user/camera} result
@@ -65,7 +65,7 @@
                       (if (and (some? node) (not= (.getAttribute node "aria-disabled") "true"))
                         (apply dispatch (get-in action-data [(.-name node) :args]))))) [dispatch])]
     ($ :.toolbar
-      {:data-user type :on-pointer-leave #(set-focused nil)}
+      {:data-user (if host "host" "conn") :on-pointer-leave #(set-focused nil)}
       (if focused
         ($ :.toolbar-tooltip
           (if-let [shortcut (shortcut-keys focused)]

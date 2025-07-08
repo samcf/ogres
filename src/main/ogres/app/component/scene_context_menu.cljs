@@ -276,7 +276,7 @@
                  url (js/URL.parse (xfr (first data)))]
              (if (and (some? url)
                       (util/uniform-by xfr data)
-                      (or (= (:user props) :host)
+                      (or (:host props)
                           (every? (comp :image/public :token/image) data)))
                ($ :a {:href (.-href url) :target "_blank" :data-tooltip "Open link"}
                  ($ icon {:name "box-arrow-up-right"}))))))
@@ -285,7 +285,7 @@
          ($ :<>
            ($ action-hide
              {:value (every? :object/hidden data)
-              :disabled (not= (:user props) :host)
+              :disabled (not (:host props))
               :on-change
               (fn []
                 (dispatch :objects/toggle-hidden-selected))})
@@ -350,7 +350,7 @@
          ($ :<>
            ($ action-lock
              {:value (every? :object/locked data)
-              :disabled (not= (:user props) :host)
+              :disabled (not (:host props))
               :on-change
               (fn []
                 (dispatch :objects/toggle-locked-selected))})
@@ -387,13 +387,13 @@
          ($ :<>
            ($ action-hide
              {:value (every? :object/hidden data)
-              :disabled (not= (:user props) :host)
+              :disabled (not (:host props))
               :on-change
               (fn []
                 (dispatch :objects/toggle-hidden-selected))})
            ($ action-lock
              {:value (every? :object/locked data)
-              :disabled (not= (:user props) :host)
+              :disabled (not (:host props))
               :on-change
               (fn []
                 (dispatch :objects/toggle-locked-selected))})

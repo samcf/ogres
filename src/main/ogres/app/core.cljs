@@ -2,7 +2,6 @@
   (:require [ogres.app.component.error   :refer [error-page]]
             [ogres.app.component.layout  :refer [layout]]
             [ogres.app.const             :refer [PATH]]
-            [ogres.app.dom               :refer [user-type]]
             [ogres.app.provider.cursor   :as provider.cursor]
             [ogres.app.provider.dispatch :as provider.dispatch]
             [ogres.app.provider.events   :as provider.events]
@@ -16,6 +15,9 @@
             [ogres.app.provider.session  :as provider.session]
             [uix.core :as uix :refer [defui $]]
             [uix.dom :as dom]))
+
+(defn ^:private host? []
+  (nil? (.get (js/URLSearchParams. (.. js/window -location -search)) "join")))
 
 (def ^:private error-boundary
   (uix/create-error-boundary
@@ -32,7 +34,7 @@
     ($ :link {:rel "stylesheet" :href (str PATH "/ogres.app.css") :precedence "default"})
     ($ provider.events/provider
       ($ provider.idb/provider
-        ($ provider.state/provider {:type (user-type)}
+        ($ provider.state/provider {:host (host?)}
           ($ provider.dispatch/provider
             ($ provider.release/provider
               ($ provider.image/provider

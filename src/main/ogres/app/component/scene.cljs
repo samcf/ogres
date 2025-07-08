@@ -19,12 +19,11 @@
              :refer [DndContext useDraggable]
              :rename {DndContext dnd-context useDraggable use-draggable}]))
 
-(defn ^:private token-light-xf [user]
+(defn ^:private token-light-xf [host]
   (comp (filter
          (fn [token]
            (and (> (:token/light token) 0)
-                (or (not (:object/hidden token))
-                    (= user :host)))))
+                (or host (not (:object/hidden token))))))
         (map
          (fn [token]
            [(.-x (:object/point token))
@@ -99,7 +98,7 @@
         ($ :use {:href "#scene-image-cover"})))))
 
 (def ^:private mask-defs-query
-  [:user/type
+  [:user/host
    {:user/camera
     [{:camera/scene
       [[:scene/masked :default false]
@@ -116,7 +115,7 @@
 
 (defui ^:private mask-defs []
   (let [result (hooks/use-query mask-defs-query)
-        {user :user/type
+        {host :user/host
          {{tokens :scene/tokens
            masks  :scene/masks
            light  :scene/lighting
@@ -124,13 +123,13 @@
     ($ :defs
       ($ pattern {:id "mask-pattern" :name :crosses})
       ($ :path {:id "masks-path" :d (transduce mask-area-xf poly->path masks)})
-      ($ :path {:id "light-path" :d (transduce (token-light-xf user) circle->path tokens)})
+      ($ :path {:id "light-path" :d (transduce (token-light-xf host) circle->path tokens)})
       ($ :clipPath {:id "masks-clip"}
         ($ :use {:href "#masks-path"}))
       ($ :mask {:id "masks-mask"}
         ($ :use {:href "#scene-image-cover" :fill "white"})
         ($ :use {:href "#masks-path"}))
-      (case [(= user :host) light masked]
+      (case [host light masked]
         [true :revealed true]
         ($ :mask {:id "mask-primary"}
           ($ :use {:href "#scene-image-cover" :fill "white"})
@@ -191,7 +190,7 @@
             ($ :use {:href "#masks-path"})))))))
 
 (def ^:private mask-polys-query
-  [[:user/type :default :host]
+  [[:user/host :default true]
    {:user/camera
     [[:camera/draw-mode :default :select]
      {:camera/scene
@@ -203,13 +202,13 @@
 (defui ^:private mask-polys []
   (let [dispatch (hooks/use-dispatch)
         result   (hooks/use-query mask-polys-query)
-        {user :user/type
+        {host :user/host
          {{masks :scene/masks} :camera/scene
           draw-mode :camera/draw-mode} :user/camera} result
         modes #{:mask :mask-toggle :mask-remove}]
     ($ :g.scene-mask-polys {:id "masks-polys"}
       (for [{id :db/id vecs :mask/vecs enabled? :mask/enabled?} masks
-            :while (and (= user :host) (contains? modes draw-mode))]
+            :while (and host (contains? modes draw-mode))]
         ($ :polygon.scene-mask-polygon
           {:key id
            :data-enabled enabled?
@@ -279,7 +278,7 @@
         ($ :circle.scene-token-ring {:style {:r radius}})))))
 
 (def ^:private tokens-defs-query
-  [[:user/type :default :host]
+  [[:user/host :default true]
    {:user/camera
     [{:camera/scene
       [{:scene/tokens
@@ -476,7 +475,7 @@
     ($ mask-polys)))
 
 (def ^:private scene-query
-  [:user/type
+  [:user/host
    {:user/camera
     [:db/id
      [:camera/point :default vec/zero]
@@ -492,7 +491,7 @@
 
 (defui ^:private scene-content [props]
   (let [dispatch (hooks/use-dispatch)
-        {user :user/type
+        {host :user/host
          {scene :camera/scene
           scale :camera/scale
           mode  :camera/draw-mode
@@ -500,7 +499,7 @@
         multi-select? (use-key "shift")]
     ($ :svg.scene
       {:ref (:ref props)
-       :data-user   (name user)
+       :data-user   (if host "host" "conn")
        :data-grid   (and (not= mode :grid) (:scene/show-grid scene))
        :data-theme  (if (:scene/dark-mode scene) "dark" "light")
        :data-light  (name (:scene/lighting scene))

@@ -63,10 +63,10 @@
 
     :session/join
     (let [user (ds/entity @conn [:db/ident :user])]
-      (if (= (:user/type user) :host)
+      (if (:user/host user)
         (let [tx-data
               [{:user/uuid (:uuid data)
-                :user/type :conn
+                :user/host false
                 :user/ready true
                 :user/color (next-color @conn color-options)
                 :user/cameras -1
@@ -139,9 +139,9 @@
   [message conn publish]
   (let [data (js/Blob. #js [(.-data message)] #js {"type" "image/jpeg"})
         user (ds/entity (ds/db conn) [:db/ident :user])]
-    (case (:user/type user)
-      :host (publish :image/create-token data)
-      :conn (publish :image/cache data))))
+    (if (:user/host user)
+      (publish :image/create-token data)
+      (publish :image/cache data))))
 
 (defui listeners []
   (let [[socket set-socket] (uix/use-state nil)
@@ -181,7 +181,7 @@
      (uix/use-callback
       (fn []
         (let [user (ds/entity @conn [:db/ident :user])]
-          (if (and (= (:user/type user) :conn)
+          (if (and (not (:user/host user))
                    (= (:session/status user) :disconnected))
             (dispatch :session/join)))) [conn dispatch]) interval-reconnect)
 
@@ -192,7 +192,7 @@
      (uix/use-callback
       (fn []
         (let [user (ds/entity @conn [:db/ident :user])]
-          (if (and (= (:user/type user) :host)
+          (if (and (not (:user/host user))
                    (= (:session/status user) :connected))
             (dispatch :session/heartbeat)))) [conn dispatch]), interval-heartbeat)
 
@@ -303,7 +303,6 @@
     (uix/use-effect
      (fn []
        (let [user (ds/entity @conn [:db/ident :user])
-             type (:user/type user)
              status (:session/status user)]
-         (if (and (= type :conn) (or (nil? status) (= status :initial)))
+         (if (and (not (:user/host user)) (or (nil? status) (= status :initial)))
            (dispatch :session/join)))) [conn dispatch])))

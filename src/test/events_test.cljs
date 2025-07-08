@@ -11,7 +11,7 @@
   (entity @conn [:db/ident :user]))
 
 (deftest test-panel
-  (let [conn (ds/conn-from-db (initial-data :host))]
+  (let [conn (ds/conn-from-db (initial-data true))]
     (dispatch conn :user/select-panel :session)
     (is (= (:panel/selected (user conn)) :session))
 
@@ -27,16 +27,16 @@
     (is (= (:panel/selected (user conn)) :tokens))))
 
 (deftest test-scene-focus
-  (let [db (initial-data :host)
+  (let [db (initial-data true)
         sc (:db/id (:camera/scene (:user/camera (entity db [:db/ident :user]))))
         tx [{:db/ident :root
              :root/session
              {:db/ident :session
               :session/host {:db/ident :user}
               :session/conns
-              [{:user/type :conn :user/uuid (random-uuid) :user/cameras {:db/id -1 :camera/scene sc} :user/camera -1}
-               {:user/type :conn :user/uuid (random-uuid) :user/cameras {:db/id -2 :camera/scene sc} :user/camera -2}
-               {:user/type :conn :user/uuid (random-uuid) :user/cameras {:db/id -3 :camera/scene sc} :user/camera -3}]}}]
+              [{:user/host false :user/uuid (random-uuid) :user/cameras {:db/id -1 :camera/scene sc} :user/camera -1}
+               {:user/host false :user/uuid (random-uuid) :user/cameras {:db/id -2 :camera/scene sc} :user/camera -2}
+               {:user/host false :user/uuid (random-uuid) :user/cameras {:db/id -3 :camera/scene sc} :user/camera -3}]}}]
         conn (ds/conn-from-db (ds/db-with db tx))]
     (dispatch conn :scenes/create)
     (dispatch conn :session/focus)

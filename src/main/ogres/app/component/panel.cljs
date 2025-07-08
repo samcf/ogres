@@ -10,12 +10,12 @@
             [uix.core :refer [defui $]]))
 
 (def ^:private query
-  [[:user/type :default :conn]
+  [[:user/host :default true]
    [:panel/selected :default :tokens]
    [:panel/expanded :default true]])
 
 (def ^:private query-status
-  [{:root/user [:user/type [:session/status :default :initial]]
+  [{:root/user [:user/host [:session/status :default :initial]]
     :root/session [:session/conns :session/room]}])
 
 (def ^:private status-icon
@@ -24,10 +24,10 @@
 (defui status []
   (let [dispatch (hooks/use-dispatch)
         result (hooks/use-query query-status [:db/ident :root])
-        {{type :user/type status :session/status} :root/user
+        {{host :user/host status :session/status} :root/user
          {code  :session/room
           conns :session/conns} :root/session} result
-        connected (cond-> (count conns) (= type :host) (inc))]
+        connected (cond-> (count conns) host (inc))]
     (case status
       :initial      ($ :button.button {:on-click #(dispatch :session/request)} status-icon "Start online game")
       :connecting   ($ :button.button {:disabled true} status-icon "Connecting...")
@@ -44,8 +44,8 @@
    :props      {:icon "images" :label "Prop images"}})
 
 (def ^:private forms
-  {:host [:tokens :scene :props :initiative :lobby :data]
-   :conn [:tokens :initiative :lobby]})
+  {true  [:tokens :scene :props :initiative :lobby :data]
+   false [:tokens :initiative :lobby]})
 
 (def ^:private components
   {:data       {:form data/panel}
@@ -58,7 +58,7 @@
 (defui ^:memo panel []
   (let [dispatch (hooks/use-dispatch)
         result   (hooks/use-query query)
-        {type :user/type
+        {host :user/host
          selected :panel/selected
          expanded :panel/expanded} result]
     ($ :.panel
@@ -70,7 +70,7 @@
         {:role "tablist"
          :aria-controls "form-panel"
          :aria-orientation "vertical"}
-        (for [[key data] (map (juxt identity data) (forms type))
+        (for [[key data] (map (juxt identity data) (forms host))
               :let [selected (= selected key)]]
           ($ :li.panel-tabs-tab
             {:key key :role "tab" :aria-selected (and expanded selected)}

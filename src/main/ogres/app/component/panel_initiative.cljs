@@ -5,7 +5,7 @@
             [uix.core :as uix :refer [defui $]]))
 
 (def ^:private query
-  [:user/type
+  [:user/host
    {:user/camera
     [{:camera/scene
       [:db/id
@@ -116,7 +116,7 @@
 (defui ^:private token
   [{:keys [context entity]}]
   (let [dispatch (hooks/use-dispatch)
-        {type :user/type
+        {host :user/host
          {{curr :initiative/turn
            rnds :initiative/rounds
            went :initiative/played}
@@ -128,7 +128,7 @@
          {{hash :image/hash} :image/thumbnail} :token/image} entity
         playing (= (:db/id curr) (:db/id entity))
         played (boolean (some #{{:db/id id}} went))
-        hidden (and (= type :conn) (:object/hidden entity))]
+        hidden (and (not host) (:object/hidden entity))]
     ($ :li.initiative-token
       {:data-playing playing
        :data-played played
@@ -169,7 +169,7 @@
           (if (seq flags)
             (join ", " (mapv (comp capitalize name) flags))))
         (if-let [url (:token-image/url (:token/image entity))]
-          (if (or (= type :host) (:image/public (:token/image entity)))
+          (if (or host (:image/public (:token/image entity)))
             (if-let [url (js/URL.parse url)]
               ($ :a.initiative-token-url
                 {:href (.-href url) :target "_blank"}
@@ -177,7 +177,7 @@
                      (if (not= (.-pathname url) "/")
                        (.-pathname url))))
               ($ :.initiative-token-url url)))))
-      (if (or (= type :host) (contains? flags :player))
+      (if (or host (contains? flags :player))
         ($ form-hp
           {:value (:initiative/health entity)
            :on-change
