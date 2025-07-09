@@ -1,6 +1,6 @@
 (ns ogres.app.component.panel-tokens
   (:require [goog.object :as object :refer [getValueByKeys]]
-            [ogres.app.component :refer [icon image pagination fullscreen-dialog]]
+            [ogres.app.component :as component :refer [icon]]
             [ogres.app.geom :as geom]
             [ogres.app.hooks :as hooks]
             [ogres.app.util :refer [separate]]
@@ -75,7 +75,7 @@
            {:data-type "default"}
            ($ icon {:name "dnd"}))
          (if (some? active)
-           ($ image {:hash active}
+           ($ component/image {:hash active}
              (fn [url]
                ($ :.token-gallery-item {:data-type "image" :style {:background-image (str "url(" url ")")}}))))))
      (.querySelector js/document "#root"))))
@@ -134,25 +134,19 @@
         ($ icon {:name "trash3-fill" :size 26})))))
 
 (defui ^:private paginated
-  [{:keys [name data limit]
-    :or   {data [] limit 10}}]
-  (let [[page set-page] (uix/use-state 1)
-        limit (dec limit)
-        pages (-> (count data) (/ limit) (js/Math.ceil))
-        start (-> (min page pages) (dec) (* limit) (max 0))
-        stop  (-> (+ start limit) (min (count data)))
-        data  (->> (repeat :placeholder)
-                   (concat (subvec data start stop))
-                   (take limit))]
-    ($ :<>
-      ($ gallery {:name name :data data})
-      (if (> pages 1)
-        ($ pagination
-          {:name  name
-           :label "Token image pages"
-           :pages (max pages 1)
-           :value (max (min pages page) 1)
-           :on-change set-page})))))
+  [{:keys [name data limit] :or {data [] limit 10}}]
+  ($ component/paginated {:data data :page-size (dec limit)}
+    (fn [{:keys [data pages page on-change]}]
+      (let [data (->> (repeat :placeholder) (concat data) (take (dec limit)))]
+        ($ :<>
+          ($ gallery {:name name :data data})
+          (if (> pages 1)
+            ($ component/pagination
+              {:name name
+               :label "Token image pages"
+               :pages pages
+               :value page
+               :on-change on-change})))))))
 
 (defui tokens []
   (let [result (hooks/use-query query-tokens [:db/ident :root])
@@ -421,15 +415,9 @@
         publish (hooks/use-publish)
         {user :root/user images :root/token-images} (hooks/use-query query-editor [:db/ident :root])
         [selected set-selected] (uix/use-state nil)
-        [page set-page] (uix/use-state 1)
-        limit 20
-        data  (vec (reverse (filter (comp (if (:user/host user) any? true?) :image/public) images)))
-        pages (js/Math.ceil (/ (count data) limit))
-        start (max (* (dec (min page pages)) limit) 0)
-        end   (min (+ start limit) (count data))
-        part  (subvec data start end)
+        data  (reverse (filter (comp (if (:user/host user) any? true?) :image/public) images))
         token (first (filter (comp #{selected} :image/hash) data))]
-    ($ fullscreen-dialog
+    ($ component/fullscreen-dialog
       {:on-close (:on-close props)}
       ($ :.token-editor
         (if token
@@ -447,28 +435,30 @@
             "Select an image to crop and resize." ($ :br)
             "The original image will always be preserved."))
         ($ :.token-editor-gallery
-          ($ :.token-editor-gallery-paginated
-            ($ :.token-editor-gallery-thumbnails
-              (for [{{hash :image/hash} :image/thumbnail key :image/hash name :image/name} part]
-                ($ image {:key key :hash hash}
-                  (fn [url]
-                    ($ :label.token-editor-gallery-thumbnail
-                      {:style {:background-image (str "url(" url ")")} :aria-label name}
-                      ($ :input
-                        {:type "radio"
-                         :name "token-editor-image"
-                         :checked (= selected key)
-                         :value key
-                         :on-change
-                         (fn []
-                           (set-selected key))}))))))
-            ($ pagination
-              {:name "token-editor-gallery"
-               :label "Token image pages"
-               :pages pages
-               :value page
-               :on-change set-page
-               :class-name "dark"}))
+          ($ component/paginated {:data data :page-size 20}
+            (fn [{:keys [data pages page on-change]}]
+              ($ :.token-editor-gallery-paginated
+                ($ :.token-editor-gallery-thumbnails
+                  (for [{{hash :image/hash} :image/thumbnail key :image/hash name :image/name} data]
+                    ($ component/image {:key key :hash hash}
+                      (fn [url]
+                        ($ :label.token-editor-gallery-thumbnail
+                          {:style {:background-image (str "url(" url ")")} :aria-label name}
+                          ($ :input
+                            {:type "radio"
+                             :name "token-editor-image"
+                             :checked (= selected key)
+                             :value key
+                             :on-change
+                             (fn []
+                               (set-selected key))}))))))
+                ($ component/pagination
+                  {:name "token-editor-gallery"
+                   :label "Token image pages"
+                   :pages pages
+                   :value page
+                   :on-change on-change
+                   :class-name "dark"}))))
           (if token
             ($ :form.token-editor-options
               {:key selected

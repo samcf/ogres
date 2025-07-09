@@ -47,11 +47,6 @@
   (comp (filter (comp (complement #{uuid}) :user/uuid))
         (filter (comp not :user/host))))
 
-(defn ^:private tokens-xf [host]
-  (if host
-    (map identity)
-    (filter :image/public)))
-
 (defn ^:private session-url [room-key]
   (let [params (js/URLSearchParams. #js {"r" VERSION "join" room-key})
         origin (.. js/window -location -origin)
@@ -76,46 +71,40 @@
       ($ icon {:name "camera-fill" :size 16})
       "Upload image")))
 
-(defui ^:private tokens
-  [{:keys [selected on-change]}]
-  (let [[page set-page] (uix/use-state 1)
-        {{host :user/host} :root/user
-         tokens :root/token-images}
-        (hooks/use-query query-tokens [:db/ident :root])
-        limit  10
-        tokens (into [] (tokens-xf host) tokens)
-        pages  (js/Math.ceil (/ (count tokens) limit))
-        start  (max (* (min (dec page) pages) limit) 0)
-        stop   (min (+ start limit) (count tokens))
-        images (subvec tokens start stop)]
-    ($ :.player-tokens {:data-paginated (> pages 1)}
-      ($ :.player-tokens-gallery
-        (for [idx (range limit)]
-          (if-let [image (get images idx)]
-            (let [{hash :image/hash name :image/name {display :image/hash} :image/thumbnail} image]
-              ($ component/image {:key display :hash display}
-                (fn [url]
-                  ($ :label.player-tokens-item.player-tokens-image
-                    {:style {:background-image (str "url(" url ")")} :aria-label name}
-                    ($ :input
-                      {:type "radio"
-                       :name "player-token"
-                       :value hash
-                       :checked (= selected hash)
-                       :on-change
-                       (fn [event]
-                         (on-change (.. event -target -value)))})))))
-            ($ :.player-tokens-item.player-tokens-placeholder
-              {:key idx}))))
-      ($ :.player-tokens-actions
-        ($ upload-button {})
-        ($ component/pagination
-          {:name "tokens-user-image"
-           :pages (max pages 1)
-           :value page
-           :on-change
-           (fn [page]
-             (set-page page))})))))
+(defui ^:private tokens [props]
+  (let [result (hooks/use-query query-tokens [:db/ident :root])
+        images (:root/token-images result)
+        host?  (:user/host (:root/user result))
+        xform  (filter (comp (if host? any? true?) :image/public))
+        limit  10]
+    ($ component/paginated {:data (sequence xform images) :page-size limit}
+      (fn [{:keys [data pages page on-change]}]
+        ($ :.player-tokens {:data-paginated (> pages 1)}
+          ($ :.player-tokens-gallery
+            (for [idx (range limit)]
+              (if-let [image (get data idx)]
+                (let [{hash :image/hash name :image/name {display :image/hash} :image/thumbnail} image]
+                  ($ component/image {:key display :hash display}
+                    (fn [url]
+                      ($ :label.player-tokens-item.player-tokens-image
+                        {:style {:background-image (str "url(" url ")")} :aria-label name}
+                        ($ :input
+                          {:type "radio"
+                           :name "player-token"
+                           :value hash
+                           :checked (= (:selected props) hash)
+                           :on-change
+                           (fn [event]
+                             ((:on-change props) (.. event -target -value)))})))))
+                ($ :.player-tokens-item.player-tokens-placeholder
+                  {:key idx}))))
+          ($ :.player-tokens-actions
+            ($ upload-button)
+            ($ component/pagination
+              {:name "tokens-user-image"
+               :pages pages
+               :value page
+               :on-change on-change})))))))
 
 (defui ^:private player-form
   [{:keys [user]}]

@@ -35,6 +35,28 @@
      :height size}
     ($ :use {:href (str PATH "/icons.svg" "#icon-" name)})))
 
+(defui paginated
+  "Accepts a collection as `data` and calls the given render function
+   with the current page of that collection as part of its argument.
+   ```
+   ($ paginated {:data [1 2 3 4 5 6] :page-size 3}
+     (fn [{:keys [data pages page on-change]}]
+       (for [idx data] ;; data => [1 2 3]}
+         ($ :div idx))))
+   ```"
+  [props]
+  (let [{:keys [data page-size children]} props
+        [page set-page] (uix/use-state 1)
+        data  (vec data)
+        pages (js/Math.ceil (/ (count data) page-size))
+        start (max (* (dec (min page pages)) page-size) 0)
+        end   (min (+ start page-size) (count data))]
+    (children
+     {:data (subvec data start end)
+      :page (max (min pages page) 1)
+      :pages (max pages 1)
+      :on-change set-page})))
+
 (defui pagination
   "Renders a `<nav>` element that provides a means to navigate through
    a paginated resource, including buttons to go backward, forward,

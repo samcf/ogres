@@ -1,6 +1,6 @@
 (ns ogres.app.component.panel-scene
   (:require [clojure.string :refer [replace]]
-            [ogres.app.component :refer [icon pagination image fullscreen-dialog]]
+            [ogres.app.component :as component :refer [icon]]
             [ogres.app.const :refer [grid-size]]
             [ogres.app.hooks :as hooks]
             [ogres.app.util :refer [display-size]]
@@ -59,15 +59,14 @@
      {:image/thumbnail
       [:image/hash]}]}])
 
-(defui ^:private scene-editor [{:keys [id on-change on-close]}]
-  (let [[page set-page] (uix/use-state 1)
-        result (hooks/use-query query-scenes [:db/ident :root])
-        scene  (first (filter (comp #{id} :db/id) (:root/scene-images result)))]
-    ($ fullscreen-dialog
-      {:on-close on-close}
+(defui ^:private scene-editor [props]
+  (let [result (hooks/use-query query-scenes [:db/ident :root])
+        scene  (first (filter (comp #{(:id props)} :db/id) (:root/scene-images result)))]
+    ($ component/fullscreen-dialog
+      {:on-close (:on-close props)}
       ($ :.scene-editor
         ($ :.scene-editor-workspace
-          ($ image {:hash (:image/hash scene)}
+          ($ component/image {:hash (:image/hash scene)}
             (fn [url]
               ($ :img.scene-editor-image
                 {:src url})))
@@ -85,39 +84,36 @@
                   " Reducing its dimensions and lowering its image quality "
                   " may help.")))))
         ($ :.scene-editor-gallery
-          (let [scenes (vec (:root/scene-images result))
-                limit  12
-                pages  (js/Math.ceil (/ (count scenes) limit))
-                start  (max (* (dec (min page pages)) limit) 0)
-                end    (min (+ start limit) (count scenes))
-                window (subvec scenes start end)]
-            ($ :.scene-editor-gallery-paginated
-              ($ :.scene-editor-gallery-thumbnails
-                (for [scene window
-                      :let [thumb (:image/hash (:image/thumbnail scene))
-                            check (= (:db/id scene) id)]]
-                  ($ image {:key thumb :hash thumb}
-                    (fn [url]
-                      ($ :label
-                        {:style {:background-image (str "url(" url ")")}}
-                        ($ :input
-                          {:type "radio"
-                           :name "scene-image-editor"
-                           :value (:db/id scene)
-                           :checked check
-                           :on-change
-                           (fn [event]
-                             (on-change (js/Number (.. event -target -value))))}))))))
-              (if (> pages 1)
-                ($ pagination
-                  {:name "scenes-editor"
-                   :label "Scene editor images pages"
-                   :class-name "dark"
-                   :pages pages
-                   :value page
-                   :on-change set-page}))))
+          ($ component/paginated
+            {:data (:root/scene-images result) :page-size 12}
+            (fn [{:keys [data pages page on-change]}]
+              ($ :.scene-editor-gallery-paginated
+                ($ :.scene-editor-gallery-thumbnails
+                  (for [scene data
+                        :let [thumb (:image/hash (:image/thumbnail scene))
+                              check (= (:db/id scene) (:id props))]]
+                    ($ component/image {:key thumb :hash thumb}
+                      (fn [url]
+                        ($ :label
+                          {:style {:background-image (str "url(" url ")")}}
+                          ($ :input
+                            {:type "radio"
+                             :name "scene-image-editor"
+                             :value (:db/id scene)
+                             :checked check
+                             :on-change
+                             (fn [event]
+                               ((:on-change props) (js/Number (.. event -target -value))))}))))))
+                (if (> pages 1)
+                  ($ component/pagination
+                    {:name "scenes-editor"
+                     :label "Scene editor images pages"
+                     :class-name "dark"
+                     :pages pages
+                     :value page
+                     :on-change on-change})))))
           ($ :button.token-editor-button
-            {:on-click on-close}
+            {:on-click (:on-close props)}
             "Exit"))))))
 
 (defui ^:memo panel []
@@ -127,8 +123,7 @@
         input    (uix/use-ref)
         data     (hooks/use-query query [:db/ident :root])
         {{{scene :camera/scene} :user/camera
-          camera :user/camera} :root/user} data
-        [page set-page] (uix/use-state 1)]
+          camera :user/camera} :root/user} data]
     ($ :form.form-scenes
       {:on-submit (fn [event] (.preventDefault event))}
       ($ :header ($ :h2 "Scene"))
@@ -146,91 +141,88 @@
                (if (not= value "")
                  (dispatch :camera/change-label value)
                  (dispatch :camera/remove-label))))}))
-      (let [img (vec (:root/scene-images data))
-            pgs (int (js/Math.ceil (/ (count img) per-page)))
-            src (* (max (dec (min page pgs)) 0) per-page)
-            dst (min (+ src per-page) (count img))
-            pag (->> (repeat per-page :placeholder)
-                     (into (subvec img src dst))
-                     (take per-page)
-                     (map-indexed vector))]
-        ($ :fieldset.fieldset
-          ($ :legend "Background image")
-          ($ :.scene-gallery
-            (for [[idx data] pag
-                  :let [hash (:image/hash data)
-                        curr (:image/hash (:scene/image scene))]]
-              (if-let [thumbnail (:image/hash (:image/thumbnail data))]
-                ($ image {:key idx :hash thumbnail}
-                  (fn [url]
-                    ($ :fieldset.scene-gallery-thumbnail
-                      {:data-type "image" :style {:background-image (str "url(" url ")")}}
-                      ($ :label {:aria-label (:image/name data)}
-                        ($ :input
-                          {:type "radio"
-                           :name "background-image"
-                           :value hash
-                           :checked (= hash curr)
-                           :on-change
-                           (fn [event]
-                             (let [value (.. event -target -value)]
-                               (dispatch :scene/change-image value)))}))
-                      ($ :button.button.button-neutral
-                        {:type "button"
-                         :name "info"
-                         :aria-label "Preview"
-                         :on-click
-                         (fn [event]
-                           (.stopPropagation event)
-                           (set-preview (:db/id data)))}
-                        ($ icon {:name "zoom-in" :size 18}))
-                      ($ :button.button.button-danger
-                        {:type "button"
-                         :name "remove"
-                         :aria-label "Remove"
-                         :on-click
-                         (fn [event]
-                           (.stopPropagation event)
-                           (dispatch :scene-images/remove hash thumbnail))}
-                        ($ icon {:name "trash3-fill" :size 18}))
-                      (if (> (:image/size data) filesize-limit)
-                        ($ :button.button.button-warning
-                          {:type "button"
-                           :name "warn"
-                           :aria-label "Exceeds filesize limit"
-                           :data-tooltip "Exceeds filesize limit"
-                           :on-click
-                           (fn [event]
-                             (.stopPropagation event)
-                             (set-preview (:db/id data)))}
-                          ($ icon {:name "exclamation-triangle-fill" :size 18}))))))
-                ($ :.scene-gallery-thumbnail {:key idx :data-type "placeholder"}))))
-          ($ :fieldset.scene-gallery-form
-            ($ :button.button.button-neutral
-              {:type "button" :on-click #(.click (deref input))}
-              ($ :input
-                {:ref input
-                 :type "file"
-                 :hidden true
-                 :accept "image/*"
-                 :multiple true
-                 :on-change
-                 (fn [event]
-                   (upload (.. event -target -files))
-                   (set! (.. event -target -value) ""))})
-              ($ icon {:name "camera-fill" :size 16}) "Upload images")
-            (if (> pgs 1)
-              ($ pagination
-                {:name "scenes-gallery"
-                 :label "Scene image pages"
-                 :pages pgs
-                 :value (min page pgs)
-                 :on-change set-page})))
-          (if (some? preview)
-            ($ scene-editor
-              {:id preview
-               :on-change set-preview
-               :on-close (fn [] (set-preview nil))}))))
+      ($ :fieldset.fieldset
+        ($ :legend "Background image")
+        ($ component/paginated
+          {:data (:root/scene-images data) :page-size 6}
+          (fn [{:keys [data pages page on-change]}]
+            (let [data (->> (repeat per-page :placeholder) (into data) (take per-page) (map-indexed vector))]
+              ($ :<>
+                ($ :.scene-gallery
+                  (for [[idx data] data
+                        :let [hash (:image/hash data)
+                              curr (:image/hash (:scene/image scene))]]
+                    (if-let [thumbnail (:image/hash (:image/thumbnail data))]
+                      ($ component/image {:key idx :hash thumbnail}
+                        (fn [url]
+                          ($ :fieldset.scene-gallery-thumbnail
+                            {:data-type "image" :style {:background-image (str "url(" url ")")}}
+                            ($ :label {:aria-label (:image/name data)}
+                              ($ :input
+                                {:type "radio"
+                                 :name "background-image"
+                                 :value hash
+                                 :checked (= hash curr)
+                                 :on-change
+                                 (fn [event]
+                                   (let [value (.. event -target -value)]
+                                     (dispatch :scene/change-image value)))}))
+                            ($ :button.button.button-neutral
+                              {:type "button"
+                               :name "info"
+                               :aria-label "Preview"
+                               :on-click
+                               (fn [event]
+                                 (.stopPropagation event)
+                                 (set-preview (:db/id data)))}
+                              ($ icon {:name "zoom-in" :size 18}))
+                            ($ :button.button.button-danger
+                              {:type "button"
+                               :name "remove"
+                               :aria-label "Remove"
+                               :on-click
+                               (fn [event]
+                                 (.stopPropagation event)
+                                 (dispatch :scene-images/remove hash thumbnail))}
+                              ($ icon {:name "trash3-fill" :size 18}))
+                            (if (> (:image/size data) filesize-limit)
+                              ($ :button.button.button-warning
+                                {:type "button"
+                                 :name "warn"
+                                 :aria-label "Exceeds filesize limit"
+                                 :data-tooltip "Exceeds filesize limit"
+                                 :on-click
+                                 (fn [event]
+                                   (.stopPropagation event)
+                                   (set-preview (:db/id data)))}
+                                ($ icon {:name "exclamation-triangle-fill" :size 18}))))))
+                      ($ :.scene-gallery-thumbnail {:key idx :data-type "placeholder"}))))
+                ($ :fieldset.scene-gallery-form
+                  ($ :button.button.button-neutral
+                    {:type "button" :on-click #(.click (deref input))}
+                    ($ :input
+                      {:ref input
+                       :type "file"
+                       :hidden true
+                       :accept "image/*"
+                       :multiple true
+                       :on-change
+                       (fn [event]
+                         (upload (.. event -target -files))
+                         (set! (.. event -target -value) ""))})
+                    ($ icon {:name "camera-fill" :size 16}) "Upload images")
+                  (if (> pages 1)
+                    ($ component/pagination
+                      {:name "scenes-gallery"
+                       :label "Scene image pages"
+                       :pages pages
+                       :value page
+                       :on-change on-change})))))))
+        (if (some? preview)
+          ($ scene-editor
+            {:id preview
+             :on-change set-preview
+             :on-close (fn [] (set-preview nil))})))
       ($ :fieldset.fieldset
         ($ :legend "Tile size ( px )")
         ($ :input.text.text-ghost

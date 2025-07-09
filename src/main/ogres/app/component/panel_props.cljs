@@ -1,5 +1,5 @@
 (ns ogres.app.component.panel-props
-  (:require [ogres.app.component :refer [icon pagination]]
+  (:require [ogres.app.component :as component :refer [icon]]
             [ogres.app.hooks :as hooks]
             [ogres.app.segment :as seg]
             [ogres.app.vec :as vec :refer [Vec2]]
@@ -44,40 +44,34 @@
      js/document.body)))
 
 (defui ^:private ^:memo gallery []
-  (let [[page set-page] (uix/use-state 0)
-        dispatch (hooks/use-dispatch)
-        result (hooks/use-query query [:db/ident :root])
-        images (vec (:root/props-images result))
-        limit 16
-        pages (-> (count images) (/ limit) (js/Math.ceil))
-        start (-> (min page pages) (dec) (* limit) (max 0))
-        stop (-> (+ start limit) (min (count images)))
-        data (->> (repeat :placeholder)
-                  (concat (subvec images start stop))
-                  (take limit))]
-    ($ :fieldset.fieldset.props-gallery
-      ($ :legend "Images")
-      ($ :.props-gallery-page
-        (for [[idx term] (map-indexed vector data)]
-          (if (keyword? term)
-            ($ :fieldset.props-gallery-placeholder
-              {:key idx})
-            ($ :fieldset.props-gallery-fieldset
-              {:key (:image/hash term)}
-              ($ element {:image term})
-              ($ :button.button.button-danger.props-gallery-remove
-                {:on-click
-                 (fn []
-                   (dispatch :props-images/remove (:image/hash term)))}
-                ($ icon {:name "trash3-fill" :size 16}))))))
-      (if (> pages 1)
-        ($ :.props-gallery-pagination
-          ($ pagination
-            {:name "props-images"
-             :label "Prop images pages"
-             :pages (max pages 1)
-             :value (max (min pages page) 1)
-             :on-change set-page}))))))
+  (let [dispatch (hooks/use-dispatch)
+        result (hooks/use-query query [:db/ident :root])]
+    ($ component/paginated
+      {:data (:root/props-images result) :page-size 16}
+      (fn [{:keys [data pages page on-change]}]
+        ($ :fieldset.fieldset.props-gallery
+          ($ :legend "Images")
+          ($ :.props-gallery-page
+            (for [[idx term] (->> (repeat :placeholder) (concat data) (take 16) (map-indexed vector))]
+              (if (keyword? term)
+                ($ :fieldset.props-gallery-placeholder
+                  {:key idx})
+                ($ :fieldset.props-gallery-fieldset
+                  {:key (:image/hash term)}
+                  ($ element {:image term})
+                  ($ :button.button.button-danger.props-gallery-remove
+                    {:on-click
+                     (fn []
+                       (dispatch :props-images/remove (:image/hash term)))}
+                    ($ icon {:name "trash3-fill" :size 16}))))))
+          (if (> pages 1)
+            ($ :.props-gallery-pagination
+              ($ component/pagination
+                {:name "props-images"
+                 :label "Prop images pages"
+                 :pages pages
+                 :value page
+                 :on-change on-change}))))))))
 
 (defui ^:private ^:memo container []
   (let [dispatch (hooks/use-dispatch)]
