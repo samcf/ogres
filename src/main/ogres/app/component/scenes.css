@@ -1,20 +1,45 @@
 .scenes {
+  --border: transparent;
+  --border-selected: var(--color-slate-400);
+  --border-width: 1px 1px 0 1px;
+  --outline: pink;
+  --text-size: small;
+
+  /* Tablist */
+  --background: var(--color-slate-200);
+  --background-hover: var(--color-slate-100);
+  --background-selected: var(--color-slate-50);
+  --foreground: var(--color-slate-500);
+  --foreground-selected: var(--color-slate-900);
+
+  /* Remove buttons */
+  --remove-foreground: var(--color-slate-500);
+  --remove-foreground-hover: var(--color-slate-900);
+
+  /* Create button */
+  --create-background: var(--color-slate-200);
+  --create-background-hover: var(--color-slate-100);
+  --create-foreground: var(--color-slate-500);
+  --create-foreground-hover: var(--color-slate-900);
+}
+
+.scenes {
   align-items: stretch;
   display: flex;
   flex-flow: row wrap;
-  font-size: 13px;
-  gap: 2px;
+  font-size: var(--text-size);
+  gap: 3px;
   height: 100%;
 
   &:has(input:focus-visible) .scenes-scene {
     border-radius: 3px;
     outline-offset: -1px;
-    outline: 1px dotted var(--outline-color);
+    outline: 1px dotted var(--outline);
   }
 
   .scenes-scene:has(input:focus-visible) {
-    outline: 2px solid var(--outline-color);
     outline-offset: -2px;
+    outline: 2px solid var(--outline);
   }
 }
 
@@ -27,24 +52,26 @@
 
   label {
     align-items: center;
-    background-color: var(--color-blues-700);
+    background-color: var(--background);
+    border-color: var(--border);
     border-radius: 3px 3px 0 0;
-    color: var(--color-black-400);
+    border-style: solid;
+    border-width: var(--border-width);
+    box-sizing: border-box;
+    color: var(--foreground);
     display: flex;
     flex: 1;
     justify-content: space-between;
     width: 100%;
 
     &:hover {
-      background-color: var(--color-blues-800);
+      --background: var(--background-hover);
     }
 
     &:has(:checked) {
-      background-color: var(--color-blues-900);
-
-      .scenes-label {
-        color: var(--color-black-100);
-      }
+      --background: var(--background-selected);
+      --foreground: var(--foreground-selected);
+      --border: var(--border-selected);
     }
 
     &:not(:has(:checked)) {
@@ -69,13 +96,14 @@
 
 .scenes-remove {
   align-items: center;
+  color: var(--remove-foreground);
   cursor: pointer;
   display: flex;
   justify-content: center;
   padding: 0 4px;
 
   &:hover {
-    color: var(--color-black-100);
+    --remove-foreground: var(--remove-foreground-hover);
   }
 }
 
@@ -85,22 +113,25 @@
 
   button {
     align-items: center;
-    background-color: var(--color-blues-700);
+    background-color: var(--create-background);
+    border-color: var(--border);
     border-radius: 3px 3px 0 0;
-    border: none;
-    color: var(--color-black-400);
+    border-style: solid;
+    border-width: var(--border-width);
+    box-sizing: border-box;
+    color: var(--create-foreground);
     cursor: pointer;
     display: flex;
 
     &:hover,
     &:focus-visible {
-      background-color: var(--color-blues-800);
-      color: var(--color-black-100);
+      --create-background: var(--create-background-hover);
+      --create-foreground: var(--create-foreground-hover);
     }
 
     &:focus-visible {
       border-radius: 3px;
-      outline: 2px solid var(--outline-color);
+      outline: 2px solid var(--outline);
       outline-offset: -2px;
     }
   }
