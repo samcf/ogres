@@ -62,14 +62,14 @@
          selected :panel/selected
          expanded :panel/expanded} result]
     ($ :.panel
-      {:data-expanded expanded}
       (if expanded
         ($ :.panel-status
           ($ status)))
       ($ :ul.panel-tabs
         {:role "tablist"
          :aria-controls "form-panel"
-         :aria-orientation "vertical"}
+         :aria-orientation "vertical"
+         :data-expanded expanded}
         (for [[key data] (map (juxt identity data) (forms host))
               :let [selected (= selected key)]]
           ($ :li.panel-tabs-tab

@@ -111,51 +111,6 @@
       padding-top: 4px;
       display: flex;
       flex-direction: column;
-
-      .panel {
-        flex: 1;
-        display: flex;
-        flex-flow: column nowrap;
-
-        &[data-expanded="false"] .panel-tabs li label {
-          border-width: 1px 0 1px 1px;
-        }
-
-        .panel-status {
-          display: none;
-        }
-
-        .panel-tabs {
-          border-radius: 3px 3px 0 0;
-          flex-direction: row;
-          min-height: 36px;
-
-          li {
-            flex: 1;
-            label {
-              border-radius: 3px 3px 0 0;
-              border-width: 1px 0 0 1px;
-              padding: 2px;
-            }
-          }
-
-          .panel-tabs-control {
-            flex: 3;
-            svg use {
-              transform-origin: 50% 50%;
-              transform: rotate(90deg);
-            }
-          }
-        }
-      }
-
-      .form {
-        border-width: 0 1px;
-        border-radius: 0 0 3px 3px;
-        .form-footer {
-          border-radius: 0 0 3px 3px;
-        }
-      }
     }
   }
 }
