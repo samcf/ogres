@@ -1,30 +1,63 @@
 .toolbar {
+  --outline: royalBlue;
+
+  /* Tooltip */
+  --tooltip-background: var(--color-slate-200);
+  --tooltip-border-width: 1px;
+  --tooltip-border: var(--color-slate-200);
+  --tooltip-foreground: var(--color-slate-900);
+  --tooltip-shortcut-background: var(--color-slate-400);
+  --tooltip-shortcut-foreground: var(--color-slate-50);
+  --tooltip-text-size: small;
+
+  /* Toolbar */
+  --toolbar-background: var(--color-slate-50);
+  --toolbar-border-width: 1px;
+  --toolbar-border: var(--color-slate-900);
+  --toolbar-box-shadow: var(--shadow-heavy);
+
+  /* Actions */
+  --background: var(--color-slate-100);
+  --background-active: var(--color-slate-200);
+  --background-disabled: var(--color-slate-50);
+  --background-hover: var(--color-slate-200);
+  --background-selected: var(--color-slate-300);
+
+  --border: var(--color-slate-200);
+  --border-active: var(--color-slate-400);
+  --border-disabled: transparent;
+  --border-hover: transparent;
+  --border-selected: var(--color-slate-700);
+  --border-width: 1px;
+
+  --foreground: var(--color-slate-700);
+  --foreground-active: var(--color-slate-700);
+  --foreground-disabled: var(--color-slate-300);
+  --foreground-hover: var(--color-slate-700);
+  --foreground-selected: var(--color-slate-700);
+}
+
+.toolbar {
   pointer-events: all;
   position: relative;
 
   &:has(:focus-visible) {
     border-radius: 2px;
     outline-offset: 0px;
-    outline: 2px solid var(--outline-color);
-  }
-
-  code {
-    background-color: var(--color-blues-700);
-    min-width: 20px;
-    padding: 0 4px;
-    text-align: center;
-    border-radius: 2px;
+    outline: 2px solid var(--outline);
   }
 }
 
 .toolbar-tooltip {
-  background-color: var(--color-blues-900);
+  background-color: var(--tooltip-background);
+  border-color: var(--tooltip-border);
   border-radius: 2px;
-  border: 1px solid var(--color-blues-700);
+  border-style: solid;
+  border-width: var(--tooltip-border-width);
   bottom: calc(100% + 4px);
-  color: var(--color-black-100);
+  color: var(--tooltip-foreground);
   display: flex;
-  font-size: 13px;
+  font-size: var(--tooltip-text-size);
   gap: 8px;
   max-width: max-content;
   min-width: calc(100% - 18px);
@@ -35,29 +68,40 @@
 
 .toolbar-shortcut {
   align-items: center;
+  color: var(--tooltip-shortcut-foreground);
   display: flex;
   gap: 2px;
-  text-transform: capitalize;
+
+  code {
+    background-color: var(--tooltip-shortcut-background);
+    border-radius: 2px;
+    min-width: 20px;
+    padding: 0 4px;
+    text-align: center;
+    text-transform: capitalize;
+  }
 }
 
 .toolbar-actions {
-  background-color: var(--color-blues-900);
+  background-color: var(--toolbar-background);
+  border-color: var(--toolbar-border);
   border-radius: 3px;
-  border: 1px solid var(--color-blues-700);
-  box-shadow: 4px 4px 0 0 rgba(0, 0, 0, 0.15);
+  border-style: solid;
+  border-width: var(--toolbar-border-width);
+  box-shadow: var(--toolbar-box-shadow);
   display: grid;
   gap: 2px;
   padding: 2px;
 
   button {
     align-items: center;
-    background-color: var(--color-blues-700);
-    border-color: transparent;
+    background-color: var(--background);
+    border-color: var(--border);
     border-radius: 2px;
     border-style: solid;
-    border-width: 1px;
+    border-width: var(--border-width);
     box-sizing: border-box;
-    color: var(--color-black-300);
+    color: var(--foreground);
     display: flex;
     flex: 1;
     height: 38px;
@@ -65,29 +109,36 @@
     min-width: 38px;
 
     &[aria-pressed="true"] {
-      background-color: var(--color-blues-500);
-      color: var(--color-danger-500);
+      --background: var(--background-selected);
+      --foreground: var(--foreground-selected);
+      --border: var(--border-selected);
     }
 
     &[aria-disabled="true"] {
-      color: var(--color-black-500);
+      --background: var(--background-disabled);
+      --foreground: var(--foreground-disabled);
+      --border: var(--border-disabled);
     }
 
     &:not([aria-disabled="true"]) {
       cursor: pointer;
+    }
 
-      &:active {
-        border-color: var(--color-blues-100);
-      }
+    &:not([aria-disabled="true"], [aria-pressed="true"]):hover {
+      --background: var(--background-hover);
+      --foreground: var(--foreground-hover);
+      --border: var(--border-hover);
+    }
 
-      &:hover {
-        background-color: var(--color-blues-500);
-      }
+    &:not([aria-disabled="true"], [aria-pressed="true"]):active {
+      --background: var(--background-active);
+      --foreground: var(--foreground-active);
+      --border: var(--border-active);
     }
 
     &:focus-visible {
       outline-offset: -1px;
-      outline: 1px dotted var(--outline-color);
+      outline: 1px dotted var(--outline);
       z-index: 1;
     }
   }

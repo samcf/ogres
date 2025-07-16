@@ -11,3 +11,7 @@
   --color-slate-900: oklch(0.208 0.042 265.755);
   --color-slate-950: oklch(0.129 0.042 264.695);
 }
+
+:root {
+  --shadow-heavy: 4px 4px 0 0 rgba(0, 0, 0, 0.15);
+}
