@@ -1,70 +1,73 @@
 :is(.checkbox, .radio) {
+  --background: var(--color-slate-100);
+  --foreground: var(--color-slate-900);
+  --border: var(--color-slate-400);
+  --background-disabled: red;
+  --foreground-disabled: red;
+  --border-disabled: red;
+  --background-checked: var(--color-slate-800);
+  --foreground-checked: var(--color-slate-100);
+  --border-checked: var(--color-slate-700);
+  --label-foreground: var(--color-slate-900);
+}
+
+:is(.checkbox, .radio) {
   align-items: center;
   border-radius: 3px;
   box-sizing: border-box;
-  color: var(--color-black-500);
+  color: var(--label-foreground);
   column-gap: 6px;
   display: flex;
   padding: 3px;
   position: relative;
   width: 100%;
 
-  &:has(input:not([aria-disabled="true"])) {
-    cursor: pointer;
+  input {
+    position: absolute;
+    width: 0;
+    opacity: 0;
+    margin: 0;
+  }
 
-    &:hover {
-      background-color: var(--color-paper-900);
-    }
+  .icon {
+    background-color: var(--background);
+    border-color: var(--border);
+    border-radius: 3px;
+    border-style: solid;
+    border-width: 1px;
+    color: var(--foreground);
+  }
+
+  &:has(input[aria-disabled="true"]) {
+    --background: var(--background-disabled);
+    --foreground: var(--foreground-disabled);
+    --border: var(--border-disabled);
   }
 
   &:has(:checked) {
-    color: var(--color-blues-900);
-
-    .icon {
-      background-color: var(--color-prime-500);
-      border-color: var(--color-prime-500);
-      color: var(--color-paper-500);
-    }
+    --background: var(--background-checked);
+    --foreground: var(--foreground-checked);
+    --border: var(--border-checked);
   }
 
   &:has(:focus-visible) {
-    outline: 1px dashed var(--outline-color);
-  }
-
-  &:has([aria-disabled="true"]) {
-    color: var(--color-black-300);
-
-    .icon {
-      background-color: var(--color-black-300);
-      border-color: var(--color-black-300);
-    }
-  }
-
-  input {
-    position: absolute;
-    z-index: -1;
-  }
-
-  .icon {
-    background-color: var(--color-paper-500);
-    border-radius: 3px;
-    border: 1px solid var(--color-black-400);
+    outline-color: inherit;
+    outline-style: dashed;
+    outline-width: 1px;
   }
 }
 
-.radio {
-  .icon {
-    border-radius: 50%;
-    padding: 3px;
-  }
+.checkbox {
+  cursor: pointer;
+}
 
-  &:has(:checked) {
-    background-color: var(--color-paper-900);
-  }
+.radio:has(input:not(:checked)) {
+  cursor: pointer;
+}
 
-  &:has(input:not(:checked)) {
-    cursor: pointer;
-  }
+.radio .icon {
+  border-radius: 50%;
+  padding: 3px;
 }
 
 .text {
@@ -89,20 +92,29 @@
 }
 
 .fieldset {
+  --border: var(--color-slate-500);
+  --legend-background: var(--color-slate-100);
+  --legend-foreground: var(--color-slate-700);
+  --legend-text-size: smaller;
+
+  border-color: var(--border);
   border-radius: 4px;
-  border: 1px dotted var(--color-black-700);
-  font-size: 13px !important;
+  border-style: dotted;
+  border-width: 1px;
   padding: 8px 6px 6px 6px;
   position: relative;
 
   &:has(:focus-visible) {
-    outline: 2px solid var(--outline-color);
     outline-offset: 2px;
+    outline-style: solid;
+    outline-width: 2px;
+    outline-color: inherit;
   }
 
   legend {
-    background-color: var(--color-paper-500);
-    font-size: 11px;
+    background-color: var(--legend-background);
+    color: var(--legend-foreground);
+    font-size: var(--legend-text-size);
     inset: -7px auto auto auto;
     line-height: 1;
     margin-left: 0.5rem;
@@ -117,56 +129,93 @@
 }
 
 .button {
+  --text-size: x-small;
+  --border-width: 1px;
+  --box-shadow: 1px 1px 0 0 rgba(0, 0, 0, 0.1);
+  --box-shadow-active: 1px 1px 0 0 rgba(0, 0, 0, 0.15);
+
+  --background: var(--color-slate-200);
+  --foreground: var(--color-slate-900);
+  --border: transparent;
+
+  --background-disabled: var(--color-slate-200);
+  --foreground-disabled: var(--color-slate-400);
+  --border-disabled: var(--color-slate-300);
+
+  --background-neutral: var(--color-slate-200);
+  --foreground-neutral: var(--color-slate-900);
+  --border-neutral: var(--color-slate-500);
+
+  --background-primary: var(--color-slate-900);
+  --foreground-primary: var(--color-slate-100);
+  --border-primary: transparent;
+
+  --background-warning: var(--color-slate-100);
+  --foreground-warning: var(--color-slate-900);
+  --border-warning: var(--color-slate-100);
+
+  --background-danger: var(--color-slate-800);
+  --foreground-danger: var(--color-slate-100);
+  --border-danger: var(--color-slate-800);
+
   align-items: center;
-  background-color: var(--color-paper-500);
+  background-color: var(--background);
+  border-color: var(--border);
   border-radius: 2px;
-  border: 1px solid transparent;
-  box-shadow: 1px 1px 0 0 rgba(0, 0, 0, 0.1);
-  color: var(--color-blues-900);
+  border-style: solid;
+  border-width: var(--border-width);
+  box-shadow: var(--box-shadow);
+  color: var(--foreground);
   display: flex;
-  font-size: 11px;
+  font-size: var(--text-size);
   gap: 6px;
   min-height: 32px;
   padding: 6px 10px;
   text-transform: uppercase;
   transition: transform 70ms ease-in-out;
 
-  &:disabled {
-    border-color: var(--color-black-300);
-    color: var(--color-black-300);
-  }
-
   &:not(:disabled) {
     cursor: pointer;
   }
 
   &:not(:disabled):active {
+    --box-shadow: var(--box-shadow-active);
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0 0 rgba(0, 0, 0, 0.15);
+  }
+
+  &:disabled {
+    --background: var(--background-disabled);
+    --foreground: var(--foreground-disabled);
+    --border: var(--border-disabled);
   }
 
   &.button-primary:not(:disabled) {
-    background-color: var(--color-prime-500);
-    color: var(--color-black-100);
+    --background: var(--background-primary);
+    --foreground: var(--foreground-primary);
+    --border: var(--border-primary);
   }
 
   &.button-neutral:not(:disabled) {
-    border-color: var(--color-black-500);
+    --background: var(--background-neutral);
+    --foreground: var(--foreground-neutral);
+    --border: var(--border-neutral);
   }
 
   &.button-warning {
     &:not(:disabled) {
-      background-color: var(--color-blues-900);
-      color: var(--color-black-100);
-    }
+      --background: var(--background-warning);
+      --foreground: var(--foreground-warning);
+      --border: var(--border-warning);
 
-    &:not(:disabled) .icon {
-      color: yellow;
+      .icon {
+        color: var(--foreground-warning);
+      }
     }
   }
 
   &.button-danger:not(:disabled) {
-    background-color: var(--color-danger-500);
-    color: var(--color-black-100);
+    --background: var(--background-danger);
+    --foreground: var(--foreground-danger);
+    --border: var(--border-danger);
   }
 }

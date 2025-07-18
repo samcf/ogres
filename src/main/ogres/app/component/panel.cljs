@@ -29,11 +29,11 @@
           conns :session/conns} :root/session} result
         connected (cond-> (count conns) host (inc))]
     (case status
-      :initial      ($ :button.button {:on-click #(dispatch :session/request)} status-icon "Start online game")
-      :connecting   ($ :button.button {:disabled true} status-icon "Connecting...")
-      :connected    ($ :button.button {:disabled true} status-icon "Connected / " code " / [ " connected " ]")
-      :disconnected ($ :button.button {:disabled true} status-icon "Disconnected")
-      ($ :button.button {:disabled true} status-icon "Status not known"))))
+      :initial      ($ :button {:on-click #(dispatch :session/request)} status-icon "Start online game")
+      :connecting   ($ :button {:disabled true} status-icon "Connecting...")
+      :connected    ($ :button {:disabled true} status-icon "Connected / " code " / [ " connected " ]")
+      :disconnected ($ :button {:disabled true} status-icon "Disconnected")
+      ($ :button {:disabled true} status-icon "Status not known"))))
 
 (def ^:private data
   {:data       {:icon "wrench-adjustable-circle" :label "Manage local data"}
