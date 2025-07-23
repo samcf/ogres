@@ -1,7 +1,7 @@
 (ns ogres.app.component.scene-draw
   (:require [clojure.string :refer [join]]
             [ogres.app.component :refer [icon]]
-            [ogres.app.const :refer [grid-size half-size]]
+            [ogres.app.const :refer [grid-size half-size grid-dist]]
             [ogres.app.geom :as geom]
             [ogres.app.hooks :as hooks]
             [ogres.app.matrix :as matrix]
@@ -60,7 +60,7 @@
   (completing into (fn [xs] (join " " xs))))
 
 (defn ^:private px->ft [len]
-  (let [ft (* (/ len grid-size) 5)
+  (let [ft (* (/ len grid-size) grid-dist)
         rd (js/Math.round ft)]
     (if (< (abs (- ft rd)) 0.001) rd
         (.toFixed ft 1))))
@@ -228,7 +228,7 @@
           ($ anchor {:transform b})
           (let [point (seg/extend canvas 32)]
             ($ text {:x (.-x point) :y (.-y point)}
-              (str (px->ft (vec/dist-cheb camera)) "ft."))))))))
+              (str (px->ft (vec/dist-cheb camera)) "m"))))))))
 
 (defui ^:private draw-circle []
   (let [dispatch (hooks/use-dispatch)]
@@ -261,8 +261,8 @@
             (let [point (seg/extend canvas 32)]
               ($ text {:x (.-x point) :y (.-y point)}
                 (let [v (vec/abs (vec/sub a b))]
-                  (str (px->ft (.-x v)) "ft. x "
-                       (px->ft (.-y v)) "ft."))))))))))
+                  (str (px->ft (.-x v)) "m x "
+                       (px->ft (.-y v)) "m"))))))))))
 
 (defui ^:private draw-line []
   (let [dispatch (hooks/use-dispatch)]
@@ -280,7 +280,7 @@
                 {:points (join " " (mapcat seq points))}))
             (let [point (seg/extend canvas 32)]
               ($ text {:x (.-x point) :y (.-y point)}
-                (str (px->ft (vec/dist camera)) "ft.")))))))))
+                (str (px->ft (vec/dist camera)) "m")))))))))
 
 (defui ^:private draw-cone []
   (let [dispatch (hooks/use-dispatch)]
@@ -297,7 +297,7 @@
               {:points (join " " (mapcat seq points))}))
           (let [point (seg/extend canvas 32)]
             ($ text {:x (.-x point) :y (.-y point)}
-              (str (px->ft (vec/dist camera)) "ft."))))))))
+              (str (px->ft (vec/dist camera)) "m"))))))))
 
 (defui ^:private draw-poly []
   (let [dispatch (hooks/use-dispatch)]

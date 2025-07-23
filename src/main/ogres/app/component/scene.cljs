@@ -6,7 +6,7 @@
             [ogres.app.component.scene-draw :refer [draw]]
             [ogres.app.component.scene-objects :refer [objects]]
             [ogres.app.component.scene-pattern :refer [pattern]]
-            [ogres.app.const :refer [grid-size half-size]]
+            [ogres.app.const :refer [grid-size half-size grid-dist]]
             [ogres.app.hooks :as hooks]
             [ogres.app.modifiers :as modifiers]
             [ogres.app.svg :refer [circle->path poly->path]]
@@ -28,7 +28,7 @@
          (fn [token]
            [(.-x (:object/point token))
             (.-y (:object/point token))
-            (+ (/ (* (:token/light token) grid-size) 5) grid-size)]))))
+            (+ (/ (* (:token/light token) grid-size) grid-dist) grid-size)]))))
 
 (def ^:private mask-area-xf
   (comp (filter :mask/enabled?) (map :mask/vecs)))
@@ -111,7 +111,7 @@
         [:db/id
          [:object/point :default vec/zero]
          [:object/hidden :default false]
-         [:token/light :default 15]]}]}]}])
+         [:token/light :default (* 3 grid-dist)]]}]}]}])
 
 (defui ^:private mask-defs []
   (let [result (hooks/use-query mask-defs-query)
@@ -250,7 +250,7 @@
 
 (defui ^:private token [{:keys [node data]}]
   (let [radius (- half-size 2)
-        scale (/ (:token/size data) 5)
+        scale (/ (:token/size data) grid-dist)
         hash (:image/hash (:image/thumbnail (:token/image data)))
         fill (if (some? hash) (str "token-face-" hash) "token-face-default")]
     ($ :g.scene-token
@@ -259,11 +259,11 @@
        :data-flags (token-flags-attr data)
        :data-hidden (:object/hidden data)}
       (let [radius (:token/aura-radius data)
-            radius (if (> radius 0) (+ (* grid-size (/ radius 5)) (* scale half-size)) 0)]
+            radius (if (> radius 0) (+ (* grid-size (/ radius grid-dist)) (* scale half-size)) 0)]
         ($ :circle.scene-token-aura {:style {:r radius}}))
       ($ :g {:style {:transform (str "scale(" scale ")")}}
         ($ :circle.scene-token-shape {:r radius :fill (str "url(#" fill ")")})
-        ($ :circle.scene-token-base {:r (+ radius 5)})
+        ($ :circle.scene-token-base {:r (+ radius grid-dist)})
         (for [[deg flag] (mapv vector [-120 120 -65 65] (token-conditions data))
               :let [rn (* (/ js/Math.PI 180) deg)
                     cx (* (js/Math.sin rn) radius)
@@ -288,8 +288,8 @@
          [:object/hidden :default false]
          [:token/flags :default #{}]
          [:token/label :default ""]
-         [:token/size :default 5]
-         [:token/light :default 15]
+         [:token/size :default grid-dist]
+         [:token/light :default (* 3 grid-dist)]
          [:token/aura-radius :default 0]
          {:token/image [{:image/thumbnail [:image/hash]}]}
          {:scene/_initiative [:db/id :initiative/turn]}]}]}]}])

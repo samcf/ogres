@@ -2,7 +2,7 @@
   (:require [datascript.core :as ds]
             [clojure.set :refer [union difference]]
             [clojure.string :refer [trim]]
-            [ogres.app.const :refer [grid-size half-size]]
+            [ogres.app.const :refer [grid-size half-size grid-dist]]
             [ogres.app.geom :as geom]
             [ogres.app.matrix :as matrix]
             [ogres.app.segment :as seg]
@@ -363,6 +363,12 @@
   [[:db.fn/call assoc-scene :scene/grid-size size]])
 
 (defmethod
+  ^{:doc "Updates grid distance for the scene."}
+  event-tx-fn :scene/change-grid-dist
+  [_ _ dist]
+  [[:db.fn/call assoc-scene :scene/grid-dist dist]])
+
+(defmethod
   ^{:doc "Applies both a grid origin and tile size to the current scene."}
   event-tx-fn :scene/apply-grid-options
   [data _ origin size]
@@ -394,7 +400,8 @@
   [data]
   (let [user (ds/entity data [:db/ident :user])
         scene (:db/id (:camera/scene (:user/camera user)))]
-    [[:db/retract scene :scene/grid-size]]))
+    [[:db/retract scene :scene/grid-size]
+     [:db/retract scene :scene/grid-dist]]))
 
 (defmethod
   ^{:doc "Updates whether or not the grid is drawn onto the current scene."}

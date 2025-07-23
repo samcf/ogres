@@ -1,6 +1,6 @@
 (ns ogres.app.geom
   (:require [clojure.math :refer [floor ceil]]
-            [ogres.app.const :refer [grid-size half-size]]
+            [ogres.app.const :refer [grid-size half-size grid-dist]]
             [ogres.app.matrix :as matrix]
             [ogres.app.segment :as seg :refer [Segment]]
             [ogres.app.vec :as vec :refer [Vec2]]))
@@ -205,7 +205,7 @@
 ;; Tokens are defined by their position {A} and size.
 (defmethod object-bounding-rect :token/token
   [{src :object/point size :token/size}]
-  (let [rad (/ (* (or size 5) grid-size) 10)]
+  (let [rad (/ (* (or size grid-dist) grid-size) 10)]
     (Segment. (vec/shift src (- rad)) (vec/shift src rad))))
 
 ;; Circles are defined by points {A, B} where A is the center and B is

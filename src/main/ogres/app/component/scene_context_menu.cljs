@@ -1,18 +1,19 @@
 (ns ogres.app.component.scene-context-menu
   (:require [clojure.string :refer [capitalize]]
             [ogres.app.component :refer [icon]]
+            [ogres.app.const :refer [grid-dist]]
             [ogres.app.component.scene-pattern :refer [pattern]]
             [ogres.app.hooks :as hooks]
             [ogres.app.util :as util]
             [uix.core :as uix :refer [defui $]]))
 
 (defn ^:private token-size [x]
-  (cond (<= x 3)  "Tiny"
-        (<  x 5)  "Small"
-        (<= x 5)  "Medium"
-        (<= x 10) "Large"
-        (<= x 15) "Huge"
-        (>  x 15) "Gargantuan"
+  (cond (<= x (* (/ 3 5) grid-dist))  "Tiny"
+        (<  x (grid-dist))  "Small"
+        (<= x (grid-dist))  "Medium"
+        (<= x (* 2 grid-dist)) "Large"
+        (<= x (* 3 grid-dist)) "Huge"
+        (>  x (* 3 grid-dist)) "Gargantuan"
         :else     "Unknown"))
 
 (def ^:private token-conditions
@@ -168,44 +169,44 @@
           ($ :button
             {:type "button"
              :auto-focus true
-             :on-click #(on-change :token/change-size (max (- value 5) 5))
-             :aria-label "Decrease token size by 5 feet"}
+             :on-click #(on-change :token/change-size (max (- value grid-dist) grid-dist))
+             :aria-label "Decrease token size by 1 unit"}
             "-")
           ($ :data {:value value}
             (str value  "ft. " (token-size value)))
           ($ :button
             {:type "button"
-             :on-click #(on-change :token/change-size (min (+ value 5) 50))
-             :aria-label "Increase token size by 5 feet"} "+")))
+             :on-click #(on-change :token/change-size (min (+ value grid-dist) (* 10 grid-dist)))
+             :aria-label "Increase token size by 1 unit"} "+")))
       (let [value (value-fn :token/light)]
         ($ :<>
           ($ :label "Light")
           ($ :button
             {:type "button"
-             :on-click #(on-change :token/change-light (max (- value 5) 0))
-             :aria-label "Decrease light radius by 5 feet"}
+             :on-click #(on-change :token/change-light (max (- value grid-dist) 0))
+             :aria-label "Decrease light radius by 1 unit"}
             "-")
           ($ :data {:value value}
             (if (> value 0) (str value "ft. radius") "None"))
           ($ :button
             {:type "button"
-             :on-click #(on-change :token/change-light (min (+ value 5) 120))
-             :aria-label "Increase light radius by 5 feet"}
+             :on-click #(on-change :token/change-light (min (+ value grid-dist) (* 24 grid-dist)))
+             :aria-label "Increase light radius by 1 unit"}
             "+")))
       (let [value (value-fn :token/aura-radius)]
         ($ :<>
           ($ :label "Aura")
           ($ :button
             {:type "button"
-             :on-click #(on-change :token/change-aura (max (- value 5) 0))
-             :aria-label "Decrease aura size by 5 feet"}
+             :on-click #(on-change :token/change-aura (max (- value grid-dist) 0))
+             :aria-label "Decrease aura size by 1 unit"}
             "-")
           ($ :data {:value value}
             (if (> value 0) (str value "ft. radius") "None"))
           ($ :button
             {:type "button"
-             :on-click #(on-change :token/change-aura (min (+ value 5) 120))
-             :aria-label "Increase aura size by 5 feet"}
+             :on-click #(on-change :token/change-aura (min (+ value grid-dist) (* 24 grid-dist)))
+             :aria-label "Increase aura size by 1 unit"}
             "+"))))))
 
 (defui ^:private token-form-conditions
