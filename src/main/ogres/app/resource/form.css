@@ -1,3 +1,10 @@
+:is([type="radio"], [type="checkbox"]) {
+  position: absolute;
+  width: 0;
+  opacity: 0;
+  margin: 0;
+}
+
 :is(.checkbox, .radio) {
   --background: var(--color-slate-100);
   --foreground: var(--color-slate-900);
@@ -21,13 +28,6 @@
   padding: 3px;
   position: relative;
   width: 100%;
-
-  input {
-    position: absolute;
-    width: 0;
-    opacity: 0;
-    margin: 0;
-  }
 
   .icon {
     background-color: var(--background);

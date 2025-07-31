@@ -195,13 +195,6 @@
     outline-style: solid;
     outline-width: 2px;
   }
-
-  input[type="radio"] {
-    position: absolute;
-    margin: 0;
-    opacity: 0;
-    width: 0;
-  }
 }
 
 .token-editor-options {

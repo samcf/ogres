@@ -82,13 +82,6 @@
     border-color: var(--checked-border-color);
     color: var(--checked-text-color);
   }
-
-  input[type="radio"] {
-    position: absolute;
-    width: 0;
-    opacity: 0;
-    margin: 0;
-  }
 }
 
 .fullscreen-dialog {

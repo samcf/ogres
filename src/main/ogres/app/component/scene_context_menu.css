@@ -15,13 +15,6 @@
       z-index: 1;
     }
 
-    input:is([type="radio"], [type="checkbox"]) {
-      position: absolute;
-      margin: 0;
-      opacity: 0;
-      width: 0;
-    }
-
     .context-menu-toolbar {
       background-color: var(--color-blues-900);
       border-color: var(--color-blues-800);

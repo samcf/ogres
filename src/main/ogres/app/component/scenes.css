@@ -77,13 +77,6 @@
     &:not(:has(:checked)) {
       cursor: pointer;
     }
-
-    input {
-      position: absolute;
-      margin: 0;
-      opacity: 0;
-      width: 0;
-    }
   }
 }
 
