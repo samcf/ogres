@@ -1,0 +1,220 @@
+.token-editor {
+  height: 100%;
+  display: flex;
+}
+
+.token-editor-button {
+  --background: var(--color-slate-200);
+  --foreground: var(--color-slate-900);
+  --border: var(--color-slate-900);
+
+  align-items: center;
+  background-color: var(--background);
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  line-height: 1.5;
+  padding: 4px 16px;
+
+  &:not(:disabled) {
+    cursor: pointer;
+  }
+
+  &:disabled {
+    --background: var(--color-slate-100);
+    --foreground: var(--color-slate-400);
+    --border: var(--color-slate-300);
+  }
+}
+
+.token-editor-workspace,
+.token-editor-placeholder {
+  background-color: var(--color-slate-200);
+  border-radius: 5px;
+  contain: strict;
+  flex: 3;
+  margin: 1vw;
+  position: relative;
+
+  .token-editor-button {
+    position: absolute;
+    inset: auto auto 12px 50%;
+    width: 320px;
+    transform: translateX(-50%);
+  }
+}
+
+.token-editor-placeholder {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  font-size: 1.1rem;
+  gap: 16px;
+  justify-content: center;
+  text-align: center;
+}
+
+.token-editor-image {
+  max-height: 100%;
+  max-width: 100%;
+  min-width: 100%;
+  object-fit: contain;
+  object-position: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  visibility: hidden;
+
+  &[data-loaded="true"] {
+    visibility: visible;
+  }
+}
+
+.token-editor-region {
+  inset: 50% auto auto 50%;
+  position: absolute;
+}
+
+.token-editor-region-drag {
+  border-radius: 50%;
+  box-shadow: 0 0 0 100vw rgba(0, 0, 0, 0.35);
+  box-sizing: border-box;
+  color: white;
+  cursor: move;
+  outline-color: inherit;
+  outline-offset: 2px;
+  outline-style: solid;
+  outline-width: 2px;
+  padding: 1vh;
+  position: absolute;
+  touch-action: none;
+}
+
+.token-editor-region-anchor {
+  background-color: white;
+  border: 1px solid black;
+  box-sizing: border-box;
+  height: 12px;
+  margin: 1px;
+  padding: 1px;
+  position: absolute;
+  touch-action: none;
+  width: 12px;
+  border-radius: 50%;
+}
+
+.token-editor-region-anchor-nw {
+  cursor: nwse-resize;
+  inset: 0 auto auto 0;
+}
+
+.token-editor-region-anchor-ne {
+  cursor: nesw-resize;
+  inset: 0 0 auto auto;
+}
+
+.token-editor-region-anchor-se {
+  cursor: nwse-resize;
+  inset: auto 0 0 auto;
+}
+
+.token-editor-region-anchor-sw {
+  cursor: nesw-resize;
+  inset: auto auto 0 0;
+}
+
+.token-editor-gallery {
+  align-items: center;
+  contain: content;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 12px;
+  padding: 1vw;
+
+  .token-editor-button {
+    margin-top: auto;
+  }
+}
+
+.token-editor-gallery-paginated {
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 1vw;
+
+  &:has(:focus-visible) {
+    outline-color: inherit;
+    outline-offset: 3px;
+    outline-style: solid;
+    outline-width: 2px;
+  }
+
+  nav {
+    margin: auto;
+  }
+}
+
+.token-editor-gallery-thumbnails {
+  align-content: start;
+  box-sizing: border-box;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(5, minmax(64px, 100px));
+
+  &:has(input:focus-visible) label {
+    filter: opacity(0.3);
+  }
+}
+
+.token-editor-gallery-thumbnail {
+  aspect-ratio: 1;
+  background-repeat: no-repeat;
+  background-size: contain;
+  border-radius: 50%;
+  box-sizing: border-box;
+  cursor: pointer;
+
+  outline-color: inherit;
+  outline-style: solid;
+  outline-width: 1px;
+
+  &:has(input:checked) {
+    outline-color: inherit;
+    outline-style: solid;
+    outline-width: 2px;
+  }
+
+  &:has(input:focus-visible) {
+    filter: none !important;
+    outline-color: inherit;
+    outline-style: solid;
+    outline-width: 2px;
+  }
+
+  input[type="radio"] {
+    position: absolute;
+    margin: 0;
+    opacity: 0;
+    width: 0;
+  }
+}
+
+.token-editor-options {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 10px;
+  width: 100%;
+}
+
+@media /* Portrait */ (max-aspect-ratio: 1 / 1) {
+  .token-editor {
+    flex-direction: column;
+  }
+}

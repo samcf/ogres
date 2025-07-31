@@ -91,6 +91,11 @@
   }
 }
 
+.fullscreen-dialog {
+  --background: var(--color-slate-100);
+  --border: var(--color-slate-500);
+}
+
 .fullscreen-dialog,
 .fullscreen-dialog-body {
   align-items: stretch;
@@ -108,9 +113,9 @@
 }
 
 .fullscreen-dialog-body {
-  background-color: var(--color-blues-900);
+  background-color: var(--background);
   border-radius: 4px;
-  border: 1px solid var(--color-blues-700);
+  border: 1px solid var(--border);
   flex: 1;
 }
 

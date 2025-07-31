@@ -457,8 +457,7 @@
                    :label "Token image pages"
                    :pages pages
                    :value page
-                   :on-change on-change
-                   :class-name "dark"}))))
+                   :on-change on-change}))))
           (if token
             ($ :form.token-editor-options
               {:key selected
