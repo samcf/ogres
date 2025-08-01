@@ -1,0 +1,98 @@
+.scene-editor {
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+}
+
+.scene-editor-workspace {
+  flex: 3;
+  margin: 1vw;
+  display: flex;
+  align-items: stretch;
+  position: relative;
+}
+
+.scene-editor-workspace dl {
+  background-color: var(--color-slate-100);
+  column-gap: 16px;
+  display: grid;
+  font-size: 0.8em;
+  grid-template-columns: max-content auto;
+  inset: auto auto 1vw 16px;
+  max-width: 480px;
+  padding: 8px;
+  position: absolute;
+  row-gap: 2px;
+  border-style: solid;
+  border-width: 1px;
+  border-color: var(--color-slate-900);
+}
+
+.scene-editor-image {
+  max-height: 100%;
+  max-width: 100%;
+  min-width: 100%;
+  object-fit: contain;
+  object-position: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.scene-editor-gallery {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 16px;
+  padding: 1vw;
+}
+
+.scene-editor-gallery-paginated {
+  border-color: var(--color-slate-900);
+  border-radius: 3px;
+  border-style: dotted;
+  border-width: 1px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 1vw;
+  width: 100%;
+
+  &:has(:focus-visible) {
+    outline: 2px solid inherit;
+    outline-offset: 3px;
+  }
+
+  &:has(input:focus-visible) label {
+    filter: opacity(0.3);
+  }
+
+  .pagination {
+    display: flex;
+    justify-content: center;
+  }
+}
+
+.scene-editor-gallery-thumbnails {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.scene-editor-gallery-thumbnails label {
+  aspect-ratio: 1;
+  background-repeat: no-repeat;
+  background-size: cover;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.scene-editor-gallery-thumbnails label:has(:checked) {
+  filter: none !important;
+  outline-color: inherit;
+  outline-offset: 1px;
+  outline-style: solid;
+  outline-width: 2px;
+}
