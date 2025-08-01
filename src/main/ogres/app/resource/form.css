@@ -93,7 +93,7 @@
 
 .fieldset {
   --border: var(--color-slate-500);
-  --legend-background: var(--color-slate-100);
+  --legend-background: var(--color-slate-50);
   --legend-foreground: var(--color-slate-700);
   --legend-text-size: smaller;
 
