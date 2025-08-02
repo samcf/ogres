@@ -1,4 +1,8 @@
 .props-gallery-page {
+  --border: var(--color-slate-900);
+}
+
+.props-gallery-page {
   display: grid;
   gap: 4px;
   grid-template-columns: repeat(4, 1fr);
@@ -18,10 +22,16 @@
   }
 }
 
+.props-gallery-placeholder,
+.props-gallery-image {
+  border-color: var(--border);
+  border-radius: 3px;
+  border-style: dashed;
+  border-width: 1px;
+}
+
 .props-gallery-placeholder {
   aspect-ratio: 1;
-  border: 1px dashed var(--color-blues-300);
-  border-radius: 3px;
 }
 
 .props-gallery-remove {
@@ -40,14 +50,15 @@
 .props-gallery-image {
   background-repeat: no-repeat;
   background-size: cover;
-  border-radius: 3px;
-  border: 1px solid var(--color-blues-900);
+  border-style: solid;
   cursor: grab;
   flex: 1;
 
   &:focus-visible {
-    outline: 2px dotted var(--outline-color);
+    outline-color: inherit;
     outline-offset: 1px;
+    outline-style: dotted;
+    outline-width: 2px;
   }
 }
 
@@ -60,8 +71,8 @@
 .props-gallery-pagination {
   display: flex;
   margin: 8px 0;
+}
 
-  nav {
-    margin: auto;
-  }
+.props-gallery-pagination nav {
+  margin: auto;
 }
