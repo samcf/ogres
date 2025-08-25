@@ -1,3 +1,35 @@
+
+<div align="right">
+  <details>
+    <summary >🌐 Language</summary>
+    <div>
+      <div align="center">
+        <a href="https://openaitx.github.io/view.html?user=samcf&project=ogres&lang=en">English</a>
+        | <a href="https://openaitx.github.io/view.html?user=samcf&project=ogres&lang=zh-CN">简体中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=samcf&project=ogres&lang=zh-TW">繁體中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=samcf&project=ogres&lang=ja">日本語</a>
+        | <a href="https://openaitx.github.io/view.html?user=samcf&project=ogres&lang=ko">한국어</a>
+        | <a href="https://openaitx.github.io/view.html?user=samcf&project=ogres&lang=hi">हिन्दी</a>
+        | <a href="https://openaitx.github.io/view.html?user=samcf&project=ogres&lang=th">ไทย</a>
+        | <a href="https://openaitx.github.io/view.html?user=samcf&project=ogres&lang=fr">Français</a>
+        | <a href="https://openaitx.github.io/view.html?user=samcf&project=ogres&lang=de">Deutsch</a>
+        | <a href="https://openaitx.github.io/view.html?user=samcf&project=ogres&lang=es">Español</a>
+        | <a href="https://openaitx.github.io/view.html?user=samcf&project=ogres&lang=it">Italiano</a>
+        | <a href="https://openaitx.github.io/view.html?user=samcf&project=ogres&lang=ru">Русский</a>
+        | <a href="https://openaitx.github.io/view.html?user=samcf&project=ogres&lang=pt">Português</a>
+        | <a href="https://openaitx.github.io/view.html?user=samcf&project=ogres&lang=nl">Nederlands</a>
+        | <a href="https://openaitx.github.io/view.html?user=samcf&project=ogres&lang=pl">Polski</a>
+        | <a href="https://openaitx.github.io/view.html?user=samcf&project=ogres&lang=ar">العربية</a>
+        | <a href="https://openaitx.github.io/view.html?user=samcf&project=ogres&lang=fa">فارسی</a>
+        | <a href="https://openaitx.github.io/view.html?user=samcf&project=ogres&lang=tr">Türkçe</a>
+        | <a href="https://openaitx.github.io/view.html?user=samcf&project=ogres&lang=vi">Tiếng Việt</a>
+        | <a href="https://openaitx.github.io/view.html?user=samcf&project=ogres&lang=id">Bahasa Indonesia</a>
+        | <a href="https://openaitx.github.io/view.html?user=samcf&project=ogres&lang=as">অসমীয়া</
+      </div>
+    </div>
+  </details>
+</div>
+
 ![Screenshot of the Ogres app](site/web/media/ogres-media-collection.webp)
 
 ## Features
