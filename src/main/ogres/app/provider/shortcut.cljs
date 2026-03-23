@@ -1,5 +1,6 @@
 (ns ogres.app.provider.shortcut
   (:require [ogres.app.hooks :as hooks]
+            [ogres.app.segment :as seg]
             [ogres.app.vec :as vec :refer [Vec2]]
             [uix.core :refer [defui]]))
 
@@ -50,8 +51,20 @@
    {:name "mask-remove"   :keys [\x]}
    {:name "note"          :keys [\a]}])
 
+(def ^:private panel->upload-type
+  {:tokens :token
+   :scene  :scene
+   :props  :props})
+
 (defui listeners []
-  (let [dispatch (hooks/use-dispatch)]
+  (let [dispatch (hooks/use-dispatch)
+        {bounds   :user/bounds
+         selected :panel/selected
+         expanded :panel/expanded} (hooks/use-query [[:user/bounds :default seg/zero]
+                                                     [:panel/selected :default :tokens]
+                                                     [:panel/expanded :default true]])
+        upload-type (if expanded (get panel->upload-type selected :props) :props)
+        upload      (hooks/use-image-uploader {:type upload-type})]
 
     ;; Zoom the camera in and out with the mousewheel or trackpad.
     (hooks/use-event-listener "wheel"
@@ -107,15 +120,16 @@
                   (= (.-activeElement js/document) (.-body js/document))
                   (dispatch :objects/translate-selected (vec/mul delta 70)))))))
 
-    ;; Cut, copy, and paste objects.
-    (hooks/use-shortcut [\c \x \v]
+    ;; Cut and copy objects.
+    ;; Writing an empty string to the system clipboard ensures that a subsequent
+    ;; paste event will not see a stale image and will fall through to object paste.
+    (hooks/use-shortcut [\c \x]
       (fn [data]
         (let [event (.-originalEvent data)]
           (if (and (allowed? event) (or (.-ctrlKey event) (.-metaKey event)))
             (case (.-key data)
-              \c (dispatch :clipboard/copy)
-              \x (dispatch :clipboard/copy true)
-              \v (dispatch :clipboard/paste))))))
+              \c (do (dispatch :clipboard/copy) (.writeText js/navigator.clipboard ""))
+              \x (do (dispatch :clipboard/copy true) (.writeText js/navigator.clipboard "")))))))
 
     ;; Removes all object selections and reverts the draw mode to select.
     (hooks/use-shortcut ["escape"]
@@ -131,4 +145,25 @@
                 type (.-type attr)]
             (if (or (= type "shape") (= type "token"))
               (dispatch :objects/remove [(js/Number (.-id attr))])
-              (dispatch :selection/remove))))))))
+              (dispatch :selection/remove))))))
+
+    ;; Handle all paste behavior. If the system clipboard contains images, upload
+    ;; them to the active panel's library and place them on the scene appropriately. 
+    ;; Otherwise fall through to the internal object clipboard.
+    (hooks/use-event-listener "paste"
+      (fn [event]
+        (when (allowed? event)
+          (let [files (some->> (.. event -clipboardData -files)
+                               array-seq
+                               (filter #(re-find #"^image/" (.-type %)))
+                               seq)]
+            (if (and upload files)
+              (do (.preventDefault event)
+                  (-> (upload files)
+                      (.then (fn [records]
+                               (doseq [[{hash :hash} _] records]
+                                 (case upload-type
+                                   :token (dispatch :token/create (seg/midpoint (seg/rebase bounds)) hash)
+                                   :scene (dispatch :scene/change-image hash)
+                                   :props (dispatch :props/create (seg/midpoint bounds) hash)))))))
+              (dispatch :clipboard/paste))))))))
