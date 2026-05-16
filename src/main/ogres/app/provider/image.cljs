@@ -218,7 +218,8 @@
                  (case type
                    :token (dispatch :token-images/create-many records)
                    :scene (dispatch :scene-images/create-many records)
-                   :props (dispatch :props-images/create-many records)))))))
+                   :props (dispatch :props-images/create-many records))
+                 records)))))
       (fn [files]
         (.then (js/Promise.all (into-array (into [] (map process-file) files)))
                (fn [files]
