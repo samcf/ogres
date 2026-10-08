@@ -21,7 +21,8 @@
    "mask-remove"  {:label "Remove a mask." :args [:camera/change-mode :mask-remove]}
    "mask-show"    {:label "Reveal the entire scene." :args [:scene/reveal]}
    "mask-toggle"  {:label "Toggle a mask on and off." :args [:camera/change-mode :mask-toggle]}
-   "scene-focus"  {:label "Focus the current view." :args [:session/focus]}
+   "scene-center" {:label "Reset your view." :args [:camera/frame]}
+   "scene-focus"  {:label "Snap players to this view." :args [:session/focus]}
    "scene-grid"   {:label "Grid alignment tool." :args [:camera/change-mode :grid]}
    "scene-ruler"  {:label "Measure distance." :args [:camera/change-mode :ruler]}
    "scene-select" {:label "Hold shift to select multiple tokens." :args [:camera/change-mode :select]}
@@ -88,8 +89,8 @@
           ($ icon {:name "clipboard2-plus"}))
         ($ action {:name "scene-ruler" :aria-pressed (= mode :ruler)}
           ($ icon {:name "rulers"}))
-        ($ action {:name "note" :aria-pressed (= mode :note)}
-          ($ icon {:name "journal-bookmark-fill"}))
+        ($ action {:name "scene-center"}
+          ($ icon {:name "aspect-ratio" :size 22}))
         ($ action {:name "scene-focus" :aria-disabled (not (some? (:session/_host result)))}
           ($ icon {:name "camera2" :size 22}))
         ($ action {:name "draw-circle" :aria-pressed (= mode :circle)}
@@ -108,6 +109,10 @@
           (-> scale (* 100) (js/Math.trunc) (str "%")))
         ($ action {:name "zoom-in" :aria-disabled (= scale 4)}
           ($ icon {:name "zoom-in"}))
+        ($ action {:name "note" :aria-pressed (= mode :note)}
+          ($ icon {:name "journal-bookmark-fill"}))
+        ($ action {:name "scene-grid" :aria-pressed (= mode :grid)}
+          ($ icon {:name "compass"}))
         ($ action {:name "mask-create" :aria-pressed (= mode :mask)}
           ($ icon {:name "star-half"}))
         ($ action {:name "mask-toggle" :aria-pressed (= mode :mask-toggle)}
@@ -117,6 +122,4 @@
         ($ action {:name "mask-show"}
           ($ icon {:name "eye-fill"}))
         ($ action {:name "mask-hide"}
-          ($ icon {:name "eye-slash-fill"}))
-        ($ action {:name "scene-grid" :aria-pressed (= mode :grid)}
-          ($ icon {:name "compass"}))))))
+          ($ icon {:name "eye-slash-fill"}))))))

@@ -150,6 +150,10 @@
     grid-area: mtg;
   }
 
+  [name="scene-center"] {
+    grid-area: cnt;
+  }
+
   [name="scene-focus"] {
     grid-area: fcs;
   }
@@ -213,8 +217,8 @@
       grid-template-columns: repeat(12, 1fr);
       grid-template-rows: repeat(2, 1fr);
       grid-template-areas:
-        "sel cut cop pst rul not fcs crc rct con ply lne"
-        "zot zrt zrt zrt zin msk mtg mrm msh mhi grd .";
+        "sel cut cop pst rul cnt fcs crc rct con ply lne"
+        "zot zrt zrt zrt zin not grd msk mtg mrm msh mhi";
     }
 
     &[data-user="conn"] .toolbar-actions {

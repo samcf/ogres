@@ -150,6 +150,31 @@
     [[:db/retract (:db/id (:user/camera user)) :camera/label]]))
 
 (defmethod
+  ^{:doc "Attempts to frame the current scene image."}
+  event-tx-fn :camera/frame
+  [data]
+  (let [user  (ds/entity data [:db/ident :user])
+        ident (:db/id (:user/camera user))
+        scene (:scene/image (:camera/scene (:user/camera user)))]
+    (if (nil? scene)
+      [[:db/add ident :camera/point vec/zero]
+       [:db/add ident :camera/scale 1]]
+      (let [width (:image/width scene)
+            heigh (:image/height scene)
+            bound (:user/bounds user)
+            scale (max
+                   (min
+                    (/ (seg/width bound) width)
+                    (/ (seg/height bound) heigh)
+                    1)
+                   0.15)
+            point (vec/sub
+                   (vec/div (Vec2. width heigh) 2)
+                   (vec/div (seg/midpoint (seg/rebase bound)) scale))]
+        [[:db/add ident :camera/scale scale]
+         [:db/add ident :camera/point point]]))))
+
+(defmethod
   ^{:doc "Translate the current camera by the offset given by dx and dy."}
   event-tx-fn :camera/translate
   [data _ delta]
