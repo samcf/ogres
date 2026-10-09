@@ -282,7 +282,8 @@
   [[:user/host :default true]
    {:user/camera
     [{:camera/scene
-      [{:scene/tokens
+      [:scene/initiative
+       {:scene/tokens
         [:db/id
          [:initiative/suffix :default nil]
          [:object/point :default vec/zero]

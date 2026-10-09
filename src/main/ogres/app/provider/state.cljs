@@ -1,5 +1,6 @@
 (ns ogres.app.provider.state
-  (:require [cognitect.transit :as t]
+  (:require [clojure.walk :refer [postwalk]]
+            [cognitect.transit :as t]
             [datascript.core :as ds]
             [goog.functions :refer [throttle]]
             [ogres.app.const :refer [VERSION]]
@@ -39,6 +40,51 @@
    :user/dragging     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many}
    :user/image        {:db/valueType :db.type/ref}
    :user/uuid         {:db/unique :db.unique/identity}})
+
+(defn with-db-ids [pattern]
+  (postwalk
+   (fn [node]
+     (if (map? node)
+       (update-vals node (fn [xs] (into [:db/id] xs)))
+       node))
+   (into [:db/id] pattern)))
+
+(defn attr-name [attr-spec]
+  (cond
+    (keyword? attr-spec) attr-spec
+    (vector?  attr-spec) (first attr-spec)))
+
+(defn allowed? [attr]
+  (not (or (= attr :db/id) (= (first (name attr)) \_))))
+
+(defn walk-spec [acc spec result]
+  (let [id (:db/id result)]
+    (cond
+      (keyword? spec)
+      (if (allowed? spec) (update acc :deps conj (list id spec)) acc)
+      (vector? spec)
+      (let [attr (first spec)]
+        (if (allowed? attr) (update acc :deps conj (list id attr)) acc))
+      (map? spec)
+      (reduce-kv
+       (fn [acc spec pattern]
+         (let [attr (attr-name spec)]
+           (if-let [result (result attr)]
+             (if (vector? result)
+               (update acc :queue into (map (fn [result] [pattern result])) result)
+               (update acc :queue conj [pattern result]))
+             acc)))
+       (update acc :queue conj [(keys spec) result]) spec))))
+
+(defn query-deps [pattern result]
+  (loop [acc {:queue #queue [[pattern result]] :deps (hash-set)}]
+    (if (seq (:queue acc))
+      (let [[pattern result] (peek (:queue acc))]
+        (recur
+         (reduce
+          (fn [acc spec] (walk-spec acc spec result))
+          (update acc :queue pop) pattern)))
+      (:deps acc))))
 
 (defn initial-data [host]
   (ds/db-with
@@ -139,17 +185,21 @@
   ([pattern]
    (use-query pattern [:db/ident :user]))
   ([pattern entity-id]
-   (let [conn                   (uix/use-context context)
-         get-result             (uix/use-callback #(ds/pull @conn pattern entity-id) ^:lint/disable [])
-         [listen-key]           (uix/use-state random-uuid)
-         [prev-state set-state] (uix/use-state get-result)]
+   (let [conn          (uix/use-context context)
+         pattern       (uix/use-memo (fn [] (with-db-ids pattern)) ^:lint/disable [])
+         run-query     (uix/use-callback (fn [db] (ds/pull db pattern entity-id)) [entity-id])
+         [key set-key] (uix/use-state random-uuid)
+         [res set-res] (uix/use-state (run-query (ds/db conn)))
+         deps          (uix/use-memo (fn [] (query-deps pattern res)) ^:lint/disable [key])]
      (uix/use-effect
       (fn []
-        (ds/listen! conn listen-key
-          (fn []
-            (let [next-state (get-result)]
-              (if (not= prev-state next-state)
-                (set-state next-state)))))
-        (fn []
-          (ds/unlisten! conn listen-key))) ^:lint/disable [prev-state])
-     prev-state)))
+        (ds/listen! conn key
+          (fn [report]
+            (when
+             (some
+              (fn [datom] (deps (list (.-e datom) (.-a datom))))
+              (:tx-data report))
+              (set-key random-uuid)
+              (set-res (run-query (:db-after report))))))
+        (fn [] (ds/unlisten! conn key))) ^:lint/disable [key conn run-query])
+     res)))

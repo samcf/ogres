@@ -179,7 +179,7 @@
         hidden    (:object/hidden entity)
         camera    (first (:camera/_selected entity))
         selected  (into #{} (map :db/id) (:camera/selected camera))
-        selected? (and (contains? camera :user/_camera) (= selected #{id}))]
+        selected? (and (= selected #{id}) (some-> camera :user/_camera first :root/_user :db/id some?))]
     ($ :foreignObject.scene-object-note
       {:x -8 :y -8 :width 362 :height (if selected? 334 58) :data-selected selected?}
       ($ :.scene-note {:data-hidden hidden}
@@ -465,7 +465,8 @@
        [:camera/scale :default 1]
        [:camera/point :default vec/zero]
        {:camera/scene
-        [[:scene/grid-align :default false]
+        [:scene/initiative
+         [:scene/grid-align :default false]
          [:scene/show-object-outlines :default true]
          {:scene/tokens
           [:db/id
@@ -478,16 +479,16 @@
            [:token/light :default 15]
            [:token/aura-radius :default 0]
            {:token/image [:token-image/url :image/hash :image/public]}
-           {:scene/_initiative [:db/id :initiative/turn]}]}
-         {:scene/shapes
+           {:scene/_initiative [:db/id :initiative/turn]}]
+          :scene/shapes
           [:db/id
            [:object/type :default :shape/circle]
            [:object/point :default vec/zero]
            [:object/locked :default false]
            [:shape/points :default [vec/zero]]
            [:shape/color :default "red"]
-           [:shape/pattern :default :solid]]}
-         {:scene/props
+           [:shape/pattern :default :solid]]
+          :scene/props
           [:db/id
            [:object/type :default :prop/prop]
            [:object/point :default vec/zero]
@@ -501,8 +502,8 @@
            {:camera/_selected
             [[:camera/scale :default 1]
              :camera/selected
-             {:user/_camera [:root/_user]}]}]}
-         {:scene/notes
+             {:user/_camera [:root/_user]}]}]
+          :scene/notes
           [:db/id
            [:object/type :default :note/note]
            [:object/point :default vec/zero]

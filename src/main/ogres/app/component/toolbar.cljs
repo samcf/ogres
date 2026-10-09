@@ -40,22 +40,23 @@
     (:children props)))
 
 (def ^:private query
-  [:session/_host
-   :user/clipboard
-   [:user/host :default true]
-   {:user/camera
-    [:camera/selected
-     [:camera/draw-mode :default :select]
-     [:camera/scale :default 1]]}])
+  [{:root/session [:session/host]}
+   {:root/user
+    [:user/clipboard
+     [:user/host :default true]
+     {:user/camera
+      [:camera/selected
+       [:camera/draw-mode :default :select]
+       [:camera/scale :default 1]]}]}])
 
 (defui toolbar []
   (let [[focused set-focused] (uix/use-state nil)
         dispatch  (hooks/use-dispatch)
-        result    (hooks/use-query query)
-        {host      :user/host
-         {scale    :camera/scale
-          mode     :camera/draw-mode
-          selected :camera/selected} :user/camera} result
+        result    (hooks/use-query query [:db/ident :root])
+        {{host      :user/host
+          {scale    :camera/scale
+           mode     :camera/draw-mode
+           selected :camera/selected} :user/camera} :root/user} result
         on-focus (uix/use-callback
                   (fn [event]
                     (if-let [node (.. event -target (closest "button"))]
@@ -91,7 +92,7 @@
           ($ icon {:name "rulers"}))
         ($ action {:name "scene-center"}
           ($ icon {:name "aspect-ratio" :size 22}))
-        ($ action {:name "scene-focus" :aria-disabled (not (some? (:session/_host result)))}
+        ($ action {:name "scene-focus" :aria-disabled (-> result :root/session :session/host nil?)}
           ($ icon {:name "camera2" :size 22}))
         ($ action {:name "draw-circle" :aria-pressed (= mode :circle)}
           ($ icon {:name "circle"}))
