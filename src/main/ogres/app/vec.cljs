@@ -1,5 +1,5 @@
 (ns ogres.app.vec
-  (:refer-clojure :exclude [abs max mod map]))
+  (:refer-clojure :exclude [abs max mod]))
 
 (def ^:private rad->deg (/ 180 js/Math.PI))
 (def ^:private tau (* 2 js/Math.PI))
