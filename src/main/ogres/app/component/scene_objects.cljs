@@ -289,14 +289,13 @@
   (let [{{id :db/id
           object-scale :object/scale
           object-rotation :object/rotation
-          {width :image/width
-           height :image/height} :prop/image
+          {image :image/size} :prop/image
           [{zoom :camera/scale}] :camera/_selected} :entity
          transform :transform} props
         [scale set-scale] (uix/use-state object-scale)
         [rotation set-rotation] (uix/use-state object-rotation)
         dispatch (hooks/use-dispatch)
-        bounds (Segment. vec/zero (Vec2. width height))
+        bounds (Segment. vec/zero image)
         center (seg/midpoint bounds)
         get-scale
         (fn [^js/Object event]
@@ -356,11 +355,12 @@
           hidden :object/hidden
           locked :object/locked
           {hash :image/hash
-           width :image/width
-           height :image/height} :prop/image
+           size :image/size} :prop/image
           [{selected :camera/selected
             [{user :root/_user}] :user/_camera
             zoom :camera/scale}] :camera/_selected} :entity} props
+        width (.-x size)
+        height (.-y size)
         url-image (hooks/use-image hash)
         mod-scale (uix/use-memo (fn [] (modifiers/scale-fn zoom)) [zoom])
         transform (geom/object-transform (:entity props))
@@ -497,8 +497,7 @@
            [:object/locked :default false]
            {:prop/image
             [:image/hash
-             [:image/width :default 0]
-             [:image/height :default 0]]}
+             [:image/size :default vec/zero]]}
            {:camera/_selected
             [[:camera/scale :default 1]
              :camera/selected

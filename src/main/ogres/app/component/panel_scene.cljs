@@ -11,7 +11,7 @@
     [:db/id
      :image/hash
      :image/name
-     :image/size
+     :image/filesize
      {:image/thumbnail
       [:image/hash]}]}
    {:root/user
@@ -55,7 +55,7 @@
     [:db/id
      :image/hash
      :image/name
-     :image/size
+     :image/filesize
      {:image/thumbnail
       [:image/hash]}]}])
 
@@ -74,8 +74,8 @@
             ($ :dt "Filename")
             ($ :dd (:image/name scene))
             ($ :dt "Size")
-            ($ :dd (display-size (:image/size scene)))
-            (if (> (:image/size scene) filesize-limit)
+            ($ :dd (display-size (:image/filesize scene)))
+            (if (> (:image/filesize scene) filesize-limit)
               ($ :<>
                 ($ :dt ($ icon {:name "exclamation-triangle-fill" :size 12}) "Warning")
                 ($ :dd
@@ -185,7 +185,7 @@
                                  (.stopPropagation event)
                                  (dispatch :scene-images/remove hash thumbnail))}
                               ($ icon {:name "trash3-fill" :size 18}))
-                            (if (> (:image/size data) filesize-limit)
+                            (if (> (:image/filesize data) filesize-limit)
                               ($ :button.button.button-warning
                                 {:type "button"
                                  :name "warn"

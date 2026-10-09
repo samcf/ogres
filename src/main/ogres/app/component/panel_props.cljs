@@ -12,8 +12,7 @@
   [{:root/props-images
     [:image/hash
      :image/name
-     :image/width
-     :image/height
+     :image/size
      {:image/thumbnail
       [:image/hash]}]}])
 

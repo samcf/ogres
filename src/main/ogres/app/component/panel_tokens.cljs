@@ -24,11 +24,10 @@
      :image/public
      :image/name
      :image/size
-     :image/width
-     :image/height
+     :image/filesize
      :image/thumbnail-rect
      {:image/thumbnail
-      [:image/hash :image/size]}
+      [:image/hash :image/filesize]}
      :token-image/default-label
      :token-image/url]}])
 
@@ -318,10 +317,10 @@
         children))))
 
 (defui ^:private editor [props]
-  (let [{{hash   :image/hash
-          width  :image/width
-          height :image/height} :image
+  (let [{{hash :image/hash size :image/size} :image
          on-change :on-change} props
+        width (.-x size)
+        height (.-y size)
         element (uix/use-ref nil)
         obj-url (hooks/use-image hash)
         initial (or (:image/thumbnail-rect (:image props)) (default-region width height))

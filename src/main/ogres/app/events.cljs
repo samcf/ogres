@@ -159,17 +159,16 @@
     (if (nil? scene)
       [[:db/add ident :camera/point vec/zero]
        [:db/add ident :camera/scale 1]]
-      (let [width (:image/width scene)
-            heigh (:image/height scene)
-            bound (:user/bounds user)
+      (let [bound (:user/bounds user)
+            image (:image/size scene)
             scale (max
                    (min
-                    (/ (seg/width bound) width)
-                    (/ (seg/height bound) heigh)
+                    (/ (seg/width bound) (.-x image))
+                    (/ (seg/height bound) (.-y image))
                     1)
                    0.15)
             point (vec/sub
-                   (vec/div (Vec2. width heigh) 2)
+                   (vec/div image 2)
                    (vec/div (seg/midpoint (seg/rebase bound)) scale))]
         [[:db/add ident :camera/scale scale]
          [:db/add ident :camera/point point]]))))
@@ -345,17 +344,15 @@
           (for [[{:keys [hash name size width height]} _] images]
             {:image/hash hash
              :image/name name
-             :image/size size
-             :image/width width
-             :image/height height})}] cat
+             :image/size (Vec2. width height)
+             :image/filesize size})}] cat
         (for [[image thumbnail] images]
           (if (= (:hash image) (:hash thumbnail))
             [{:image/hash (:hash image) :image/thumbnail [:image/hash (:hash image)]}]
             [{:image/hash (:hash thumbnail)
               :image/name (:name thumbnail)
-              :image/size (:size thumbnail)
-              :image/width (:width thumbnail)
-              :image/height (:height thumbnail)}
+              :image/size (Vec2. (:width thumbnail) (:height thumbnail))
+              :image/filesize (:size thumbnail)}
              {:image/hash (:hash image) :image/thumbnail [:image/hash (:hash thumbnail)]}]))))
 
 (defmethod
@@ -804,18 +801,16 @@
            (for [[{:keys [hash name size width height]} _] images]
              {:image/hash hash
               :image/name name
-              :image/size size
-              :image/public public?
-              :image/width width
-              :image/height height})}] cat
+              :image/size (Vec2. width height)
+              :image/filesize size
+              :image/public public?})}] cat
          (for [[image thumbnail] images]
            (if (= (:hash image) (:hash thumbnail))
              [{:image/hash (:hash image) :image/thumbnail [:image/hash (:hash image)]}]
              [{:image/hash (:hash thumbnail)
                :image/name (:name thumbnail)
-               :image/size (:size thumbnail)
-               :image/width (:width thumbnail)
-               :image/height (:height thumbnail)}
+               :image/size (Vec2. (:width thumbnail) (:height thumbnail))
+               :image/filesize (:size thumbnail)}
               {:image/hash (:hash image) :image/thumbnail [:image/hash (:hash thumbnail)]}])))))
 
 (defmethod
@@ -843,9 +838,8 @@
     :image/thumbnail-rect rect
     :image/thumbnail
     {:image/hash (:hash thumb)
-     :image/size (.-size (:data thumb))
-     :image/width (:width thumb)
-     :image/height (:height thumb)}}])
+     :image/size (Vec2. (:width thumb) (:height thumb))
+     :image/filesize (.-size (:data thumb))}}])
 
 (defmethod
   ^{:doc ""}
@@ -1208,17 +1202,15 @@
      (for [[{:keys [hash name size width height]} _] images]
        {:image/hash hash
         :image/name name
-        :image/size size
-        :image/width width
-        :image/height height})}] cat
+        :image/size (Vec2. width height)
+        :image/filesize size})}] cat
    (for [[image thumbnail] images]
      (if (= (:hash image) (:hash thumbnail))
        [{:image/hash (:hash image) :image/thumbnail [:image/hash (:hash image)]}]
        [{:image/hash (:hash thumbnail)
          :image/name (:name thumbnail)
-         :image/size (:size thumbnail)
-         :image/width (:width thumbnail)
-         :image/height (:height thumbnail)}
+         :image/size (Vec2. (:width thumbnail) (:height thumbnail))
+         :image/filesize (:size thumbnail)}
         {:image/hash (:hash image) :image/thumbnail [:image/hash (:hash thumbnail)]}]))))
 
 (defmethod
@@ -1259,12 +1251,11 @@
            :camera/scene}
           :user/camera} :root/user}
         (ds/entity data [:db/ident :root])
-        {width :image/width
-         height :image/height}
+        {size :image/size}
         (ds/entity data [:image/hash hash])
         xform
         (-> (matrix/translate matrix/identity camera-point)
-            (matrix/translate (/ width -2) (/ height -2))
+            (matrix/translate (vec/div size -2))
             (matrix/scale (/ (or camera-scale 1)))
             (matrix/translate (vec/mul (.-a bounds) -1)))]
     (if (geom/point-within-rect? point bounds)

@@ -69,12 +69,13 @@
       [[:scene/grid-size :default grid-size]
        [:scene/grid-origin :default vec/zero]
        [:scene/lighting :default :revealed]
-       {:scene/image [:image/hash :image/width :image/height]}]}]}])
+       {:scene/image
+        [[:image/size :default vec/zero]
+         :image/hash]}]}]}])
 
 (defui ^:private image-defs []
   (let [result (hooks/use-query image-defs-query)
-        {{{{width  :image/width
-            height :image/height
+        {{{{dims :image/size
             hash :image/hash} :scene/image
            origin :scene/grid-origin
            size :scene/grid-size} :camera/scene} :user/camera} result
@@ -92,8 +93,8 @@
         ($ image {:hash hash}
           (fn [url]
             ($ :image
-              {:id "scene-image" :href url :width width :height height :transform transform}))))
-      ($ :rect {:id "scene-image-cover" :width width :height height :transform transform})
+              {:id "scene-image" :href url :width (.-x dims) :height (.-y dims) :transform transform}))))
+      ($ :rect {:id "scene-image-cover" :width 0 :height 0 :transform transform})
       ($ :clipPath {:id "scene-image-clip"}
         ($ :use {:href "#scene-image-cover"})))))
 

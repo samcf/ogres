@@ -251,9 +251,8 @@
   [{point :object/point
     scale :object/scale
     rotation :object/rotation
-    {width :image/width
-     height :image/height} :prop/image}]
-  (let [bound (Segment. point (vec/shift point width height))
+    {image :image/size} :prop/image}]
+  (let [bound (Segment. point (vec/add point image))
         xform (-> matrix/identity
                   (matrix/translate (seg/midpoint bound))
                   (matrix/scale scale)
@@ -268,9 +267,8 @@
 
 (defmethod object-transform :prop/prop
   [{scale :object/scale rotation :object/rotation
-    {width :image/width height :image/height} :prop/image}]
-  (let [bounds (Segment. vec/zero (Vec2. width height))
-        center (seg/midpoint bounds)]
+    {image :image/size} :prop/image}]
+  (let [center (vec/div image 2)]
     (-> (matrix/translate matrix/identity center)
         (matrix/scale (or scale 1))
         (matrix/rotate (or rotation 0))
