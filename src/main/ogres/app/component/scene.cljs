@@ -94,7 +94,8 @@
           (fn [url]
             ($ :image
               {:id "scene-image" :href url :width (.-x dims) :height (.-y dims) :transform transform}))))
-      ($ :rect {:id "scene-image-cover" :width 0 :height 0 :transform transform})
+      (if (some? hash)
+        ($ :rect {:id "scene-image-cover" :width (.-x dims) :height (.-y dims) :transform transform}))
       ($ :clipPath {:id "scene-image-clip"}
         ($ :use {:href "#scene-image-cover"})))))
 
