@@ -61,8 +61,9 @@
                 posx (.-clientX event)
                 posy (.-clientY event)
                 delt (.-deltaY event)]
-            (.preventDefault event)
-            (dispatch :camera/zoom-delta posx posy delt ctrl)))))
+            (when (= (.-buttons event) 0)
+              (.preventDefault event)
+              (dispatch :camera/zoom-delta posx posy delt ctrl))))))
 
     ;; Zoom the camera in and out with keyboard.
     (hooks/use-shortcut [\= \-]
