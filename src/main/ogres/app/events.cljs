@@ -672,6 +672,7 @@
             :let   [{id :db/id} entity]
             :let   [object (geom/object-bounding-rect entity)]
             :when  (and (not (occupied id))
+                        (not (:object/locked entity))
                         (not (and (not host) (:object/hidden entity)))
                         (not (and (not host) (= (:object/type entity) :note/note)))
                         (not (and (not host) (= (:object/type entity) :prop/prop)))
