@@ -150,7 +150,7 @@
                value (.-value input)
                group (.closest input "fieldset")
                ident (.querySelector group "[name='id']")
-               uuid  (uuid (.-value ident))]
+               uuid  (.-value ident)]
            (case (.-name input)
              "label"       (dispatch :user/change-label       uuid value)
              "description" (dispatch :user/change-description uuid value)
