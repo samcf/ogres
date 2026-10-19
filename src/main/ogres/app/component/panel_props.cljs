@@ -61,7 +61,7 @@
                   ($ :button.button.button-danger.props-gallery-remove
                     {:on-click
                      (fn []
-                       (dispatch :props-images/remove (:image/hash term)))}
+                       (dispatch :props-images/remove (:image/hash term) (:image/hash (:image/thumbnail term))))}
                     ($ icon {:name "trash3-fill" :size 16}))))))
           (if (> pages 1)
             ($ :.props-gallery-pagination
@@ -99,10 +99,20 @@
       "select it. "
       ($ :strong "Removing images ") "will also remove them from all scenes.")))
 
+(def ^:private actions-query
+  [{:root/props-images [:image/hash {:image/thumbnail [:image/hash]}]}])
+
 (defui ^:memo actions []
   (let [dispatch (hooks/use-dispatch)
         upload (hooks/use-image-uploader {:type :props})
-        input (uix/use-ref)]
+        result (hooks/use-query actions-query [:db/ident :root])
+        input (uix/use-ref)
+        on-remove
+        (uix/use-callback
+         (fn []
+           (let [xf (mapcat (fn [image] [(:image/hash image) (:image/hash (:image/thumbnail image))]))
+                 rs (into #{} xf (:root/props-images result))]
+             (dispatch :props-images/remove-all rs))) [dispatch result])]
     ($ :<>
       ($ :input
         {:ref input
@@ -118,6 +128,5 @@
         {:on-click (fn [] (.click @input))}
         ($ icon {:name "camera-fill" :size 16})
         "Upload images")
-      ($ :button.button.button-danger
-        {:on-click (fn [] (dispatch :props-images/remove-all))}
+      ($ :button.button.button-danger {:on-click on-remove}
         ($ icon {:name "trash3-fill" :size 16})))))

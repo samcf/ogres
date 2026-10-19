@@ -109,24 +109,14 @@
 (def context (uix/create-context))
 
 (defui ^:private listeners []
-  (let [write (idb/use-writer "images")]
-    ;; Removes the given scene image and its thumbnail from the
-    ;; IndexedDB images object store.
-    (events/use-subscribe :scene-images/remove
-      (uix/use-callback
-       (fn [& hashes] (write :delete hashes)) [write]))
-
-    ;; Removes the given token image and its thumbnail from the
-    ;; IndexedDB images object store.
-    (events/use-subscribe :token-images/remove
-      (uix/use-callback
-       (fn [& hashes] (write :delete hashes)) [write]))
-
-    ;; Removes the given token images from the IndexedDB images
-    ;; object store.
-    (events/use-subscribe :token-images/remove-all
-      (uix/use-callback
-       (fn [hashes] (write :delete hashes)) [write]))))
+  (let [write (idb/use-writer "images")
+        on-remove     (uix/use-callback (fn [& hashes] (write :delete hashes)) [write])
+        on-remove-all (uix/use-callback (fn [hashes]   (write :delete hashes)) [write])]
+    (events/use-subscribe :token-images/remove on-remove)
+    (events/use-subscribe :scene-images/remove on-remove)
+    (events/use-subscribe :props-images/remove on-remove)
+    (events/use-subscribe :token-images/remove-all on-remove-all)
+    (events/use-subscribe :props-images/remove-all on-remove-all)))
 
 (def ^:private ignored-attrs
   #{:user/host :user/ready :session/status})
