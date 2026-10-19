@@ -1014,7 +1014,7 @@
     [{:camera/selected
       (into clipboard-copy-attrs
             [:db/id
-             {:prop/image [:image/hash]}
+             {:prop/image [:image/hash :image/size]}
              {:token/image [:image/hash]}])}]}])
 
 (defmethod
