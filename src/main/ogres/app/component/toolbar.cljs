@@ -86,7 +86,7 @@
           ($ icon {:name "scissors"}))
         ($ action {:name "copy-copy" :aria-disabled (nil? selected)}
           ($ icon {:name "files"}))
-        ($ action {:name "copy-paste" :aria-disabled (nil? (:user/clipboard result))}
+        ($ action {:name "copy-paste" :aria-disabled (nil? (:user/clipboard (:root/user result)))}
           ($ icon {:name "clipboard2-plus"}))
         ($ action {:name "scene-ruler" :aria-pressed (= mode :ruler)}
           ($ icon {:name "rulers"}))
