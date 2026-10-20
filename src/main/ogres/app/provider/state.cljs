@@ -32,7 +32,7 @@
    :scene/tokens      {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :scene/notes       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :scene/props       {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
-   :session/conns     {:db/valueType :db.type/ref :db.cardinality :db.cardinality/many :db/isComponent true}
+   :session/conns     {:db/valueType :db.type/ref :db/cardinality :db.cardinality/many :db/isComponent true}
    :session/host      {:db/valueType :db.type/ref}
    :token/image       {:db/valueType :db.type/ref}
    :user/camera       {:db/valueType :db.type/ref}
