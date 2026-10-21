@@ -388,8 +388,8 @@
                      :on-change
                      (fn [event]
                        (let [n (js/Number (.. event -target -value))]
-                         (if (number? n)
-                           (set-size n))))})
+                         (cond (<= n 0)    (set-size prev-size)
+                               (number? n) (set-size n))))})
                   ($ :button {:type "submit" :data-name "submit"}
                     ($ icon {:name "check"})))))))))))
 
