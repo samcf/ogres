@@ -317,12 +317,12 @@
 
 (defmethod
   ^{:doc "Find all players that are currently viewing the given scene and
-          move them to the scene being viewd by the current user."}
+          move them to the scene being viewed by the current user."}
   event-tx-fn
   :scenes/sync-with-user
   [data _ prev-scn]
   (let [next-scn (-> (ds/entity data [:db/ident :user]) :user/camera :camera/scene :db/id)]
-    (->> (for [conn (:session/conns (ds/entity data [:db/ident :session]))
+    (->> (for [[tmp conn] (sequence (indexed 3) (:session/conns (ds/entity data [:db/ident :session])))
                :let [curr-scn (-> conn :user/camera :camera/scene :db/id)]
                :when (= curr-scn prev-scn)
                :let [curr-cam (first (filter (comp #{curr-scn} :db/id :camera/scene) (:user/cameras conn)))]]
@@ -330,10 +330,10 @@
              [[:db/retractEntity (:db/id curr-cam)]
               [:db/add (:db/id conn) :user/camera (:db/id next-cam)]]
              [[:db/retractEntity (:db/id curr-cam)]
-              [:db/add (:db/id conn) :user/cameras -3]
-              [:db/add (:db/id conn) :user/camera -3]
-              [:db/add -3 :camera/scene next-scn]
-              [:db/add -3 :camera/point vec/zero]]))
+              [:db/add (:db/id conn) :user/cameras tmp]
+              [:db/add (:db/id conn) :user/camera tmp]
+              [:db/add tmp :camera/scene next-scn]
+              [:db/add tmp :camera/point vec/zero]]))
          (apply concat))))
 
 ;; -- Scene Images --
