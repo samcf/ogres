@@ -11,7 +11,6 @@
             [uix.core :as uix :refer [defui]]
             ["@msgpack/msgpack" :as MessagePack]))
 
-(def ^:private interval-heartbeat 20000)
 (def ^:private interval-reconnect 5000)
 
 (def ^:private color-options
@@ -185,17 +184,6 @@
                    (= (:session/status user) :disconnected))
             (dispatch :session/join)))) [conn dispatch]) interval-reconnect)
 
-    ;; Periodically send heartbeat messages to keep the session connections
-    ;; alive. This heartbeat will be sent to the server and then distributed
-    ;; to the other connections in the room.
-    (hooks/use-interval
-     (uix/use-callback
-      (fn []
-        (let [user (ds/entity @conn [:db/ident :user])]
-          (if (and (not (:user/host user))
-                   (= (:session/status user) :connected))
-            (dispatch :session/heartbeat)))) [conn dispatch]), interval-heartbeat)
-
     ;; Subscribe to requests to create a new session, creating a WebSocket
     ;; connection object.
     (hooks/use-subscribe :session/request
@@ -219,13 +207,6 @@
            (if (some? room)
              (let [conn (js/WebSocket. (str SOCKET-URL "?join=" room))]
                (set-socket conn))))) []))
-
-    ;; Subscribe to regular heartbeat events, rebroadcasting it to the other
-    ;; connections in the server.
-    (hooks/use-subscribe :session/heartbeat
-      (uix/use-callback
-       (fn []
-         (on-send-text {:type :heartbeat})) [on-send-text]))
 
     ;; Subscribe to an intentional action to close the session, calling
     ;; `close` on the WebSocket object.

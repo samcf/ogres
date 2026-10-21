@@ -201,7 +201,7 @@
     :on-error  handle-ws-error
     :on-text   handle-ws-text
     :on-binary handle-ws-binary
-    :idle-timeout-ms (* 1000 60 3)}))
+    :idle-timeout-ms (* 1000 60 10)}))
 
 (defn create-connector
   ([] (create-connector {}))
